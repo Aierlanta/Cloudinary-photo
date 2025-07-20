@@ -87,8 +87,10 @@ export default function ImagesPage() {
         const response = await fetch(`/api/admin/images?${params}`)
         if (response.ok) {
           const data = await response.json()
-          setImages(data.data?.images || [])
-          setTotalImages(data.data?.total || 0)
+          // 修复数据结构解析
+          const imagesData = data.data?.images
+          setImages(imagesData?.data || [])
+          setTotalImages(imagesData?.total || 0)
         } else {
           console.error('加载图片失败:', response.statusText)
         }

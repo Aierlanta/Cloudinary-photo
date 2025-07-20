@@ -131,32 +131,23 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       params: queryParams
     });
 
-    // 从Cloudinary下载图片
-    const imageBuffer = await cloudinaryService.downloadImage(randomImage.publicId);
     const duration = Math.round(performance.now() - startTime);
 
-    // 从URL推断格式
-    const format = randomImage.url.split('.').pop() || 'jpg';
-
     // 记录成功响应
-    logger.apiResponse('GET', '/api/random', 200, duration, {
+    logger.apiResponse('GET', '/api/random', 302, duration, {
       imageId: randomImage.id,
-      imageSize: imageBuffer.length,
-      contentType: `image/${format}`
+      redirectUrl: randomImage.url
     });
 
-    // 设置响应头
-    const headers = new Headers();
-    headers.set('Content-Type', `image/${format}`);
-    headers.set('Content-Length', imageBuffer.length.toString());
-    headers.set('Cache-Control', 'public, max-age=3600'); // 缓存1小时
-    headers.set('X-Image-Id', randomImage.id);
-    headers.set('X-Image-PublicId', randomImage.publicId);
-    headers.set('X-Response-Time', `${duration}ms`);
-
-    return new NextResponse(imageBuffer, {
-      status: 200,
-      headers
+    // 重定向到图片URL
+    return NextResponse.redirect(randomImage.url, {
+      status: 302,
+      headers: {
+        'Cache-Control': 'public, max-age=3600', // 缓存1小时
+        'X-Image-Id': randomImage.id,
+        'X-Image-PublicId': randomImage.publicId,
+        'X-Response-Time': `${duration}ms`
+      }
     });
 
   } catch (error) {
