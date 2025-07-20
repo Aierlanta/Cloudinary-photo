@@ -77,11 +77,14 @@ export const GET = withSecurity({
  * 更新API配置
  */
 async function updateAPIConfig(request: NextRequest): Promise<Response> {
-  // 解析请求体
-  const body = await request.json();
-    
+  try {
+    // 解析请求体
+    const body = await request.json();
+    console.log('收到的请求数据:', JSON.stringify(body, null, 2));
+
     // 验证请求参数
     const validatedData = APIConfigUpdateRequestSchema.parse(body);
+    console.log('验证通过的数据:', JSON.stringify(validatedData, null, 2));
     
     // 获取当前配置
     let currentConfig = await databaseService.getAPIConfig();
@@ -149,6 +152,34 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
     };
     
     return NextResponse.json(response);
+  } catch (error) {
+    console.error('API配置更新失败:', error);
+
+    // 如果是Zod验证错误，返回详细的错误信息
+    if (error && typeof error === 'object' && 'issues' in error) {
+      const zodError = error as any;
+      console.error('验证错误详情:', zodError.issues);
+      return NextResponse.json({
+        success: false,
+        error: {
+          type: 'VALIDATION_ERROR',
+          message: '数据验证失败',
+          details: zodError.issues,
+          timestamp: new Date()
+        }
+      }, { status: 400 });
+    }
+
+    // 其他错误
+    return NextResponse.json({
+      success: false,
+      error: {
+        type: 'INTERNAL_ERROR',
+        message: error instanceof Error ? error.message : '服务器内部错误',
+        timestamp: new Date()
+      }
+    }, { status: 500 });
+  }
 }
 
 // 应用安全中间件和认证

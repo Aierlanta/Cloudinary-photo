@@ -53,12 +53,23 @@ export default function ConfigPage() {
   }, [])
 
   const loadConfig = async () => {
+    console.log('开始加载配置...')
     try {
-      const response = await fetch('/api/admin/config')
+      const response = await fetch('/api/admin/config', {
+        headers: {
+          'X-Admin-Password': 'admin123'
+        }
+      })
+      console.log('配置加载响应:', response.status, response.statusText)
       if (response.ok) {
         const data = await response.json()
+        console.log('配置加载成功:', data.data?.config)
         setConfig(data.data?.config || getDefaultConfig())
       } else {
+        console.error('加载配置失败:', {
+          status: response.status,
+          statusText: response.statusText
+        })
         setConfig(getDefaultConfig())
       }
     } catch (error) {
@@ -71,7 +82,11 @@ export default function ConfigPage() {
 
   const loadGroups = async () => {
     try {
-      const response = await fetch('/api/admin/groups')
+      const response = await fetch('/api/admin/groups', {
+        headers: {
+          'X-Admin-Password': 'admin123'
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setGroups(data.data?.groups || [])
@@ -91,17 +106,59 @@ export default function ConfigPage() {
   })
 
   const saveConfig = async () => {
-    if (!config) return
+    if (!config) {
+      console.error('配置为空，无法保存')
+      alert('配置未加载，请刷新页面重试')
+      return
+    }
 
+    // 验证配置数据
+    if (!config.defaultScope || !['all', 'groups'].includes(config.defaultScope)) {
+      alert('默认范围必须是 "all" 或 "groups"')
+      return
+    }
+
+    // 验证参数配置
+    for (const param of config.allowedParameters) {
+      if (!param.name || param.name.trim() === '') {
+        alert('参数名称不能为空')
+        return
+      }
+      if (!param.type || !['group', 'custom'].includes(param.type)) {
+        alert('参数类型必须是 "group" 或 "custom"')
+        return
+      }
+      if (!param.allowedValues || param.allowedValues.length === 0) {
+        alert(`参数 "${param.name}" 必须至少有一个允许的值`)
+        return
+      }
+      if (!param.mappedGroups || !Array.isArray(param.mappedGroups)) {
+        alert(`参数 "${param.name}" 的映射分组格式不正确`)
+        return
+      }
+    }
+
+    const requestData = {
+      isEnabled: config.isEnabled,
+      defaultScope: config.defaultScope,
+      defaultGroups: config.defaultGroups,
+      allowedParameters: config.allowedParameters
+    }
+    console.log('开始保存配置...', config)
+    console.log('发送的请求数据:', requestData)
+    console.log('allowedParameters详情:', JSON.stringify(requestData.allowedParameters, null, 2))
     setSaving(true)
     try {
       const response = await fetch('/api/admin/config', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Admin-Password': 'admin123'
         },
-        body: JSON.stringify(config)
+        body: JSON.stringify(requestData)
       })
+
+      console.log('请求发送完成，状态:', response.status, response.statusText)
 
       if (response.ok) {
         const data = await response.json()
@@ -109,11 +166,16 @@ export default function ConfigPage() {
         await loadConfig()
       } else {
         const errorData = await response.json()
-        alert(errorData.error?.message || '保存配置失败')
+        console.error('API配置更新失败:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        })
+        alert(errorData.error?.message || `保存配置失败 (${response.status}: ${response.statusText})`)
       }
     } catch (error) {
       console.error('保存配置失败:', error)
-      alert('保存配置失败')
+      alert(`保存配置失败: ${error instanceof Error ? error.message : '网络错误'}`)
     } finally {
       setSaving(false)
     }
