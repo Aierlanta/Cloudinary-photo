@@ -47,10 +47,12 @@ export default function GroupsPage() {
   const [unassignedImages, setUnassignedImages] = useState<Image[]>([])
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
   const [assigningToGroup, setAssigningToGroup] = useState('')
+  const [totalImages, setTotalImages] = useState(0)
 
-  // 加载分组列表
+  // 加载分组列表和总图片数
   useEffect(() => {
     loadGroups()
+    loadTotalImages()
   }, [])
 
   const loadGroups = async () => {
@@ -71,6 +73,24 @@ export default function GroupsPage() {
       console.error('加载分组失败:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadTotalImages = async () => {
+    try {
+      const response = await fetch('/api/admin/stats', {
+        headers: {
+          'X-Admin-Password': 'admin123'
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setTotalImages(data.data?.totalImages || 0)
+      } else {
+        console.error('加载总图片数失败:', response.statusText)
+      }
+    } catch (error) {
+      console.error('加载总图片数失败:', error)
     }
   }
 
@@ -135,6 +155,7 @@ export default function GroupsPage() {
 
       if (response.ok) {
         await loadGroups()
+        await loadTotalImages()
         setFormData({ name: '', description: '' })
         setShowCreateForm(false)
         alert('分组创建成功')
@@ -168,6 +189,7 @@ export default function GroupsPage() {
 
       if (response.ok) {
         await loadGroups()
+        await loadTotalImages()
         setEditingGroup(null)
         setFormData({ name: '', description: '' })
         alert('分组更新成功')
@@ -199,6 +221,7 @@ export default function GroupsPage() {
         const data = await response.json()
         alert(data.data.message)
         await loadGroups()
+        await loadTotalImages()
       } else {
         alert('删除分组失败')
       }
@@ -288,6 +311,7 @@ export default function GroupsPage() {
       alert(`成功将 ${selectedImages.size} 张图片分配到分组`)
       await loadUnassignedImages()
       await loadGroups()
+      await loadTotalImages()
       clearSelection()
       setAssigningToGroup('')
     } catch (error) {
@@ -325,7 +349,7 @@ export default function GroupsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center">
             <div className="text-lg font-semibold panel-text">
-              {groups.reduce((sum, group) => sum + group.imageCount, 0)}
+              {totalImages}
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-300">总图片数</div>
           </div>

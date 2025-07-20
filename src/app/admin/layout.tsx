@@ -15,6 +15,7 @@ export default function AdminLayout({
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [panelOpacity, setPanelOpacity] = useState(0.9)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -109,10 +110,10 @@ export default function AdminLayout({
       {/* 主要布局 */}
       <div className="flex">
         {/* 侧边导航 */}
-        <AdminNavigation onLogout={handleLogout} />
-        
+        <AdminNavigation onLogout={handleLogout} onToggleCollapse={setSidebarCollapsed} />
+
         {/* 主内容区域 */}
-        <main className="flex-1 ml-64">
+        <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
           <div className="p-6">
             <ComponentErrorBoundary componentName="AdminPage">
               {children}

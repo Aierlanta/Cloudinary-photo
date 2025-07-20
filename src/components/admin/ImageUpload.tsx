@@ -82,6 +82,44 @@ export default function ImageUpload({ groups, onUploadSuccess }: ImageUploadProp
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  // 限制并发上传的函数
+  const uploadWithConcurrencyLimit = async (files: File[], maxConcurrency: number = 5) => {
+    const results: any[] = []
+    let completedCount = 0
+
+    // 上传单个文件的函数
+    const uploadSingleFile = async (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      if (groupId) formData.append('groupId', groupId)
+      if (tags) formData.append('tags', tags)
+
+      const response = await fetch('/api/admin/images', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        completedCount++
+        setUploadProgress((completedCount / files.length) * 100)
+        return data.data.image
+      } else {
+        throw new Error(`上传 ${file.name} 失败`)
+      }
+    }
+
+    // 分批处理文件
+    for (let i = 0; i < files.length; i += maxConcurrency) {
+      const batch = files.slice(i, i + maxConcurrency)
+      const batchPromises = batch.map(uploadSingleFile)
+      const batchResults = await Promise.all(batchPromises)
+      results.push(...batchResults)
+    }
+
+    return results
+  }
+
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return
 
@@ -89,38 +127,18 @@ export default function ImageUpload({ groups, onUploadSuccess }: ImageUploadProp
     setUploadProgress(0)
 
     try {
-      const uploadPromises = selectedFiles.map(async (file, index) => {
-        const formData = new FormData()
-        formData.append('file', file)
-        if (groupId) formData.append('groupId', groupId)
-        if (tags) formData.append('tags', tags)
+      const uploadedImages = await uploadWithConcurrencyLimit(selectedFiles, 5)
 
-        const response = await fetch('/api/admin/images', {
-          method: 'POST',
-          body: formData
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUploadProgress(((index + 1) / selectedFiles.length) * 100)
-          return data.data.image
-        } else {
-          throw new Error(`上传 ${file.name} 失败`)
-        }
-      })
-
-      const uploadedImages = await Promise.all(uploadPromises)
-      
       // 通知父组件上传成功
       uploadedImages.forEach(image => onUploadSuccess(image))
-      
+
       // 重置表单
       setSelectedFiles([])
       setTags('')
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
-      
+
       alert(`成功上传 ${uploadedImages.length} 张图片！`)
     } catch (error) {
       console.error('上传失败:', error)

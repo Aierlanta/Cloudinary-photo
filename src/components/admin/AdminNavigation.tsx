@@ -6,11 +6,18 @@ import { usePathname } from 'next/navigation'
 
 interface AdminNavigationProps {
   onLogout: () => void
+  onToggleCollapse?: (collapsed: boolean) => void
 }
 
-export default function AdminNavigation({ onLogout }: AdminNavigationProps) {
+export default function AdminNavigation({ onLogout, onToggleCollapse }: AdminNavigationProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const handleToggleCollapse = () => {
+    const newCollapsedState = !isCollapsed
+    setIsCollapsed(newCollapsedState)
+    onToggleCollapse?.(newCollapsedState)
+  }
 
   const navigationItems = [
     {
@@ -82,7 +89,7 @@ export default function AdminNavigation({ onLogout }: AdminNavigationProps) {
             <h2 className="text-lg font-semibold panel-text">管理面板</h2>
           )}
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={handleToggleCollapse}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <svg
