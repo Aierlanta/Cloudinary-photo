@@ -6,6 +6,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Image, Group, APIConfig, PaginationOptions, PaginatedResult } from '@/types/models';
 import { DatabaseError, NotFoundError } from '@/types/errors';
+import { LogLevel, LogEntry } from './logger';
 
 // Prisma客户端全局实例
 declare global {
@@ -67,6 +68,19 @@ export class DatabaseService {
       }
 
       console.log('数据库初始化完成');
+
+      // 记录数据库初始化日志
+      try {
+        const { logger } = await import('./logger');
+        logger.info('数据库初始化完成', {
+          type: 'database',
+          operation: 'initialize',
+          success: true
+        });
+      } catch (logError) {
+        // 忽略日志记录错误，避免循环依赖
+        console.warn('记录初始化日志失败:', logError);
+      }
     } catch (error) {
       console.error('数据库初始化失败:', error);
       throw new DatabaseError('数据库初始化失败', error);
@@ -618,10 +632,260 @@ export class DatabaseService {
   }
 
   /**
+   * 获取数据库版本信息
+   */
+  async getDatabaseVersion(): Promise<string> {
+    try {
+      const result = await prisma.$queryRaw<Array<{ version: string }>>`SELECT VERSION() as version`;
+      return result[0]?.version || 'Unknown';
+    } catch (error) {
+      console.error('获取数据库版本失败:', error);
+      return 'Unknown';
+    }
+  }
+
+  /**
+   * 获取数据库连接池状态
+   */
+  async getConnectionPoolStatus(): Promise<{
+    activeConnections: number;
+    idleConnections: number;
+    totalConnections: number;
+  }> {
+    try {
+      // 这是一个简化的实现，实际的连接池状态可能需要更复杂的查询
+      const result = await prisma.$queryRaw<Array<{
+        active: number;
+        idle: number;
+        total: number;
+      }>>`
+        SELECT
+          COUNT(*) as total,
+          SUM(CASE WHEN COMMAND != 'Sleep' THEN 1 ELSE 0 END) as active,
+          SUM(CASE WHEN COMMAND = 'Sleep' THEN 1 ELSE 0 END) as idle
+        FROM INFORMATION_SCHEMA.PROCESSLIST
+        WHERE DB = DATABASE()
+      `;
+
+      const stats = result[0];
+      return {
+        activeConnections: Number(stats?.active || 0),
+        idleConnections: Number(stats?.idle || 0),
+        totalConnections: Number(stats?.total || 0)
+      };
+    } catch (error) {
+      console.error('获取连接池状态失败:', error);
+      return {
+        activeConnections: 0,
+        idleConnections: 0,
+        totalConnections: 0
+      };
+    }
+  }
+
+  /**
    * 关闭数据库连接
    */
   async disconnect(): Promise<void> {
     await prisma.$disconnect();
+  }
+
+  // ==================== 日志相关操作 ====================
+
+  /**
+   * 保存日志条目到数据库
+   */
+  async saveLog(logEntry: LogEntry): Promise<void> {
+    try {
+      await prisma.systemLog.create({
+        data: {
+          timestamp: logEntry.timestamp,
+          level: logEntry.level,
+          message: logEntry.message,
+          context: logEntry.context ? JSON.stringify(logEntry.context) : null,
+          error: logEntry.error ? JSON.stringify({
+            name: logEntry.error.name,
+            message: logEntry.error.message,
+            stack: logEntry.error.stack
+          }) : null,
+          userId: logEntry.userId || null,
+          requestId: logEntry.requestId || null,
+          ip: logEntry.ip || null,
+          userAgent: logEntry.userAgent || null,
+          type: logEntry.context?.type || null
+        }
+      });
+    } catch (error) {
+      // 日志保存失败不应该影响主要业务逻辑，只在控制台输出错误
+      console.error('保存日志失败:', error);
+    }
+  }
+
+  /**
+   * 获取日志列表（支持分页和筛选）
+   */
+  async getLogs(options: {
+    page?: number;
+    limit?: number;
+    level?: LogLevel;
+    search?: string;
+    type?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<PaginatedResult<LogEntry>> {
+    try {
+      const {
+        page = 1,
+        limit = 100,
+        level,
+        search,
+        type,
+        dateFrom,
+        dateTo
+      } = options;
+
+      const skip = (page - 1) * limit;
+
+      // 构建查询条件
+      const where: any = {};
+
+      if (level !== undefined) {
+        where.level = level;
+      }
+
+      if (search) {
+        where.message = {
+          contains: search
+        };
+      }
+
+      if (type && type !== 'all') {
+        where.type = type;
+      }
+
+      if (dateFrom || dateTo) {
+        where.timestamp = {};
+        if (dateFrom) where.timestamp.gte = new Date(dateFrom);
+        if (dateTo) where.timestamp.lte = new Date(dateTo);
+      }
+
+      // 获取总数和数据
+      const [total, logs] = await Promise.all([
+        prisma.systemLog.count({ where }),
+        prisma.systemLog.findMany({
+          where,
+          orderBy: { timestamp: 'desc' },
+          skip,
+          take: limit
+        })
+      ]);
+
+      // 转换数据格式
+      const logEntries: LogEntry[] = logs.map(log => ({
+        timestamp: log.timestamp,
+        level: log.level as LogLevel,
+        message: log.message,
+        context: log.context ? JSON.parse(log.context) : undefined,
+        error: log.error ? JSON.parse(log.error) : undefined,
+        userId: log.userId || undefined,
+        requestId: log.requestId || undefined,
+        ip: log.ip || undefined,
+        userAgent: log.userAgent || undefined
+      }));
+
+      return {
+        data: logEntries,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      };
+    } catch (error) {
+      throw new DatabaseError('获取日志失败', error);
+    }
+  }
+
+  /**
+   * 清理旧日志（保留指定天数的日志）
+   */
+  async cleanupOldLogs(retentionDays: number = 30): Promise<number> {
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+      const result = await prisma.systemLog.deleteMany({
+        where: {
+          timestamp: {
+            lt: cutoffDate
+          }
+        }
+      });
+
+      return result.count;
+    } catch (error) {
+      throw new DatabaseError('清理旧日志失败', error);
+    }
+  }
+
+  /**
+   * 获取日志统计信息
+   */
+  async getLogStats(): Promise<{
+    totalLogs: number;
+    logsByLevel: Record<string, number>;
+    logsByType: Record<string, number>;
+    recentErrors: number;
+  }> {
+    try {
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+      const [
+        totalLogs,
+        logsByLevel,
+        logsByType,
+        recentErrors
+      ] = await Promise.all([
+        prisma.systemLog.count(),
+        prisma.systemLog.groupBy({
+          by: ['level'],
+          _count: { level: true }
+        }),
+        prisma.systemLog.groupBy({
+          by: ['type'],
+          _count: { type: true },
+          where: { type: { not: null } }
+        }),
+        prisma.systemLog.count({
+          where: {
+            level: LogLevel.ERROR,
+            timestamp: { gte: oneDayAgo }
+          }
+        })
+      ]);
+
+      const levelStats: Record<string, number> = {};
+      logsByLevel.forEach(item => {
+        const levelName = LogLevel[item.level] || 'UNKNOWN';
+        levelStats[levelName] = item._count.level;
+      });
+
+      const typeStats: Record<string, number> = {};
+      logsByType.forEach(item => {
+        if (item.type) {
+          typeStats[item.type] = item._count.type;
+        }
+      });
+
+      return {
+        totalLogs,
+        logsByLevel: levelStats,
+        logsByType: typeStats,
+        recentErrors
+      };
+    } catch (error) {
+      throw new DatabaseError('获取日志统计失败', error);
+    }
   }
 }
 

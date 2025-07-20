@@ -57,6 +57,27 @@ model APIConfig {
 model Counter {
   id       String @id
   value    Int    @default(0)
-  
+
   @@map("counters")
+}
+
+// 系统日志模型
+model SystemLog {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  level       Int      // 日志级别：0=DEBUG, 1=INFO, 2=WARN, 3=ERROR
+  message     String   @db.Text // 日志消息
+  context     String?  @db.Text // 上下文信息，JSON字符串格式
+  error       String?  @db.Text // 错误信息，JSON字符串格式
+  userId      String?  // 用户ID（如果相关）
+  requestId   String?  // 请求ID
+  ip          String?  // IP地址
+  userAgent   String?  @db.Text // 用户代理
+  type        String?  // 日志类型：api_request, api_response, database, user_action, security等
+
+  @@index([timestamp])
+  @@index([level])
+  @@index([type])
+  @@index([userId])
+  @@map("system_logs")
 }

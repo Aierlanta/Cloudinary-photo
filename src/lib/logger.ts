@@ -26,6 +26,7 @@ export interface LoggerConfig {
   level: LogLevel
   enableConsole: boolean
   enableFile: boolean
+  enableDatabase: boolean
   enableRemote: boolean
   remoteEndpoint?: string
   maxLogSize: number
@@ -41,6 +42,7 @@ class Logger {
       level: LogLevel.INFO,
       enableConsole: true,
       enableFile: false,
+      enableDatabase: true,
       enableRemote: false,
       maxLogSize: 10 * 1024 * 1024, // 10MB
       retentionDays: 30,
@@ -166,6 +168,13 @@ class Logger {
       this.logToConsole(logEntry)
     }
 
+    // 数据库输出（异步，不阻塞主流程）
+    if (this.config.enableDatabase) {
+      this.logToDatabase(logEntry).catch(error => {
+        console.error('数据库日志保存失败:', error);
+      });
+    }
+
     // 文件输出（在生产环境中可以实现）
     if (this.config.enableFile) {
       this.logToFile(logEntry)
@@ -203,6 +212,20 @@ class Logger {
       case LogLevel.ERROR:
         console.error(fullMessage)
         break
+    }
+  }
+
+  /**
+   * 输出到数据库
+   */
+  private async logToDatabase(entry: LogEntry): Promise<void> {
+    try {
+      // 动态导入避免循环依赖
+      const { databaseService } = await import('./database');
+      await databaseService.saveLog(entry);
+    } catch (error) {
+      // 数据库日志失败不应该影响主要业务逻辑
+      console.error('数据库日志保存失败:', error);
     }
   }
 
@@ -271,6 +294,7 @@ class Logger {
 export const logger = Logger.getInstance({
   level: process.env.NODE_ENV === 'development' ? LogLevel.DEBUG : LogLevel.INFO,
   enableConsole: true,
+  enableDatabase: true, // 启用数据库日志存储
   enableFile: process.env.NODE_ENV === 'production',
   enableRemote: false
 })
