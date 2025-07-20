@@ -120,7 +120,13 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    alert('已复制到剪贴板')
+    // 使用浏览器原生通知或简单的视觉反馈
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('已复制到剪贴板', {
+        body: text.length > 50 ? text.substring(0, 50) + '...' : text,
+        icon: '/favicon.ico'
+      })
+    }
   }
 
   const downloadImage = async (url: string, filename: string) => {

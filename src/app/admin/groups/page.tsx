@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useToast } from '@/hooks/useToast'
+import { ToastContainer } from '@/components/ui/Toast'
 import Image from 'next/image'
 import { generateThumbnailUrl } from '@/lib/image-utils'
 
@@ -46,6 +48,9 @@ export default function GroupsPage() {
   const [showUnassignedImages, setShowUnassignedImages] = useState(false)
   const [unassignedImages, setUnassignedImages] = useState<Image[]>([])
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
+
+  // Toast通知
+  const { toasts, success, error: showError, removeToast } = useToast()
   const [assigningToGroup, setAssigningToGroup] = useState('')
   const [totalImages, setTotalImages] = useState(0)
 
@@ -138,7 +143,7 @@ export default function GroupsPage() {
 
   const handleCreateGroup = async () => {
     if (!formData.name.trim()) {
-      alert('请输入分组名称')
+      showError('验证失败', '请输入分组名称')
       return
     }
 
@@ -158,13 +163,13 @@ export default function GroupsPage() {
         await loadTotalImages()
         setFormData({ name: '', description: '' })
         setShowCreateForm(false)
-        alert('分组创建成功')
+        success('创建成功', '分组创建成功')
       } else {
-        alert('创建分组失败')
+        showError('创建失败', '创建分组失败')
       }
     } catch (error) {
       console.error('创建分组失败:', error)
-      alert('创建分组失败')
+      showError('创建失败', '创建分组失败')
     } finally {
       setSubmitting(false)
     }
@@ -219,15 +224,15 @@ export default function GroupsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(data.data.message)
+        success('删除成功', data.data.message)
         await loadGroups()
         await loadTotalImages()
       } else {
-        alert('删除分组失败')
+        showError('删除失败', '删除分组失败')
       }
     } catch (error) {
       console.error('删除分组失败:', error)
-      alert('删除分组失败')
+      showError('删除失败', '删除分组失败')
     }
   }
 
@@ -858,6 +863,11 @@ export default function GroupsPage() {
           </div>
         </div>
       )}
+
+      {/* Toast通知容器 */}
+      <ToastContainer
+        toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))}
+      />
     </div>
   )
 }

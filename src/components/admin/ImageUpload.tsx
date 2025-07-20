@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useToast } from '@/hooks/useToast'
+import { ToastContainer } from '@/components/ui/Toast'
 
 interface Group {
   id: string
@@ -39,6 +41,9 @@ export default function ImageUpload({ groups, onUploadSuccess }: ImageUploadProp
   const [tags, setTags] = useState('')
   const [dragActive, setDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Toast通知
+  const { toasts, success, error: showError, removeToast } = useToast()
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -236,10 +241,18 @@ export default function ImageUpload({ groups, onUploadSuccess }: ImageUploadProp
         fileInputRef.current.value = ''
       }
 
-      alert(`成功上传 ${uploadedImages.length} 张图片！`)
+      success(
+        '上传完成！',
+        `成功上传 ${uploadedImages.length} 张图片`,
+        4000
+      )
     } catch (error) {
       console.error('上传失败:', error)
-      alert('上传失败: ' + (error instanceof Error ? error.message : '未知错误'))
+      showError(
+        '上传失败',
+        error instanceof Error ? error.message : '未知错误',
+        6000
+      )
     } finally {
       setUploading(false)
       setUploadProgress(0)
@@ -386,6 +399,11 @@ export default function ImageUpload({ groups, onUploadSuccess }: ImageUploadProp
           </div>
         )}
       </div>
+
+      {/* Toast通知容器 */}
+      <ToastContainer
+        toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))}
+      />
     </div>
   )
 }

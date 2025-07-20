@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import ImageUpload from '@/components/admin/ImageUpload'
 import ImageList from '@/components/admin/ImageList'
 import ImageFilters from '@/components/admin/ImageFilters'
+import { useToast } from '@/hooks/useToast'
+import { ToastContainer } from '@/components/ui/Toast'
 
 interface Image {
   id: string
@@ -51,6 +53,9 @@ export default function ImagesPage() {
     sortBy: 'uploadedAt',
     sortOrder: 'desc'
   })
+
+  // Toast通知
+  const { toasts, success, error: showError, removeToast } = useToast()
 
   // 加载分组列表
   useEffect(() => {
@@ -131,11 +136,11 @@ export default function ImagesPage() {
         // 重新加载图片列表
         setFilters(prev => ({ ...prev }))
       } else {
-        alert('删除图片失败')
+        showError('删除失败', '删除图片失败')
       }
     } catch (error) {
       console.error('删除图片失败:', error)
-      alert('删除图片失败')
+      showError('删除失败', '删除图片失败')
     }
   }
 
@@ -151,15 +156,15 @@ export default function ImagesPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(data.data.message)
+        success('删除成功', data.data.message)
         // 重新加载图片列表
         setFilters(prev => ({ ...prev }))
       } else {
-        alert('批量删除图片失败')
+        showError('删除失败', '批量删除图片失败')
       }
     } catch (error) {
       console.error('批量删除图片失败:', error)
-      alert('批量删除图片失败')
+      showError('删除失败', '批量删除图片失败')
     }
   }
 
@@ -333,6 +338,11 @@ export default function ImagesPage() {
           </div>
         )}
       </div>
+
+      {/* Toast通知容器 */}
+      <ToastContainer
+        toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))}
+      />
     </div>
   )
 }

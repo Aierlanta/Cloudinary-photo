@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useToast } from '@/hooks/useToast'
+import { ToastContainer } from '@/components/ui/Toast'
 
 interface APIParameter {
   name: string
@@ -44,6 +46,9 @@ export default function ParameterModal({
   })
   const [newValue, setNewValue] = useState('')
 
+  // Toast通知
+  const { toasts, error: showError, removeToast } = useToast()
+
   useEffect(() => {
     if (parameter) {
       setFormData(parameter)
@@ -60,12 +65,12 @@ export default function ParameterModal({
 
   const handleSave = () => {
     if (!formData.name.trim()) {
-      alert('请输入参数名称')
+      showError('验证失败', '请输入参数名称')
       return
     }
 
     if (formData.allowedValues.length === 0) {
-      alert('请至少添加一个允许的值')
+      showError('验证失败', '请至少添加一个允许的值')
       return
     }
 
@@ -261,6 +266,11 @@ export default function ParameterModal({
           </div>
         </div>
       </div>
+
+      {/* Toast通知容器 */}
+      <ToastContainer
+        toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))}
+      />
     </div>
   )
 }
