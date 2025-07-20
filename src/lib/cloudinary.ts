@@ -222,6 +222,21 @@ export class CloudinaryService {
   }
 
   /**
+   * 获取缩略图URL
+   */
+  getThumbnailUrl(publicId: string, size: number = 300): string {
+    return this.getImageUrl(publicId, [
+      {
+        width: size,
+        height: size,
+        crop: 'fill',
+        quality: 'auto',
+        format: 'webp'
+      }
+    ]);
+  }
+
+  /**
    * 下载图片为Buffer
    */
   async downloadImage(publicId: string, transformations: Transformation[] = []): Promise<Buffer> {

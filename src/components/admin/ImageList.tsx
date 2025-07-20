@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
+import { generateThumbnailUrl, getImageUrls } from '@/lib/image-utils'
 
 interface ImageItem {
   id: string
@@ -165,7 +166,7 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
             <div className="space-y-4">
               <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden aspect-square">
                 <Image
-                  src={image.url}
+                  src={generateThumbnailUrl(image.url, 400)}
                   alt={image.title || image.publicId}
                   fill
                   className="object-contain"
@@ -320,7 +321,7 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
           <div className="mb-4">
             <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative">
               <Image
-                src={image.url}
+                src={generateThumbnailUrl(image.url, 300)}
                 alt={image.title || image.publicId}
                 fill
                 className="object-cover"
@@ -535,7 +536,7 @@ export default function ImageList({
             {/* 图片预览 */}
             <div className="aspect-square relative bg-gray-100 dark:bg-gray-800">
               <LazyImage
-                src={image.url}
+                src={generateThumbnailUrl(image.url, 300)}
                 alt={image.title || image.publicId}
                 className="w-full h-full"
                 onClick={() => {
