@@ -34,10 +34,10 @@ const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
     maxRequests: 120,
     message: '管理API请求过于频繁，请稍后再试'
   },
-  // 上传API限流 - 每分钟10次请求
+  // 上传API限流 - 每分钟20次请求（支持批量上传）
   upload: {
     windowMs: 60 * 1000,
-    maxRequests: 10,
+    maxRequests: 20,
     message: '上传请求过于频繁，请稍后再试'
   }
 };

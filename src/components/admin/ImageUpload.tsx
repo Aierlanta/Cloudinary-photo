@@ -82,42 +82,138 @@ export default function ImageUpload({ groups, onUploadSuccess }: ImageUploadProp
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  // 重试配置
+  const RETRY_CONFIG = {
+    maxRetries: 3,
+    baseDelay: 1000, // 1秒
+    maxDelay: 10000, // 10秒
+    retryableStatusCodes: [429, 500, 502, 503, 504] // 可重试的状态码
+  }
+
+  // 带重试的延迟函数
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  // 计算重试延迟（指数退避）
+  const calculateRetryDelay = (attempt: number) => {
+    const exponentialDelay = RETRY_CONFIG.baseDelay * Math.pow(2, attempt)
+    const jitter = Math.random() * 1000 // 添加随机抖动避免雷群效应
+    return Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelay)
+  }
+
   // 限制并发上传的函数
   const uploadWithConcurrencyLimit = async (files: File[], maxConcurrency: number = 5) => {
     const results: any[] = []
     let completedCount = 0
 
-    // 上传单个文件的函数
-    const uploadSingleFile = async (file: File) => {
+    // 上传单个文件的函数（带重试机制）
+    const uploadSingleFile = async (file: File, retryCount = 0): Promise<any> => {
       const formData = new FormData()
       formData.append('file', file)
       if (groupId) formData.append('groupId', groupId)
       if (tags) formData.append('tags', tags)
 
-      const response = await fetch('/api/admin/images', {
-        method: 'POST',
-        body: formData
-      })
+      try {
+        const response = await fetch('/api/admin/images', {
+          method: 'POST',
+          body: formData
+        })
 
-      if (response.ok) {
-        const data = await response.json()
-        completedCount++
-        setUploadProgress((completedCount / files.length) * 100)
-        return data.data.image
-      } else {
-        throw new Error(`上传 ${file.name} 失败`)
+        if (response.ok) {
+          const data = await response.json()
+          completedCount++
+          setUploadProgress((completedCount / files.length) * 100)
+          return data.data.image
+        } else {
+          // 检查是否是可重试的错误
+          if (RETRY_CONFIG.retryableStatusCodes.includes(response.status) && retryCount < RETRY_CONFIG.maxRetries) {
+            const retryDelay = calculateRetryDelay(retryCount)
+            console.warn(`上传 ${file.name} 失败 (状态码: ${response.status})，${retryDelay}ms后重试 (第${retryCount + 1}次重试)`)
+
+            await delay(retryDelay)
+            return uploadSingleFile(file, retryCount + 1)
+          } else {
+            // 获取错误详情
+            let errorMessage = `上传 ${file.name} 失败 (状态码: ${response.status})`
+            try {
+              const errorData = await response.json()
+              if (errorData.error?.message) {
+                errorMessage = `上传 ${file.name} 失败: ${errorData.error.message}`
+              }
+            } catch {
+              // 忽略解析错误响应的错误
+            }
+            throw new Error(errorMessage)
+          }
+        }
+      } catch (error) {
+        // 网络错误等非HTTP错误
+        if (retryCount < RETRY_CONFIG.maxRetries) {
+          const retryDelay = calculateRetryDelay(retryCount)
+          console.warn(`上传 ${file.name} 网络错误，${retryDelay}ms后重试 (第${retryCount + 1}次重试):`, error)
+
+          await delay(retryDelay)
+          return uploadSingleFile(file, retryCount + 1)
+        } else {
+          throw new Error(`上传 ${file.name} 失败: ${error instanceof Error ? error.message : '网络错误'}`)
+        }
       }
     }
 
-    // 分批处理文件
-    for (let i = 0; i < files.length; i += maxConcurrency) {
-      const batch = files.slice(i, i + maxConcurrency)
-      const batchPromises = batch.map(uploadSingleFile)
-      const batchResults = await Promise.all(batchPromises)
-      results.push(...batchResults)
+    // 使用更保守的并发控制，避免触发限流
+    const semaphore = new Array(maxConcurrency).fill(null)
+    let currentIndex = 0
+
+    const processFile = async (): Promise<any> => {
+      if (currentIndex >= files.length) return null
+
+      const fileIndex = currentIndex++
+      const file = files[fileIndex]
+
+      try {
+        const result = await uploadSingleFile(file)
+
+        // 继续处理下一个文件
+        const nextResult = await processFile()
+        return nextResult ? [result, nextResult].flat() : result
+      } catch (error) {
+        // 即使单个文件失败，也继续处理其他文件
+        console.error(`文件 ${file.name} 上传失败:`, error)
+        const nextResult = await processFile()
+        throw error // 重新抛出错误，但不阻止其他文件的处理
+      }
     }
 
-    return results
+    // 启动并发上传
+    const uploadPromises = semaphore.map(() => processFile())
+
+    try {
+      const allResults = await Promise.allSettled(uploadPromises)
+
+      // 收集成功的结果
+      const successfulResults: any[] = []
+      const errors: string[] = []
+
+      allResults.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value) {
+          const values = Array.isArray(result.value) ? result.value : [result.value]
+          successfulResults.push(...values.filter(v => v !== null))
+        } else if (result.status === 'rejected') {
+          errors.push(result.reason?.message || `上传失败`)
+        }
+      })
+
+      // 如果有错误但也有成功的上传，显示部分成功的消息
+      if (errors.length > 0 && successfulResults.length > 0) {
+        console.warn('部分文件上传失败:', errors)
+      } else if (errors.length > 0) {
+        throw new Error(`所有文件上传失败: ${errors.join(', ')}`)
+      }
+
+      return successfulResults
+    } catch (error) {
+      // 如果所有上传都失败了，重新抛出错误
+      throw error
+    }
   }
 
   const handleUpload = async () => {
@@ -127,7 +223,8 @@ export default function ImageUpload({ groups, onUploadSuccess }: ImageUploadProp
     setUploadProgress(0)
 
     try {
-      const uploadedImages = await uploadWithConcurrencyLimit(selectedFiles, 5)
+      // 降低并发数量，避免触发限流（从5降到3）
+      const uploadedImages = await uploadWithConcurrencyLimit(selectedFiles, 3)
 
       // 通知父组件上传成功
       uploadedImages.forEach(image => onUploadSuccess(image))
