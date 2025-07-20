@@ -237,23 +237,28 @@ export default function ImagesPage() {
         </div>
       </div>
 
-      {/* 图片上传 */}
+      {/* 图片上传和筛选器 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-lg font-semibold panel-text mb-4">上传图片</h2>
-        <ImageUpload 
-          groups={groups} 
-          onUploadSuccess={handleUploadSuccess}
-        />
-      </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 图片上传 */}
+          <div>
+            <h2 className="text-lg font-semibold panel-text mb-4">上传图片</h2>
+            <ImageUpload
+              groups={groups}
+              onUploadSuccess={handleUploadSuccess}
+            />
+          </div>
 
-      {/* 筛选器 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-lg font-semibold panel-text mb-4">筛选和搜索</h2>
-        <ImageFilters
-          filters={filters}
-          groups={groups}
-          onFilterChange={handleFilterChange}
-        />
+          {/* 筛选器 */}
+          <div>
+            <h2 className="text-lg font-semibold panel-text mb-4">筛选和搜索</h2>
+            <ImageFilters
+              filters={filters}
+              groups={groups}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+        </div>
       </div>
 
       {/* 图片列表 */}
