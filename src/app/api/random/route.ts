@@ -139,8 +139,11 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       redirectUrl: randomImage.url
     });
 
+    // 确保图片URL使用HTTPS协议
+    const secureImageUrl = randomImage.url.replace(/^http:/, 'https:');
+
     // 重定向到图片URL
-    return NextResponse.redirect(randomImage.url, {
+    return NextResponse.redirect(secureImageUrl, {
       status: 302,
       headers: {
         'Cache-Control': 'public, max-age=3600', // 缓存1小时

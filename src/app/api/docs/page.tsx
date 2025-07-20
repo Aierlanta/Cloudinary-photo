@@ -1,12 +1,20 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: '随机图片API文档',
-  description: '随机图片API的使用文档和示例',
-}
-
 export default function APIDocsPage() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://your-domain.com'
+  const [baseUrl, setBaseUrl] = useState<string>('')
+
+  // 生成完整的基础URL
+  const generateBaseUrl = () => {
+    if (typeof window === 'undefined') return ''
+    return `${window.location.protocol}//${window.location.host}`
+  }
+
+  useEffect(() => {
+    setBaseUrl(generateBaseUrl())
+  }, [])
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
@@ -35,10 +43,19 @@ export default function APIDocsPage() {
               <p className="text-gray-600 dark:text-gray-300 mb-4">
                 直接访问API端点即可获取随机图片：
               </p>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                <code className="text-sm text-gray-800 dark:text-gray-200">
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
+                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
                   GET {baseUrl}/api/random
                 </code>
+                {baseUrl && (
+                  <button
+                    onClick={() => navigator.clipboard.writeText(`${baseUrl}/api/random`)}
+                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                    title="复制API地址"
+                  >
+                    复制
+                  </button>
+                )}
               </div>
             </div>
 
@@ -46,10 +63,19 @@ export default function APIDocsPage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                 在HTML中使用
               </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                <code className="text-sm text-gray-800 dark:text-gray-200">
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
+                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
                   {`<img src="${baseUrl}/api/random" alt="随机图片" />`}
                 </code>
+                {baseUrl && (
+                  <button
+                    onClick={() => navigator.clipboard.writeText(`<img src="${baseUrl}/api/random" alt="随机图片" />`)}
+                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                    title="复制HTML代码"
+                  >
+                    复制
+                  </button>
+                )}
               </div>
             </div>
 

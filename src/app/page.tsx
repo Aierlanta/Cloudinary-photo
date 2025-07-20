@@ -20,8 +20,25 @@ export default function Home() {
   const [apiStatus, setApiStatus] = useState<APIStatus | null>(null)
   const [randomImageUrl, setRandomImageUrl] = useState<string>('')
   const [loading, setLoading] = useState(true)
+  const [baseUrl, setBaseUrl] = useState<string>('')
+  const [imageLoading, setImageLoading] = useState(false)
+
+  // 生成完整的基础URL
+  const generateBaseUrl = () => {
+    if (typeof window === 'undefined') return ''
+    return `${window.location.protocol}//${window.location.host}`
+  }
+
+  // 生成随机图片URL
+  const generateRandomImageUrl = (baseUrl: string) => {
+    return `${baseUrl}/api/random`
+  }
 
   useEffect(() => {
+    // 设置基础URL
+    const currentBaseUrl = generateBaseUrl()
+    setBaseUrl(currentBaseUrl)
+
     // 加载API状态
     fetch('/api/status')
       .then(res => res.json())
@@ -33,12 +50,20 @@ export default function Home() {
       .catch(console.error)
       .finally(() => setLoading(false))
 
-    // 生成随机图片URL（带时间戳避免缓存）
-    setRandomImageUrl(`/api/random?t=${Date.now()}`)
+    // 生成随机图片URL
+    if (currentBaseUrl) {
+      setRandomImageUrl(generateRandomImageUrl(currentBaseUrl))
+    }
   }, [])
 
   const refreshRandomImage = () => {
-    setRandomImageUrl(`/api/random?t=${Date.now()}`)
+    if (!baseUrl) return
+    setImageLoading(true)
+    // 通过先清空URL再重新设置来强制刷新
+    setRandomImageUrl('')
+    setTimeout(() => {
+      setRandomImageUrl(generateRandomImageUrl(baseUrl))
+    }, 10)
   }
 
   return (
@@ -94,6 +119,8 @@ export default function Home() {
           )}
         </div>
 
+
+
         {/* 快速体验区域 */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-16">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
@@ -105,19 +132,42 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 随机图片预览
               </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4">
-                <img
-                  src={randomImageUrl}
-                  alt="随机图片"
-                  className="w-full h-64 object-cover rounded-lg"
-                  onError={() => setRandomImageUrl('/placeholder-image.jpg')}
-                />
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4 relative">
+                {randomImageUrl ? (
+                  <img
+                    src={randomImageUrl}
+                    alt="随机图片"
+                    className="w-full h-64 object-cover rounded-lg"
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => {
+                      console.error('图片加载失败:', randomImageUrl);
+                      setImageLoading(false);
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-64 flex items-center justify-center bg-gray-200 dark:bg-gray-600 rounded-lg">
+                    <div className="text-center text-gray-500 dark:text-gray-400">
+                      <p className="mb-2">暂无图片</p>
+                      <p className="text-sm">请先在管理面板中上传图片</p>
+                    </div>
+                  </div>
+                )}
+
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                    <div className="text-center text-white">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                      <p>加载中...</p>
+                    </div>
+                  </div>
+                )}
               </div>
               <button
                 onClick={refreshRandomImage}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                disabled={imageLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
-                刷新图片
+                {imageLoading ? '加载中...' : '刷新图片'}
               </button>
             </div>
 
@@ -130,10 +180,17 @@ export default function Home() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     基础调用
                   </label>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                    <code className="text-sm text-gray-800 dark:text-gray-200">
-                      GET /api/random
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between">
+                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
+                      GET {baseUrl}/api/random
                     </code>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(`${baseUrl}/api/random`)}
+                      className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                      title="复制链接"
+                    >
+                      复制
+                    </button>
                   </div>
                 </div>
 
@@ -141,10 +198,17 @@ export default function Home() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     HTML中使用
                   </label>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                    <code className="text-sm text-gray-800 dark:text-gray-200">
-                      {`<img src="/api/random" />`}
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between">
+                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
+                      {`<img src="${baseUrl}/api/random" />`}
                     </code>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(`<img src="${baseUrl}/api/random" />`)}
+                      className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                      title="复制代码"
+                    >
+                      复制
+                    </button>
                   </div>
                 </div>
               </div>
