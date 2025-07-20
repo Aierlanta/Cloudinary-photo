@@ -19,7 +19,7 @@ export function generateThumbnailUrl(originalUrl: string, size: number = 300): s
     // Cloudinary URL格式: https://res.cloudinary.com/{cloud_name}/image/upload/{transformations}/{public_id}
     const url = new URL(originalUrl);
     const pathParts = url.pathname.split('/');
-    
+
     // 找到 'upload' 的位置
     const uploadIndex = pathParts.indexOf('upload');
     if (uploadIndex === -1) {
@@ -28,7 +28,7 @@ export function generateThumbnailUrl(originalUrl: string, size: number = 300): s
 
     // 构建缩略图转换参数
     const transformations = `w_${size},h_${size},c_fill,q_auto,f_webp`;
-    
+
     // 插入转换参数
     const newPathParts = [
       ...pathParts.slice(0, uploadIndex + 1),
@@ -36,8 +36,9 @@ export function generateThumbnailUrl(originalUrl: string, size: number = 300): s
       ...pathParts.slice(uploadIndex + 1)
     ];
 
-    // 重新构建URL
+    // 重新构建URL，确保使用HTTPS
     url.pathname = newPathParts.join('/');
+    url.protocol = 'https:';
     return url.toString();
   } catch (error) {
     console.warn('生成缩略图URL失败:', error);

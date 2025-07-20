@@ -192,9 +192,15 @@ export class DatabaseService {
 
       // 构建查询条件
       const where: any = {};
-      
+
       if (groupId) {
-        where.groupId = groupId;
+        if (groupId === 'unassigned') {
+          // 查询未分组的图片（groupId 为 null）
+          where.groupId = null;
+        } else {
+          // 查询指定分组的图片
+          where.groupId = groupId;
+        }
       }
       
       if (dateFrom || dateTo) {
@@ -343,7 +349,13 @@ export class DatabaseService {
     try {
       const where: any = {};
       if (groupId) {
-        where.groupId = groupId;
+        if (groupId === 'unassigned') {
+          // 查询未分组的图片（groupId 为 null）
+          where.groupId = null;
+        } else {
+          // 查询指定分组的图片
+          where.groupId = groupId;
+        }
       }
 
       // 获取总数

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { generateThumbnailUrl } from '@/lib/image-utils'
 
 interface Group {
   id: string
@@ -753,10 +755,12 @@ export default function GroupsPage() {
                         }`}
                         onClick={() => toggleImageSelection(image.id)}
                       >
-                        <img
-                          src={image.secureUrl}
-                          alt={image.filename}
-                          className="w-full h-full object-cover"
+                        <Image
+                          src={generateThumbnailUrl(image.url, 300)}
+                          alt={image.publicId}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 16vw"
                         />
 
                         {/* 选择指示器 */}
@@ -777,7 +781,7 @@ export default function GroupsPage() {
                         {/* 悬停信息 */}
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-end opacity-0 group-hover:opacity-100">
                           <div className="p-2 text-white text-xs w-full">
-                            <p className="truncate font-medium">{image.filename}</p>
+                            <p className="truncate font-medium">{image.publicId}</p>
                             <p className="text-gray-300">
                               {image.width} × {image.height}
                             </p>
