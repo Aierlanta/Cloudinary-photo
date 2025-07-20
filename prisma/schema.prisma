@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 图片模型
+model Image {
+  id          String   @id @default(cuid())
+  url         String   // Cloudinary URL
+  publicId    String   // Cloudinary public ID
+  title       String?  // 图片标题
+  description String?  // 图片描述
+  tags        String?  // 标签，JSON字符串格式
+  groupId     String?  // 所属分组ID
+  uploadedAt  DateTime @default(now())
+  
+  // 关联分组
+  group       Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  
+  @@map("images")
+}
+
+// 分组模型
+model Group {
+  id          String   @id @default(cuid())
+  name        String   @unique // 分组名称
+  description String?  // 分组描述
+  imageCount  Int      @default(0) // 图片数量
+  createdAt   DateTime @default(now())
+  
+  // 关联图片
+  images      Image[]
+  
+  @@map("groups")
+}
+
+// API配置模型
+model APIConfig {
+  id                String   @id @default("default")
+  isEnabled         Boolean  @default(true) // API是否启用
+  defaultScope      String   @default("all") // 默认范围：all, group
+  defaultGroups     String?  // 默认分组，JSON字符串格式
+  allowedParameters String?  // 允许的参数，JSON字符串格式
+  updatedAt         DateTime @default(now()) @updatedAt
+  
+  @@map("api_configs")
+}
+
+// 计数器模型（用于生成递增ID）
+model Counter {
+  id       String @id
+  value    Int    @default(0)
+  
+  @@map("counters")
+}

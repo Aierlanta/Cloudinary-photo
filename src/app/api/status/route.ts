@@ -144,22 +144,33 @@ async function checkAPIConfigStatus(): Promise<{
   error?: string;
 }> {
   try {
-    const apiConfig = await databaseService.getAPIConfig();
-    
+    let apiConfig = await databaseService.getAPIConfig();
+
     if (!apiConfig) {
-      return {
-        enabled: false,
-        configured: false,
-        error: 'API配置未找到'
-      };
+      // 如果API配置不存在，尝试初始化数据库
+      logger.info('API配置未找到，正在初始化数据库...', { type: 'api_config' });
+      await databaseService.initialize();
+
+      // 重新获取配置
+      apiConfig = await databaseService.getAPIConfig();
+
+      if (!apiConfig) {
+        logger.error('API配置未找到', new Error('API配置初始化失败'), { type: 'api_config' });
+        return {
+          enabled: false,
+          configured: false,
+          error: 'API配置初始化失败'
+        };
+      }
     }
-    
+
     return {
       enabled: apiConfig.isEnabled,
       configured: true,
       parametersCount: apiConfig.allowedParameters?.length || 0
     };
   } catch (error) {
+    logger.error('检查API配置状态失败', error as Error, { type: 'api_config' });
     return {
       enabled: false,
       configured: false,

@@ -13,11 +13,14 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@replit/database": "^2.0.5",
+    "@prisma/client": "^6.12.0",
     "autoprefixer": "^10.4.21",
     "cloudinary": "^2.2.0",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.0",
+    "mysql2": "^3.14.2",
     "next": "14.2.5",
+    "prisma": "^6.12.0",
     "react": "^18",
     "react-dom": "^18",
     "swr": "^2.2.5",

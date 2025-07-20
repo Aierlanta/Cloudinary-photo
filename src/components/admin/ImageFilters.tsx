@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 interface Group {
   id: string
   name: string
-  description: string
+  description?: string
   createdAt: string
   imageCount: number
 }

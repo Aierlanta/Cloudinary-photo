@@ -6,25 +6,20 @@
 // 图片模型
 export interface Image {
   id: string;
-  cloudinaryId: string;
   publicId: string;
   url: string;
-  secureUrl: string;
-  filename: string;
-  format: string;
-  width: number;
-  height: number;
-  bytes: number;
+  title?: string;
+  description?: string;
+  tags?: string[];
   groupId?: string;
   uploadedAt: Date;
-  tags: string[];
 }
 
 // 分组模型
 export interface Group {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   createdAt: Date;
   imageCount: number;
 }

@@ -1,34 +1,28 @@
 /**
  * 数据库服务层实现
- * 使用Replit Database进行数据存储和管理
+ * 使用Prisma和MySQL进行数据存储和管理
  */
 
-import Database from '@replit/database';
+import { PrismaClient } from '@prisma/client';
 import { Image, Group, APIConfig, PaginationOptions, PaginatedResult } from '@/types/models';
 import { DatabaseError, NotFoundError } from '@/types/errors';
 
-// 数据库键命名约定
-const DB_KEYS = {
-  IMAGES: 'images',
-  GROUPS: 'groups', 
-  API_CONFIG: 'api_config',
-  IMAGE_INDEX: 'image_index',
-  GROUP_IMAGES: 'group_images',
-  COUNTERS: 'counters'
-} as const;
+// Prisma客户端全局实例
+declare global {
+  var prisma: PrismaClient | undefined;
+}
 
-// 计数器类型
-interface Counters {
-  imageId: number;
-  groupId: number;
+const prisma = globalThis.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prisma = prisma;
 }
 
 export class DatabaseService {
-  private db: Database;
   private static instance: DatabaseService;
 
   constructor() {
-    this.db = new Database();
+    // 构造函数为空，使用全局Prisma实例
   }
 
   // 单例模式
@@ -46,16 +40,17 @@ export class DatabaseService {
   async initialize(): Promise<void> {
     try {
       // 初始化计数器
-      const counters = await this.getCounters();
-      if (!counters) {
-        await this.db.set(DB_KEYS.COUNTERS, { imageId: 0, groupId: 0 });
-      }
+      await prisma.counter.upsert({
+        where: { id: 'imageId' },
+        update: {},
+        create: { id: 'imageId', value: 0 }
+      });
 
-      // 初始化图片索引
-      const imageIndex = await this.db.get(DB_KEYS.IMAGE_INDEX);
-      if (!imageIndex) {
-        await this.db.set(DB_KEYS.IMAGE_INDEX, []);
-      }
+      await prisma.counter.upsert({
+        where: { id: 'groupId' },
+        update: {},
+        create: { id: 'groupId', value: 0 }
+      });
 
       // 初始化API配置
       const apiConfig = await this.getAPIConfig();
@@ -78,54 +73,36 @@ export class DatabaseService {
     }
   }
 
-  /**
-   * 获取计数器
-   */
-  private async getCounters(): Promise<Counters | null> {
-    try {
-      return (await this.db.get(DB_KEYS.COUNTERS)) as Counters | null;
-    } catch (error) {
-      throw new DatabaseError('获取计数器失败', error);
-    }
-  }
-
-  /**
-   * 更新计数器
-   */
-  private async updateCounters(counters: Counters): Promise<void> {
-    try {
-      await this.db.set(DB_KEYS.COUNTERS, counters);
-    } catch (error) {
-      throw new DatabaseError('更新计数器失败', error);
-    }
-  }
+  // ==================== 内部工具方法 ====================
 
   /**
    * 生成新的图片ID
    */
   private async generateImageId(): Promise<string> {
-    const counters = await this.getCounters();
-    if (!counters) {
-      throw new DatabaseError('计数器未初始化');
+    try {
+      const counter = await prisma.counter.update({
+        where: { id: 'imageId' },
+        data: { value: { increment: 1 } }
+      });
+      return `img_${counter.value.toString().padStart(6, '0')}`;
+    } catch (error) {
+      throw new DatabaseError('生成图片ID失败', error);
     }
-    
-    counters.imageId += 1;
-    await this.updateCounters(counters);
-    return `img_${counters.imageId.toString().padStart(6, '0')}`;
   }
 
   /**
    * 生成新的分组ID
    */
   private async generateGroupId(): Promise<string> {
-    const counters = await this.getCounters();
-    if (!counters) {
-      throw new DatabaseError('计数器未初始化');
+    try {
+      const counter = await prisma.counter.update({
+        where: { id: 'groupId' },
+        data: { value: { increment: 1 } }
+      });
+      return `grp_${counter.value.toString().padStart(6, '0')}`;
+    } catch (error) {
+      throw new DatabaseError('生成分组ID失败', error);
     }
-    
-    counters.groupId += 1;
-    await this.updateCounters(counters);
-    return `grp_${counters.groupId.toString().padStart(6, '0')}`;
   }
 
   // ==================== 图片相关操作 ====================
@@ -136,26 +113,43 @@ export class DatabaseService {
   async saveImage(imageData: Omit<Image, 'id' | 'uploadedAt'>): Promise<Image> {
     try {
       const id = await this.generateImageId();
-      const image: Image = {
-        ...imageData,
-        id,
-        uploadedAt: new Date()
-      };
+      
+      const image = await prisma.image.create({
+        data: {
+          id,
+          url: imageData.url,
+          publicId: imageData.publicId,
+          title: imageData.title,
+          description: imageData.description,
+          tags: imageData.tags ? JSON.stringify(imageData.tags) : null,
+          groupId: imageData.groupId,
+        },
+        include: {
+          group: true
+        }
+      });
 
-      // 保存图片信息
-      await this.db.set(`${DB_KEYS.IMAGES}:${id}`, image);
-
-      // 更新图片索引
-      await this.addToImageIndex(id);
-
-      // 如果有分组，更新分组图片列表
+      // 如果有分组，更新分组图片数量
       if (image.groupId) {
-        await this.addImageToGroup(image.groupId, id);
-        await this.updateGroupImageCount(image.groupId, 1);
+        await prisma.group.update({
+          where: { id: image.groupId },
+          data: { imageCount: { increment: 1 } }
+        });
       }
 
       console.log(`图片已保存: ${id}`);
-      return image;
+      
+      // 转换为应用层的Image类型
+      return {
+        id: image.id,
+        url: image.url,
+        publicId: image.publicId,
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags ? JSON.parse(image.tags) : undefined,
+        groupId: image.groupId || undefined,
+        uploadedAt: image.uploadedAt
+      };
     } catch (error) {
       console.error('保存图片失败:', error);
       throw new DatabaseError('保存图片失败', error);
@@ -167,8 +161,23 @@ export class DatabaseService {
    */
   async getImage(id: string): Promise<Image | null> {
     try {
-      const image = (await this.db.get(`${DB_KEYS.IMAGES}:${id}`)) as Image | null;
-      return image ? { ...image, uploadedAt: new Date(image.uploadedAt) } : null;
+      const image = await prisma.image.findUnique({
+        where: { id },
+        include: { group: true }
+      });
+
+      if (!image) return null;
+
+      return {
+        id: image.id,
+        url: image.url,
+        publicId: image.publicId,
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags ? JSON.parse(image.tags) : undefined,
+        groupId: image.groupId || undefined,
+        uploadedAt: image.uploadedAt
+      };
     } catch (error) {
       throw new DatabaseError('获取图片失败', error);
     }
@@ -181,72 +190,57 @@ export class DatabaseService {
     try {
       const { page = 1, limit = 20, sortBy = 'uploadedAt', sortOrder = 'desc', search, dateFrom, dateTo, groupId } = options;
 
-      // 获取图片ID列表
-      let imageIds: string[];
-
+      // 构建查询条件
+      const where: any = {};
+      
       if (groupId) {
-        // 获取特定分组的图片
-        imageIds = await this.getGroupImages(groupId);
-      } else {
-        // 获取所有图片
-        imageIds = (await this.db.get(DB_KEYS.IMAGE_INDEX)) as string[] || [];
+        where.groupId = groupId;
+      }
+      
+      if (dateFrom || dateTo) {
+        where.uploadedAt = {};
+        if (dateFrom) where.uploadedAt.gte = dateFrom;
+        if (dateTo) where.uploadedAt.lte = dateTo;
+      }
+      
+      if (search) {
+        const searchLower = search.toLowerCase();
+        where.OR = [
+          { title: { contains: searchLower, mode: 'insensitive' } },
+          { description: { contains: searchLower, mode: 'insensitive' } },
+          { tags: { contains: searchLower, mode: 'insensitive' } }
+        ];
       }
 
-      // 获取图片详细信息
-      const images: Image[] = [];
-      for (const id of imageIds) {
-        const image = await this.getImage(id);
-        if (image) {
-          // 日期筛选
-          if (dateFrom && image.uploadedAt < dateFrom) continue;
-          if (dateTo && image.uploadedAt > dateTo) continue;
+      // 构建排序条件
+      const orderBy: any = {};
+      orderBy[sortBy] = sortOrder;
 
-          // 搜索筛选
-          if (search) {
-            const searchLower = search.toLowerCase();
-            const matchesFilename = image.filename.toLowerCase().includes(searchLower);
-            const matchesTags = image.tags.some(tag => tag.toLowerCase().includes(searchLower));
+      // 获取总数
+      const total = await prisma.image.count({ where });
 
-            if (!matchesFilename && !matchesTags) continue;
-          }
-
-          images.push(image);
-        }
-      }
-
-      // 排序
-      images.sort((a, b) => {
-        let aValue: any, bValue: any;
-        
-        switch (sortBy) {
-          case 'filename':
-            aValue = a.filename;
-            bValue = b.filename;
-            break;
-          case 'bytes':
-            aValue = a.bytes;
-            bValue = b.bytes;
-            break;
-          case 'uploadedAt':
-          default:
-            aValue = a.uploadedAt;
-            bValue = b.uploadedAt;
-            break;
-        }
-
-        if (sortOrder === 'asc') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
+      // 获取分页数据
+      const images = await prisma.image.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { group: true }
       });
 
-      // 分页
-      const total = images.length;
+      // 转换为应用层的Image类型
+      const data: Image[] = images.map(image => ({
+        id: image.id,
+        url: image.url,
+        publicId: image.publicId,
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags ? JSON.parse(image.tags) : undefined,
+        groupId: image.groupId || undefined,
+        uploadedAt: image.uploadedAt
+      }));
+
       const totalPages = Math.ceil(total / limit);
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + limit;
-      const data = images.slice(startIndex, endIndex);
 
       return {
         data,
@@ -267,37 +261,49 @@ export class DatabaseService {
    */
   async updateImage(id: string, updates: Partial<Pick<Image, 'groupId' | 'tags'>>): Promise<Image> {
     try {
-      const image = await this.getImage(id);
-      if (!image) {
-        throw new NotFoundError('图片', id);
+      const existingImage = await prisma.image.findUnique({ where: { id } });
+      if (!existingImage) {
+        throw new NotFoundError('图片不存在');
       }
 
-      const oldGroupId = image.groupId;
-      const updatedImage: Image = {
-        ...image,
-        ...updates
-      };
-
-      // 保存更新后的图片信息
-      await this.db.set(`${DB_KEYS.IMAGES}:${id}`, updatedImage);
-
-      // 处理分组变更
-      if (oldGroupId !== updates.groupId) {
-        // 从旧分组中移除
-        if (oldGroupId) {
-          await this.removeImageFromGroup(oldGroupId, id);
-          await this.updateGroupImageCount(oldGroupId, -1);
+      // 如果分组发生变化，更新分组图片数量
+      if (updates.groupId !== undefined && updates.groupId !== existingImage.groupId) {
+        // 从旧分组移除
+        if (existingImage.groupId) {
+          await prisma.group.update({
+            where: { id: existingImage.groupId },
+            data: { imageCount: { decrement: 1 } }
+          });
         }
-
+        
         // 添加到新分组
         if (updates.groupId) {
-          await this.addImageToGroup(updates.groupId, id);
-          await this.updateGroupImageCount(updates.groupId, 1);
+          await prisma.group.update({
+            where: { id: updates.groupId },
+            data: { imageCount: { increment: 1 } }
+          });
         }
       }
 
-      console.log(`图片已更新: ${id}`);
-      return updatedImage;
+      const image = await prisma.image.update({
+        where: { id },
+        data: {
+          groupId: updates.groupId,
+          tags: updates.tags ? JSON.stringify(updates.tags) : undefined
+        },
+        include: { group: true }
+      });
+
+      return {
+        id: image.id,
+        url: image.url,
+        publicId: image.publicId,
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags ? JSON.parse(image.tags) : undefined,
+        groupId: image.groupId || undefined,
+        uploadedAt: image.uploadedAt
+      };
     } catch (error) {
       if (error instanceof NotFoundError) throw error;
       throw new DatabaseError('更新图片失败', error);
@@ -309,23 +315,20 @@ export class DatabaseService {
    */
   async deleteImage(id: string): Promise<void> {
     try {
-      const image = await this.getImage(id);
+      const image = await prisma.image.findUnique({ where: { id } });
       if (!image) {
-        throw new NotFoundError('图片', id);
+        throw new NotFoundError('图片不存在');
       }
 
-      // 删除图片信息
-      await this.db.delete(`${DB_KEYS.IMAGES}:${id}`);
-
-      // 从图片索引中移除
-      await this.removeFromImageIndex(id);
-
-      // 如果有分组，从分组中移除
+      // 如果有分组，更新分组图片数量
       if (image.groupId) {
-        await this.removeImageFromGroup(image.groupId, id);
-        await this.updateGroupImageCount(image.groupId, -1);
+        await prisma.group.update({
+          where: { id: image.groupId },
+          data: { imageCount: { decrement: 1 } }
+        });
       }
 
+      await prisma.image.delete({ where: { id } });
       console.log(`图片已删除: ${id}`);
     } catch (error) {
       if (error instanceof NotFoundError) throw error;
@@ -336,27 +339,43 @@ export class DatabaseService {
   /**
    * 获取随机图片
    */
-  async getRandomImage(groupId?: string): Promise<Image | null> {
+  async getRandomImages(count: number = 1, groupId?: string): Promise<Image[]> {
     try {
-      let imageIds: string[];
-
+      const where: any = {};
       if (groupId) {
-        // 获取特定分组的图片
-        imageIds = await this.getGroupImages(groupId);
-      } else {
-        // 获取所有图片
-        imageIds = (await this.db.get(DB_KEYS.IMAGE_INDEX)) as string[] || [];
+        where.groupId = groupId;
       }
 
-      if (imageIds.length === 0) {
-        return null;
-      }
+      // 获取总数
+      const total = await prisma.image.count({ where });
+      if (total === 0) return [];
 
-      // 随机选择一个图片ID
-      const randomIndex = Math.floor(Math.random() * imageIds.length);
-      const randomId = imageIds[randomIndex];
+      // 生成随机偏移量
+      const randomOffsets = Array.from({ length: Math.min(count, total) }, () =>
+        Math.floor(Math.random() * total)
+      );
 
-      return await this.getImage(randomId);
+      const images = await Promise.all(
+        randomOffsets.map(offset =>
+          prisma.image.findMany({
+            where,
+            skip: offset,
+            take: 1,
+            include: { group: true }
+          })
+        )
+      );
+
+      return images.flat().map(image => ({
+        id: image.id,
+        url: image.url,
+        publicId: image.publicId,
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags ? JSON.parse(image.tags) : undefined,
+        groupId: image.groupId || undefined,
+        uploadedAt: image.uploadedAt
+      }));
     } catch (error) {
       throw new DatabaseError('获取随机图片失败', error);
     }
@@ -370,20 +389,25 @@ export class DatabaseService {
   async saveGroup(groupData: Omit<Group, 'id' | 'createdAt' | 'imageCount'>): Promise<Group> {
     try {
       const id = await this.generateGroupId();
-      const group: Group = {
-        ...groupData,
-        id,
-        createdAt: new Date(),
-        imageCount: 0
-      };
 
-      await this.db.set(`${DB_KEYS.GROUPS}:${id}`, group);
-      
-      // 初始化分组图片列表
-      await this.db.set(`${DB_KEYS.GROUP_IMAGES}:${id}`, []);
+      const group = await prisma.group.create({
+        data: {
+          id,
+          name: groupData.name,
+          description: groupData.description,
+          imageCount: 0
+        }
+      });
 
       console.log(`分组已保存: ${id}`);
-      return group;
+
+      return {
+        id: group.id,
+        name: group.name,
+        description: group.description || undefined,
+        imageCount: group.imageCount,
+        createdAt: group.createdAt
+      };
     } catch (error) {
       throw new DatabaseError('保存分组失败', error);
     }
@@ -394,8 +418,20 @@ export class DatabaseService {
    */
   async getGroup(id: string): Promise<Group | null> {
     try {
-      const group = (await this.db.get(`${DB_KEYS.GROUPS}:${id}`)) as Group | null;
-      return group ? { ...group, createdAt: new Date(group.createdAt) } : null;
+      const group = await prisma.group.findUnique({
+        where: { id },
+        include: { _count: { select: { images: true } } }
+      });
+
+      if (!group) return null;
+
+      return {
+        id: group.id,
+        name: group.name,
+        description: group.description || undefined,
+        imageCount: group._count.images,
+        createdAt: group.createdAt
+      };
     } catch (error) {
       throw new DatabaseError('获取分组失败', error);
     }
@@ -406,20 +442,18 @@ export class DatabaseService {
    */
   async getGroups(): Promise<Group[]> {
     try {
-      const keys = await this.db.list(`${DB_KEYS.GROUPS}:`);
-      const groups: Group[] = [];
+      const groups = await prisma.group.findMany({
+        include: { _count: { select: { images: true } } },
+        orderBy: { createdAt: 'desc' }
+      });
 
-      for (const key of keys) {
-        const group = (await this.db.get(key)) as Group;
-        if (group) {
-          groups.push({ ...group, createdAt: new Date(group.createdAt) });
-        }
-      }
-
-      // 按创建时间排序
-      groups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-      return groups;
+      return groups.map(group => ({
+        id: group.id,
+        name: group.name,
+        description: group.description || undefined,
+        imageCount: group._count.images,
+        createdAt: group.createdAt
+      }));
     } catch (error) {
       throw new DatabaseError('获取分组列表失败', error);
     }
@@ -430,18 +464,23 @@ export class DatabaseService {
    */
   async updateGroup(id: string, updates: Partial<Pick<Group, 'name' | 'description'>>): Promise<Group> {
     try {
-      const group = await this.getGroup(id);
-      if (!group) {
-        throw new NotFoundError('分组', id);
-      }
+      const group = await prisma.group.update({
+        where: { id },
+        data: {
+          name: updates.name,
+          description: updates.description
+        },
+        include: { _count: { select: { images: true } } }
+      });
 
-      const updatedGroup = { ...group, ...updates };
-      await this.db.set(`${DB_KEYS.GROUPS}:${id}`, updatedGroup);
-
-      console.log(`分组已更新: ${id}`);
-      return updatedGroup;
+      return {
+        id: group.id,
+        name: group.name,
+        description: group.description || undefined,
+        imageCount: group._count.images,
+        createdAt: group.createdAt
+      };
     } catch (error) {
-      if (error instanceof NotFoundError) throw error;
       throw new DatabaseError('更新分组失败', error);
     }
   }
@@ -451,32 +490,15 @@ export class DatabaseService {
    */
   async deleteGroup(id: string): Promise<void> {
     try {
-      const group = await this.getGroup(id);
-      if (!group) {
-        throw new NotFoundError('分组', id);
-      }
+      // 将分组下的图片移到未分组
+      await prisma.image.updateMany({
+        where: { groupId: id },
+        data: { groupId: null }
+      });
 
-      // 获取分组中的图片
-      const imageIds = await this.getGroupImages(id);
-      
-      // 将分组中的图片的groupId设为undefined
-      for (const imageId of imageIds) {
-        const image = await this.getImage(imageId);
-        if (image) {
-          const updatedImage = { ...image, groupId: undefined };
-          await this.db.set(`${DB_KEYS.IMAGES}:${imageId}`, updatedImage);
-        }
-      }
-
-      // 删除分组信息
-      await this.db.delete(`${DB_KEYS.GROUPS}:${id}`);
-      
-      // 删除分组图片列表
-      await this.db.delete(`${DB_KEYS.GROUP_IMAGES}:${id}`);
-
-      console.log(`分组已删除: ${id}, 影响图片数量: ${imageIds.length}`);
+      await prisma.group.delete({ where: { id } });
+      console.log(`分组已删除: ${id}`);
     } catch (error) {
-      if (error instanceof NotFoundError) throw error;
       throw new DatabaseError('删除分组失败', error);
     }
   }
@@ -488,8 +510,20 @@ export class DatabaseService {
    */
   async getAPIConfig(): Promise<APIConfig | null> {
     try {
-      const config = (await this.db.get(DB_KEYS.API_CONFIG)) as APIConfig | null;
-      return config ? { ...config, updatedAt: new Date(config.updatedAt) } : null;
+      const config = await prisma.aPIConfig.findUnique({
+        where: { id: 'default' }
+      });
+
+      if (!config) return null;
+
+      return {
+        id: config.id,
+        isEnabled: config.isEnabled,
+        defaultScope: config.defaultScope as 'all' | 'groups',
+        defaultGroups: config.defaultGroups ? JSON.parse(config.defaultGroups) : [],
+        allowedParameters: config.allowedParameters ? JSON.parse(config.allowedParameters) : [],
+        updatedAt: config.updatedAt
+      };
     } catch (error) {
       throw new DatabaseError('获取API配置失败', error);
     }
@@ -500,99 +534,28 @@ export class DatabaseService {
    */
   async updateAPIConfig(config: APIConfig): Promise<void> {
     try {
-      const configWithTimestamp = {
-        ...config,
-        updatedAt: new Date()
-      };
-      
-      await this.db.set(DB_KEYS.API_CONFIG, configWithTimestamp);
+      await prisma.aPIConfig.upsert({
+        where: { id: 'default' },
+        update: {
+          isEnabled: config.isEnabled,
+          defaultScope: config.defaultScope,
+          defaultGroups: JSON.stringify(config.defaultGroups),
+          allowedParameters: JSON.stringify(config.allowedParameters),
+          updatedAt: new Date()
+        },
+        create: {
+          id: 'default',
+          isEnabled: config.isEnabled,
+          defaultScope: config.defaultScope,
+          defaultGroups: JSON.stringify(config.defaultGroups),
+          allowedParameters: JSON.stringify(config.allowedParameters),
+          updatedAt: new Date()
+        }
+      });
+
       console.log('API配置已更新');
     } catch (error) {
       throw new DatabaseError('更新API配置失败', error);
-    }
-  }
-
-  // ==================== 索引管理相关操作 ====================
-
-  /**
-   * 添加图片到索引
-   */
-  private async addToImageIndex(imageId: string): Promise<void> {
-    try {
-      const index: string[] = (await this.db.get(DB_KEYS.IMAGE_INDEX)) as string[] || [];
-      if (!index.includes(imageId)) {
-        index.push(imageId);
-        await this.db.set(DB_KEYS.IMAGE_INDEX, index);
-      }
-    } catch (error) {
-      throw new DatabaseError('添加图片索引失败', error);
-    }
-  }
-
-  /**
-   * 从索引中移除图片
-   */
-  private async removeFromImageIndex(imageId: string): Promise<void> {
-    try {
-      const index: string[] = (await this.db.get(DB_KEYS.IMAGE_INDEX)) as string[] || [];
-      const newIndex = index.filter(id => id !== imageId);
-      await this.db.set(DB_KEYS.IMAGE_INDEX, newIndex);
-    } catch (error) {
-      throw new DatabaseError('移除图片索引失败', error);
-    }
-  }
-
-  /**
-   * 添加图片到分组
-   */
-  private async addImageToGroup(groupId: string, imageId: string): Promise<void> {
-    try {
-      const groupImages: string[] = (await this.db.get(`${DB_KEYS.GROUP_IMAGES}:${groupId}`)) as string[] || [];
-      if (!groupImages.includes(imageId)) {
-        groupImages.push(imageId);
-        await this.db.set(`${DB_KEYS.GROUP_IMAGES}:${groupId}`, groupImages);
-      }
-    } catch (error) {
-      throw new DatabaseError('添加图片到分组失败', error);
-    }
-  }
-
-  /**
-   * 从分组中移除图片
-   */
-  private async removeImageFromGroup(groupId: string, imageId: string): Promise<void> {
-    try {
-      const groupImages: string[] = (await this.db.get(`${DB_KEYS.GROUP_IMAGES}:${groupId}`)) as string[] || [];
-      const newGroupImages = groupImages.filter(id => id !== imageId);
-      await this.db.set(`${DB_KEYS.GROUP_IMAGES}:${groupId}`, newGroupImages);
-    } catch (error) {
-      throw new DatabaseError('从分组移除图片失败', error);
-    }
-  }
-
-  /**
-   * 获取分组中的图片列表
-   */
-  private async getGroupImages(groupId: string): Promise<string[]> {
-    try {
-      return (await this.db.get(`${DB_KEYS.GROUP_IMAGES}:${groupId}`)) as string[] || [];
-    } catch (error) {
-      throw new DatabaseError('获取分组图片列表失败', error);
-    }
-  }
-
-  /**
-   * 更新分组图片数量
-   */
-  private async updateGroupImageCount(groupId: string, delta: number): Promise<void> {
-    try {
-      const group = await this.getGroup(groupId);
-      if (group) {
-        group.imageCount = Math.max(0, group.imageCount + delta);
-        await this.db.set(`${DB_KEYS.GROUPS}:${groupId}`, group);
-      }
-    } catch (error) {
-      throw new DatabaseError('更新分组图片数量失败', error);
     }
   }
 
@@ -603,13 +566,12 @@ export class DatabaseService {
    */
   async getStats(): Promise<{ totalImages: number; totalGroups: number }> {
     try {
-      const imageIndex: string[] = (await this.db.get(DB_KEYS.IMAGE_INDEX)) as string[] || [];
-      const groups = await this.getGroups();
-      
-      return {
-        totalImages: imageIndex.length,
-        totalGroups: groups.length
-      };
+      const [totalImages, totalGroups] = await Promise.all([
+        prisma.image.count(),
+        prisma.group.count()
+      ]);
+
+      return { totalImages, totalGroups };
     } catch (error) {
       throw new DatabaseError('获取统计信息失败', error);
     }
@@ -620,10 +582,10 @@ export class DatabaseService {
    */
   async cleanup(): Promise<void> {
     try {
-      const keys = await this.db.list();
-      for (const key of keys) {
-        await this.db.delete(key);
-      }
+      await prisma.image.deleteMany();
+      await prisma.group.deleteMany();
+      await prisma.aPIConfig.deleteMany();
+      await prisma.counter.deleteMany();
       console.log('数据库已清理');
     } catch (error) {
       throw new DatabaseError('清理数据库失败', error);
@@ -635,12 +597,19 @@ export class DatabaseService {
    */
   async checkConnection(): Promise<boolean> {
     try {
-      await this.db.get('health_check');
+      await prisma.$queryRaw`SELECT 1`;
       return true;
     } catch (error) {
       console.error('数据库连接检查失败:', error);
       return false;
     }
+  }
+
+  /**
+   * 关闭数据库连接
+   */
+  async disconnect(): Promise<void> {
+    await prisma.$disconnect();
   }
 }
 

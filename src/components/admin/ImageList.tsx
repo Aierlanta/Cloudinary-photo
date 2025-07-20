@@ -5,24 +5,19 @@ import Image from 'next/image'
 
 interface ImageItem {
   id: string
-  cloudinaryId: string
   publicId: string
   url: string
-  secureUrl: string
-  filename: string
-  format: string
-  width: number
-  height: number
-  bytes: number
+  title?: string
+  description?: string
   groupId?: string
   uploadedAt: string
-  tags: string[]
+  tags?: string[]
 }
 
 interface Group {
   id: string
   name: string
-  description: string
+  description?: string
   createdAt: string
   imageCount: number
 }
@@ -49,16 +44,15 @@ interface ImageEditModalProps {
   onSave: (imageId: string, updates: { groupId?: string; tags?: string[] }) => void
 }
 
-interface LazyImageProps {
+// 懒加载图片组件
+function LazyImage({ src, alt, className, onClick }: { 
   src: string
   alt: string
   className?: string
   onClick?: () => void
-}
-
-function LazyImage({ src, alt, className, onClick }: LazyImageProps) {
-  const [isLoaded, setIsLoaded] = useState(false)
+}) {
   const [isInView, setIsInView] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
   const imgRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -113,19 +107,12 @@ function LazyImage({ src, alt, className, onClick }: LazyImageProps) {
   )
 }
 
+// 图片预览模态框
 function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
   if (!image) return null
 
   const group = groups.find(g => g.id === image.groupId)
   
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
   }
@@ -150,17 +137,16 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
 
       window.URL.revokeObjectURL(downloadUrl)
     } catch (error) {
-      console.error('下载图片失败:', error)
-      alert('下载图片失败')
+      console.error('下载失败:', error)
+      alert('下载失败，请重试')
     }
   }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="transparent-panel rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {/* 头部 */}
-          <div className="flex items-center justify-between mb-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold panel-text">图片详情</h3>
             <button
               onClick={onClose}
@@ -171,36 +157,37 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
               </svg>
             </button>
           </div>
+        </div>
 
+        <div className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 图片预览 */}
             <div className="space-y-4">
-              <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+              <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden aspect-square">
                 <Image
-                  src={image.secureUrl}
-                  alt={image.filename}
-                  width={image.width}
-                  height={image.height}
-                  className="w-full h-auto max-h-96 object-contain"
+                  src={image.url}
+                  alt={image.title || image.publicId}
+                  fill
+                  className="object-contain"
                 />
               </div>
               
               {/* 操作按钮 */}
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => window.open(image.secureUrl, '_blank')}
+                  onClick={() => window.open(image.url, '_blank')}
                   className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors text-sm"
                 >
                   查看原图
                 </button>
                 <button
-                  onClick={() => downloadImage(image.secureUrl, image.filename)}
+                  onClick={() => downloadImage(image.url, image.publicId + '.jpg')}
                   className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors text-sm"
                 >
                   下载图片
                 </button>
                 <button
-                  onClick={() => copyToClipboard(image.secureUrl)}
+                  onClick={() => copyToClipboard(image.url)}
                   className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors text-sm"
                 >
                   复制链接
@@ -215,26 +202,30 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
             </div>
 
             {/* 图片信息 */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <h4 className="font-medium panel-text mb-2">基本信息</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">文件名:</span>
-                    <span className="panel-text font-mono">{image.filename}</span>
+                    <span className="text-gray-600 dark:text-gray-300">ID:</span>
+                    <span className="panel-text font-mono">{image.id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">格式:</span>
-                    <span className="panel-text uppercase">{image.format}</span>
+                    <span className="text-gray-600 dark:text-gray-300">Public ID:</span>
+                    <span className="panel-text font-mono">{image.publicId}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">尺寸:</span>
-                    <span className="panel-text">{image.width} × {image.height}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">大小:</span>
-                    <span className="panel-text">{formatFileSize(image.bytes)}</span>
-                  </div>
+                  {image.title && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">标题:</span>
+                      <span className="panel-text">{image.title}</span>
+                    </div>
+                  )}
+                  {image.description && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">描述:</span>
+                      <span className="panel-text">{image.description}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-300">上传时间:</span>
                     <span className="panel-text">{formatDate(image.uploadedAt)}</span>
@@ -245,24 +236,25 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
               <div>
                 <h4 className="font-medium panel-text mb-2">分组信息</h4>
                 <div className="text-sm">
-                  {group ? (
-                    <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                      {group.name}
-                    </span>
-                  ) : (
-                    <span className="text-gray-500 dark:text-gray-400">未分组</span>
+                  <span className="panel-text">
+                    {group ? group.name : '未分组'}
+                  </span>
+                  {group?.description && (
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                      {group.description}
+                    </p>
                   )}
                 </div>
               </div>
 
-              {image.tags.length > 0 && (
+              {image.tags && image.tags.length > 0 && (
                 <div>
                   <h4 className="font-medium panel-text mb-2">标签</h4>
                   <div className="flex flex-wrap gap-1">
                     {image.tags.map((tag, index) => (
                       <span
                         key={index}
-                        className="inline-block bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs"
+                        className="inline-flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs"
                       >
                         {tag}
                       </span>
@@ -272,18 +264,12 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
               )}
 
               <div>
-                <h4 className="font-medium panel-text mb-2">Cloudinary信息</h4>
+                <h4 className="font-medium panel-text mb-2">技术信息</h4>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-gray-600 dark:text-gray-300">Public ID:</span>
+                    <span className="text-gray-600 dark:text-gray-300">URL:</span>
                     <div className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-xs break-all">
-                      {image.publicId}
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-300">安全URL:</span>
-                    <div className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-xs break-all">
-                      {image.secureUrl}
+                      {image.url}
                     </div>
                   </div>
                 </div>
@@ -296,46 +282,27 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
   )
 }
 
+// 图片编辑模态框
 function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps) {
-  const [groupId, setGroupId] = useState('')
-  const [tags, setTags] = useState('')
-
-  useEffect(() => {
-    if (image) {
-      setGroupId(image.groupId || '')
-      setTags(image.tags.join(', '))
-    }
-  }, [image])
+  const [groupId, setGroupId] = useState(image?.groupId || '')
+  const [tags, setTags] = useState(image?.tags?.join(', ') || '')
 
   if (!image) return null
 
   const handleSave = () => {
-    const updates: { groupId?: string; tags?: string[] } = {}
-
-    // 处理分组更新
-    if (groupId !== (image.groupId || '')) {
-      updates.groupId = groupId || undefined
-    }
-
-    // 处理标签更新
-    const newTags = tags.split(',').map(tag => tag.trim()).filter(Boolean)
-    if (JSON.stringify(newTags) !== JSON.stringify(image.tags)) {
-      updates.tags = newTags
-    }
-
-    if (Object.keys(updates).length > 0) {
-      onSave(image.id, updates)
-    }
-
+    const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+    onSave(image.id, {
+      groupId: groupId || undefined,
+      tags: tagArray.length > 0 ? tagArray : undefined
+    })
     onClose()
   }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="transparent-panel rounded-lg max-w-md w-full">
-        <div className="p-6">
-          {/* 头部 */}
-          <div className="flex items-center justify-between mb-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full">
+        <div className="border-b border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold panel-text">编辑图片</h3>
             <button
               onClick={onClose}
@@ -346,20 +313,21 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
               </svg>
             </button>
           </div>
+        </div>
 
+        <div className="p-4">
           {/* 图片预览 */}
           <div className="mb-4">
-            <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+            <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative">
               <Image
-                src={image.secureUrl}
-                alt={image.filename}
-                width={image.width}
-                height={image.height}
-                className="w-full h-full object-cover"
+                src={image.url}
+                alt={image.title || image.publicId}
+                fill
+                className="object-cover"
               />
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 panel-text mt-2 truncate">
-              {image.filename}
+              {image.title || image.publicId}
             </p>
           </div>
 
@@ -372,7 +340,7 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
               <select
                 value={groupId}
                 onChange={(e) => setGroupId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 panel-text"
               >
                 <option value="">未分组</option>
                 {groups.map(group => (
@@ -391,25 +359,25 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
                 type="text"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="例如: 风景, 自然, 蓝天"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
+                placeholder="例如: 风景, 自然, 美丽"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 panel-text"
               />
             </div>
           </div>
 
           {/* 操作按钮 */}
-          <div className="flex space-x-3 mt-6">
-            <button
-              onClick={handleSave}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
-            >
-              保存
-            </button>
+          <div className="flex justify-end space-x-2 mt-6">
             <button
               onClick={onClose}
-              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
             >
               取消
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              保存
             </button>
           </div>
         </div>
@@ -418,19 +386,19 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
   )
 }
 
-export default function ImageList({ images, groups, loading, onDeleteImage, onBulkDelete, onUpdateImage }: ImageListProps) {
+// 主要的ImageList组件
+export default function ImageList({
+  images,
+  groups,
+  loading,
+  onDeleteImage,
+  onBulkDelete,
+  onUpdateImage
+}: ImageListProps) {
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null)
   const [editingImage, setEditingImage] = useState<ImageItem | null>(null)
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
   const [bulkMode, setBulkMode] = useState(false)
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('zh-CN')
@@ -439,10 +407,9 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
   const getGroupName = (groupId?: string) => {
     if (!groupId) return '未分组'
     const group = groups.find(g => g.id === groupId)
-    return group?.name || '未知分组'
+    return group ? group.name : '未知分组'
   }
 
-  // 批量操作相关函数
   const toggleImageSelection = (imageId: string) => {
     const newSelected = new Set(selectedImages)
     if (newSelected.has(imageId)) {
@@ -453,46 +420,33 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
     setSelectedImages(newSelected)
   }
 
-  const selectAllImages = () => {
-    setSelectedImages(new Set(images.map(img => img.id)))
-  }
-
-  const clearSelection = () => {
-    setSelectedImages(new Set())
-    setBulkMode(false)
-  }
-
   const handleBulkDelete = () => {
     if (selectedImages.size === 0) return
 
-    if (confirm(`确定要删除选中的 ${selectedImages.size} 张图片吗？`)) {
-      onBulkDelete?.(Array.from(selectedImages))
-      clearSelection()
+    if (confirm(`确定要删除选中的 ${selectedImages.size} 张图片吗？此操作不可撤销。`)) {
+      if (onBulkDelete) {
+        onBulkDelete(Array.from(selectedImages))
+      }
+      setSelectedImages(new Set())
+      setBulkMode(false)
     }
   }
 
-  const handleEditImage = (imageId: string, updates: { groupId?: string; tags?: string[] }) => {
-    onUpdateImage?.(imageId, updates)
+  const handleUpdateImage = (imageId: string, updates: { groupId?: string; tags?: string[] }) => {
+    if (onUpdateImage) {
+      onUpdateImage(imageId, updates)
+    }
   }
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* 图片骨架 */}
-            <div className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-            {/* 信息骨架 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {Array.from({ length: 10 }).map((_, index) => (
+          <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+            <div className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
             <div className="p-3 space-y-2">
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-              <div className="flex justify-between">
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse"></div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12 animate-pulse"></div>
-              </div>
-              <div className="flex justify-between">
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse"></div>
-              </div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-2/3" />
             </div>
           </div>
         ))}
@@ -500,7 +454,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
     )
   }
 
-  if (images.length === 0) {
+  if (!Array.isArray(images) || images.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
@@ -519,73 +473,61 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
   return (
     <>
       {/* 批量操作工具栏 */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex justify-between items-center mb-4">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => setBulkMode(!bulkMode)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            onClick={() => {
+              setBulkMode(!bulkMode)
+              setSelectedImages(new Set())
+            }}
+            className={`px-4 py-2 rounded-lg transition-colors ${
               bulkMode
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >
             {bulkMode ? '退出批量模式' : '批量操作'}
           </button>
 
-          {bulkMode && (
-            <>
-              <span className="text-sm text-gray-600 dark:text-gray-400 panel-text">
+          {bulkMode && selectedImages.size > 0 && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 已选择 {selectedImages.size} 张图片
               </span>
-
-              {selectedImages.size > 0 && (
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleBulkDelete}
-                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
-                  >
-                    删除选中
-                  </button>
-                  <button
-                    onClick={clearSelection}
-                    className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded transition-colors"
-                  >
-                    取消选择
-                  </button>
-                </div>
-              )}
-
-              {images.length > 0 && (
-                <button
-                  onClick={selectAllImages}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
-                >
-                  全选
-                </button>
-              )}
-            </>
+              <button
+                onClick={handleBulkDelete}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
+              >
+                删除选中
+              </button>
+            </div>
           )}
+        </div>
+
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          共 {images.length} 张图片
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* 图片网格 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {images.map((image) => (
           <div
             key={image.id}
-            className={`group relative bg-white dark:bg-gray-800 rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all ${
-              selectedImages.has(image.id)
-                ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
-                : 'border-gray-200 dark:border-gray-700'
+            className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md ${
+              bulkMode && selectedImages.has(image.id)
+                ? 'ring-2 ring-blue-500'
+                : ''
             }`}
           >
-            {/* 批量选择模式下的选择框 */}
+            {/* 批量选择复选框 */}
             {bulkMode && (
               <div className="absolute top-2 left-2 z-10">
                 <input
                   type="checkbox"
                   checked={selectedImages.has(image.id)}
                   onChange={() => toggleImageSelection(image.id)}
-                  className="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
                 />
               </div>
             )}
@@ -593,8 +535,8 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
             {/* 图片预览 */}
             <div className="aspect-square relative bg-gray-100 dark:bg-gray-800">
               <LazyImage
-                src={image.secureUrl}
-                alt={image.filename}
+                src={image.url}
+                alt={image.title || image.publicId}
                 className="w-full h-full"
                 onClick={() => {
                   if (bulkMode) {
@@ -605,9 +547,9 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                 }}
               />
 
-              {/* 悬停操作按钮 - 非批量模式下显示 */}
+              {/* 悬停操作按钮 */}
               {!bulkMode && (
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
                   <div className="flex space-x-2">
                     <button
                       onClick={(e) => {
@@ -653,27 +595,12 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
 
             {/* 图片信息 */}
             <div className="p-3">
-              <h3 className="font-medium panel-text truncate mb-1" title={image.filename}>
-                {image.filename}
+              <h3 className="font-medium panel-text truncate mb-1" title={image.title || image.publicId}>
+                {image.title || image.publicId}
               </h3>
 
               {/* 基本信息 */}
               <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center">
-                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    {image.width} × {image.height}
-                  </span>
-                  <span className="flex items-center">
-                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    {formatFileSize(image.bytes)}
-                  </span>
-                </div>
-
                 <div className="flex justify-between items-center">
                   <span className="flex items-center truncate">
                     <svg className="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -691,59 +618,52 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
               </div>
 
               {/* 标签 */}
-              {image.tags.length > 0 && (
+              {image.tags && image.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {image.tags.slice(0, 2).map((tag, index) => (
+                  {image.tags.slice(0, 3).map((tag, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full text-xs"
+                      className="inline-flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded text-xs"
                     >
-                      <svg className="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                      </svg>
                       {tag}
                     </span>
                   ))}
-                  {image.tags.length > 2 && (
-                    <span className="inline-flex items-center text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
-                      +{image.tags.length - 2}
+                  {image.tags.length > 3 && (
+                    <span className="inline-flex items-center bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded text-xs">
+                      +{image.tags.length - 3}
                     </span>
                   )}
                 </div>
               )}
 
-              {/* 格式标识 */}
-              <div className="mt-2 flex justify-between items-center">
-                <span className="inline-flex items-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded text-xs font-mono uppercase">
-                  {image.format}
-                </span>
-                {bulkMode && selectedImages.has(image.id) && (
+              {/* 批量选择状态 */}
+              {bulkMode && selectedImages.has(image.id) && (
+                <div className="mt-2">
                   <span className="inline-flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded text-xs">
                     <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     已选择
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* 图片预览模态框 */}
+      {/* 模态框 */}
       <ImagePreviewModal
         image={selectedImage}
         groups={groups}
         onClose={() => setSelectedImage(null)}
       />
 
-      {/* 图片编辑模态框 */}
       <ImageEditModal
         image={editingImage}
         groups={groups}
         onClose={() => setEditingImage(null)}
-        onSave={handleEditImage}
+        onSave={handleUpdateImage}
       />
     </>
   )

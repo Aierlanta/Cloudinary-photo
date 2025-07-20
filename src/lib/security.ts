@@ -290,12 +290,12 @@ export function withSecurity(options: {
         
         // 应用限流
         if (options.rateLimit) {
-          const config = typeof options.rateLimit === 'string' 
+          const config = typeof options.rateLimit === 'string'
             ? DEFAULT_RATE_LIMITS[options.rateLimit]
             : options.rateLimit;
-          
+
           const rateLimitResult = rateLimit(config)(request);
-          
+
           if (!rateLimitResult.allowed) {
             return createRateLimitResponse(
               config.message || '请求过于频繁',
@@ -303,16 +303,14 @@ export function withSecurity(options: {
               rateLimitResult.remaining
             );
           }
-          
+
           // 添加限流头到响应
           const response = await handler(...args);
           response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
           response.headers.set('X-RateLimit-Reset', Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString());
-          
-          return setSecurityHeaders(NextResponse.json(
-            JSON.parse(await response.text()),
-            { status: response.status, headers: response.headers }
-          ));
+
+          // 直接返回响应，不尝试解析为JSON
+          return setSecurityHeaders(response);
         }
         
         // 执行处理器并设置安全头

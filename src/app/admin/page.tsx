@@ -1,4 +1,37 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+
+interface Stats {
+  totalImages: number
+  totalGroups: number
+  recentUploads: number
+}
+
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const response = await fetch('/api/admin/stats')
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data.data)
+        } else {
+          console.error('加载统计数据失败:', response.statusText)
+        }
+      } catch (error) {
+        console.error('加载统计数据失败:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadStats()
+  }, [])
+
   return (
     <div className="space-y-6">
       {/* 欢迎标题 */}
@@ -20,7 +53,9 @@ export default function AdminDashboard() {
             </div>
             <div className="ml-4">
               <h2 className="text-lg font-semibold panel-text">图片总数</h2>
-              <p className="text-2xl font-bold text-blue-600 panel-text">-</p>
+              <p className="text-2xl font-bold text-blue-600 panel-text">
+                {loading ? '...' : stats?.totalImages || 0}
+              </p>
             </div>
           </div>
         </div>
@@ -34,7 +69,9 @@ export default function AdminDashboard() {
             </div>
             <div className="ml-4">
               <h2 className="text-lg font-semibold panel-text">分组数量</h2>
-              <p className="text-2xl font-bold text-green-600 panel-text">-</p>
+              <p className="text-2xl font-bold text-green-600 panel-text">
+                {loading ? '...' : stats?.totalGroups || 0}
+              </p>
             </div>
           </div>
         </div>
@@ -48,8 +85,10 @@ export default function AdminDashboard() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">API配置</h2>
-              <p className="text-2xl font-bold text-purple-600 panel-text">活跃</p>
+              <h2 className="text-lg font-semibold panel-text">最近上传</h2>
+              <p className="text-2xl font-bold text-purple-600 panel-text">
+                {loading ? '...' : stats?.recentUploads || 0}
+              </p>
             </div>
           </div>
         </div>

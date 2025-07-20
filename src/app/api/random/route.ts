@@ -38,15 +38,24 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     });
 
     // 获取API配置
-    const apiConfig = await databaseService.getAPIConfig();
+    let apiConfig = await databaseService.getAPIConfig();
 
     if (!apiConfig) {
-      logger.error('API配置未找到', undefined, { type: 'api_config' });
-      throw new AppError(
-        ErrorType.INTERNAL_ERROR,
-        'API配置错误',
-        500
-      );
+      // 如果API配置不存在，尝试初始化数据库
+      logger.info('API配置未找到，正在初始化数据库...', { type: 'api_config' });
+      await databaseService.initialize();
+
+      // 重新获取配置
+      apiConfig = await databaseService.getAPIConfig();
+
+      if (!apiConfig) {
+        logger.error('API配置未找到', new Error('API配置错误'), { type: 'api_config' });
+        throw new AppError(
+          ErrorType.INTERNAL_ERROR,
+          'API配置错误',
+          500
+        );
+      }
     }
 
     if (!apiConfig.isEnabled) {
@@ -117,7 +126,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     logger.info('随机图片已选择', {
       type: 'api_response',
       imageId: randomImage.id,
-      filename: randomImage.filename,
+      publicId: randomImage.publicId,
       groupId: randomImage.groupId,
       params: queryParams
     });
@@ -126,20 +135,23 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     const imageBuffer = await cloudinaryService.downloadImage(randomImage.publicId);
     const duration = Math.round(performance.now() - startTime);
 
+    // 从URL推断格式
+    const format = randomImage.url.split('.').pop() || 'jpg';
+
     // 记录成功响应
     logger.apiResponse('GET', '/api/random', 200, duration, {
       imageId: randomImage.id,
       imageSize: imageBuffer.length,
-      contentType: `image/${randomImage.format}`
+      contentType: `image/${format}`
     });
 
     // 设置响应头
     const headers = new Headers();
-    headers.set('Content-Type', `image/${randomImage.format}`);
+    headers.set('Content-Type', `image/${format}`);
     headers.set('Content-Length', imageBuffer.length.toString());
     headers.set('Cache-Control', 'public, max-age=3600'); // 缓存1小时
     headers.set('X-Image-Id', randomImage.id);
-    headers.set('X-Image-Filename', randomImage.filename);
+    headers.set('X-Image-PublicId', randomImage.publicId);
     headers.set('X-Response-Time', `${duration}ms`);
 
     return new NextResponse(imageBuffer, {
@@ -233,21 +245,24 @@ async function validateAndParseParams(
 async function getRandomImageFromGroups(groupIds: string[]) {
   if (groupIds.length === 0) {
     // 从所有图片中选择
-    return await databaseService.getRandomImage();
+    const images = await databaseService.getRandomImages(1);
+    return images[0] || null;
   }
 
   // 从指定分组中选择
   // 如果有多个分组，随机选择一个分组，然后从该分组中获取随机图片
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
-  
-  const image = await databaseService.getRandomImage(selectedGroupId);
-  
+
+  const images = await databaseService.getRandomImages(1, selectedGroupId);
+  const image = images[0] || null;
+
   if (!image && groupIds.length > 1) {
     // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
       if (groupId !== selectedGroupId) {
-        const fallbackImage = await databaseService.getRandomImage(groupId);
+        const fallbackImages = await databaseService.getRandomImages(1, groupId);
+        const fallbackImage = fallbackImages[0] || null;
         if (fallbackImage) {
           return fallbackImage;
         }

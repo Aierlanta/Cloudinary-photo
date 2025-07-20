@@ -7,24 +7,19 @@ import ImageFilters from '@/components/admin/ImageFilters'
 
 interface Image {
   id: string
-  cloudinaryId: string
   publicId: string
   url: string
-  secureUrl: string
-  filename: string
-  format: string
-  width: number
-  height: number
-  bytes: number
+  title?: string
+  description?: string
   groupId?: string
   uploadedAt: string
-  tags: string[]
+  tags?: string[]
 }
 
 interface Group {
   id: string
   name: string
-  description: string
+  description?: string
   createdAt: string
   imageCount: number
 }

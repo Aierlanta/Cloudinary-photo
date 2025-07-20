@@ -76,6 +76,8 @@ async function uploadImage(request: NextRequest): Promise<Response> {
   const formData = await request.formData();
   const file = formData.get('file') as File;
   const groupId = formData.get('groupId') as string | null;
+  const title = formData.get('title') as string | null;
+  const description = formData.get('description') as string | null;
   const tagsString = formData.get('tags') as string | null;
   
   // 验证文件
@@ -107,6 +109,8 @@ async function uploadImage(request: NextRequest): Promise<Response> {
   // 验证上传参数
   const uploadParams = ImageUploadRequestSchema.parse({
     groupId: groupId || undefined,
+    title: title || undefined,
+    description: description || undefined,
     tags
   });
   
@@ -130,15 +134,10 @@ async function uploadImage(request: NextRequest): Promise<Response> {
   
   // 保存到数据库
   const image = await databaseService.saveImage({
-    cloudinaryId: cloudinaryResult.public_id,
     publicId: cloudinaryResult.public_id,
     url: cloudinaryResult.url,
-    secureUrl: cloudinaryResult.secure_url,
-    filename: file.name,
-    format: cloudinaryResult.format,
-    width: cloudinaryResult.width,
-    height: cloudinaryResult.height,
-    bytes: cloudinaryResult.bytes,
+    title: uploadParams.title,
+    description: uploadParams.description,
     groupId: uploadParams.groupId,
     tags: uploadParams.tags || []
   });

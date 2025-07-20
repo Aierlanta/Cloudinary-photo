@@ -4,7 +4,7 @@ const nextConfig = {
     domains: ['res.cloudinary.com'],
   },
   experimental: {
-    serverComponentsExternalPackages: ['@replit/database'],
+    serverComponentsExternalPackages: ['@prisma/client'],
   },
 }
 

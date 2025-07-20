@@ -8,6 +8,15 @@ import { DatabaseService } from '@/lib/database';
 import { CloudinaryService } from '@/lib/cloudinary';
 import { APIConfig, Image } from '@/types/models';
 
+// Mock Web APIs for testing environment
+global.Request = class MockRequest {
+  constructor(public url: string, public init?: RequestInit) {}
+} as any;
+
+global.Response = class MockResponse {
+  constructor(public body?: any, public init?: ResponseInit) {}
+} as any;
+
 // Mock依赖
 jest.mock('@/lib/database');
 jest.mock('@/lib/cloudinary');

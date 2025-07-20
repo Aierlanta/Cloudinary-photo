@@ -91,6 +91,8 @@ export const UploadOptionsSchema = z.object({
 // 图片上传请求
 export const ImageUploadRequestSchema = z.object({
   groupId: IdSchema.optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
   tags: TagsSchema.optional()
 });
 

@@ -11,7 +11,7 @@ import { AppError, ErrorType } from '@/types/errors';
  */
 export function validateAdminPassword(password: string): boolean {
   const adminPassword = process.env.ADMIN_PASSWORD;
-  
+
   if (!adminPassword) {
     throw new AppError(
       ErrorType.INTERNAL_ERROR,
@@ -19,8 +19,17 @@ export function validateAdminPassword(password: string): boolean {
       500
     );
   }
-  
+
   return password === adminPassword;
+}
+
+/**
+ * 验证session token
+ */
+export function validateSessionToken(token: string): boolean {
+  // 简单验证：session token存在即认为有效
+  // 在实际生产环境中，应该验证token的有效性和过期时间
+  return Boolean(token && token.length > 0);
 }
 
 /**
@@ -28,26 +37,32 @@ export function validateAdminPassword(password: string): boolean {
  */
 export function extractAuthFromRequest(request: NextRequest): string | null {
   // 支持多种认证方式
-  
-  // 1. Authorization Bearer token
+
+  // 1. Cookie中的session token
+  const sessionCookie = request.cookies.get('admin-session');
+  if (sessionCookie) {
+    return sessionCookie.value;
+  }
+
+  // 2. Authorization Bearer token
   const authHeader = request.headers.get('authorization');
   if (authHeader?.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  
-  // 2. X-Admin-Password 头
+
+  // 3. X-Admin-Password 头
   const passwordHeader = request.headers.get('x-admin-password');
   if (passwordHeader) {
     return passwordHeader;
   }
-  
-  // 3. 查询参数 (不推荐，仅用于测试)
+
+  // 4. 查询参数 (不推荐，仅用于测试)
   const url = new URL(request.url);
   const passwordParam = url.searchParams.get('admin_password');
   if (passwordParam) {
     return passwordParam;
   }
-  
+
   return null;
 }
 
@@ -55,17 +70,32 @@ export function extractAuthFromRequest(request: NextRequest): string | null {
  * 验证管理员权限
  */
 export function verifyAdminAuth(request: NextRequest): void {
-  const password = extractAuthFromRequest(request);
-  
-  if (!password) {
+  const authValue = extractAuthFromRequest(request);
+
+  if (!authValue) {
     throw new AppError(
       ErrorType.UNAUTHORIZED,
       '需要管理员认证',
       401
     );
   }
-  
-  if (!validateAdminPassword(password)) {
+
+  // 检查是否是session token（从cookie获取）
+  const sessionCookie = request.cookies.get('admin-session');
+  if (sessionCookie && authValue === sessionCookie.value) {
+    // 验证session token
+    if (!validateSessionToken(authValue)) {
+      throw new AppError(
+        ErrorType.UNAUTHORIZED,
+        'Session已过期',
+        401
+      );
+    }
+    return; // session token验证通过
+  }
+
+  // 否则验证为直接密码
+  if (!validateAdminPassword(authValue)) {
     throw new AppError(
       ErrorType.UNAUTHORIZED,
       '管理员密码错误',
