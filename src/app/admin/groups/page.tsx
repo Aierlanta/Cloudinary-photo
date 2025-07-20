@@ -56,7 +56,11 @@ export default function GroupsPage() {
   const loadGroups = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/groups')
+      const response = await fetch('/api/admin/groups', {
+        headers: {
+          'X-Admin-Password': 'admin123'
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setGroups(data.data?.groups || [])
@@ -73,7 +77,11 @@ export default function GroupsPage() {
   const loadGroupImages = async (groupId: string) => {
     setLoadingImages(true)
     try {
-      const response = await fetch(`/api/admin/images?groupId=${groupId}&limit=50`)
+      const response = await fetch(`/api/admin/images?groupId=${groupId}&limit=12&sortBy=uploadedAt&sortOrder=desc`, {
+        headers: {
+          'X-Admin-Password': 'admin123'
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setGroupImages(data.data?.images?.data || [])
@@ -90,7 +98,11 @@ export default function GroupsPage() {
   const loadUnassignedImages = async () => {
     setLoadingImages(true)
     try {
-      const response = await fetch('/api/admin/images?groupId=unassigned&limit=100')
+      const response = await fetch('/api/admin/images?groupId=unassigned&limit=100', {
+        headers: {
+          'X-Admin-Password': 'admin123'
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         setUnassignedImages(data.data?.images?.data || [])
@@ -115,7 +127,8 @@ export default function GroupsPage() {
       const response = await fetch('/api/admin/groups', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Admin-Password': 'admin123'
         },
         body: JSON.stringify(formData)
       })
@@ -147,7 +160,8 @@ export default function GroupsPage() {
       const response = await fetch(`/api/admin/groups/${editingGroup.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Admin-Password': 'admin123'
         },
         body: JSON.stringify(formData)
       })
@@ -175,7 +189,10 @@ export default function GroupsPage() {
 
     try {
       const response = await fetch(`/api/admin/groups/${groupId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'X-Admin-Password': 'admin123'
+        }
       })
 
       if (response.ok) {
@@ -259,7 +276,8 @@ export default function GroupsPage() {
         fetch(`/api/admin/images/${imageId}`, {
           method: 'PATCH',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-Admin-Password': 'admin123'
           },
           body: JSON.stringify({ groupId: assigningToGroup })
         })
@@ -582,9 +600,16 @@ export default function GroupsPage() {
                         className="group relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         <img
-                          src={image.secureUrl}
+                          src={generateThumbnailUrl(image.url, 300)}
                           alt={image.filename}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // 如果缩略图加载失败，尝试使用原图
+                            const target = e.target as HTMLImageElement;
+                            if (target.src !== image.secureUrl) {
+                              target.src = image.secureUrl;
+                            }
+                          }}
                         />
 
                         {/* 悬停信息 */}
@@ -618,7 +643,7 @@ export default function GroupsPage() {
               {/* 底部操作 */}
               <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                  显示 {groupImages.length} 张图片
+                  显示 {groupImages.length} 张图片{viewingGroup && viewingGroup.imageCount > 12 ? ` (最新 ${Math.min(groupImages.length, 12)} 张)` : ''}
                 </div>
                 <div className="flex space-x-3">
                   <button
