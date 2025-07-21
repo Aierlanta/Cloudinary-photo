@@ -4,6 +4,7 @@
  */
 
 import { BackupScheduler } from './backup-scheduler';
+import { LogCleanupScheduler } from './log-cleanup-scheduler';
 
 let isInitialized = false;
 
@@ -21,6 +22,10 @@ export function initializeServer(): void {
     // 启动备份调度器
     const backupScheduler = BackupScheduler.getInstance();
     backupScheduler.start();
+
+    // 启动日志清理调度器
+    const logCleanupScheduler = LogCleanupScheduler.getInstance();
+    logCleanupScheduler.start();
 
     isInitialized = true;
     console.log('服务器服务初始化完成');
@@ -43,6 +48,10 @@ export function cleanupServer(): void {
     // 停止备份调度器
     const backupScheduler = BackupScheduler.getInstance();
     backupScheduler.stop();
+
+    // 停止日志清理调度器
+    const logCleanupScheduler = LogCleanupScheduler.getInstance();
+    logCleanupScheduler.stop();
 
     isInitialized = false;
     console.log('服务器服务清理完成');
