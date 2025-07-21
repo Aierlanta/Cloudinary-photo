@@ -197,12 +197,29 @@ export class BackupService {
    */
   private async clearBackupDatabase(): Promise<void> {
     try {
-      // 按照外键依赖顺序删除
-      await backupPrisma.systemLog.deleteMany();
-      await backupPrisma.image.deleteMany();
-      await backupPrisma.group.deleteMany();
-      await backupPrisma.aPIConfig.deleteMany();
-      await backupPrisma.counter.deleteMany();
+      // 使用原始 SQL 清空表，按照外键依赖顺序
+      const tableNames = [
+        'system_logs',
+        'images',
+        'groups',
+        'api_configs',
+        'counters'
+      ];
+
+      for (const tableName of tableNames) {
+        try {
+          await backupPrisma.$executeRawUnsafe(`DELETE FROM \`${tableName}\`;`);
+          this.logger.info(`清空表 ${tableName} 成功`);
+        } catch (error) {
+          // 如果表不存在，记录警告但继续执行
+          if (error.message.includes('does not exist') || error.message.includes("doesn't exist")) {
+            this.logger.warn(`表 ${tableName} 不存在，跳过清空操作`);
+          } else {
+            // 其他错误则抛出
+            throw error;
+          }
+        }
+      }
     } catch (error) {
       throw new DatabaseError(`清空备份数据库失败: ${error.message}`);
     }
@@ -212,75 +229,118 @@ export class BackupService {
    * 备份图片数据
    */
   private async backupImages(): Promise<void> {
-    const images = await mainPrisma.image.findMany();
-    if (images.length > 0) {
-      await backupPrisma.image.createMany({
-        data: images
-      });
+    try {
+      const images = await mainPrisma.image.findMany();
+      if (images.length > 0) {
+        await backupPrisma.image.createMany({
+          data: images
+        });
+      }
+      this.logger.debug(`备份了 ${images.length} 条图片记录`);
+    } catch (error) {
+      if (error.message.includes('does not exist')) {
+        this.logger.warn('Image 表不存在，跳过图片备份');
+      } else {
+        throw error;
+      }
     }
-    this.logger.debug(`备份了 ${images.length} 条图片记录`);
   }
 
   /**
    * 备份分组数据
    */
   private async backupGroups(): Promise<void> {
-    const groups = await mainPrisma.group.findMany();
-    if (groups.length > 0) {
-      await backupPrisma.group.createMany({
-        data: groups
-      });
+    try {
+      const groups = await mainPrisma.group.findMany();
+      if (groups.length > 0) {
+        await backupPrisma.group.createMany({
+          data: groups
+        });
+      }
+      this.logger.debug(`备份了 ${groups.length} 条分组记录`);
+    } catch (error) {
+      if (error.message.includes('does not exist')) {
+        this.logger.warn('Group 表不存在，跳过分组备份');
+      } else {
+        throw error;
+      }
     }
-    this.logger.debug(`备份了 ${groups.length} 条分组记录`);
   }
 
   /**
    * 备份API配置数据
    */
   private async backupAPIConfigs(): Promise<void> {
-    const configs = await mainPrisma.aPIConfig.findMany();
-    if (configs.length > 0) {
-      await backupPrisma.aPIConfig.createMany({
-        data: configs
-      });
+    try {
+      const configs = await mainPrisma.aPIConfig.findMany();
+      if (configs.length > 0) {
+        await backupPrisma.aPIConfig.createMany({
+          data: configs
+        });
+      }
+      this.logger.debug(`备份了 ${configs.length} 条API配置记录`);
+    } catch (error) {
+      if (error.message.includes('does not exist')) {
+        this.logger.warn('APIConfig 表不存在，跳过API配置备份');
+      } else {
+        throw error;
+      }
     }
-    this.logger.debug(`备份了 ${configs.length} 条API配置记录`);
   }
 
   /**
    * 备份计数器数据
    */
   private async backupCounters(): Promise<void> {
-    const counters = await mainPrisma.counter.findMany();
-    if (counters.length > 0) {
-      await backupPrisma.counter.createMany({
-        data: counters
-      });
+    try {
+      const counters = await mainPrisma.counter.findMany();
+      if (counters.length > 0) {
+        // Counter 模型只有 id 和 value 字段，不需要额外处理
+        await backupPrisma.counter.createMany({
+          data: counters
+        });
+      }
+      this.logger.debug(`备份了 ${counters.length} 条计数器记录`);
+    } catch (error) {
+      if (error.message.includes('does not exist')) {
+        this.logger.warn('Counter 表不存在，跳过计数器备份');
+      } else {
+        throw error;
+      }
     }
-    this.logger.debug(`备份了 ${counters.length} 条计数器记录`);
   }
 
   /**
    * 备份系统日志数据（只备份最近7天的日志）
    */
   private async backupSystemLogs(): Promise<void> {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const logs = await mainPrisma.systemLog.findMany({
-      where: {
-        timestamp: {
-          gte: sevenDaysAgo
+      const logs = await mainPrisma.systemLog.findMany({
+        where: {
+          timestamp: {
+            gte: sevenDaysAgo
+          }
         }
-      }
-    });
-
-    if (logs.length > 0) {
-      await backupPrisma.systemLog.createMany({
-        data: logs
       });
+
+      if (logs.length > 0) {
+        await backupPrisma.systemLog.createMany({
+          data: logs
+        });
+      }
+      this.logger.debug(`备份了 ${logs.length} 条系统日志记录`);
+    } catch (error) {
+      // 如果 SystemLog 表不存在，记录警告但不中断备份过程
+      if (error.message.includes('does not exist')) {
+        this.logger.warn('SystemLog 表不存在，跳过日志备份');
+      } else {
+        // 其他错误则抛出
+        throw error;
+      }
     }
-    this.logger.debug(`备份了 ${logs.length} 条系统日志记录`);
   }
 
   /**
@@ -441,21 +501,15 @@ export class BackupService {
       // 检查备份数据库连接
       await backupPrisma.$connect();
 
-      // 尝试查询一个表来检查表结构是否存在
-      try {
-        await backupPrisma.image.findFirst();
-        this.logger.info('备份数据库表结构已存在');
-        return true;
-      } catch (error) {
-        // 表不存在，需要创建表结构
-        this.logger.info('备份数据库表结构不存在，开始创建...');
+      // 先删除可能存在的错误表结构
+      await this.dropExistingTables();
 
-        // 执行原始 SQL 来创建表结构
-        await this.createBackupTables();
+      // 创建正确的表结构
+      this.logger.info('开始创建备份数据库表结构...');
+      await this.createBackupTables();
 
-        this.logger.info('备份数据库表结构创建完成');
-        return true;
-      }
+      this.logger.info('备份数据库表结构创建完成');
+      return true;
     } catch (error) {
       this.logger.error('初始化备份数据库失败', { error: error.message });
       return false;
@@ -463,64 +517,96 @@ export class BackupService {
   }
 
   /**
+   * 删除现有的表结构
+   */
+  private async dropExistingTables(): Promise<void> {
+    const tablesToDrop = [
+      'SystemLog', 'system_logs',
+      'Image', 'images',
+      'Group', 'groups',
+      'APIConfig', 'api_configs',
+      'Counter', 'counters'
+    ];
+
+    for (const tableName of tablesToDrop) {
+      try {
+        await backupPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+        this.logger.debug(`删除表 ${tableName}`);
+      } catch (error) {
+        // 忽略删除失败的错误
+        this.logger.debug(`删除表 ${tableName} 失败，可能不存在: ${error.message}`);
+      }
+    }
+  }
+
+  /**
    * 创建备份数据库表结构
    */
   private async createBackupTables(): Promise<void> {
-    // 创建表的 SQL 语句
+    // 创建表的 SQL 语句（使用与主数据库相同的 snake_case 命名）
     const createTablesSQL = [
-      // Groups 表
-      `CREATE TABLE IF NOT EXISTS \`Group\` (
+      // groups 表
+      `CREATE TABLE IF NOT EXISTS \`groups\` (
         \`id\` VARCHAR(191) NOT NULL,
         \`name\` VARCHAR(191) NOT NULL,
         \`description\` TEXT NULL,
+        \`imageCount\` INT NOT NULL DEFAULT 0,
         \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-        \`updatedAt\` DATETIME(3) NOT NULL,
-        PRIMARY KEY (\`id\`)
+        PRIMARY KEY (\`id\`),
+        UNIQUE INDEX \`groups_name_key\` (\`name\`)
       ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`,
 
-      // Images 表
-      `CREATE TABLE IF NOT EXISTS \`Image\` (
+      // images 表
+      `CREATE TABLE IF NOT EXISTS \`images\` (
         \`id\` VARCHAR(191) NOT NULL,
         \`url\` VARCHAR(191) NOT NULL,
         \`publicId\` VARCHAR(191) NOT NULL,
         \`title\` VARCHAR(191) NULL,
         \`description\` TEXT NULL,
+        \`tags\` VARCHAR(191) NULL,
         \`groupId\` VARCHAR(191) NULL,
         \`uploadedAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
         PRIMARY KEY (\`id\`),
-        UNIQUE INDEX \`Image_publicId_key\` (\`publicId\`),
-        INDEX \`Image_groupId_fkey\` (\`groupId\`)
+        UNIQUE INDEX \`images_publicId_key\` (\`publicId\`),
+        INDEX \`images_groupId_fkey\` (\`groupId\`)
       ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`,
 
-      // APIConfig 表
-      `CREATE TABLE IF NOT EXISTS \`APIConfig\` (
+      // api_configs 表
+      `CREATE TABLE IF NOT EXISTS \`api_configs\` (
         \`id\` VARCHAR(191) NOT NULL,
         \`isEnabled\` BOOLEAN NOT NULL DEFAULT true,
-        \`defaultScope\` VARCHAR(191) NULL,
+        \`defaultScope\` VARCHAR(191) NOT NULL DEFAULT 'all',
         \`defaultGroups\` TEXT NULL,
-        \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-        \`updatedAt\` DATETIME(3) NOT NULL,
+        \`allowedParameters\` TEXT NULL,
+        \`updatedAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
         PRIMARY KEY (\`id\`)
       ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`,
 
-      // Counter 表
-      `CREATE TABLE IF NOT EXISTS \`Counter\` (
+      // counters 表
+      `CREATE TABLE IF NOT EXISTS \`counters\` (
         \`id\` VARCHAR(191) NOT NULL,
         \`value\` INT NOT NULL DEFAULT 0,
-        \`updatedAt\` DATETIME(3) NOT NULL,
         PRIMARY KEY (\`id\`)
       ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`,
 
-      // SystemLog 表
-      `CREATE TABLE IF NOT EXISTS \`SystemLog\` (
+      // system_logs 表
+      `CREATE TABLE IF NOT EXISTS \`system_logs\` (
         \`id\` VARCHAR(191) NOT NULL,
-        \`level\` ENUM('DEBUG', 'INFO', 'WARN', 'ERROR') NOT NULL,
-        \`message\` TEXT NOT NULL,
-        \`metadata\` JSON NULL,
         \`timestamp\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+        \`level\` INT NOT NULL,
+        \`message\` TEXT NOT NULL,
+        \`context\` TEXT NULL,
+        \`error\` TEXT NULL,
+        \`userId\` VARCHAR(191) NULL,
+        \`requestId\` VARCHAR(191) NULL,
+        \`ip\` VARCHAR(191) NULL,
+        \`userAgent\` TEXT NULL,
+        \`type\` VARCHAR(191) NULL,
         PRIMARY KEY (\`id\`),
-        INDEX \`SystemLog_timestamp_idx\` (\`timestamp\`),
-        INDEX \`SystemLog_level_idx\` (\`level\`)
+        INDEX \`system_logs_timestamp_idx\` (\`timestamp\`),
+        INDEX \`system_logs_level_idx\` (\`level\`),
+        INDEX \`system_logs_type_idx\` (\`type\`),
+        INDEX \`system_logs_userId_idx\` (\`userId\`)
       ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
     ];
 
@@ -532,9 +618,9 @@ export class BackupService {
     // 添加外键约束
     try {
       await backupPrisma.$executeRawUnsafe(`
-        ALTER TABLE \`Image\`
-        ADD CONSTRAINT \`Image_groupId_fkey\`
-        FOREIGN KEY (\`groupId\`) REFERENCES \`Group\`(\`id\`)
+        ALTER TABLE \`images\`
+        ADD CONSTRAINT \`images_groupId_fkey\`
+        FOREIGN KEY (\`groupId\`) REFERENCES \`groups\`(\`id\`)
         ON DELETE SET NULL ON UPDATE CASCADE;
       `);
     } catch (error) {

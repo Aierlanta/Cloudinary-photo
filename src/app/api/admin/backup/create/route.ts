@@ -42,15 +42,19 @@ export async function POST(request: NextRequest) {
         }
       });
     } else {
+      // 获取备份状态以获取错误信息
+      const status = await backupService.getBackupStatus();
+
       logger.warn('手动备份失败', {
         type: 'backup_operation',
         operation: 'manual_backup',
-        success: false
+        success: false,
+        error: status.lastBackupError
       });
 
       return NextResponse.json({
         success: false,
-        message: '数据库备份失败，请查看日志获取详细信息'
+        message: status.lastBackupError || '数据库备份失败，请查看日志获取详细信息'
       }, { status: 500 });
     }
   } catch (error) {
