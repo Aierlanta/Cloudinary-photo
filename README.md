@@ -1,85 +1,98 @@
-# 随机图片API服务
+# 随机图片 API 服务
 
-基于Next.js的随机图片API服务，集成Cloudinary图床和Replit数据库。
+🎲 基于 Next.js 14 的高性能随机图片 API 服务，集成 Cloudinary CDN 和 MySQL 数据库。
 
-## 功能特性
+## ✨ 功能特性
 
-- 🖼️ 图片上传和管理
-- 📁 图片分组管理
-- 🎲 随机图片API
-- ⚙️ API参数配置
-- 🎨 透明度可调的管理面板
-- 🔒 简单的管理员认证
+- 🖼️ **图片管理** - 上传、删除、分组管理图片
+- 🎲 **随机 API** - RESTful API，支持参数筛选
+- 🎨 **管理面板** - 现代化 Web 界面，支持透明度调节
+- ⚙️ **灵活配置** - API 参数配置和访问控制
+- 📊 **系统监控** - 日志记录、健康检查、统计信息
+- 🔒 **安全认证** - 管理员身份验证
 
-## 技术栈
+## 🛠️ 技术栈
 
-- **框架**: Next.js 14 (App Router)
-- **语言**: TypeScript
+- **框架**: Next.js 14 (App Router) + TypeScript
+- **数据库**: MySQL + Prisma ORM
+- **图片存储**: Cloudinary CDN
 - **样式**: Tailwind CSS
-- **图片存储**: Cloudinary
-- **数据库**: Replit Database
-- **部署**: Replit
+- **测试**: Jest + Testing Library
 
-## 快速开始
+## 🚀 快速开始
 
-### 1. 环境变量配置
+### 环境变量配置
 
-在Replit Secrets中配置以下环境变量：
-
-```
+```env
+# Cloudinary配置
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# 数据库配置
+DATABASE_URL="mysql://username:password@host:port/database"
+
+# 管理员配置
 ADMIN_PASSWORD=your_admin_password
 ```
 
-### 2. 安装依赖
+### 安装和运行
 
 ```bash
+# 安装依赖
 npm install
-```
 
-### 3. 启动开发服务器
+# 数据库迁移
+npx prisma migrate dev
 
-```bash
+# 启动开发服务器
 npm run dev
+
+# 构建生产版本
+npm run build && npm start
 ```
 
-### 4. 构建生产版本
+## 📡 API 端点
 
-```bash
-npm run build
-npm start
+### 公开 API
+
+```http
+GET /api/random          # 获取随机图片（支持参数筛选）
+GET /api/status          # 系统状态检查
 ```
 
-## API端点
+### 管理 API（需要认证）
 
-### 公开API
-- `GET /api/random` - 获取随机图片（支持参数筛选）
-
-### 管理API（需要认证）
-- `GET /api/admin/images` - 获取图片列表
-- `POST /api/admin/images` - 上传图片
-- `DELETE /api/admin/images/[id]` - 删除图片
-- `GET /api/admin/groups` - 获取分组列表
-- `POST /api/admin/groups` - 创建分组
-- `GET /api/admin/config` - 获取API配置
-
-## 项目结构
-
+```http
+GET    /api/admin/images      # 获取图片列表
+POST   /api/admin/images      # 上传图片
+DELETE /api/admin/images/[id] # 删除图片
+GET    /api/admin/groups      # 获取分组列表
+POST   /api/admin/groups      # 创建分组
+GET    /api/admin/config      # 获取API配置
 ```
+
+## 📁 项目结构
+
+```text
 src/
 ├── app/                 # Next.js App Router
-├── lib/                 # 工具函数和配置
-├── types/               # TypeScript类型定义
-└── components/          # React组件（待创建）
+│   ├── admin/          # 管理面板页面
+│   └── api/            # API路由
+├── components/         # React组件
+├── lib/               # 核心业务逻辑
+├── types/             # TypeScript类型定义
+└── hooks/             # React Hooks
+prisma/                # 数据库模式
 ```
 
-## 开发命令
+## 🔧 开发命令
 
-- `npm run dev` - 启动开发服务器
-- `npm run build` - 构建生产版本
-- `npm run start` - 启动生产服务器
-- `npm run lint` - 运行ESLint
-- `npm run type-check` - TypeScript类型检查
-Cloudinary图床
+```bash
+npm run dev          # 启动开发服务器
+npm run build        # 构建生产版本
+npm run start        # 启动生产服务器
+npm run lint         # 代码检查
+npm run type-check   # TypeScript类型检查
+npm run test         # 运行测试
+```
