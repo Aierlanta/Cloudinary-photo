@@ -95,7 +95,9 @@ export class BackupScheduler {
         this.logger.debug('距离上次备份时间不足，跳过此次备份');
       }
     } catch (error) {
-      this.logger.error('执行计划备份时发生错误', { error: error.message });
+      this.logger.error('执行计划备份时发生错误', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 

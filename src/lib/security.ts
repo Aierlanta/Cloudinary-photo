@@ -158,7 +158,7 @@ export function createRateLimitResponse(
 /**
  * 设置安全响应头
  */
-export function setSecurityHeaders(response: NextResponse): NextResponse {
+export function setSecurityHeaders(response: Response): Response {
   // 防止XSS攻击
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');

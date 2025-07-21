@@ -99,10 +99,10 @@ export class LogCleanupScheduler {
         });
       }
     } catch (error) {
-      this.logger.error('执行计划日志清理时发生错误', {
+      this.logger.error('执行计划日志清理时发生错误', error instanceof Error ? error : undefined, {
         type: 'log_cleanup',
         operation: 'scheduled_cleanup',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         retentionDays: this.RETENTION_DAYS
       });
     }
@@ -135,16 +135,16 @@ export class LogCleanupScheduler {
         deletedCount
       };
     } catch (error) {
-      this.logger.error('手动日志清理执行失败', {
+      this.logger.error('手动日志清理执行失败', error instanceof Error ? error : undefined, {
         type: 'log_cleanup',
         operation: 'manual_cleanup',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         retentionDays: retentionDays || this.RETENTION_DAYS
       });
 
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }

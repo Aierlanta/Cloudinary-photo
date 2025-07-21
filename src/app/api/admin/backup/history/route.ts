@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
 
     // 获取备份相关的系统日志
-    const logs = await databaseService.getSystemLogs({
+    const logs = await databaseService.getLogs({
       page,
       limit,
       level: undefined, // 获取所有级别
@@ -33,24 +33,24 @@ export async function GET(request: NextRequest) {
     });
 
     // 过滤和格式化备份历史记录
-    const backupHistory = logs.logs
+    const backupHistory = logs.data
       .filter(log => {
         try {
-          const metadata = typeof log.metadata === 'string' 
-            ? JSON.parse(log.metadata) 
-            : log.metadata;
+          const metadata = typeof log.context === 'string'
+            ? JSON.parse(log.context)
+            : log.context;
           return metadata?.type === 'backup_operation';
         } catch {
           return false;
         }
       })
-      .map(log => {
-        const metadata = typeof log.metadata === 'string' 
-          ? JSON.parse(log.metadata) 
-          : log.metadata;
-        
+      .map((log, index) => {
+        const metadata = typeof log.context === 'string'
+          ? JSON.parse(log.context)
+          : log.context;
+
         return {
-          id: log.id,
+          id: `backup-${index}`,
           timestamp: log.timestamp,
           success: metadata?.success || false,
           message: log.message,

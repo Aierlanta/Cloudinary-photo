@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     try {
       stats = await databaseService.getStats();
     } catch (error) {
-      logger.warn('获取数据库统计失败', { error: error.message });
+      logger.warn('获取数据库统计失败', { error: error instanceof Error ? error.message : String(error) });
     }
 
     const healthData = {

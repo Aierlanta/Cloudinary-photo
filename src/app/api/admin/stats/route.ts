@@ -39,7 +39,7 @@ async function getStats(request: NextRequest): Promise<Response> {
   const recentImages = await databaseService.getImages({
     page: 1,
     limit: 1000, // 足够大的数量来获取所有最近图片
-    dateFrom: sevenDaysAgo.toISOString()
+    dateFrom: sevenDaysAgo
   });
 
   // 获取备份状态

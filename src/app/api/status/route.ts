@@ -103,7 +103,7 @@ async function getAPIStatus(request: NextRequest): Promise<Response> {
         performance: {
           responseTime: `${duration}ms`,
           memoryUsage: {
-            used: Math.round(stats.memoryUsage.used / 1024 / 1024), // MB
+            used: Math.round(stats.memoryUsage.heapUsed / 1024 / 1024), // MB
             total: Math.round(stats.memoryUsage.rss / 1024 / 1024), // MB
             heap: Math.round(stats.memoryUsage.heapUsed / 1024 / 1024), // MB
             external: Math.round(stats.memoryUsage.external / 1024 / 1024) // MB
@@ -332,7 +332,7 @@ async function checkAPIConfigStatus(): Promise<{
       details: {
         defaultScope: apiConfig.defaultScope,
         defaultGroups: apiConfig.defaultGroups || [],
-        allowedParameters: apiConfig.allowedParameters || [],
+        allowedParameters: apiConfig.allowedParameters?.map(param => param.name) || [],
         lastUpdated: apiConfig.updatedAt
       }
     };

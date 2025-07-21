@@ -210,7 +210,7 @@ export default function BackupPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium panel-text">上次备份时间</label>
             <p className="text-sm panel-text">
-              {formatShanghaiTime(backupStatus?.lastBackupTime)}
+              {formatShanghaiTime(backupStatus?.lastBackupTime || null)}
             </p>
           </div>
 

@@ -75,7 +75,9 @@ export class BackupService {
         isAutoBackupEnabled: status.isAutoBackupEnabled !== false
       };
     } catch (error) {
-      this.logger.error('获取备份状态失败', { error: error.message });
+      this.logger.error('获取备份状态失败', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw new DatabaseError('获取备份状态失败');
     }
   }
@@ -107,7 +109,9 @@ export class BackupService {
         await this.recordBackupHistory(status.lastBackupSuccess || false, status.lastBackupError);
       }
     } catch (error) {
-      this.logger.error('更新备份状态失败', { error: error.message });
+      this.logger.error('更新备份状态失败', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -118,18 +122,27 @@ export class BackupService {
     try {
       await mainPrisma.systemLog.create({
         data: {
-          level: success ? 'INFO' : 'ERROR',
+          timestamp: new Date(),
+          level: success ? LogLevel.INFO : LogLevel.ERROR,
           message: success ? '数据库备份成功' : '数据库备份失败',
-          metadata: {
+          context: JSON.stringify({
             type: 'backup_operation',
             success,
             error: error || null,
             timestamp: new Date().toISOString()
-          }
+          }),
+          error: null,
+          userId: null,
+          requestId: null,
+          ip: null,
+          userAgent: null,
+          type: 'backup_operation'
         }
       });
     } catch (error) {
-      this.logger.error('记录备份历史失败', { error: error.message });
+      this.logger.error('记录备份历史失败', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 
@@ -175,15 +188,15 @@ export class BackupService {
 
       return true;
     } catch (error) {
-      this.logger.error('数据库备份失败', { 
-        error: error.message,
-        timestamp: startTime 
+      this.logger.error('数据库备份失败', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: startTime
       });
 
       await this.updateBackupStatus({
         lastBackupTime: startTime,
         lastBackupSuccess: false,
-        lastBackupError: error.message
+        lastBackupError: error instanceof Error ? error.message : String(error)
       });
 
       return false;
@@ -212,7 +225,8 @@ export class BackupService {
           this.logger.info(`清空表 ${tableName} 成功`);
         } catch (error) {
           // 如果表不存在，记录警告但继续执行
-          if (error.message.includes('does not exist') || error.message.includes("doesn't exist")) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('does not exist') || errorMessage.includes("doesn't exist")) {
             this.logger.warn(`表 ${tableName} 不存在，跳过清空操作`);
           } else {
             // 其他错误则抛出
@@ -221,7 +235,7 @@ export class BackupService {
         }
       }
     } catch (error) {
-      throw new DatabaseError(`清空备份数据库失败: ${error.message}`);
+      throw new DatabaseError(`清空备份数据库失败: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -238,7 +252,8 @@ export class BackupService {
       }
       this.logger.debug(`备份了 ${images.length} 条图片记录`);
     } catch (error) {
-      if (error.message.includes('does not exist')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('does not exist')) {
         this.logger.warn('Image 表不存在，跳过图片备份');
       } else {
         throw error;
@@ -259,7 +274,8 @@ export class BackupService {
       }
       this.logger.debug(`备份了 ${groups.length} 条分组记录`);
     } catch (error) {
-      if (error.message.includes('does not exist')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('does not exist')) {
         this.logger.warn('Group 表不存在，跳过分组备份');
       } else {
         throw error;
@@ -280,7 +296,8 @@ export class BackupService {
       }
       this.logger.debug(`备份了 ${configs.length} 条API配置记录`);
     } catch (error) {
-      if (error.message.includes('does not exist')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('does not exist')) {
         this.logger.warn('APIConfig 表不存在，跳过API配置备份');
       } else {
         throw error;
@@ -302,7 +319,8 @@ export class BackupService {
       }
       this.logger.debug(`备份了 ${counters.length} 条计数器记录`);
     } catch (error) {
-      if (error.message.includes('does not exist')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('does not exist')) {
         this.logger.warn('Counter 表不存在，跳过计数器备份');
       } else {
         throw error;
@@ -334,7 +352,8 @@ export class BackupService {
       this.logger.debug(`备份了 ${logs.length} 条系统日志记录`);
     } catch (error) {
       // 如果 SystemLog 表不存在，记录警告但不中断备份过程
-      if (error.message.includes('does not exist')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('does not exist')) {
         this.logger.warn('SystemLog 表不存在，跳过日志备份');
       } else {
         // 其他错误则抛出
@@ -363,7 +382,9 @@ export class BackupService {
       this.logger.info('数据库还原完成');
       return true;
     } catch (error) {
-      this.logger.error('数据库还原失败', { error: error.message });
+      this.logger.error('数据库还原失败', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return false;
     }
   }
@@ -385,7 +406,7 @@ export class BackupService {
       });
       await mainPrisma.counter.deleteMany();
     } catch (error) {
-      throw new DatabaseError(`清空主数据库失败: ${error.message}`);
+      throw new DatabaseError(`清空主数据库失败: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -466,7 +487,9 @@ export class BackupService {
       await mainPrisma.$queryRaw`SELECT 1`;
       return true;
     } catch (error) {
-      this.logger.error('主数据库健康检查失败', { error: error.message });
+      this.logger.error('主数据库健康检查失败', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return false;
     }
   }
@@ -479,7 +502,9 @@ export class BackupService {
       await backupPrisma.$queryRaw`SELECT 1`;
       return true;
     } catch (error) {
-      this.logger.error('备份数据库健康检查失败', { error: error.message });
+      this.logger.error('备份数据库健康检查失败', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return false;
     }
   }
@@ -511,7 +536,9 @@ export class BackupService {
       this.logger.info('备份数据库表结构创建完成');
       return true;
     } catch (error) {
-      this.logger.error('初始化备份数据库失败', { error: error.message });
+      this.logger.error('初始化备份数据库失败', error instanceof Error ? error : undefined, {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return false;
     }
   }
@@ -534,7 +561,7 @@ export class BackupService {
         this.logger.debug(`删除表 ${tableName}`);
       } catch (error) {
         // 忽略删除失败的错误
-        this.logger.debug(`删除表 ${tableName} 失败，可能不存在: ${error.message}`);
+        this.logger.debug(`删除表 ${tableName} 失败，可能不存在: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }
@@ -626,7 +653,9 @@ export class BackupService {
       `);
     } catch (error) {
       // 外键可能已存在，忽略错误
-      this.logger.debug('外键约束可能已存在', { error: error.message });
+      this.logger.debug('外键约束可能已存在', {
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 

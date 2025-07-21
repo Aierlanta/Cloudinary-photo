@@ -948,12 +948,16 @@ export class DatabaseService {
         userAgent: log.userAgent || undefined
       }));
 
+      const totalPages = Math.ceil(total / limit);
+
       return {
         data: logEntries,
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
       };
     } catch (error) {
       throw new DatabaseError('获取日志失败', error);
