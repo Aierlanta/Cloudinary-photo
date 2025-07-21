@@ -2,7 +2,7 @@
 # 基于Cloudinary CDN和MySQL数据库的高性能图片API
 
 # 运行命令 - 自动安装依赖、生成Prisma客户端、构建并启动
-run = "npm install --legacy-peer-deps && npx prisma generate && npm run build && chmod +x fast-start.sh && ./fast-start.sh"
+run = "npm run build:replit && chmod +x fast-start.sh && ./fast-start.sh"
 
 # 入口点
 entrypoint = "src/app/page.tsx"
@@ -25,7 +25,7 @@ channel = "stable-24_05"
 
 # 部署配置
 [deployment]
-build = ["sh", "-c", "npm ci --include=dev && npx prisma generate && npm run build"]
+build = ["sh", "-c", "npm run build:replit"]
 run = ["sh", "-c", "chmod +x fast-start.sh && ./fast-start.sh"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
