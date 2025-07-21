@@ -2,18 +2,18 @@
 
 [![wakatime](https://wakatime.com/badge/user/7dcace4a-8c3d-4c31-8e2c-ca241719b01b/project/a1234166-0f5e-4b15-a40f-bc487950578d.svg)](https://wakatime.com/badge/user/7dcace4a-8c3d-4c31-8e2c-ca241719b01b/project/a1234166-0f5e-4b15-a40f-bc487950578d)
 
-🎲 基于 Next.js 14 的高性能随机图片 API 服务，集成 Cloudinary CDN 和 MySQL 数据库。
+基于 Next.js 14 的高性能随机图片 API 服务，集成 Cloudinary CDN 和 MySQL 数据库。
 
-## ✨ 功能特性
+## 功能特性
 
-- 🖼️ **图片管理** - 上传、删除、分组管理图片
-- 🎲 **随机 API** - RESTful API，支持参数筛选
-- 🎨 **管理面板** - 现代化 Web 界面，支持透明度调节
-- ⚙️ **灵活配置** - API 参数配置和访问控制
-- 📊 **系统监控** - 日志记录、健康检查、统计信息
-- 🔒 **安全认证** - 管理员身份验证
+- **图片管理** - 上传、删除、分组管理图片
+- **随机 API** - RESTful API，支持参数筛选
+- **管理面板** - 现代化 Web 界面，支持透明度调节
+- **灵活配置** - API 参数配置和访问控制
+- **系统监控** - 日志记录、健康检查、统计信息
+- **安全认证** - 管理员身份验证
 
-## 🛠️ 技术栈
+## 技术栈
 
 - **框架**: Next.js 14 (App Router) + TypeScript
 - **数据库**: MySQL + Prisma ORM
@@ -21,7 +21,7 @@
 - **样式**: Tailwind CSS
 - **测试**: Jest + Testing Library
 
-## 🚀 快速开始
+## 快速开始
 
 ### 环境变量配置
 
@@ -54,7 +54,7 @@ npm run dev
 npm run build && npm start
 ```
 
-## 📡 API 端点
+## API 端点
 
 ### 公开 API
 
@@ -74,7 +74,7 @@ POST   /api/admin/groups      # 创建分组
 GET    /api/admin/config      # 获取API配置
 ```
 
-## 📁 项目结构
+## 项目结构
 
 ```text
 src/
@@ -88,7 +88,7 @@ src/
 prisma/                # 数据库模式
 ```
 
-## 🔧 开发命令
+## 开发命令
 
 ```bash
 npm run dev          # 启动开发服务器
