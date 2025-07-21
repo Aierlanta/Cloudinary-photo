@@ -26,7 +26,7 @@ channel = "stable-24_05"
 # 部署配置
 [deployment]
 build = ["sh", "-c", "npm run build:replit"]
-run = ["sh", "-c", "chmod +x start-deployment.sh && ./fast-start.sh"]
+run = ["sh", "-c", "chmod +x fast-start.sh && ./fast-start.sh"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
 
@@ -49,14 +49,6 @@ ADMIN_PASSWORD = "$ADMIN_PASSWORD"
 localPort = 3000
 externalPort = 80
 exposeLocalhost = true
-
-# 健康检查配置
-[deployment.healthcheck]
-path = "/api/health"
-initialDelaySeconds = 10
-periodSeconds = 30
-timeoutSeconds = 5
-failureThreshold = 3
 
 # 包管理器
 [packager]

@@ -1,27 +1,29 @@
 #!/bin/bash
 
-# 随机图片API服务 - 生产环境快速启动脚本
-echo "🚀 启动随机图片API生产服务..."
+# 随机图片API服务 - 快速启动脚本
+# 参考成功项目的启动模式
 
-# 快速环境检查（仅检查关键变量）
-if [ -z "$DATABASE_URL" ]; then
-    echo "❌ 错误: DATABASE_URL 环境变量未设置"
+set -e
+
+echo "=== 随机图片API服务 - 快速启动 ==="
+echo "开始时间: $(date)"
+
+# 设置环境变量（关键：HOSTNAME必须设置为0.0.0.0）
+export NODE_ENV=production
+export HOSTNAME=0.0.0.0
+export PORT=3000
+
+# 确保构建目录存在
+if [ ! -d ".next" ]; then
+    echo "❌ 错误：.next目录不存在，请先运行构建命令"
     exit 1
 fi
 
-if [ -z "$CLOUDINARY_CLOUD_NAME" ]; then
-    echo "❌ 错误: CLOUDINARY_CLOUD_NAME 环境变量未设置"
-    exit 1
-fi
+# 启动服务器
+echo "🚀 启动Next.js服务器..."
+echo "端口: $PORT"
+echo "主机: $HOSTNAME"
+echo "环境: $NODE_ENV"
 
-echo "✅ 环境变量验证通过"
-
-# 启动生产服务器（假设构建已完成）
-echo "🌟 启动生产服务器..."
-echo "📍 服务运行在端口 3000"
-echo "🌐 访问地址: https://$REPL_SLUG.$REPL_OWNER.repl.co"
-echo "🎯 API端点: https://$REPL_SLUG.$REPL_OWNER.repl.co/api/random"
-echo ""
-
-# 直接启动，不进行额外的构建操作
-npm start
+# 使用next start启动服务器（参考成功项目的方式）
+HOSTNAME=$HOSTNAME PORT=$PORT npm run start
