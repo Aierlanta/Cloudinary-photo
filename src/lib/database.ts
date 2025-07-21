@@ -21,6 +21,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 export class DatabaseService {
   private static instance: DatabaseService;
+  private isInitializing: boolean = false;
+  private isInitialized: boolean = false;
+  private initializationPromise: Promise<void> | null = null;
 
   constructor() {
     // 构造函数为空，使用全局Prisma实例
@@ -37,8 +40,41 @@ export class DatabaseService {
   /**
    * 初始化数据库
    * 创建必要的索引和默认配置
+   * 使用锁机制防止并发初始化
    */
   async initialize(): Promise<void> {
+    // 如果已经初始化完成，直接返回
+    if (this.isInitialized) {
+      return;
+    }
+
+    // 如果正在初始化，等待现有的初始化完成
+    if (this.isInitializing && this.initializationPromise) {
+      await this.initializationPromise;
+      return;
+    }
+
+    // 开始初始化
+    this.isInitializing = true;
+    this.initializationPromise = this.performInitialization();
+
+    try {
+      await this.initializationPromise;
+      this.isInitialized = true;
+    } catch (error) {
+      // 初始化失败，重置状态以允许重试
+      this.isInitialized = false;
+      throw error;
+    } finally {
+      this.isInitializing = false;
+      this.initializationPromise = null;
+    }
+  }
+
+  /**
+   * 执行实际的初始化操作
+   */
+  private async performInitialization(): Promise<void> {
     try {
       // 初始化计数器 - 从现有数据的最大值开始
       await this.initializeCounters();
@@ -127,22 +163,49 @@ export class DatabaseService {
         }
       }
 
-      // 初始化或更新计数器
-      await prisma.counter.upsert({
-        where: { id: 'imageId' },
-        update: { value: Math.max(maxImageId, 0) },
-        create: { id: 'imageId', value: maxImageId }
-      });
+      // 使用事务来避免并发冲突
+      await prisma.$transaction(async (tx) => {
+        // 先尝试查找现有计数器
+        const existingImageCounter = await tx.counter.findUnique({
+          where: { id: 'imageId' }
+        });
 
-      await prisma.counter.upsert({
-        where: { id: 'groupId' },
-        update: { value: Math.max(maxGroupId, 0) },
-        create: { id: 'groupId', value: maxGroupId }
+        const existingGroupCounter = await tx.counter.findUnique({
+          where: { id: 'groupId' }
+        });
+
+        // 如果计数器不存在，则创建；如果存在，则更新
+        if (!existingImageCounter) {
+          await tx.counter.create({
+            data: { id: 'imageId', value: maxImageId }
+          });
+        } else {
+          await tx.counter.update({
+            where: { id: 'imageId' },
+            data: { value: Math.max(maxImageId, existingImageCounter.value) }
+          });
+        }
+
+        if (!existingGroupCounter) {
+          await tx.counter.create({
+            data: { id: 'groupId', value: maxGroupId }
+          });
+        } else {
+          await tx.counter.update({
+            where: { id: 'groupId' },
+            data: { value: Math.max(maxGroupId, existingGroupCounter.value) }
+          });
+        }
       });
 
       console.log(`计数器初始化完成 - 图片ID从 ${maxImageId + 1} 开始，分组ID从 ${maxGroupId + 1} 开始`);
     } catch (error) {
       console.error('初始化计数器失败:', error);
+      // 如果是主键冲突错误，可能是并发初始化导致的，可以忽略
+      if (error instanceof Error && error.message.includes('Unique constraint failed')) {
+        console.log('计数器已存在，跳过初始化');
+        return;
+      }
       throw new DatabaseError('初始化计数器失败', error);
     }
   }
