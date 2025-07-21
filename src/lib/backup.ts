@@ -151,11 +151,11 @@ export class BackupService {
       // 1. 清空备份数据库
       await this.clearBackupDatabase();
 
-      // 2. 备份各个表的数据
-      await this.backupImages();
+      // 2. 备份各个表的数据（按照外键依赖顺序：先备份被引用的表）
       await this.backupGroups();
       await this.backupAPIConfigs();
       await this.backupCounters();
+      await this.backupImages();
       await this.backupSystemLogs();
 
       // 3. 更新备份状态
@@ -353,11 +353,11 @@ export class BackupService {
       // 1. 清空主数据库
       await this.clearMainDatabase();
 
-      // 2. 从备份数据库还原数据
-      await this.restoreImages();
+      // 2. 从备份数据库还原数据（按照外键依赖顺序：先还原被引用的表）
       await this.restoreGroups();
       await this.restoreAPIConfigs();
       await this.restoreCounters();
+      await this.restoreImages();
       await this.restoreSystemLogs();
 
       this.logger.info('数据库还原完成');
