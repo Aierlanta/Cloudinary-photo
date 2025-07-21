@@ -47,12 +47,6 @@ export default function ConfigPage() {
   const [testResult, setTestResult] = useState<any>(null)
   const [testing, setTesting] = useState(false)
 
-  // 加载配置和分组
-  useEffect(() => {
-    loadConfig()
-    loadGroups()
-  }, [loadConfig, loadGroups])
-
   const getDefaultConfig = (): APIConfig => ({
     id: 'default',
     isEnabled: true,
@@ -111,6 +105,12 @@ export default function ConfigPage() {
       console.error('加载分组失败:', error)
     }
   }, [])
+
+  // 加载配置和分组
+  useEffect(() => {
+    loadConfig()
+    loadGroups()
+  }, [loadConfig, loadGroups])
 
   const saveConfig = async () => {
     if (!config) {
