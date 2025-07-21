@@ -21,6 +21,27 @@ export default function BackupPage() {
   const [isInitializing, setIsInitializing] = useState(false);
   const { toasts, removeToast, success: showSuccess, error: showError } = useToast();
 
+  // 格式化时间为上海时区
+  const formatShanghaiTime = (timeString: string | null): string => {
+    if (!timeString) return '从未备份';
+
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleString('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+    } catch (error) {
+      return timeString;
+    }
+  };
+
   // 获取备份状态
   const fetchBackupStatus = async () => {
     try {
@@ -189,7 +210,7 @@ export default function BackupPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium panel-text">上次备份时间</label>
             <p className="text-sm panel-text">
-              {backupStatus?.lastBackupTime || '从未备份'}
+              {formatShanghaiTime(backupStatus?.lastBackupTime)}
             </p>
           </div>
 

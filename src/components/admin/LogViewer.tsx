@@ -137,12 +137,14 @@ export default function LogViewer({
     try {
       const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
       return date.toLocaleString('zh-CN', {
+        timeZone: 'Asia/Shanghai',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
+        hour12: false
       });
     } catch (error) {
       return '无效时间';

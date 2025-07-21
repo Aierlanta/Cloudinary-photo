@@ -56,12 +56,14 @@ async function getStats(request: NextRequest): Promise<Response> {
       backup: {
         lastBackupTime: backupStatus.lastBackupTime
           ? backupStatus.lastBackupTime.toLocaleString('zh-CN', {
+              timeZone: 'Asia/Shanghai',
               year: 'numeric',
               month: '2-digit',
               day: '2-digit',
               hour: '2-digit',
               minute: '2-digit',
-              second: '2-digit'
+              second: '2-digit',
+              hour12: false
             })
           : null,
         lastBackupSuccess: backupStatus.lastBackupSuccess,
