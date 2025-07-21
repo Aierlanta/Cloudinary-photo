@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { LogLevel } from '@/lib/logger'
 
 interface LogEntry {
@@ -47,7 +47,7 @@ export default function LogViewer({
   })
 
   // 加载日志
-  const loadLogs = async (page: number = pagination.page) => {
+  const loadLogs = useCallback(async (page: number = pagination.page) => {
     try {
       setLoading(true)
       setError(null)
@@ -93,19 +93,19 @@ export default function LogViewer({
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.page, pagination.limit, filter])
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }))
     loadLogs(1)
-  }, [filter])
+  }, [filter, loadLogs])
 
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => loadLogs(), refreshInterval)
       return () => clearInterval(interval)
     }
-  }, [autoRefresh, refreshInterval])
+  }, [autoRefresh, refreshInterval, loadLogs])
 
   // 分页处理
   const handlePageChange = (newPage: number) => {

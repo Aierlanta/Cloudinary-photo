@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
 
@@ -43,11 +43,11 @@ export default function BackupPage() {
   };
 
   // 获取备份状态
-  const fetchBackupStatus = async () => {
+  const fetchBackupStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/backup/status');
       const data = await response.json();
-      
+
       if (data.success) {
         setBackupStatus(data.data);
       } else {
@@ -58,7 +58,7 @@ export default function BackupPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
 
   // 创建备份
   const createBackup = async () => {
@@ -161,7 +161,7 @@ export default function BackupPage() {
 
   useEffect(() => {
     fetchBackupStatus();
-  }, []);
+  }, [fetchBackupStatus]);
 
   if (loading) {
     return (

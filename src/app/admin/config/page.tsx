@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import ParameterModal from '@/components/admin/ParameterModal'
 
 interface APIParameter {
@@ -51,9 +51,19 @@ export default function ConfigPage() {
   useEffect(() => {
     loadConfig()
     loadGroups()
-  }, [])
+  }, [loadConfig, loadGroups])
 
-  const loadConfig = async () => {
+  const getDefaultConfig = (): APIConfig => ({
+    id: 'default',
+    isEnabled: true,
+    defaultScope: 'all',
+    defaultGroups: [],
+    allowedParameters: [],
+    enableDirectResponse: false,
+    updatedAt: new Date().toISOString()
+  })
+
+  const loadConfig = useCallback(async () => {
     console.log('开始加载配置...')
     try {
       const response = await fetch('/api/admin/config', {
@@ -84,9 +94,9 @@ export default function ConfigPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/groups', {
         headers: {
@@ -100,17 +110,7 @@ export default function ConfigPage() {
     } catch (error) {
       console.error('加载分组失败:', error)
     }
-  }
-
-  const getDefaultConfig = (): APIConfig => ({
-    id: 'default',
-    isEnabled: true,
-    defaultScope: 'all',
-    defaultGroups: [],
-    allowedParameters: [],
-    enableDirectResponse: false,
-    updatedAt: new Date().toISOString()
-  })
+  }, [])
 
   const saveConfig = async () => {
     if (!config) {

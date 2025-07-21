@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 
 export interface ToastProps {
@@ -16,10 +16,17 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   const [isVisible, setIsVisible] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
 
+  const handleClose = useCallback(() => {
+    setIsLeaving(true)
+    setTimeout(() => {
+      onClose(id)
+    }, 300) // 等待退出动画完成
+  }, [id, onClose])
+
   useEffect(() => {
     // 进入动画
     const timer = setTimeout(() => setIsVisible(true), 10)
-    
+
     // 自动关闭
     const autoCloseTimer = setTimeout(() => {
       handleClose()
@@ -29,14 +36,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
       clearTimeout(timer)
       clearTimeout(autoCloseTimer)
     }
-  }, [duration])
-
-  const handleClose = () => {
-    setIsLeaving(true)
-    setTimeout(() => {
-      onClose(id)
-    }, 300) // 等待退出动画完成
-  }
+  }, [duration, handleClose])
 
   const getIcon = () => {
     switch (type) {
