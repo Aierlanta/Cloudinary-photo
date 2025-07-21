@@ -30,7 +30,7 @@ export function initializeServer(): void {
     isInitialized = true;
     console.log('服务器服务初始化完成');
   } catch (error) {
-    console.error('服务器服务初始化失败', error.message);
+    console.error('服务器服务初始化失败', error instanceof Error ? error.message : String(error));
   }
 }
 
@@ -56,7 +56,7 @@ export function cleanupServer(): void {
     isInitialized = false;
     console.log('服务器服务清理完成');
   } catch (error) {
-    console.error('服务器服务清理失败', error.message);
+    console.error('服务器服务清理失败', error instanceof Error ? error.message : String(error));
   }
 }
 
