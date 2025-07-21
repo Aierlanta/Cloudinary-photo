@@ -40,18 +40,8 @@ export class DatabaseService {
    */
   async initialize(): Promise<void> {
     try {
-      // 初始化计数器
-      await prisma.counter.upsert({
-        where: { id: 'imageId' },
-        update: {},
-        create: { id: 'imageId', value: 0 }
-      });
-
-      await prisma.counter.upsert({
-        where: { id: 'groupId' },
-        update: {},
-        create: { id: 'groupId', value: 0 }
-      });
+      // 初始化计数器 - 从现有数据的最大值开始
+      await this.initializeCounters();
 
       // 初始化API配置
       const apiConfig = await this.getAPIConfig();
@@ -89,6 +79,73 @@ export class DatabaseService {
   }
 
   // ==================== 内部工具方法 ====================
+
+  /**
+   * 初始化计数器，从现有数据的最大值开始
+   */
+  private async initializeCounters(): Promise<void> {
+    try {
+      // 获取现有图片中的最大数字ID
+      const existingImages = await prisma.image.findMany({
+        where: {
+          id: {
+            startsWith: 'img_'
+          }
+        },
+        select: { id: true }
+      });
+
+      let maxImageId = 0;
+      for (const image of existingImages) {
+        const match = image.id.match(/^img_(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxImageId) {
+            maxImageId = num;
+          }
+        }
+      }
+
+      // 获取现有分组中的最大数字ID
+      const existingGroups = await prisma.group.findMany({
+        where: {
+          id: {
+            startsWith: 'grp_'
+          }
+        },
+        select: { id: true }
+      });
+
+      let maxGroupId = 0;
+      for (const group of existingGroups) {
+        const match = group.id.match(/^grp_(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxGroupId) {
+            maxGroupId = num;
+          }
+        }
+      }
+
+      // 初始化或更新计数器
+      await prisma.counter.upsert({
+        where: { id: 'imageId' },
+        update: { value: Math.max(maxImageId, 0) },
+        create: { id: 'imageId', value: maxImageId }
+      });
+
+      await prisma.counter.upsert({
+        where: { id: 'groupId' },
+        update: { value: Math.max(maxGroupId, 0) },
+        create: { id: 'groupId', value: maxGroupId }
+      });
+
+      console.log(`计数器初始化完成 - 图片ID从 ${maxImageId + 1} 开始，分组ID从 ${maxGroupId + 1} 开始`);
+    } catch (error) {
+      console.error('初始化计数器失败:', error);
+      throw new DatabaseError('初始化计数器失败', error);
+    }
+  }
 
   /**
    * 生成新的图片ID

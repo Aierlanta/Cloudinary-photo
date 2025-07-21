@@ -12,7 +12,7 @@ datasource db {
 
 // 图片模型
 model Image {
-  id          String   @id @default(cuid())
+  id          String   @id
   url         String   // Cloudinary URL
   publicId    String   // Cloudinary public ID
   title       String?  // 图片标题
@@ -20,24 +20,24 @@ model Image {
   tags        String?  // 标签，JSON字符串格式
   groupId     String?  // 所属分组ID
   uploadedAt  DateTime @default(now())
-  
+
   // 关联分组
   group       Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  
+
   @@map("images")
 }
 
 // 分组模型
 model Group {
-  id          String   @id @default(cuid())
+  id          String   @id
   name        String   @unique // 分组名称
   description String?  // 分组描述
   imageCount  Int      @default(0) // 图片数量
   createdAt   DateTime @default(now())
-  
+
   // 关联图片
   images      Image[]
-  
+
   @@map("groups")
 }
 
