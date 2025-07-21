@@ -1,5 +1,7 @@
 # 随机图片 API 服务
 
+[![wakatime](https://wakatime.com/badge/user/7dcace4a-8c3d-4c31-8e2c-ca241719b01b/project/a1234166-0f5e-4b15-a40f-bc487950578d.svg)](https://wakatime.com/badge/user/7dcace4a-8c3d-4c31-8e2c-ca241719b01b/project/a1234166-0f5e-4b15-a40f-bc487950578d)
+
 🎲 基于 Next.js 14 的高性能随机图片 API 服务，集成 Cloudinary CDN 和 MySQL 数据库。
 
 ## ✨ 功能特性
