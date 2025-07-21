@@ -16,7 +16,8 @@ import {
   ImageListRequestSchema,
   ImageUploadRequestSchema,
   FileValidationSchema,
-  BulkDeleteRequestSchema
+  BulkDeleteRequestSchema,
+  BulkUpdateRequestSchema
 } from '@/types/schemas';
 import {
   APIResponse,
@@ -225,4 +226,53 @@ export const DELETE = withErrorHandler(
     rateLimit: 'admin',
     allowedMethods: ['DELETE']
   })(withAdminAuth(bulkDeleteImages))
+);
+
+/**
+ * PATCH /api/admin/images
+ * 批量更新图片信息
+ */
+async function bulkUpdateImages(request: NextRequest): Promise<Response> {
+  const body = await request.json();
+
+  // 验证请求参数
+  const validatedParams = BulkUpdateRequestSchema.parse(body);
+  const { imageIds, updates } = validatedParams;
+
+  // 如果指定了分组，验证分组是否存在
+  if (updates.groupId) {
+    const group = await databaseService.getGroup(updates.groupId);
+    if (!group) {
+      throw new AppError(
+        ErrorType.VALIDATION_ERROR,
+        `分组 ${updates.groupId} 不存在`,
+        400
+      );
+    }
+  }
+
+  // 使用优化的批量更新方法
+  const { updatedIds, failedIds } = await databaseService.bulkUpdateImages(imageIds, updates);
+
+  const response: APIResponse = {
+    success: true,
+    data: {
+      message: `成功更新 ${updatedIds.length} 张图片${failedIds.length > 0 ? `，${failedIds.length} 张更新失败` : ''}`,
+      updatedIds,
+      failedIds,
+      updatedCount: updatedIds.length,
+      failedCount: failedIds.length
+    },
+    timestamp: new Date()
+  };
+
+  return NextResponse.json(response);
+}
+
+// 应用安全中间件、认证和错误处理
+export const PATCH = withErrorHandler(
+  withSecurity({
+    rateLimit: 'admin',
+    allowedMethods: ['PATCH']
+  })(withAdminAuth(bulkUpdateImages))
 );

@@ -300,25 +300,30 @@ export default function GroupsPage() {
     }
 
     try {
-      const updatePromises = Array.from(selectedImages).map(imageId =>
-        fetch(`/api/admin/images/${imageId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Admin-Password': 'admin123'
-          },
-          body: JSON.stringify({ groupId: assigningToGroup })
+      // 使用批量更新API
+      const response = await fetch('/api/admin/images', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': 'admin123'
+        },
+        body: JSON.stringify({
+          imageIds: Array.from(selectedImages),
+          updates: { groupId: assigningToGroup }
         })
-      )
+      })
 
-      await Promise.all(updatePromises)
-
-      alert(`成功将 ${selectedImages.size} 张图片分配到分组`)
-      await loadUnassignedImages()
-      await loadGroups()
-      await loadTotalImages()
-      clearSelection()
-      setAssigningToGroup('')
+      if (response.ok) {
+        const data = await response.json()
+        alert(`成功将 ${selectedImages.size} 张图片分配到分组`)
+        await loadUnassignedImages()
+        await loadGroups()
+        await loadTotalImages()
+        clearSelection()
+        setAssigningToGroup('')
+      } else {
+        alert('分配图片失败')
+      }
     } catch (error) {
       console.error('分配图片失败:', error)
       alert('分配图片失败')

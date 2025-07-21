@@ -30,6 +30,7 @@ interface ImageListProps {
   onDeleteImage: (imageId: string) => void
   onBulkDelete?: (imageIds: string[]) => void
   onUpdateImage?: (imageId: string, updates: { groupId?: string; tags?: string[] }) => void
+  onBulkUpdate?: (imageIds: string[], updates: { groupId?: string; tags?: string[] }) => void
 }
 
 interface ImagePreviewModalProps {
@@ -400,12 +401,14 @@ export default function ImageList({
   loading,
   onDeleteImage,
   onBulkDelete,
-  onUpdateImage
+  onUpdateImage,
+  onBulkUpdate
 }: ImageListProps) {
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null)
   const [editingImage, setEditingImage] = useState<ImageItem | null>(null)
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
   const [bulkMode, setBulkMode] = useState(false)
+  const [bulkGroupId, setBulkGroupId] = useState<string>('')
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('zh-CN')
@@ -442,6 +445,22 @@ export default function ImageList({
   const handleUpdateImage = (imageId: string, updates: { groupId?: string; tags?: string[] }) => {
     if (onUpdateImage) {
       onUpdateImage(imageId, updates)
+    }
+  }
+
+  const handleBulkUpdateGroup = () => {
+    if (selectedImages.size === 0 || !bulkGroupId) {
+      alert('请选择图片和目标分组')
+      return
+    }
+
+    if (confirm(`确定要将选中的 ${selectedImages.size} 张图片移动到指定分组吗？`)) {
+      if (onBulkUpdate) {
+        onBulkUpdate(Array.from(selectedImages), { groupId: bulkGroupId })
+      }
+      setSelectedImages(new Set())
+      setBulkMode(false)
+      setBulkGroupId('')
     }
   }
 
@@ -501,6 +520,29 @@ export default function ImageList({
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 已选择 {selectedImages.size} 张图片
               </span>
+
+              {/* 批量分组选择器 */}
+              <select
+                value={bulkGroupId}
+                onChange={(e) => setBulkGroupId(e.target.value)}
+                className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">选择分组</option>
+                {groups.map(group => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={handleBulkUpdateGroup}
+                disabled={!bulkGroupId}
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm transition-colors"
+              >
+                移动到分组
+              </button>
+
               <button
                 onClick={handleBulkDelete}
                 className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"

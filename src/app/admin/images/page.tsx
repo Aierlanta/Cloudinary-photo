@@ -190,6 +190,34 @@ export default function ImagesPage() {
     }
   }
 
+  const handleBulkUpdate = async (imageIds: string[], updates: { groupId?: string; tags?: string[] }) => {
+    try {
+      const response = await fetch('/api/admin/images', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': 'admin123'
+        },
+        body: JSON.stringify({
+          imageIds,
+          updates
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        success('批量更新成功', data.data.message)
+        // 重新加载图片列表
+        setFilters(prev => ({ ...prev }))
+      } else {
+        showError('批量更新失败', '批量更新图片失败')
+      }
+    } catch (error) {
+      console.error('批量更新图片失败:', error)
+      showError('批量更新失败', '批量更新图片失败')
+    }
+  }
+
   const totalPages = Math.ceil(totalImages / filters.limit)
 
   return (
@@ -294,6 +322,7 @@ export default function ImagesPage() {
           onDeleteImage={handleDeleteImage}
           onBulkDelete={handleBulkDelete}
           onUpdateImage={handleUpdateImage}
+          onBulkUpdate={handleBulkUpdate}
         />
 
         {/* 分页 */}

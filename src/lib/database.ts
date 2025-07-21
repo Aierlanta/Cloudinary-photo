@@ -353,7 +353,7 @@ export class DatabaseService {
             data: { imageCount: { decrement: 1 } }
           });
         }
-        
+
         // 添加到新分组
         if (updates.groupId) {
           await prisma.group.update({
@@ -385,6 +385,100 @@ export class DatabaseService {
     } catch (error) {
       if (error instanceof NotFoundError) throw error;
       throw new DatabaseError('更新图片失败', error);
+    }
+  }
+
+  /**
+   * 批量更新图片信息（优化版本）
+   */
+  async bulkUpdateImages(imageIds: string[], updates: Partial<Pick<Image, 'groupId' | 'tags'>>): Promise<{
+    updatedIds: string[];
+    failedIds: string[];
+  }> {
+    try {
+      const updatedIds: string[] = [];
+      const failedIds: string[] = [];
+
+      // 如果需要更新分组，先获取所有图片的当前分组信息
+      let groupChanges: { [imageId: string]: { oldGroupId: string | null; newGroupId: string | null } } = {};
+
+      if (updates.groupId !== undefined) {
+        const existingImages = await prisma.image.findMany({
+          where: { id: { in: imageIds } },
+          select: { id: true, groupId: true }
+        });
+
+        // 计算分组变化
+        for (const image of existingImages) {
+          if (image.groupId !== updates.groupId) {
+            groupChanges[image.id] = {
+              oldGroupId: image.groupId,
+              newGroupId: updates.groupId
+            };
+          }
+        }
+      }
+
+      // 使用事务批量更新，增加超时时间
+      await prisma.$transaction(async (tx) => {
+        // 使用 updateMany 进行真正的批量更新
+        try {
+          const updateData: any = {};
+          if (updates.groupId !== undefined) {
+            updateData.groupId = updates.groupId;
+          }
+          if (updates.tags !== undefined) {
+            updateData.tags = updates.tags ? JSON.stringify(updates.tags) : null;
+          }
+
+          const result = await tx.image.updateMany({
+            where: { id: { in: imageIds } },
+            data: updateData
+          });
+
+          // 假设所有更新都成功（updateMany 不会返回具体的失败ID）
+          updatedIds.push(...imageIds);
+        } catch (error) {
+          console.error('批量更新图片失败:', error);
+          failedIds.push(...imageIds);
+        }
+
+        // 批量更新分组计数
+        if (Object.keys(groupChanges).length > 0 && updatedIds.length > 0) {
+          const groupCountChanges: { [groupId: string]: number } = {};
+
+          // 计算每个分组的计数变化
+          for (const imageId of updatedIds) {
+            const change = groupChanges[imageId];
+            if (change) {
+              // 从旧分组减少
+              if (change.oldGroupId) {
+                groupCountChanges[change.oldGroupId] = (groupCountChanges[change.oldGroupId] || 0) - 1;
+              }
+              // 向新分组增加
+              if (change.newGroupId) {
+                groupCountChanges[change.newGroupId] = (groupCountChanges[change.newGroupId] || 0) + 1;
+              }
+            }
+          }
+
+          // 批量更新分组计数
+          for (const [groupId, countChange] of Object.entries(groupCountChanges)) {
+            if (countChange !== 0) {
+              await tx.group.update({
+                where: { id: groupId },
+                data: { imageCount: { increment: countChange } }
+              });
+            }
+          }
+        }
+      }, {
+        timeout: 30000 // 增加超时时间到30秒
+      });
+
+      return { updatedIds, failedIds };
+    } catch (error) {
+      throw new DatabaseError('批量更新图片失败', error);
     }
   }
 
