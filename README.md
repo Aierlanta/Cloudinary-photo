@@ -98,3 +98,8 @@ npm run lint         # 代码检查
 npm run type-check   # TypeScript类型检查
 npm run test         # 运行测试
 ```
+
+# tgstate
+
+鉴于 cloudinary 有审查, 所以可选择接入 tgstate 作为备用图床
+https://github.com/csznet/tgState
