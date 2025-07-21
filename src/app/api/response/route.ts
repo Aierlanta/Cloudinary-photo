@@ -144,34 +144,88 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       params: queryParams
     });
 
-    // 获取图片数据流
-    const imageBuffer = await cloudinaryService.downloadImage(randomImage.publicId);
-    
     // 确定图片的MIME类型
     const mimeType = getMimeTypeFromUrl(randomImage.url);
-    
-    const duration = Math.round(performance.now() - startTime);
 
-    // 记录成功响应
-    logger.apiResponse('GET', '/api/response', 200, duration, {
-      imageId: randomImage.id,
-      imageSize: imageBuffer.length,
-      mimeType
-    });
+    // 获取图片URL用于流式传输
+    const imageUrl = randomImage.url.replace(/^http:/, 'https:');
 
-    // 返回图片数据流
-    return new NextResponse(imageBuffer, {
-      status: 200,
-      headers: {
+    try {
+      // 使用 fetch 获取图片流
+      const imageResponse = await fetch(imageUrl);
+
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+      }
+
+      const duration = Math.round(performance.now() - startTime);
+
+      // 记录成功响应
+      logger.apiResponse('GET', '/api/response', 200, duration, {
+        imageId: randomImage.id,
+        imageUrl: imageUrl,
+        mimeType
+      });
+
+      // 获取图片大小（如果可用）
+      const contentLength = imageResponse.headers.get('content-length');
+
+      // 创建响应头
+      const responseHeaders = new Headers({
         'Content-Type': mimeType,
-        'Content-Length': imageBuffer.length.toString(),
         'Cache-Control': 'public, max-age=3600', // 缓存1小时
         'X-Image-Id': randomImage.id,
         'X-Image-PublicId': randomImage.publicId,
-        'X-Response-Time': `${duration}ms`,
-        'X-Image-Size': imageBuffer.length.toString()
+        'X-Response-Time': `${duration}ms`
+      });
+
+      // 如果有内容长度，添加到响应头
+      if (contentLength) {
+        responseHeaders.set('Content-Length', contentLength);
+        responseHeaders.set('X-Image-Size', contentLength);
       }
-    });
+
+      // 返回流式响应
+      return new NextResponse(imageResponse.body, {
+        status: 200,
+        headers: responseHeaders
+      });
+
+    } catch (streamError) {
+      // 如果流式传输失败，回退到缓冲模式
+      logger.warn('流式传输失败，回退到缓冲模式', {
+        type: 'api_fallback',
+        imageId: randomImage.id,
+        error: streamError instanceof Error ? streamError.message : '未知错误'
+      });
+
+      const imageBuffer = await cloudinaryService.downloadImage(randomImage.publicId);
+
+      const duration = Math.round(performance.now() - startTime);
+
+      // 记录回退响应
+      logger.apiResponse('GET', '/api/response', 200, duration, {
+        imageId: randomImage.id,
+        imageSize: imageBuffer.length,
+        mimeType,
+        mode: 'fallback'
+      });
+
+      // 返回缓冲响应
+      return new NextResponse(imageBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': mimeType,
+          'Content-Length': imageBuffer.length.toString(),
+          'Cache-Control': 'public, max-age=3600',
+          'X-Image-Id': randomImage.id,
+          'X-Image-PublicId': randomImage.publicId,
+          'X-Response-Time': `${duration}ms`,
+          'X-Image-Size': imageBuffer.length.toString(),
+          'X-Transfer-Mode': 'buffered'
+        }
+      });
+    }
 
   } catch (error) {
     // 错误会被withErrorHandler中间件处理
