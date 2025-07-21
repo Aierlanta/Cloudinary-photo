@@ -100,6 +100,8 @@ export interface APIConfigUpdateRequest {
     mappedGroups: string[];
     isEnabled: boolean;
   }>;
+  // 新增：响应模式配置
+  enableDirectResponse?: boolean;
 }
 
 // 随机图片API请求参数

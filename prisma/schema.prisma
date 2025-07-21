@@ -43,13 +43,14 @@ model Group {
 
 // API配置模型
 model APIConfig {
-  id                String   @id @default("default")
-  isEnabled         Boolean  @default(true) // API是否启用
-  defaultScope      String   @default("all") // 默认范围：all, group
-  defaultGroups     String?  @db.Text // 默认分组，JSON字符串格式
-  allowedParameters String?  @db.Text // 允许的参数，JSON字符串格式
-  updatedAt         DateTime @default(now()) @updatedAt
-  
+  id                   String   @id @default("default")
+  isEnabled            Boolean  @default(true) // API是否启用
+  defaultScope         String   @default("all") // 默认范围：all, group
+  defaultGroups        String?  @db.Text // 默认分组，JSON字符串格式
+  allowedParameters    String?  @db.Text // 允许的参数，JSON字符串格式
+  enableDirectResponse Boolean  @default(false) // 是否启用直接响应模式
+  updatedAt            DateTime @default(now()) @updatedAt
+
   @@map("api_configs")
 }
 

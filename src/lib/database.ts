@@ -62,6 +62,7 @@ export class DatabaseService {
           defaultScope: 'all',
           defaultGroups: [],
           allowedParameters: [],
+          enableDirectResponse: false, // 默认关闭直接响应模式
           updatedAt: new Date()
         };
         await this.updateAPIConfig(defaultConfig);
@@ -548,6 +549,7 @@ export class DatabaseService {
         defaultScope: config.defaultScope as 'all' | 'groups',
         defaultGroups: config.defaultGroups ? JSON.parse(config.defaultGroups) : [],
         allowedParameters: config.allowedParameters ? JSON.parse(config.allowedParameters) : [],
+        enableDirectResponse: config.enableDirectResponse || false,
         updatedAt: config.updatedAt
       };
     } catch (error) {
@@ -567,6 +569,7 @@ export class DatabaseService {
           defaultScope: config.defaultScope,
           defaultGroups: JSON.stringify(config.defaultGroups),
           allowedParameters: JSON.stringify(config.allowedParameters),
+          enableDirectResponse: config.enableDirectResponse,
           updatedAt: new Date()
         },
         create: {
@@ -575,6 +578,7 @@ export class DatabaseService {
           defaultScope: config.defaultScope,
           defaultGroups: JSON.stringify(config.defaultGroups),
           allowedParameters: JSON.stringify(config.allowedParameters),
+          enableDirectResponse: config.enableDirectResponse,
           updatedAt: new Date()
         }
       });

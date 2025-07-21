@@ -31,6 +31,7 @@ async function getAPIConfig(request: NextRequest): Promise<Response> {
         defaultScope: 'all',
         defaultGroups: [],
         allowedParameters: [],
+        enableDirectResponse: false,
         updatedAt: new Date()
       };
       await databaseService.updateAPIConfig(config);
@@ -96,6 +97,7 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
         defaultScope: 'all',
         defaultGroups: [],
         allowedParameters: [],
+        enableDirectResponse: false,
         updatedAt: new Date()
       };
     }

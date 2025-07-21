@@ -17,6 +17,7 @@ interface APIConfig {
   defaultScope: 'all' | 'groups'
   defaultGroups: string[]
   allowedParameters: APIParameter[]
+  enableDirectResponse: boolean
   updatedAt: string
 }
 
@@ -64,7 +65,12 @@ export default function ConfigPage() {
       if (response.ok) {
         const data = await response.json()
         console.log('配置加载成功:', data.data?.config)
-        setConfig(data.data?.config || getDefaultConfig())
+        const loadedConfig = data.data?.config || getDefaultConfig()
+        // 确保 enableDirectResponse 字段存在
+        if (loadedConfig.enableDirectResponse === undefined) {
+          loadedConfig.enableDirectResponse = false
+        }
+        setConfig(loadedConfig)
       } else {
         console.error('加载配置失败:', {
           status: response.status,
@@ -102,6 +108,7 @@ export default function ConfigPage() {
     defaultScope: 'all',
     defaultGroups: [],
     allowedParameters: [],
+    enableDirectResponse: false,
     updatedAt: new Date().toISOString()
   })
 
@@ -142,7 +149,8 @@ export default function ConfigPage() {
       isEnabled: config.isEnabled,
       defaultScope: config.defaultScope,
       defaultGroups: config.defaultGroups,
-      allowedParameters: config.allowedParameters
+      allowedParameters: config.allowedParameters,
+      enableDirectResponse: config.enableDirectResponse
     }
     console.log('开始保存配置...', config)
     console.log('发送的请求数据:', requestData)
@@ -220,21 +228,34 @@ export default function ConfigPage() {
     })
   }
 
-  const generateApiUrl = () => {
+  const generateApiUrl = (endpoint: 'random' | 'response' = 'random') => {
     if (typeof window === 'undefined') return ''
     const baseUrl = `${window.location.protocol}//${window.location.host}`
-    return `${baseUrl}/api/random`
+    return `${baseUrl}/api/${endpoint}`
   }
 
   const generateExampleUrls = () => {
     if (!config) return []
 
-    const baseUrl = generateApiUrl()
-    const examples = [baseUrl]
+    const randomBaseUrl = generateApiUrl('random')
+    const responseBaseUrl = generateApiUrl('response')
+    const examples = [
+      { label: '重定向模式 (/api/random)', url: randomBaseUrl },
+      ...(config.enableDirectResponse ? [{ label: '直接响应模式 (/api/response)', url: responseBaseUrl }] : [])
+    ]
 
     config.allowedParameters.forEach(param => {
       if (param.isEnabled && param.allowedValues.length > 0) {
-        examples.push(`${baseUrl}?${param.name}=${param.allowedValues[0]}`)
+        examples.push({
+          label: `带参数 (${param.name}=${param.allowedValues[0]})`,
+          url: `${randomBaseUrl}?${param.name}=${param.allowedValues[0]}`
+        })
+        if (config.enableDirectResponse) {
+          examples.push({
+            label: `直接响应带参数 (${param.name}=${param.allowedValues[0]})`,
+            url: `${responseBaseUrl}?${param.name}=${param.allowedValues[0]}`
+          })
+        }
       }
     })
 
@@ -328,6 +349,23 @@ export default function ConfigPage() {
               </p>
             </div>
 
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={config.enableDirectResponse}
+                  onChange={(e) => setConfig({ ...config, enableDirectResponse: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="ml-2 text-sm font-medium panel-text">启用直接响应模式</span>
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                启用 /api/response 端点，直接返回图片数据流
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <div>
               <label className="block text-sm font-medium panel-text mb-2">
                 默认访问范围
@@ -516,33 +554,38 @@ export default function ConfigPage() {
             <label className="block text-sm font-medium panel-text mb-2">
               使用示例
             </label>
-            <div className="space-y-2">
-              {generateExampleUrls().map((url, index) => (
-                <div key={index} className="flex">
-                  <input
-                    type="text"
-                    value={url}
-                    readOnly
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg bg-gray-50 dark:bg-gray-700 panel-text text-sm"
-                  />
-                  <button
-                    onClick={() => navigator.clipboard.writeText(url)}
-                    className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white transition-colors"
-                    title="复制链接"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => window.open(url, '_blank')}
-                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-r-lg transition-colors"
+            <div className="space-y-3">
+              {generateExampleUrls().map((example, index) => (
+                <div key={index} className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {example.label}
+                  </label>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={example.url}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg bg-gray-50 dark:bg-gray-700 panel-text text-sm"
+                    />
+                    <button
+                      onClick={() => navigator.clipboard.writeText(example.url)}
+                      className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white transition-colors"
+                      title="复制链接"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => window.open(example.url, '_blank')}
+                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-r-lg transition-colors"
                     title="在新窗口打开"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
                   </button>
+                  </div>
                 </div>
               ))}
             </div>

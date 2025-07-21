@@ -40,6 +40,8 @@ export interface APIConfig {
   defaultScope: 'all' | 'groups';
   defaultGroups: string[];
   allowedParameters: APIParameter[];
+  // 新增：响应模式配置
+  enableDirectResponse: boolean; // 是否启用直接响应模式（/api/response端点）
   updatedAt: Date;
 }
 
