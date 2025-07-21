@@ -1,11 +1,103 @@
-run = "npm run dev"
+# Replit配置文件 - Next.js随机图片API服务
+# 基于Cloudinary CDN和MySQL数据库的高性能图片API
+
+# 运行命令 - 自动安装依赖、构建并启动
+run = "chmod +x fast-start.sh && ./fast-start.sh"
+
+# 入口点
 entrypoint = "src/app/page.tsx"
 
+# 隐藏的文件和目录
+hidden = [".config", "package-lock.json", "tsconfig.tsbuildinfo", ".next"]
+
+# 语言设置
+[languages]
+
+[languages.javascript]
+pattern = "**/{*.js,*.jsx,*.ts,*.tsx,*.json}"
+
+[languages.javascript.languageServer]
+start = "typescript-language-server --stdio"
+
+# Nix包配置
 [nix]
 channel = "stable-24_05"
 
+# 部署配置
 [deployment]
-run = ["sh", "-c", "npm run build && npm start"]
+build = ["sh", "-c", "npm install --legacy-peer-deps && npm run build"]
+run = ["sh", "-c", "chmod +x fast-start.sh && ./fast-start.sh"]
+deploymentTarget = "cloudrun"
+ignorePorts = false
 
+# 环境变量
 [env]
-NODE_ENV = "development"
+NODE_ENV = "production"
+PORT = "3000"
+# Cloudinary配置 - 从Replit secrets中获取
+CLOUDINARY_CLOUD_NAME = "$CLOUDINARY_CLOUD_NAME"
+CLOUDINARY_API_KEY = "$CLOUDINARY_API_KEY"
+CLOUDINARY_API_SECRET = "$CLOUDINARY_API_SECRET"
+# 数据库配置
+DATABASE_URL = "$DATABASE_URL"
+BACKUP_DATABASE_URL = "$BACKUP_DATABASE_URL"
+# 管理员配置
+ADMIN_PASSWORD = "$ADMIN_PASSWORD"
+
+# 端口配置
+[[ports]]
+localPort = 3000
+externalPort = 80
+exposeLocalhost = true
+
+# 包管理器
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = false
+
+# Git配置
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix"]
+
+# 调试配置
+[debugger]
+support = true
+
+[debugger.interactive]
+transport = "localhost:0"
+startCommand = ["dap-node"]
+
+[debugger.interactive.initializeMessage]
+command = "initialize"
+type = "request"
+
+[debugger.interactive.initializeMessage.arguments]
+clientID = "replit"
+clientName = "replit.com"
+columnsStartAt1 = true
+linesStartAt1 = true
+locale = "en-us"
+pathFormat = "path"
+supportsInvalidatedEvent = true
+supportsProgressReporting = true
+supportsRunInTerminalRequest = true
+supportsVariablePaging = true
+supportsVariableType = true
+
+[debugger.interactive.launchMessage]
+command = "launch"
+type = "request"
+
+[debugger.interactive.launchMessage.arguments]
+console = "externalTerminal"
+cwd = "."
+pauseForSourceMap = false
+program = "./src/app/page.tsx"
+request = "launch"
+sourceMaps = true
+stopOnEntry = false
+type = "node"
