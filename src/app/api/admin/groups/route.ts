@@ -16,6 +16,9 @@ import {
   GroupResponse
 } from '@/types/api';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/admin/groups
  * 获取所有分组列表

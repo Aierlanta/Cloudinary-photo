@@ -11,6 +11,9 @@ import { AppError, ErrorType } from '@/types/errors';
 import { IdSchema, BulkUpdateRequestSchema } from '@/types/schemas';
 import { APIResponse, ImageDeleteResponse } from '@/types/api';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 const cloudinaryService = CloudinaryService.getInstance();
 
 /**

@@ -9,6 +9,9 @@ import { APIResponse } from '@/types/api';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 const cloudinaryService = CloudinaryService.getInstance();
 
 /**

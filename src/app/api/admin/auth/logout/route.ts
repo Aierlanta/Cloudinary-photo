@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   try {
     const cookieStore = cookies()

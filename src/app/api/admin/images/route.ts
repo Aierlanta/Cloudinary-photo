@@ -25,6 +25,9 @@ import {
   ImageUploadResponse
 } from '@/types/api';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 const cloudinaryService = CloudinaryService.getInstance();
 
 /**

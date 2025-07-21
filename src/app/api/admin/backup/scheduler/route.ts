@@ -7,6 +7,9 @@ import { BackupScheduler } from '@/lib/backup-scheduler';
 import { Logger } from '@/lib/logger';
 import { handleApiError } from '@/lib/error-handler';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 const logger = Logger.getInstance();
 
 export async function GET(request: NextRequest) {

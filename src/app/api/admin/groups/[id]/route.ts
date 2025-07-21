@@ -15,6 +15,9 @@ import {
   GroupDeleteResponse
 } from '@/types/api';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * PUT /api/admin/groups/[id]
  * 更新分组信息

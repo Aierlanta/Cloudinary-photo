@@ -11,6 +11,9 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { APIResponse } from '@/types/api';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 interface StatsResponse {
   totalImages: number;
   totalGroups: number;

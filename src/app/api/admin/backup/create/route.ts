@@ -7,6 +7,9 @@ import { BackupService } from '@/lib/backup';
 import { Logger } from '@/lib/logger';
 import { handleApiError } from '@/lib/error-handler';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 const logger = Logger.getInstance();
 const backupService = BackupService.getInstance();
 

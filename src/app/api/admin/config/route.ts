@@ -15,6 +15,9 @@ import {
   APIConfigResponse
 } from '@/types/api';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/admin/config
  * 获取当前API配置

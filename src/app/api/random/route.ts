@@ -11,6 +11,9 @@ import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
 const cloudinaryService = CloudinaryService.getInstance();
 
 /**
