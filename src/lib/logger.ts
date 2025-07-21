@@ -33,7 +33,7 @@ export interface LoggerConfig {
   retentionDays: number
 }
 
-class Logger {
+export class Logger {
   private config: LoggerConfig
   private static instance: Logger
 

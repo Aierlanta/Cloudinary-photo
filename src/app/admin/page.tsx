@@ -1,11 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import HealthMonitor from '@/components/admin/HealthMonitor'
 
 interface Stats {
   totalImages: number
   totalGroups: number
   recentUploads: number
+  backup: {
+    lastBackupTime: string | null
+    lastBackupSuccess: boolean
+    backupCount: number
+    isAutoBackupEnabled: boolean
+    isDatabaseHealthy: boolean
+  }
 }
 
 export default function AdminDashboard() {
@@ -43,7 +51,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* 快速统计 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-blue-500 bg-opacity-20">
@@ -92,6 +100,30 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        <div className="transparent-panel rounded-lg p-6 shadow-lg">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-emerald-500 bg-opacity-20">
+              <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+              </svg>
+            </div>
+            <div className="ml-4">
+              <h2 className="text-lg font-semibold panel-text">数据库备份</h2>
+              <div className="flex items-center gap-2">
+                <p className="text-sm panel-text">
+                  {loading ? '...' : (stats?.backup.lastBackupTime || '从未备份')}
+                </p>
+                {!loading && stats?.backup.isDatabaseHealthy && (
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                )}
+                {!loading && !stats?.backup.isDatabaseHealthy && (
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 快速操作 */}
@@ -130,6 +162,16 @@ export default function AdminDashboard() {
           </a>
           
           <a
+            href="/admin/backup"
+            className="flex items-center p-4 bg-emerald-500 bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-all duration-200"
+          >
+            <svg className="w-6 h-6 text-emerald-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+            </svg>
+            <span className="font-medium panel-text">备份管理</span>
+          </a>
+
+          <a
             href="/api/random"
             target="_blank"
             className="flex items-center p-4 bg-orange-500 bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-all duration-200"
@@ -141,6 +183,9 @@ export default function AdminDashboard() {
           </a>
         </div>
       </div>
+
+      {/* 系统健康监控 */}
+      <HealthMonitor />
     </div>
   )
 }

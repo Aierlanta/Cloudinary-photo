@@ -4,6 +4,7 @@ import { CloudinaryService } from '@/lib/cloudinary';
 import { withErrorHandler } from '@/lib/error-handler';
 import { withSecurity } from '@/lib/security';
 import { logger } from '@/lib/logger';
+import { initializeServer } from '@/lib/server-init';
 import { APIResponse } from '@/types/api';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -30,6 +31,9 @@ function getVersion(): string {
  */
 async function getAPIStatus(request: NextRequest): Promise<Response> {
   const startTime = performance.now();
+
+  // 初始化服务器服务（如果尚未初始化）
+  initializeServer();
 
   // 记录状态检查开始
   logger.info('开始系统状态检查', {

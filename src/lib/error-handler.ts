@@ -259,11 +259,18 @@ export function asyncErrorHandler<T extends any[], R>(
 }
 
 /**
+ * API错误处理辅助函数
+ */
+export function handleApiError(error: unknown, message: string = '操作失败'): Response {
+  return handleError(error, { endpoint: 'api' });
+}
+
+/**
  * 错误边界辅助函数
  */
 export function captureError(error: Error, context?: Record<string, any>): void {
   logger.error('Uncaught error', error, context)
-  
+
   // 在生产环境中可以发送到错误监控服务
   if (process.env.NODE_ENV === 'production') {
     // 例如发送到 Sentry, Bugsnag 等
