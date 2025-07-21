@@ -1,6 +1,6 @@
 { pkgs }: {
   deps = [
-    pkgs.nodejs-22_x
+    pkgs.nodejs_22
     pkgs.nodePackages.npm
     pkgs.nodePackages.typescript
     pkgs.nodePackages.typescript-language-server
