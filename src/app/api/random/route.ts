@@ -149,7 +149,9 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(secureImageUrl, {
       status: 302,
       headers: {
-        'Cache-Control': 'public, max-age=3600', // 缓存1小时
+        'Cache-Control': 'no-cache, no-store, must-revalidate', // 禁用缓存保证随机性
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'X-Image-Id': randomImage.id,
         'X-Image-PublicId': randomImage.publicId,
         'X-Response-Time': `${duration}ms`

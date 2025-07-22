@@ -154,8 +154,13 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     const imageUrl = randomImage.url.replace(/^http:/, 'https:');
 
     try {
-      // 使用 fetch 获取图片流
-      const imageResponse = await fetch(imageUrl);
+      // 使用 fetch 获取图片流，禁用缓存保证随机性
+      const imageResponse = await fetch(imageUrl, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
 
       if (!imageResponse.ok) {
         throw new Error(`Failed to fetch image: ${imageResponse.status}`);
@@ -176,7 +181,9 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       // 创建响应头
       const responseHeaders = new Headers({
         'Content-Type': mimeType,
-        'Cache-Control': 'public, max-age=3600', // 缓存1小时
+        'Cache-Control': 'no-cache, no-store, must-revalidate', // 禁用缓存保证随机性
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'X-Image-Id': randomImage.id,
         'X-Image-PublicId': randomImage.publicId,
         'X-Response-Time': `${duration}ms`
@@ -220,7 +227,9 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         headers: {
           'Content-Type': mimeType,
           'Content-Length': imageBuffer.length.toString(),
-          'Cache-Control': 'public, max-age=3600',
+          'Cache-Control': 'no-cache, no-store, must-revalidate', // 禁用缓存保证随机性
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-Image-Id': randomImage.id,
           'X-Image-PublicId': randomImage.publicId,
           'X-Response-Time': `${duration}ms`,
