@@ -1,70 +1,70 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface APIStatus {
-  status: string
+  status: string;
   services: {
-    database: { healthy: boolean }
-    cloudinary: { healthy: boolean }
-    api: { enabled: boolean }
-  }
+    database: { healthy: boolean };
+    cloudinary: { healthy: boolean };
+    api: { enabled: boolean };
+  };
   stats: {
-    totalImages: number
-    totalGroups: number
-  }
+    totalImages: number;
+    totalGroups: number;
+  };
 }
 
 export default function Home() {
-  const [apiStatus, setApiStatus] = useState<APIStatus | null>(null)
-  const [randomImageUrl, setRandomImageUrl] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const [baseUrl, setBaseUrl] = useState<string>('')
-  const [imageLoading, setImageLoading] = useState(false)
+  const [apiStatus, setApiStatus] = useState<APIStatus | null>(null);
+  const [randomImageUrl, setRandomImageUrl] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [baseUrl, setBaseUrl] = useState<string>("");
+  const [imageLoading, setImageLoading] = useState(false);
 
   // 生成完整的基础URL
   const generateBaseUrl = () => {
-    if (typeof window === 'undefined') return ''
-    return `${window.location.protocol}//${window.location.host}`
-  }
+    if (typeof window === "undefined") return "";
+    return `${window.location.protocol}//${window.location.host}`;
+  };
 
   // 生成随机图片URL
   const generateRandomImageUrl = (baseUrl: string) => {
-    return `${baseUrl}/api/random`
-  }
+    return `${baseUrl}/api/random`;
+  };
 
   useEffect(() => {
     // 设置基础URL
-    const currentBaseUrl = generateBaseUrl()
-    setBaseUrl(currentBaseUrl)
+    const currentBaseUrl = generateBaseUrl();
+    setBaseUrl(currentBaseUrl);
 
     // 加载API状态
-    fetch('/api/status')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/api/status")
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
-          setApiStatus(data.data)
+          setApiStatus(data.data);
         }
       })
       .catch(console.error)
-      .finally(() => setLoading(false))
+      .finally(() => setLoading(false));
 
     // 生成随机图片URL
     if (currentBaseUrl) {
-      setRandomImageUrl(generateRandomImageUrl(currentBaseUrl))
+      setRandomImageUrl(generateRandomImageUrl(currentBaseUrl));
     }
-  }, [])
+  }, []);
 
   const refreshRandomImage = () => {
-    if (!baseUrl) return
-    setImageLoading(true)
+    if (!baseUrl) return;
+    setImageLoading(true);
     // 通过先清空URL再重新设置来强制刷新
-    setRandomImageUrl('')
+    setRandomImageUrl("");
     setTimeout(() => {
-      setRandomImageUrl(generateRandomImageUrl(baseUrl))
-    }, 10)
-  }
+      setRandomImageUrl(generateRandomImageUrl(baseUrl));
+    }, 10);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -109,17 +109,19 @@ export default function Home() {
           {/* API状态指示器 */}
           {!loading && apiStatus && (
             <div className="inline-flex items-center space-x-2 bg-white dark:bg-gray-800 rounded-full px-4 py-2 shadow-lg">
-              <div className={`w-3 h-3 rounded-full ${
-                apiStatus.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  apiStatus.status === "healthy"
+                    ? "bg-green-500"
+                    : "bg-yellow-500"
+                }`}
+              ></div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                API状态: {apiStatus.status === 'healthy' ? '正常' : '部分可用'}
+                API状态: {apiStatus.status === "healthy" ? "正常" : "部分可用"}
               </span>
             </div>
           )}
         </div>
-
-
 
         {/* 快速体验区域 */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-16">
@@ -140,7 +142,7 @@ export default function Home() {
                     className="w-full h-64 object-cover rounded-lg"
                     onLoad={() => setImageLoading(false)}
                     onError={() => {
-                      console.error('图片加载失败:', randomImageUrl);
+                      console.error("图片加载失败:", randomImageUrl);
                       setImageLoading(false);
                     }}
                   />
@@ -167,7 +169,7 @@ export default function Home() {
                 disabled={imageLoading}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
-                {imageLoading ? '加载中...' : '刷新图片'}
+                {imageLoading ? "加载中..." : "刷新图片"}
               </button>
             </div>
 
@@ -185,7 +187,9 @@ export default function Home() {
                       GET {baseUrl}/api/random
                     </code>
                     <button
-                      onClick={() => navigator.clipboard.writeText(`${baseUrl}/api/random`)}
+                      onClick={() =>
+                        navigator.clipboard.writeText(`${baseUrl}/api/random`)
+                      }
                       className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
                       title="复制链接"
                     >
@@ -203,7 +207,11 @@ export default function Home() {
                       {`<img src="${baseUrl}/api/random" />`}
                     </code>
                     <button
-                      onClick={() => navigator.clipboard.writeText(`<img src="${baseUrl}/api/random" />`)}
+                      onClick={() =>
+                        navigator.clipboard.writeText(
+                          `<img src="${baseUrl}/api/random" />`
+                        )
+                      }
                       className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
                       title="复制代码"
                     >
@@ -220,8 +228,18 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg
+                className="w-6 h-6 text-blue-600 dark:text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -234,8 +252,18 @@ export default function Home() {
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-6 h-6 text-green-600 dark:text-green-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -248,8 +276,18 @@ export default function Home() {
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+              <svg
+                className="w-6 h-6 text-purple-600 dark:text-purple-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+                />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -286,7 +324,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                  {apiStatus.services.api.enabled ? '启用' : '禁用'}
+                  {apiStatus.services.api.enabled ? "启用" : "禁用"}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">
                   API状态
@@ -309,10 +347,24 @@ export default function Home() {
       <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600 dark:text-gray-300">
-            <p>&copy; 2024 随机图片API服务. 基于 Next.js 和 Cloudinary 构建.</p>
+            <p>
+              &copy; {new Date().getFullYear()} 随机图片API服务. 基于 Next.js 和
+              Cloudinary 构建.
+            </p>
+            <p className="mt-2">
+              作者: Aierlanta |{" "}
+              <a
+                href="https://github.com/Aierlanta/Cloudinary-photo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors underline"
+              >
+                GitHub 项目仓库
+              </a>
+            </p>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }
