@@ -10,7 +10,9 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
-import { getDefaultStorageManager, StorageProvider } from '@/lib/storage';
+import { StorageProvider, MultiStorageConfig, FailoverStrategy } from '@/lib/storage/base';
+import { MultiStorageManager } from '@/lib/storage/manager';
+import { storageServiceManager } from '@/lib/storage/factory';
 import { storageDatabaseService } from '@/lib/database/storage';
 import {
   ImageUploadRequestSchema,
@@ -23,6 +25,39 @@ import {
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
+
+// 创建默认的多图床管理器
+function createDefaultStorageManager(): MultiStorageManager {
+  const config: MultiStorageConfig = {
+    primaryProvider: StorageProvider.CLOUDINARY,
+    backupProvider: StorageProvider.TGSTATE,
+    failoverStrategy: FailoverStrategy.RETRY_THEN_FAILOVER,
+    retryAttempts: 3,
+    retryDelay: 1000,
+    healthCheckInterval: 300,
+    enableBackupUpload: false
+  };
+
+  const manager = new MultiStorageManager(config);
+
+  // 注册服务
+  const cloudinaryService = storageServiceManager.getService(StorageProvider.CLOUDINARY);
+  const tgstateService = storageServiceManager.getService(StorageProvider.TGSTATE);
+
+  manager.registerService(cloudinaryService);
+  manager.registerService(tgstateService);
+
+  return manager;
+}
+
+let defaultManager: MultiStorageManager | null = null;
+
+function getDefaultStorageManager(): MultiStorageManager {
+  if (!defaultManager) {
+    defaultManager = createDefaultStorageManager();
+  }
+  return defaultManager;
+}
 
 /**
  * POST /api/admin/images/multi-storage
@@ -41,14 +76,15 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
     // 验证文件
     if (!file) {
       throw new AppError(
-        '请选择要上传的文件',
         ErrorType.VALIDATION_ERROR,
+        '请选择要上传的文件',
+        400,
         { field: 'file' }
       );
     }
 
     // 验证文件格式和大小
-    const fileValidation = FileValidationSchema.parse({
+    FileValidationSchema.parse({
       name: file.name,
       size: file.size,
       type: file.type
@@ -83,8 +119,9 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
 
     if (!uploadResult.success) {
       throw new AppError(
-        `多图床上传失败: ${uploadResult.error?.message || '未知错误'}`,
         ErrorType.UPLOAD_ERROR,
+        `多图床上传失败: ${uploadResult.error?.message || '未知错误'}`,
+        500,
         {
           provider: uploadResult.provider,
           failedOver: uploadResult.failedOver,
@@ -152,21 +189,9 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
           uploadedAt: savedImage.uploadedAt,
           // 多图床特有字段
           primaryProvider: savedImage.primaryProvider,
-          backupProvider: savedImage.backupProvider,
-          storageRecords: savedImage.storageRecords.map(record => ({
-            provider: record.provider,
-            url: record.url,
-            status: record.status
-          }))
+          backupProvider: savedImage.backupProvider
         },
-        message: `图片上传成功${uploadResult.failedOver ? ' (已故障转移)' : ''}`,
-        metadata: {
-          provider: uploadResult.provider,
-          failedOver: uploadResult.failedOver,
-          hasBackup: !!uploadResult.backupResult,
-          uploadTime: uploadResult.metadata?.uploadTime,
-          retryCount: uploadResult.metadata?.retryCount
-        }
+        message: `图片上传成功${uploadResult.failedOver ? ' (已故障转移)' : ''}`
       },
       timestamp: new Date()
     };
@@ -174,15 +199,16 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
     return NextResponse.json(response, { status: 201 });
 
   } catch (error) {
-    logger.error('多图床上传失败', { error });
+    logger.error('多图床上传失败', error instanceof Error ? error : new Error(String(error)));
     
     if (error instanceof AppError) {
       throw error;
     }
     
     throw new AppError(
-      `上传过程中发生错误: ${error instanceof Error ? error.message : '未知错误'}`,
       ErrorType.INTERNAL_ERROR,
+      `上传过程中发生错误: ${error instanceof Error ? error.message : '未知错误'}`,
+      500,
       { error }
     );
   }
@@ -247,11 +273,12 @@ async function getImagesMultiStorage(request: NextRequest): Promise<Response> {
     return NextResponse.json(response);
 
   } catch (error) {
-    logger.error('获取多图床图片列表失败', { error });
+    logger.error('获取多图床图片列表失败', error instanceof Error ? error : new Error(String(error)));
     
     throw new AppError(
-      `获取图片列表失败: ${error instanceof Error ? error.message : '未知错误'}`,
       ErrorType.INTERNAL_ERROR,
+      `获取图片列表失败: ${error instanceof Error ? error.message : '未知错误'}`,
+      500,
       { error }
     );
   }

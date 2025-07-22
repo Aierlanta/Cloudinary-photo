@@ -156,10 +156,9 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
     return NextResponse.json(response, { status: 201 });
 
   } catch (error) {
-    logger.error('指定图床上传失败', {
+    logger.error('指定图床上传失败', error instanceof Error ? error : new Error(String(error)), {
       provider,
-      filename: file.name,
-      error: error instanceof Error ? error.message : String(error)
+      filename: file.name
     });
 
     throw new AppError(

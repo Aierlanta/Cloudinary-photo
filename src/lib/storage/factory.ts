@@ -7,7 +7,9 @@ import {
   ImageStorageService,
   StorageProvider,
   StorageServiceFactory,
-  StorageError
+  StorageError,
+  MultiStorageConfig,
+  FailoverStrategy
 } from './base';
 import { CloudinaryService, CloudinaryConfig } from './cloudinary';
 import { TgStateService, TgStateConfig } from './tgstate';
@@ -160,10 +162,10 @@ export class EnvironmentConfigFactory {
   /**
    * 创建多图床管理配置
    */
-  static createMultiStorageConfig(): import('./base').MultiStorageConfig {
+  static createMultiStorageConfig(): MultiStorageConfig {
     const primaryProvider = (process.env.PRIMARY_STORAGE_PROVIDER as StorageProvider) || StorageProvider.CLOUDINARY;
     const backupProvider = process.env.BACKUP_STORAGE_PROVIDER as StorageProvider;
-    const failoverStrategy = (process.env.FAILOVER_STRATEGY as import('./base').FailoverStrategy) || import('./base').FailoverStrategy.RETRY_THEN_FAILOVER;
+    const failoverStrategy = (process.env.FAILOVER_STRATEGY as FailoverStrategy) || FailoverStrategy.RETRY_THEN_FAILOVER;
     
     return {
       primaryProvider,

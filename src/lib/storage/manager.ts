@@ -113,7 +113,7 @@ export class MultiStorageManager {
           metadata: {
             uploadTime: Date.now() - startTime,
             retryCount,
-            healthStatus: new Map(this.healthStatus)
+            healthStatus: Object.fromEntries(this.healthStatus) as Record<StorageProvider, HealthStatus>
           }
         };
 
@@ -154,7 +154,7 @@ export class MultiStorageManager {
       metadata: {
         uploadTime: Date.now() - startTime,
         retryCount,
-        healthStatus: new Map(this.healthStatus)
+        healthStatus: Object.fromEntries(this.healthStatus) as Record<StorageProvider, HealthStatus>
       }
     };
   }
@@ -178,7 +178,7 @@ export class MultiStorageManager {
 
     // 如果没有指定提供商，尝试从所有服务中删除
     const errors: StorageError[] = [];
-    for (const [providerName, service] of this.services) {
+    for (const [providerName, service] of Array.from(this.services)) {
       try {
         await service.deleteImage(identifier);
         console.log(`从 ${providerName} 删除图片成功: ${identifier}`);
@@ -233,7 +233,7 @@ export class MultiStorageManager {
   async getAllStats(): Promise<Map<StorageProvider, StorageStats>> {
     const stats = new Map<StorageProvider, StorageStats>();
     
-    for (const [provider, service] of this.services) {
+    for (const [provider, service] of Array.from(this.services)) {
       try {
         const serviceStats = await service.getStats();
         stats.set(provider, serviceStats);
@@ -323,7 +323,7 @@ export class MultiStorageManager {
 
     console.log('更新图床服务健康状态...');
     
-    for (const [provider, service] of this.services) {
+    for (const [provider, service] of Array.from(this.services)) {
       try {
         const health = await service.healthCheck();
         this.healthStatus.set(provider, health);

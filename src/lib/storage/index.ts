@@ -6,21 +6,27 @@
 // 基础类型和接口
 export {
   ImageStorageService,
-  StorageProvider,
+  StorageError
+} from './base';
+
+export type {
   StorageResult,
   UploadOptions,
   HealthStatus,
   StorageStats,
-  StorageError,
-  FailoverStrategy,
   MultiStorageConfig,
   StorageOperationResult,
   StorageServiceFactory
 } from './base';
 
+// 重新导出枚举
+export { StorageProvider, FailoverStrategy } from './base';
+
 // 具体实现
-export { CloudinaryService, CloudinaryConfig } from './cloudinary';
-export { TgStateService, TgStateConfig } from './tgstate';
+export { CloudinaryService } from './cloudinary';
+export type { CloudinaryConfig } from './cloudinary';
+export { TgStateService } from './tgstate';
+export type { TgStateConfig } from './tgstate';
 export { MultiStorageManager } from './manager';
 export {
   DefaultStorageServiceFactory,

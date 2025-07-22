@@ -152,7 +152,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
 
   if (selectedProvider === 'cloudinary') {
     // 使用原有的Cloudinary逻辑（向后兼容）
-    const cloudinaryService = new CloudinaryService();
+    const cloudinaryService = CloudinaryService.getInstance();
     const cloudinaryResult = await cloudinaryService.uploadImage(file, {
       folder: 'random-images',
       tags: uploadParams.tags

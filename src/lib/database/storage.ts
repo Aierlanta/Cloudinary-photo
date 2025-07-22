@@ -117,7 +117,16 @@ export class StorageDatabaseService {
 
       return {
         ...image,
-        storageRecords
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags || undefined,
+        groupId: image.groupId || undefined,
+        backupProvider: image.backupProvider || undefined,
+        storageMetadata: image.storageMetadata || undefined,
+        storageRecords: storageRecords.map(record => ({
+          ...record,
+          metadata: record.metadata || undefined
+        }))
       };
     });
 
@@ -139,7 +148,21 @@ export class StorageDatabaseService {
       }
     });
 
-    return image;
+    if (!image) return null;
+
+    return {
+      ...image,
+      title: image.title || undefined,
+      description: image.description || undefined,
+      tags: image.tags || undefined,
+      groupId: image.groupId || undefined,
+      backupProvider: image.backupProvider || undefined,
+      storageMetadata: image.storageMetadata || undefined,
+      storageRecords: image.storageRecords.map(record => ({
+        ...record,
+        metadata: record.metadata || undefined
+      }))
+    };
   }
 
   /**
@@ -184,7 +207,19 @@ export class StorageDatabaseService {
     ]);
 
     return {
-      images,
+      images: images.map(image => ({
+        ...image,
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags || undefined,
+        groupId: image.groupId || undefined,
+        backupProvider: image.backupProvider || undefined,
+        storageMetadata: image.storageMetadata || undefined,
+        storageRecords: image.storageRecords.map(record => ({
+          ...record,
+          metadata: record.metadata || undefined
+        }))
+      })),
       total,
       page,
       limit
@@ -236,7 +271,10 @@ export class StorageDatabaseService {
     });
 
     console.log(`添加存储记录: ${imageId} @ ${provider}`);
-    return record;
+    return {
+      ...record,
+      metadata: record.metadata || undefined
+    };
   }
 
   /**

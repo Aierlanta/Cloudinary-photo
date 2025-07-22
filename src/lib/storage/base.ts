@@ -162,6 +162,15 @@ export interface StorageOperationResult {
  * 图床服务工厂接口
  */
 export interface StorageServiceFactory {
+  /**
+   * 创建图床服务实例
+   */
   createService(provider: StorageProvider, config: Record<string, any>): ImageStorageService;
+
+  /**
+   * 获取支持的提供商列表
+   */
   getSupportedProviders(): StorageProvider[];
 }
+
+
