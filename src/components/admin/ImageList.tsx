@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 import { generateThumbnailUrl, getImageUrls } from "@/lib/image-utils";
+import SmartImage from "@/components/ui/SmartImage";
 
 interface ImageItem {
   id: string;
@@ -128,13 +128,11 @@ function LazyImage({
               </svg>
             </div>
           )}
-          <Image
+          <SmartImage
             src={src}
             alt={alt}
             fill
-            className={`object-cover transition-opacity duration-300 ${
-              isLoaded ? "opacity-100" : "opacity-0"
-            } ${onClick ? "cursor-pointer" : ""}`}
+            className="object-cover"
             onClick={onClick}
             onLoad={() => setIsLoaded(true)}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -218,7 +216,7 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
             {/* 图片预览 */}
             <div className="space-y-4">
               <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden aspect-square">
-                <Image
+                <SmartImage
                   src={generateThumbnailUrl(image.url, 400)}
                   alt={image.title || image.publicId}
                   fill
@@ -409,7 +407,7 @@ function ImageEditModal({
           {/* 图片预览 */}
           <div className="mb-4">
             <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden relative">
-              <Image
+              <SmartImage
                 src={generateThumbnailUrl(image.url, 300)}
                 alt={image.title || image.publicId}
                 fill
