@@ -258,6 +258,8 @@ export class DatabaseService {
           description: imageData.description,
           tags: imageData.tags ? JSON.stringify(imageData.tags) : null,
           groupId: imageData.groupId,
+          primaryProvider: imageData.primaryProvider,
+          backupProvider: imageData.backupProvider,
         },
         include: {
           group: true
@@ -311,7 +313,9 @@ export class DatabaseService {
         description: image.description || undefined,
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         groupId: image.groupId || undefined,
-        uploadedAt: image.uploadedAt
+        uploadedAt: image.uploadedAt,
+        primaryProvider: (image as any).primaryProvider || 'cloudinary',
+        backupProvider: (image as any).backupProvider || undefined
       };
     } catch (error) {
       throw new DatabaseError('获取图片失败', error);

@@ -165,9 +165,12 @@ export function setSecurityHeaders(response: Response): Response {
   response.headers.set('X-XSS-Protection', '1; mode=block');
   
   // 内容安全策略
+  const tgStateBaseUrl = process.env.TGSTATE_BASE_URL || '';
+  const tgStateDomain = tgStateBaseUrl ? new URL(tgStateBaseUrl).origin : '';
+
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; img-src 'self' https://res.cloudinary.com data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:;"
+    `default-src 'self'; img-src 'self' https://res.cloudinary.com${tgStateDomain ? ` ${tgStateDomain}` : ''} data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:;`
   );
   
   // 严格传输安全

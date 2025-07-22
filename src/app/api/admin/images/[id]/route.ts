@@ -41,12 +41,21 @@ export async function DELETE(
       );
     }
     
-    try {
-      // 从Cloudinary删除图片
-      await cloudinaryService.deleteImage(image.publicId);
-    } catch (error) {
-      console.warn('从Cloudinary删除图片失败，继续删除数据库记录:', error);
-      // 即使Cloudinary删除失败，也继续删除数据库记录
+    // 根据存储提供商删除图片
+    if (image.primaryProvider === 'cloudinary') {
+      try {
+        // 从Cloudinary删除图片
+        await cloudinaryService.deleteImage(image.publicId);
+        console.log('图片删除成功:', image.publicId);
+      } catch (error) {
+        console.warn('从Cloudinary删除图片失败，继续删除数据库记录:', error);
+        // 即使Cloudinary删除失败，也继续删除数据库记录
+      }
+    } else if (image.primaryProvider === 'tgstate') {
+      // tgState 图片不需要主动删除，只删除数据库记录
+      console.log('tgState 图片，仅删除数据库记录:', image.publicId);
+    } else {
+      console.warn('未知的存储提供商:', image.primaryProvider);
     }
     
     // 从数据库删除图片记录

@@ -9,7 +9,28 @@
  * @param size 缩略图尺寸（默认300px）
  * @returns 缩略图URL
  */
+/**
+ * 检查是否是 tgState 图片
+ */
+export function isTgStateImage(url: string): boolean {
+  const tgStateBaseUrl = process.env.TGSTATE_BASE_URL;
+  if (!tgStateBaseUrl) return false;
+
+  try {
+    const tgStateDomain = new URL(tgStateBaseUrl).hostname;
+    return url.includes(tgStateDomain);
+  } catch {
+    return false;
+  }
+}
+
 export function generateThumbnailUrl(originalUrl: string, size: number = 300): string {
+  // 检查是否是 tgState URL
+  if (isTgStateImage(originalUrl)) {
+    // 对于 tgState 图片，直接返回原URL（它们是重定向链接）
+    return originalUrl;
+  }
+
   // 检查是否是Cloudinary URL
   if (!originalUrl.includes('res.cloudinary.com')) {
     return originalUrl; // 如果不是Cloudinary URL，返回原URL
