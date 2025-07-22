@@ -103,6 +103,7 @@ export const ImageListRequestSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   groupId: IdSchema.optional(),
+  provider: z.string().optional(), // 新增：图床筛选
   search: z.string().optional(), // 搜索关键词，支持文件名和标签搜索
   dateFrom: z.coerce.date().optional(),
   dateTo: z.coerce.date().optional(),

@@ -1,94 +1,130 @@
-'use client'
+"use client";
 
-import { useState, useRef, useEffect } from 'react'
-import Image from 'next/image'
-import { generateThumbnailUrl, getImageUrls } from '@/lib/image-utils'
+import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import { generateThumbnailUrl, getImageUrls } from "@/lib/image-utils";
 
 interface ImageItem {
-  id: string
-  publicId: string
-  url: string
-  title?: string
-  description?: string
-  groupId?: string
-  uploadedAt: string
-  tags?: string[]
+  id: string;
+  publicId: string;
+  url: string;
+  title?: string;
+  description?: string;
+  groupId?: string;
+  uploadedAt: string;
+  tags?: string[];
+  primaryProvider?: string; // 新增：主要图床提供商
+  backupProvider?: string; // 新增：备用图床提供商
 }
 
 interface Group {
-  id: string
-  name: string
-  description?: string
-  createdAt: string
-  imageCount: number
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  imageCount: number;
 }
 
 interface ImageListProps {
-  images: ImageItem[]
-  groups: Group[]
-  loading: boolean
-  onDeleteImage: (imageId: string) => void
-  onBulkDelete?: (imageIds: string[]) => void
-  onUpdateImage?: (imageId: string, updates: { groupId?: string; tags?: string[] }) => void
-  onBulkUpdate?: (imageIds: string[], updates: { groupId?: string; tags?: string[] }) => void
+  images: ImageItem[];
+  groups: Group[];
+  loading: boolean;
+  onDeleteImage: (imageId: string) => void;
+  onBulkDelete?: (imageIds: string[]) => void;
+  onUpdateImage?: (
+    imageId: string,
+    updates: { groupId?: string; tags?: string[] }
+  ) => void;
+  onBulkUpdate?: (
+    imageIds: string[],
+    updates: { groupId?: string; tags?: string[] }
+  ) => void;
 }
 
 interface ImagePreviewModalProps {
-  image: ImageItem | null
-  groups: Group[]
-  onClose: () => void
+  image: ImageItem | null;
+  groups: Group[];
+  onClose: () => void;
 }
 
 interface ImageEditModalProps {
-  image: ImageItem | null
-  groups: Group[]
-  onClose: () => void
-  onSave: (imageId: string, updates: { groupId?: string; tags?: string[] }) => void
+  image: ImageItem | null;
+  groups: Group[];
+  onClose: () => void;
+  onSave: (
+    imageId: string,
+    updates: { groupId?: string; tags?: string[] }
+  ) => void;
 }
 
 // 懒加载图片组件
-function LazyImage({ src, alt, className, onClick }: { 
-  src: string
-  alt: string
-  className?: string
-  onClick?: () => void
+function LazyImage({
+  src,
+  alt,
+  className,
+  onClick,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  onClick?: () => void;
 }) {
-  const [isInView, setIsInView] = useState(false)
-  const [isLoaded, setIsLoaded] = useState(false)
-  const imgRef = useRef<HTMLDivElement>(null)
+  const [isInView, setIsInView] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const imgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsInView(true)
-          observer.disconnect()
+          setIsInView(true);
+          observer.disconnect();
         }
       },
       { threshold: 0.1 }
-    )
+    );
 
     if (imgRef.current) {
-      observer.observe(imgRef.current)
+      observer.observe(imgRef.current);
     }
 
-    return () => observer.disconnect()
-  }, [])
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div ref={imgRef} className={`relative ${className}`}>
       {!isInView ? (
         <div className="w-full h-full bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center">
-          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg
+            className="w-8 h-8 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
         </div>
       ) : (
         <>
           {!isLoaded && (
             <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="w-8 h-8 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
             </div>
           )}
@@ -97,8 +133,8 @@ function LazyImage({ src, alt, className, onClick }: {
             alt={alt}
             fill
             className={`object-cover transition-opacity duration-300 ${
-              isLoaded ? 'opacity-100' : 'opacity-0'
-            } ${onClick ? 'cursor-pointer' : ''}`}
+              isLoaded ? "opacity-100" : "opacity-0"
+            } ${onClick ? "cursor-pointer" : ""}`}
             onClick={onClick}
             onLoad={() => setIsLoaded(true)}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -106,49 +142,49 @@ function LazyImage({ src, alt, className, onClick }: {
         </>
       )}
     </div>
-  )
+  );
 }
 
 // 图片预览模态框
 function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
-  if (!image) return null
+  if (!image) return null;
 
-  const group = groups.find(g => g.id === image.groupId)
-  
+  const group = groups.find((g) => g.id === image.groupId);
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN')
-  }
+    return new Date(dateString).toLocaleString("zh-CN");
+  };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+    navigator.clipboard.writeText(text);
     // 使用浏览器原生通知或简单的视觉反馈
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('已复制到剪贴板', {
-        body: text.length > 50 ? text.substring(0, 50) + '...' : text,
-        icon: '/favicon.ico'
-      })
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("已复制到剪贴板", {
+        body: text.length > 50 ? text.substring(0, 50) + "..." : text,
+        icon: "/favicon.ico",
+      });
     }
-  }
+  };
 
   const downloadImage = async (url: string, filename: string) => {
     try {
-      const response = await fetch(url)
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
 
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      window.URL.revokeObjectURL(downloadUrl)
+      window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
-      console.error('下载失败:', error)
-      alert('下载失败，请重试')
+      console.error("下载失败:", error);
+      alert("下载失败，请重试");
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -160,8 +196,18 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -179,17 +225,19 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
                   className="object-contain"
                 />
               </div>
-              
+
               {/* 操作按钮 */}
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => window.open(image.url, '_blank')}
+                  onClick={() => window.open(image.url, "_blank")}
                   className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors text-sm"
                 >
                   查看原图
                 </button>
                 <button
-                  onClick={() => downloadImage(image.url, image.publicId + '.jpg')}
+                  onClick={() =>
+                    downloadImage(image.url, image.publicId + ".jpg")
+                  }
                   className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors text-sm"
                 >
                   下载图片
@@ -215,28 +263,42 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
                 <h4 className="font-medium panel-text mb-2">基本信息</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">ID:</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      ID:
+                    </span>
                     <span className="panel-text font-mono">{image.id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">Public ID:</span>
-                    <span className="panel-text font-mono">{image.publicId}</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      Public ID:
+                    </span>
+                    <span className="panel-text font-mono">
+                      {image.publicId}
+                    </span>
                   </div>
                   {image.title && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">标题:</span>
+                      <span className="text-gray-600 dark:text-gray-300">
+                        标题:
+                      </span>
                       <span className="panel-text">{image.title}</span>
                     </div>
                   )}
                   {image.description && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">描述:</span>
+                      <span className="text-gray-600 dark:text-gray-300">
+                        描述:
+                      </span>
                       <span className="panel-text">{image.description}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">上传时间:</span>
-                    <span className="panel-text">{formatDate(image.uploadedAt)}</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      上传时间:
+                    </span>
+                    <span className="panel-text">
+                      {formatDate(image.uploadedAt)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -245,7 +307,7 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
                 <h4 className="font-medium panel-text mb-2">分组信息</h4>
                 <div className="text-sm">
                   <span className="panel-text">
-                    {group ? group.name : '未分组'}
+                    {group ? group.name : "未分组"}
                   </span>
                   {group?.description && (
                     <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -275,7 +337,9 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
                 <h4 className="font-medium panel-text mb-2">技术信息</h4>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-gray-600 dark:text-gray-300">URL:</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      URL:
+                    </span>
                     <div className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-xs break-all">
                       {image.url}
                     </div>
@@ -287,24 +351,32 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // 图片编辑模态框
-function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps) {
-  const [groupId, setGroupId] = useState(image?.groupId || '')
-  const [tags, setTags] = useState(image?.tags?.join(', ') || '')
+function ImageEditModal({
+  image,
+  groups,
+  onClose,
+  onSave,
+}: ImageEditModalProps) {
+  const [groupId, setGroupId] = useState(image?.groupId || "");
+  const [tags, setTags] = useState(image?.tags?.join(", ") || "");
 
-  if (!image) return null
+  if (!image) return null;
 
   const handleSave = () => {
-    const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+    const tagArray = tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0);
     onSave(image.id, {
       groupId: groupId || undefined,
-      tags: tagArray.length > 0 ? tagArray : undefined
-    })
-    onClose()
-  }
+      tags: tagArray.length > 0 ? tagArray : undefined,
+    });
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -316,8 +388,18 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -351,7 +433,7 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 panel-text"
               >
                 <option value="">未分组</option>
-                {groups.map(group => (
+                {groups.map((group) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
                   </option>
@@ -391,7 +473,7 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // 主要的ImageList组件
@@ -402,73 +484,97 @@ export default function ImageList({
   onDeleteImage,
   onBulkDelete,
   onUpdateImage,
-  onBulkUpdate
+  onBulkUpdate,
 }: ImageListProps) {
-  const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null)
-  const [editingImage, setEditingImage] = useState<ImageItem | null>(null)
-  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
-  const [bulkMode, setBulkMode] = useState(false)
-  const [bulkGroupId, setBulkGroupId] = useState<string>('')
+  const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
+  const [editingImage, setEditingImage] = useState<ImageItem | null>(null);
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkGroupId, setBulkGroupId] = useState<string>("");
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN')
-  }
+    return new Date(dateString).toLocaleDateString("zh-CN");
+  };
 
   const getGroupName = (groupId?: string) => {
-    if (!groupId) return '未分组'
-    const group = groups.find(g => g.id === groupId)
-    return group ? group.name : '未知分组'
-  }
+    if (!groupId) return "未分组";
+    const group = groups.find((g) => g.id === groupId);
+    return group ? group.name : "未知分组";
+  };
+
+  // 获取图床提供商显示名称
+  const getProviderDisplayName = (provider: string) => {
+    switch (provider) {
+      case "cloudinary":
+        return "Cloudinary";
+      case "tgstate":
+        return "tgState";
+      default:
+        return provider;
+    }
+  };
 
   const toggleImageSelection = (imageId: string) => {
-    const newSelected = new Set(selectedImages)
+    const newSelected = new Set(selectedImages);
     if (newSelected.has(imageId)) {
-      newSelected.delete(imageId)
+      newSelected.delete(imageId);
     } else {
-      newSelected.add(imageId)
+      newSelected.add(imageId);
     }
-    setSelectedImages(newSelected)
-  }
+    setSelectedImages(newSelected);
+  };
 
   const handleBulkDelete = () => {
-    if (selectedImages.size === 0) return
+    if (selectedImages.size === 0) return;
 
-    if (confirm(`确定要删除选中的 ${selectedImages.size} 张图片吗？此操作不可撤销。`)) {
+    if (
+      confirm(
+        `确定要删除选中的 ${selectedImages.size} 张图片吗？此操作不可撤销。`
+      )
+    ) {
       if (onBulkDelete) {
-        onBulkDelete(Array.from(selectedImages))
+        onBulkDelete(Array.from(selectedImages));
       }
-      setSelectedImages(new Set())
-      setBulkMode(false)
+      setSelectedImages(new Set());
+      setBulkMode(false);
     }
-  }
+  };
 
-  const handleUpdateImage = (imageId: string, updates: { groupId?: string; tags?: string[] }) => {
+  const handleUpdateImage = (
+    imageId: string,
+    updates: { groupId?: string; tags?: string[] }
+  ) => {
     if (onUpdateImage) {
-      onUpdateImage(imageId, updates)
+      onUpdateImage(imageId, updates);
     }
-  }
+  };
 
   const handleBulkUpdateGroup = () => {
     if (selectedImages.size === 0 || !bulkGroupId) {
-      alert('请选择图片和目标分组')
-      return
+      alert("请选择图片和目标分组");
+      return;
     }
 
-    if (confirm(`确定要将选中的 ${selectedImages.size} 张图片移动到指定分组吗？`)) {
+    if (
+      confirm(`确定要将选中的 ${selectedImages.size} 张图片移动到指定分组吗？`)
+    ) {
       if (onBulkUpdate) {
-        onBulkUpdate(Array.from(selectedImages), { groupId: bulkGroupId })
+        onBulkUpdate(Array.from(selectedImages), { groupId: bulkGroupId });
       }
-      setSelectedImages(new Set())
-      setBulkMode(false)
-      setBulkGroupId('')
+      setSelectedImages(new Set());
+      setBulkMode(false);
+      setBulkGroupId("");
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {Array.from({ length: 10 }).map((_, index) => (
-          <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+          <div
+            key={index}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden"
+          >
             <div className="aspect-square bg-gray-200 dark:bg-gray-700 animate-pulse" />
             <div className="p-3 space-y-2">
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
@@ -477,15 +583,25 @@ export default function ImageList({
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   if (!Array.isArray(images) || images.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg
+            className="w-12 h-12 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
         </div>
         <h3 className="text-lg font-medium panel-text mb-2">暂无图片</h3>
@@ -493,7 +609,7 @@ export default function ImageList({
           还没有上传任何图片，点击上方的上传区域开始添加图片吧！
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -503,16 +619,16 @@ export default function ImageList({
         <div className="flex items-center space-x-4">
           <button
             onClick={() => {
-              setBulkMode(!bulkMode)
-              setSelectedImages(new Set())
+              setBulkMode(!bulkMode);
+              setSelectedImages(new Set());
             }}
             className={`px-4 py-2 rounded-lg transition-colors ${
               bulkMode
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
             }`}
           >
-            {bulkMode ? '退出批量模式' : '批量操作'}
+            {bulkMode ? "退出批量模式" : "批量操作"}
           </button>
 
           {bulkMode && selectedImages.size > 0 && (
@@ -528,7 +644,7 @@ export default function ImageList({
                 className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               >
                 <option value="">选择分组</option>
-                {groups.map(group => (
+                {groups.map((group) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
                   </option>
@@ -565,8 +681,8 @@ export default function ImageList({
             key={image.id}
             className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md ${
               bulkMode && selectedImages.has(image.id)
-                ? 'ring-2 ring-blue-500'
-                : ''
+                ? "ring-2 ring-blue-500"
+                : ""
             }`}
           >
             {/* 批量选择复选框 */}
@@ -589,9 +705,9 @@ export default function ImageList({
                 className="w-full h-full"
                 onClick={() => {
                   if (bulkMode) {
-                    toggleImageSelection(image.id)
+                    toggleImageSelection(image.id);
                   } else {
-                    setSelectedImage(image)
+                    setSelectedImage(image);
                   }
                 }}
               />
@@ -602,39 +718,74 @@ export default function ImageList({
                   <div className="flex space-x-2">
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedImage(image)
+                        e.stopPropagation();
+                        setSelectedImage(image);
                       }}
                       className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100 transition-colors"
                       title="查看详情"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
                       </svg>
                     </button>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingImage(image)
+                        e.stopPropagation();
+                        setEditingImage(image);
                       }}
                       className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 transition-colors"
                       title="编辑图片"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
                       </svg>
                     </button>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        onDeleteImage(image.id)
+                        e.stopPropagation();
+                        onDeleteImage(image.id);
                       }}
                       className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
                       title="删除图片"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -644,7 +795,10 @@ export default function ImageList({
 
             {/* 图片信息 */}
             <div className="p-3">
-              <h3 className="font-medium panel-text truncate mb-1" title={image.title || image.publicId}>
+              <h3
+                className="font-medium panel-text truncate mb-1"
+                title={image.title || image.publicId}
+              >
                 {image.title || image.publicId}
               </h3>
 
@@ -652,19 +806,68 @@ export default function ImageList({
               <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="flex items-center truncate">
-                    <svg className="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    <svg
+                      className="w-3 h-3 mr-1 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
                     </svg>
-                    <span className="truncate">{getGroupName(image.groupId)}</span>
+                    <span className="truncate">
+                      {getGroupName(image.groupId)}
+                    </span>
                   </span>
                   <span className="flex items-center flex-shrink-0 ml-2">
-                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-3 h-3 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     {formatDate(image.uploadedAt)}
                   </span>
                 </div>
               </div>
+
+              {/* 图床信息 */}
+              {image.primaryProvider && (
+                <div className="mt-1 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                  <svg
+                    className="w-3 h-3 mr-1 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 12l2 2 4-4"
+                    />
+                  </svg>
+                  <span className="truncate">
+                    {getProviderDisplayName(image.primaryProvider)}
+                    {image.backupProvider && (
+                      <span className="text-green-600 dark:text-green-400 ml-1">
+                        (+{getProviderDisplayName(image.backupProvider)})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
 
               {/* 标签 */}
               {image.tags && image.tags.length > 0 && (
@@ -689,8 +892,18 @@ export default function ImageList({
               {bulkMode && selectedImages.has(image.id) && (
                 <div className="mt-2">
                   <span className="inline-flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded text-xs">
-                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="w-3 h-3 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                     已选择
                   </span>
@@ -715,5 +928,5 @@ export default function ImageList({
         onSave={handleUpdateImage}
       />
     </>
-  )
+  );
 }

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,71 +7,100 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 图片模型
 model Image {
-  id          String   @id
-  url         String   // Cloudinary URL
-  publicId    String   // Cloudinary public ID
-  title       String?  // 图片标题
-  description String?  // 图片描述
-  tags        String?  // 标签，JSON字符串格式
-  groupId     String?  // 所属分组ID
-  uploadedAt  DateTime @default(now())
+  id              String               @id
+  url             String
+  publicId        String
+  title           String?
+  description     String?
+  tags            String?
+  groupId         String?
+  uploadedAt      DateTime             @default(now())
+  primaryProvider String               @default("cloudinary")
+  backupProvider  String?
+  storageMetadata String?              @db.Text
+  storageRecords  ImageStorageRecord[]
+  group           Group?               @relation(fields: [groupId], references: [id])
 
-  // 关联分组
-  group       Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
-
+  @@index([groupId], map: "images_groupId_fkey")
   @@map("images")
 }
 
-// 分组模型
 model Group {
   id          String   @id
-  name        String   @unique // 分组名称
-  description String?  // 分组描述
-  imageCount  Int      @default(0) // 图片数量
+  name        String   @unique
+  description String?
+  imageCount  Int      @default(0)
   createdAt   DateTime @default(now())
-
-  // 关联图片
   images      Image[]
 
   @@map("groups")
 }
 
-// API配置模型
 model APIConfig {
   id                   String   @id @default("default")
-  isEnabled            Boolean  @default(true) // API是否启用
-  defaultScope         String   @default("all") // 默认范围：all, group
-  defaultGroups        String?  @db.Text // 默认分组，JSON字符串格式
-  allowedParameters    String?  @db.Text // 允许的参数，JSON字符串格式
-  enableDirectResponse Boolean  @default(false) // 是否启用直接响应模式
+  isEnabled            Boolean  @default(true)
+  defaultScope         String   @default("all")
+  defaultGroups        String?  @db.Text
+  allowedParameters    String?  @db.Text
+  enableDirectResponse Boolean  @default(false)
   updatedAt            DateTime @default(now()) @updatedAt
 
   @@map("api_configs")
 }
 
-// 计数器模型（用于生成递增ID）
 model Counter {
-  id       String @id
-  value    Int    @default(0)
+  id    String @id
+  value Int    @default(0)
 
   @@map("counters")
 }
 
-// 系统日志模型
+model ImageStorageRecord {
+  id         String   @id @default(cuid())
+  imageId    String
+  provider   String
+  identifier String
+  url        String
+  metadata   String?  @db.Text
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  image      Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@index([imageId])
+  @@index([provider])
+  @@index([status])
+  @@map("image_storage_records")
+}
+
+model StorageConfig {
+  id                  String   @id @default("default")
+  primaryProvider     String   @default("cloudinary")
+  backupProvider      String?
+  failoverEnabled     Boolean  @default(true)
+  retryAttempts       Int      @default(3)
+  retryDelay          Int      @default(1000)
+  healthCheckInterval Int      @default(300)
+  enableBackupUpload  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("storage_configs")
+}
+
 model SystemLog {
-  id          String   @id @default(cuid())
-  timestamp   DateTime @default(now())
-  level       Int      // 日志级别：0=DEBUG, 1=INFO, 2=WARN, 3=ERROR
-  message     String   @db.Text // 日志消息
-  context     String?  @db.Text // 上下文信息，JSON字符串格式
-  error       String?  @db.Text // 错误信息，JSON字符串格式
-  userId      String?  // 用户ID（如果相关）
-  requestId   String?  // 请求ID
-  ip          String?  // IP地址
-  userAgent   String?  @db.Text // 用户代理
-  type        String?  // 日志类型：api_request, api_response, database, user_action, security等
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  level     Int
+  message   String   @db.Text
+  context   String?  @db.Text
+  error     String?  @db.Text
+  userId    String?
+  requestId String?
+  ip        String?
+  userAgent String?  @db.Text
+  type      String?
 
   @@index([timestamp])
   @@index([level])

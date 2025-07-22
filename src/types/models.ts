@@ -13,6 +13,8 @@ export interface Image {
   tags?: string[];
   groupId?: string;
   uploadedAt: Date;
+  primaryProvider?: string; // 新增：主要图床提供商
+  backupProvider?: string;  // 新增：备用图床提供商
 }
 
 // 分组模型
@@ -55,6 +57,7 @@ export interface PaginationOptions {
   dateFrom?: Date;
   dateTo?: Date;
   groupId?: string;
+  provider?: string; // 新增：图床筛选
 }
 
 // 分页结果

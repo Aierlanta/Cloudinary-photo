@@ -12,6 +12,9 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
+import { StorageProvider } from '@/lib/storage/base';
+import { storageServiceManager } from '@/lib/storage/factory';
+import { StorageDatabaseService } from '@/lib/database/storage';
 import {
   ImageListRequestSchema,
   ImageUploadRequestSchema,
@@ -47,6 +50,7 @@ async function getImages(request: NextRequest): Promise<Response> {
     page: validatedParams.page,
     limit: validatedParams.limit,
     groupId: validatedParams.groupId,
+    provider: validatedParams.provider, // 新增：图床筛选
     search: validatedParams.search,
     dateFrom: validatedParams.dateFrom,
     dateTo: validatedParams.dateTo,
@@ -73,12 +77,13 @@ export const GET = withErrorHandler(
 
 /**
  * POST /api/admin/images
- * 上传新图片
+ * 上传新图片（支持图床选择）
  */
 async function uploadImage(request: NextRequest): Promise<Response> {
   // 解析表单数据
   const formData = await request.formData();
   const file = formData.get('file') as File;
+  const provider = formData.get('provider') as string | null; // 新增：图床选择
   const groupId = formData.get('groupId') as string | null;
   const title = formData.get('title') as string | null;
   const description = formData.get('description') as string | null;
@@ -129,28 +134,86 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       );
     }
   }
-  
-  // 上传到Cloudinary
-  const cloudinaryResult = await cloudinaryService.uploadImage(file, {
-    folder: 'random-images',
-    tags: uploadParams.tags
-  });
-  
-  // 保存到数据库
-  const image = await databaseService.saveImage({
-    publicId: cloudinaryResult.public_id,
-    url: cloudinaryResult.url,
-    title: uploadParams.title,
-    description: uploadParams.description,
-    groupId: uploadParams.groupId,
-    tags: uploadParams.tags || []
-  });
+
+  // 确定使用的图床服务
+  const selectedProvider = provider || 'cloudinary';
+
+  // 验证图床提供商
+  const supportedProviders = ['cloudinary', 'tgstate'];
+  if (!supportedProviders.includes(selectedProvider)) {
+    throw new AppError(
+      ErrorType.VALIDATION_ERROR,
+      `不支持的图床服务提供商: ${selectedProvider}`,
+      400
+    );
+  }
+
+  let image;
+
+  if (selectedProvider === 'cloudinary') {
+    // 使用原有的Cloudinary逻辑（向后兼容）
+    const cloudinaryService = new CloudinaryService();
+    const cloudinaryResult = await cloudinaryService.uploadImage(file, {
+      folder: 'random-images',
+      tags: uploadParams.tags
+    });
+
+    // 保存到数据库
+    image = await databaseService.saveImage({
+      publicId: cloudinaryResult.public_id,
+      url: cloudinaryResult.url,
+      title: uploadParams.title,
+      description: uploadParams.description,
+      groupId: uploadParams.groupId,
+      tags: uploadParams.tags || []
+    });
+  } else {
+    // 使用新的多图床架构
+    const storageDatabaseService = new StorageDatabaseService();
+    const storageService = storageServiceManager.getService(selectedProvider as StorageProvider);
+
+    const uploadResult = await storageService.uploadImage(file, {
+      folder: 'random-image-api',
+      tags: uploadParams.tags,
+      title: uploadParams.title,
+      description: uploadParams.description,
+      groupId: uploadParams.groupId
+    });
+
+    // 保存到数据库
+    const savedImage = await storageDatabaseService.saveImageWithStorage({
+      publicId: uploadResult.publicId,
+      url: uploadResult.url,
+      title: uploadParams.title,
+      description: uploadParams.description,
+      groupId: uploadParams.groupId,
+      tags: uploadParams.tags,
+      primaryProvider: selectedProvider as StorageProvider,
+      backupProvider: undefined,
+      storageResults: [{
+        provider: selectedProvider as StorageProvider,
+        result: uploadResult
+      }]
+    });
+
+    // 转换为兼容格式
+    image = {
+      id: savedImage.id,
+      url: savedImage.url,
+      publicId: savedImage.publicId,
+      title: savedImage.title,
+      description: savedImage.description,
+      tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
+      groupId: savedImage.groupId,
+      uploadedAt: savedImage.uploadedAt
+    };
+  }
   
   const response: APIResponse<ImageUploadResponse> = {
     success: true,
     data: {
       image,
-      message: '图片上传成功'
+      message: `图片已成功上传到 ${selectedProvider} 图床`
     },
     timestamp: new Date()
   };

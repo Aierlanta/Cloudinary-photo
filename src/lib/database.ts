@@ -216,7 +216,7 @@ export class DatabaseService {
   private async generateImageId(): Promise<string> {
     try {
       const counter = await prisma.counter.update({
-        where: { id: 'imageId' },
+        where: { id: 'image_counter' },
         data: { value: { increment: 1 } }
       });
       return `img_${counter.value.toString().padStart(6, '0')}`;
@@ -323,7 +323,7 @@ export class DatabaseService {
    */
   async getImages(options: PaginationOptions): Promise<PaginatedResult<Image>> {
     try {
-      const { page = 1, limit = 20, sortBy = 'uploadedAt', sortOrder = 'desc', search, dateFrom, dateTo, groupId } = options;
+      const { page = 1, limit = 20, sortBy = 'uploadedAt', sortOrder = 'desc', search, dateFrom, dateTo, groupId, provider } = options;
 
       // 构建查询条件
       const where: any = {};
@@ -336,6 +336,11 @@ export class DatabaseService {
           // 查询指定分组的图片
           where.groupId = groupId;
         }
+      }
+
+      // 图床筛选
+      if (provider) {
+        where.primaryProvider = provider;
       }
       
       if (dateFrom || dateTo) {
@@ -378,7 +383,9 @@ export class DatabaseService {
         description: image.description || undefined,
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         groupId: image.groupId || undefined,
-        uploadedAt: image.uploadedAt
+        uploadedAt: image.uploadedAt,
+        primaryProvider: (image as any).primaryProvider || 'cloudinary', // 新增：图床信息
+        backupProvider: (image as any).backupProvider || undefined // 新增：备用图床信息
       }));
 
       const totalPages = Math.ceil(total / limit);
