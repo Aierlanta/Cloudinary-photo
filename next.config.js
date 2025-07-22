@@ -16,6 +16,13 @@ const nextConfig = {
         pathname: '/**',
       }] : []),
     ],
+    // 启用图片优化
+    formats: ['image/webp', 'image/avif'],
+    // 允许的图片尺寸
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // 最小缓存时间
+    minimumCacheTTL: 60,
   },
   env: {
     // 将 tgState 域名暴露给客户端

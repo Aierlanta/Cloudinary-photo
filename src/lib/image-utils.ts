@@ -27,8 +27,14 @@ export function isTgStateImage(url: string): boolean {
 export function generateThumbnailUrl(originalUrl: string, size: number = 300): string {
   // 检查是否是 tgState URL
   if (isTgStateImage(originalUrl)) {
-    // 对于 tgState 图片，直接返回原URL（它们是重定向链接）
-    return originalUrl;
+    // 对于 tgState 图片，使用 Next.js 图片优化 API
+    // 通过 /_next/image 端点进行压缩和优化
+    const params = new URLSearchParams({
+      url: originalUrl,
+      w: size.toString(),
+      q: '75' // 质量设置为 75%
+    });
+    return `/_next/image?${params.toString()}`;
   }
 
   // 检查是否是Cloudinary URL
@@ -76,11 +82,22 @@ export function generateThumbnailUrl(originalUrl: string, size: number = 300): s
  * @returns 转换后的图片URL
  */
 export function generateResizedUrl(
-  originalUrl: string, 
-  width: number, 
-  height?: number, 
+  originalUrl: string,
+  width: number,
+  height?: number,
   crop: string = 'fill'
 ): string {
+  // 检查是否是 tgState URL
+  if (isTgStateImage(originalUrl)) {
+    // 对于 tgState 图片，使用 Next.js 图片优化 API
+    const params = new URLSearchParams({
+      url: originalUrl,
+      w: width.toString(),
+      q: '75'
+    });
+    return `/_next/image?${params.toString()}`;
+  }
+
   if (!originalUrl.includes('res.cloudinary.com')) {
     return originalUrl;
   }
@@ -113,6 +130,59 @@ export function generateResizedUrl(
 }
 
 /**
+ * 为 tgState 图片生成优化的 URL
+ * @param originalUrl 原始 tgState 图片 URL
+ * @param width 目标宽度
+ * @param quality 图片质量 (1-100)
+ * @returns 优化后的图片 URL
+ */
+export function generateTgStateOptimizedUrl(
+  originalUrl: string,
+  width: number = 300,
+  quality: number = 75
+): string {
+  if (!isTgStateImage(originalUrl)) {
+    return originalUrl;
+  }
+
+  const params = new URLSearchParams({
+    url: originalUrl,
+    w: width.toString(),
+    q: quality.toString()
+  });
+
+  return `/_next/image?${params.toString()}`;
+}
+
+/**
+ * 获取图片的多种尺寸 URL
+ * @param originalUrl 原始图片 URL
+ * @returns 包含不同尺寸的 URL 对象
+ */
+export function getImageUrls(originalUrl: string) {
+  if (isTgStateImage(originalUrl)) {
+    return {
+      thumbnail: generateTgStateOptimizedUrl(originalUrl, IMAGE_SIZES.thumbnail, 70),
+      small: generateTgStateOptimizedUrl(originalUrl, IMAGE_SIZES.small, 75),
+      medium: generateTgStateOptimizedUrl(originalUrl, IMAGE_SIZES.medium, 80),
+      large: generateTgStateOptimizedUrl(originalUrl, IMAGE_SIZES.large, 85),
+      preview: generateTgStateOptimizedUrl(originalUrl, IMAGE_SIZES.preview, 75),
+      original: originalUrl
+    };
+  }
+
+  // 对于 Cloudinary 图片，使用原有逻辑
+  return {
+    thumbnail: generateThumbnailUrl(originalUrl, IMAGE_SIZES.thumbnail),
+    small: generateThumbnailUrl(originalUrl, IMAGE_SIZES.small),
+    medium: generateThumbnailUrl(originalUrl, IMAGE_SIZES.medium),
+    large: generateThumbnailUrl(originalUrl, IMAGE_SIZES.large),
+    preview: generateThumbnailUrl(originalUrl, IMAGE_SIZES.preview),
+    original: originalUrl
+  };
+}
+
+/**
  * 预定义的图片尺寸
  */
 export const IMAGE_SIZES = {
@@ -123,16 +193,4 @@ export const IMAGE_SIZES = {
   preview: 400       // 预览图
 } as const;
 
-/**
- * 获取不同用途的图片URL
- */
-export function getImageUrls(originalUrl: string) {
-  return {
-    original: originalUrl,
-    thumbnail: generateThumbnailUrl(originalUrl, IMAGE_SIZES.thumbnail),
-    small: generateThumbnailUrl(originalUrl, IMAGE_SIZES.small),
-    medium: generateThumbnailUrl(originalUrl, IMAGE_SIZES.medium),
-    large: generateThumbnailUrl(originalUrl, IMAGE_SIZES.large),
-    preview: generateThumbnailUrl(originalUrl, IMAGE_SIZES.preview)
-  };
-}
+

@@ -33,20 +33,11 @@ export default function SmartImage({
   height,
 }: SmartImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
 
   const handleLoad = () => {
     setIsLoaded(true);
     onLoad?.();
   };
-
-  const handleError = () => {
-    setHasError(true);
-  };
-
-  // 检查是否是 tgState 图片
-  const tgStateDomain = process.env.NEXT_PUBLIC_TGSTATE_DOMAIN;
-  const isTgStateImage = tgStateDomain ? src.includes(tgStateDomain) : false;
 
   // 对于所有图片，都使用 Next.js Image 组件
   // Next.js 会自动处理不同的图片源
@@ -83,7 +74,8 @@ export default function SmartImage({
         onClick={onClick}
         onLoad={handleLoad}
         sizes={sizes}
-        unoptimized={isTgStateImage}
+        // 现在 tgState 图片通过 /_next/image 优化，不需要 unoptimized
+        unoptimized={false}
       />
     </>
   );
