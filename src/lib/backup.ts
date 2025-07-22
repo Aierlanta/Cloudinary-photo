@@ -161,15 +161,15 @@ export class BackupService {
     try {
       this.logger.info('开始数据库备份', { timestamp: startTime });
 
-      // 1. 清空备份数据库
-      await this.clearBackupDatabase();
+      // 1. 获取主数据库的所有表
+      const tables = await this.getAllTables();
+      this.logger.debug(`发现 ${tables.length} 个表需要备份`, { tables });
 
-      // 2. 备份各个表的数据（按照外键依赖顺序：先备份被引用的表）
-      await this.backupGroups();
-      await this.backupAPIConfigs();
-      await this.backupCounters();
-      await this.backupImages();
-      await this.backupSystemLogs();
+      // 2. 清空备份数据库的所有表
+      await this.clearAllBackupTables(tables);
+
+      // 3. 复制表结构和数据
+      await this.copyAllTables(tables);
 
       // 3. 更新备份状态
       const currentStatus = await this.getBackupStatus();
@@ -656,6 +656,169 @@ export class BackupService {
       this.logger.debug('外键约束可能已存在', {
         error: error instanceof Error ? error.message : String(error)
       });
+    }
+  }
+
+  /**
+   * 获取主数据库的所有表
+   */
+  private async getAllTables(): Promise<string[]> {
+    try {
+      const result = await mainPrisma.$queryRaw<Array<{ TABLE_NAME: string }>>`
+        SELECT TABLE_NAME
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_TYPE = 'BASE TABLE'
+        ORDER BY TABLE_NAME
+      `;
+      return result.map(row => row.TABLE_NAME);
+    } catch (error) {
+      throw new DatabaseError(`获取表列表失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 清空备份数据库的所有表
+   */
+  private async clearAllBackupTables(tables: string[]): Promise<void> {
+    try {
+      // 禁用外键检查
+      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+
+      for (const tableName of tables) {
+        try {
+          await backupPrisma.$executeRawUnsafe(`DELETE FROM \`${tableName}\`;`);
+          this.logger.debug(`清空备份表 ${tableName} 成功`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('does not exist') || errorMessage.includes("doesn't exist")) {
+            this.logger.debug(`备份表 ${tableName} 不存在，跳过清空操作`);
+          } else {
+            this.logger.warn(`清空备份表 ${tableName} 失败: ${errorMessage}`);
+          }
+        }
+      }
+
+      // 重新启用外键检查
+      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+    } catch (error) {
+      throw new DatabaseError(`清空备份数据库失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 复制所有表的结构和数据
+   */
+  private async copyAllTables(tables: string[]): Promise<void> {
+    try {
+      // 禁用外键检查
+      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+
+      for (const tableName of tables) {
+        try {
+          // 1. 复制表结构（如果不存在）
+          await this.copyTableStructure(tableName);
+
+          // 2. 复制表数据
+          await this.copyTableData(tableName);
+
+          this.logger.debug(`表 ${tableName} 备份完成`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.logger.warn(`备份表 ${tableName} 失败: ${errorMessage}`);
+        }
+      }
+
+      // 重新启用外键检查
+      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+    } catch (error) {
+      throw new DatabaseError(`复制表失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 复制表结构
+   */
+  private async copyTableStructure(tableName: string): Promise<void> {
+    try {
+      // 获取主数据库的表结构
+      const createTableResult = await mainPrisma.$queryRawUnsafe(`SHOW CREATE TABLE \`${tableName}\``) as Array<{ 'Create Table': string }>;
+
+      if (createTableResult.length > 0) {
+        const createTableSQL = createTableResult[0]['Create Table'];
+
+        // 删除备份数据库中的同名表（如果存在）
+        await backupPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+
+        // 在备份数据库中创建表
+        await backupPrisma.$executeRawUnsafe(createTableSQL);
+
+        this.logger.debug(`表结构 ${tableName} 复制完成`);
+      }
+    } catch (error) {
+      throw new DatabaseError(`复制表结构 ${tableName} 失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 复制表数据
+   */
+  private async copyTableData(tableName: string): Promise<void> {
+    try {
+      // 获取表的行数
+      const countResult = await mainPrisma.$queryRawUnsafe(`SELECT COUNT(*) as count FROM \`${tableName}\``) as Array<{ count: number }>;
+
+      const rowCount = countResult[0]?.count || 0;
+
+      if (rowCount > 0) {
+        // 直接使用逐行复制方案（适用于跨数据库）
+        await this.copyTableDataRowByRow(tableName);
+        this.logger.debug(`表数据 ${tableName} 复制完成 (${rowCount} 行)`);
+      } else {
+        this.logger.debug(`表 ${tableName} 无数据，跳过复制`);
+      }
+    } catch (error) {
+      throw new DatabaseError(`复制表数据 ${tableName} 失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 逐行复制表数据（备用方案）
+   */
+  private async copyTableDataRowByRow(tableName: string): Promise<void> {
+    try {
+      // 获取所有数据
+      const data = await mainPrisma.$queryRawUnsafe(`SELECT * FROM \`${tableName}\``);
+
+      if (Array.isArray(data) && data.length > 0) {
+        // 获取列名
+        const columns = Object.keys(data[0]);
+        const columnList = columns.map(col => `\`${col}\``).join(', ');
+
+        // 批量插入数据
+        const batchSize = 100;
+        for (let i = 0; i < data.length; i += batchSize) {
+          const batch = data.slice(i, i + batchSize);
+          const values = batch.map(row => {
+            const valueList = columns.map(col => {
+              const value = row[col];
+              if (value === null) return 'NULL';
+              if (typeof value === 'string') return `'${value.replace(/'/g, "''")}'`;
+              if (value instanceof Date) return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`;
+              return String(value);
+            }).join(', ');
+            return `(${valueList})`;
+          }).join(', ');
+
+          await backupPrisma.$executeRawUnsafe(`
+            INSERT INTO \`${tableName}\` (${columnList}) VALUES ${values}
+          `);
+        }
+
+        this.logger.debug(`表数据 ${tableName} 逐行复制完成 (${data.length} 行)`);
+      }
+    } catch (error) {
+      throw new DatabaseError(`逐行复制表数据 ${tableName} 失败: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
