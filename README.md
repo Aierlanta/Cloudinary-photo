@@ -4,6 +4,42 @@
 
 基于 Next.js 14 的随机图片 API 服务，支持多图床存储, 完整的管理面板。
 
+## 预览
+
+### 首页预览
+
+<img width="2548" height="1315" alt="image" src="https://github.com/user-attachments/assets/c9f9b5d5-45f6-44c5-8086-286ebe42766d" />
+
+### 仪表盘
+
+<img width="2560" height="1316" alt="image" src="https://github.com/user-attachments/assets/05cb8c91-f2ca-425c-ba63-cb6b2163ab5b" />
+
+### 图片管理
+
+<img width="2558" height="1314" alt="image" src="https://github.com/user-attachments/assets/3335edca-b09d-45f0-bb45-9ffe1346e27c" />
+
+### 分组管理
+
+<img width="2560" height="1321" alt="image" src="https://github.com/user-attachments/assets/95e31a3d-cd33-4dff-abba-e280273ec09d" />
+
+### API配置
+
+<img width="2560" height="1312" alt="image" src="https://github.com/user-attachments/assets/1d33cb5b-ee1e-49a6-96e2-781eb030c60d" />
+
+### 系统状态
+
+<img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/4fdf46e7-54e7-4169-84c6-369179bfd9fc" />
+
+### 系统日志
+
+<img width="2556" height="1310" alt="image" src="https://github.com/user-attachments/assets/651e9756-7c76-4f69-b0f3-b3a07d044c30" />
+
+### 备份管理
+
+<img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
+
+
+
 ## 快速开始
 
 ### 环境要求
@@ -310,6 +346,6 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 
 ---
 
-**当前版本**: v0.5.7 | **最后更新**: 2025-07-22
+**当前版本**: v0.6.2 | **最后更新**: 2025-07-25
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request！
