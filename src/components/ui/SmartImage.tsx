@@ -10,6 +10,7 @@ interface SmartImageProps {
   className?: string;
   onClick?: () => void;
   onLoad?: () => void;
+  onError?: () => void;
   sizes?: string;
   width?: number;
   height?: number;
@@ -28,6 +29,7 @@ export default function SmartImage({
   className = "",
   onClick,
   onLoad,
+  onError,
   sizes,
   width,
   height,
@@ -73,6 +75,7 @@ export default function SmartImage({
         } ${onClick ? "cursor-pointer" : ""}`}
         onClick={onClick}
         onLoad={handleLoad}
+        onError={onError}
         sizes={sizes}
         // 现在 tgState 图片通过 /_next/image 优化，不需要 unoptimized
         unoptimized={false}

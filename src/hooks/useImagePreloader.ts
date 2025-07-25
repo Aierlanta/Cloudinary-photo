@@ -51,7 +51,7 @@ export function useImagePreloader(
         return;
       }
 
-      const img = new Image();
+      const img = new window.Image();
       
       img.onload = () => {
         preloadedImages.current.add(url);
@@ -178,7 +178,7 @@ export function useImagePreload(url: string, enabled: boolean = true) {
   useEffect(() => {
     if (!enabled || !url || preloaded.current) return;
 
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => {
       preloaded.current = true;
     };

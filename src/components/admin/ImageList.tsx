@@ -102,7 +102,7 @@ function LazyImage({
   useEffect(() => {
     if (isInView && preloadUrls.length > 0) {
       preloadUrls.forEach((url) => {
-        const img = new Image();
+        const img = new window.Image();
         img.src = url;
       });
     }

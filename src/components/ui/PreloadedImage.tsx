@@ -61,8 +61,8 @@ export default function PreloadedImage({
   useEffect(() => {
     if (!enablePreload || preloadUrls.length === 0) return;
 
-    preloadUrls.forEach(url => {
-      const img = new Image();
+    preloadUrls.forEach((url) => {
+      const img = new window.Image();
       img.src = url;
     });
   }, [preloadUrls, enablePreload]);
@@ -76,7 +76,7 @@ export default function PreloadedImage({
 
   const handleError = () => {
     console.warn(`图片加载失败: ${currentSrc}`);
-    
+
     // 尝试重试
     if (retryCount.current < maxRetries) {
       retryCount.current++;
@@ -175,11 +175,13 @@ export default function PreloadedImage({
  * 图片预加载工具函数
  * 用于批量预加载图片
  */
-export function preloadImages(urls: string[]): Promise<void[]> {
+export function preloadImages(
+  urls: string[]
+): Promise<PromiseSettledResult<void>[]> {
   return Promise.allSettled(
-    urls.map(url => {
+    urls.map((url) => {
       return new Promise<void>((resolve, reject) => {
-        const img = new Image();
+        const img = new window.Image();
         img.onload = () => resolve();
         img.onerror = () => reject(new Error(`Failed to preload: ${url}`));
         img.src = url;
