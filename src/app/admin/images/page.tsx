@@ -84,6 +84,7 @@ export default function ImagesPage() {
         const params = new URLSearchParams();
         if (filters.search) params.append("search", filters.search);
         if (filters.groupId) params.append("groupId", filters.groupId);
+        if (filters.provider) params.append("provider", filters.provider);
         if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
         if (filters.dateTo) params.append("dateTo", filters.dateTo);
         params.append("page", filters.page.toString());
