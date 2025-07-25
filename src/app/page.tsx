@@ -57,13 +57,8 @@ export default function Home() {
   }, []);
 
   const refreshRandomImage = () => {
-    if (!baseUrl) return;
-    setImageLoading(true);
-    // 通过先清空URL再重新设置来强制刷新
-    setRandomImageUrl("");
-    setTimeout(() => {
-      setRandomImageUrl(generateRandomImageUrl(baseUrl));
-    }, 10);
+    // 刷新整个页面来获取新的随机图片
+    window.location.reload();
   };
 
   return (
