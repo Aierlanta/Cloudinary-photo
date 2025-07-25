@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { generateThumbnailUrl, getImageUrls } from "@/lib/image-utils";
 import SmartImage from "@/components/ui/SmartImage";
+import { useImageCachePrewarming } from "@/hooks/useImageCachePrewarming";
 
 interface ImageItem {
   id: string;
@@ -57,20 +58,23 @@ interface ImageEditModalProps {
   ) => void;
 }
 
-// 懒加载图片组件
+// 增强的懒加载图片组件
 function LazyImage({
   src,
   alt,
   className,
   onClick,
+  preloadUrls = [],
 }: {
   src: string;
   alt: string;
   className?: string;
   onClick?: () => void;
+  preloadUrls?: string[];
 }) {
   const [isInView, setIsInView] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,7 +85,10 @@ function LazyImage({
           observer.disconnect();
         }
       },
-      { threshold: 0.1 }
+      {
+        threshold: 0.1,
+        rootMargin: "50px", // 提前50px开始加载
+      }
     );
 
     if (imgRef.current) {
@@ -90,6 +97,26 @@ function LazyImage({
 
     return () => observer.disconnect();
   }, []);
+
+  // 预加载相关图片
+  useEffect(() => {
+    if (isInView && preloadUrls.length > 0) {
+      preloadUrls.forEach((url) => {
+        const img = new Image();
+        img.src = url;
+      });
+    }
+  }, [isInView, preloadUrls]);
+
+  const handleLoad = () => {
+    setIsLoaded(true);
+    setHasError(false);
+  };
+
+  const handleError = () => {
+    setHasError(true);
+    setIsLoaded(false);
+  };
 
   return (
     <div ref={imgRef} className={`relative ${className}`}>
@@ -109,6 +136,25 @@ function LazyImage({
             />
           </svg>
         </div>
+      ) : hasError ? (
+        <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          <div className="text-center text-gray-500">
+            <svg
+              className="w-8 h-8 mx-auto mb-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+            <p className="text-xs">加载失败</p>
+          </div>
+        </div>
       ) : (
         <>
           {!isLoaded && (
@@ -123,7 +169,7 @@ function LazyImage({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"
                 />
               </svg>
             </div>
@@ -134,7 +180,8 @@ function LazyImage({
             fill
             className="object-cover"
             onClick={onClick}
-            onLoad={() => setIsLoaded(true)}
+            onLoad={handleLoad}
+            onError={handleError}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
           />
         </>
@@ -490,6 +537,18 @@ export default function ImageList({
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkGroupId, setBulkGroupId] = useState<string>("");
 
+  // 启用图片缓存预热
+  const { triggerPrewarming, getPrewarmingStatus } = useImageCachePrewarming(
+    images,
+    {
+      enabled: true,
+      maxImages: 20,
+      delay: 2000, // 延迟2秒开始预热
+      onIdle: true, // 在空闲时预热
+      thumbnailSize: 300,
+    }
+  );
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("zh-CN");
   };
@@ -708,6 +767,26 @@ export default function ImageList({
                     setSelectedImage(image);
                   }
                 }}
+                preloadUrls={(() => {
+                  // 预加载下一张和上一张图片
+                  const currentIndex = images.findIndex(
+                    (img) => img.id === image.id
+                  );
+                  const preloadUrls: string[] = [];
+
+                  if (currentIndex > 0) {
+                    preloadUrls.push(
+                      generateThumbnailUrl(images[currentIndex - 1].url, 300)
+                    );
+                  }
+                  if (currentIndex < images.length - 1) {
+                    preloadUrls.push(
+                      generateThumbnailUrl(images[currentIndex + 1].url, 300)
+                    );
+                  }
+
+                  return preloadUrls;
+                })()}
               />
 
               {/* 悬停操作按钮 */}
