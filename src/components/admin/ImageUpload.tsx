@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
 
@@ -96,6 +97,130 @@ export default function ImageUpload({
 
     fetchProviders();
   }, [showError]);
+
+  // 防止上传过程中意外离开页面（刷新、关闭、后退等）
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // 检查是否有正在上传的文件
+      const isUploading = uploading || fileStates.some(fs => fs.status === 'uploading');
+      
+      if (isUploading) {
+        // 标准的方式
+        e.preventDefault();
+        // Chrome 需要 returnValue
+        e.returnValue = '图片正在上传中，确定要离开吗？上传将被中断。';
+        return e.returnValue;
+      }
+    };
+
+    // 添加事件监听器
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // 清理函数
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [uploading, fileStates]);
+
+  // 拦截浏览器后退/前进按钮（popstate 事件）
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const isUploading = uploading || fileStates.some(fs => fs.status === 'uploading');
+      
+      if (isUploading) {
+        // 弹出确认对话框
+        const confirmLeave = window.confirm(
+          '图片正在上传中，确定要离开吗？上传将被中断。'
+        );
+        
+        if (!confirmLeave) {
+          // 用户选择取消，阻止导航
+          // 将历史记录推回到当前页面
+          window.history.pushState(null, '', window.location.pathname);
+        }
+        // 如果用户选择确定，什么都不做，让导航继续
+      }
+    };
+
+    // 监听浏览器后退/前进
+    window.addEventListener('popstate', handlePopState);
+    
+    // 在上传开始时，向历史记录添加一个状态
+    // 这样后退时会触发 popstate 事件
+    if (uploading || fileStates.some(fs => fs.status === 'uploading')) {
+      window.history.pushState(null, '', window.location.pathname);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [uploading, fileStates]);
+
+  // 拦截页面内的所有链接点击和鼠标侧键
+  useEffect(() => {
+    const handleMouseClick = (e: MouseEvent) => {
+      const isUploading = uploading || fileStates.some(fs => fs.status === 'uploading');
+      
+      if (!isUploading) return;
+      
+      // 检查是否是鼠标侧键（后退/前进按钮）
+      // button 3 = 后退, button 4 = 前进
+      if (e.button === 3 || e.button === 4) {
+        const confirmLeave = window.confirm(
+          '图片正在上传中，确定要离开吗？上传将被中断。'
+        );
+        
+        if (!confirmLeave) {
+          e.preventDefault();
+          e.stopPropagation();
+          // 阻止浏览器执行后退/前进操作
+          window.history.pushState(null, '', window.location.pathname);
+          return;
+        }
+      }
+      
+      // 检查是否点击了链接或包含链接的元素
+      const target = e.target as HTMLElement;
+      const link = target.closest('a');
+      
+      if (link && link.href) {
+        // 如果是外部链接，beforeunload 会处理
+        // 如果是内部链接，我们需要手动确认
+        const currentOrigin = window.location.origin;
+        const linkUrl = new URL(link.href, currentOrigin);
+        
+        // 检查是否是跳转到其他页面（不是当前页面的锚点）
+        if (linkUrl.pathname !== window.location.pathname) {
+          const confirmLeave = window.confirm(
+            '图片正在上传中，确定要离开吗？上传将被中断。'
+          );
+          
+          if (!confirmLeave) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      }
+    };
+
+    // 监听所有鼠标按下事件（包括侧键）
+    document.addEventListener('mousedown', handleMouseClick, true);
+    // 也监听点击事件作为备份
+    document.addEventListener('click', handleMouseClick, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleMouseClick, true);
+      document.removeEventListener('click', handleMouseClick, true);
+    };
+  }, [uploading, fileStates]);
+
+  // 在页面显示上传状态提示
+  useEffect(() => {
+    if (uploading) {
+      // 在控制台显示提示，帮助开发调试
+      console.log('⚠️ 图片上传中，请勿关闭或刷新页面');
+    }
+  }, [uploading]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -780,12 +905,22 @@ export default function ImageUpload({
         </div>
 
         {uploading && (
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-            <div
-              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
-            ></div>
-          </div>
+          <>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+              <div
+                className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            
+            {/* 上传中警告提示 */}
+            <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-300 dark:border-yellow-700 rounded text-sm text-yellow-800 dark:text-yellow-200">
+              <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">正在上传，请勿关闭或刷新页面，否则上传将被中断</span>
+            </div>
+          </>
         )}
       </div>
 
