@@ -67,6 +67,7 @@ export class StorageDatabaseService {
         .map(sr => sr.result.url)
     };
 
+    // 增加事务超时时间，因为 tgState 上传可能需要较长时间
     const result = await prisma.$transaction(async (tx) => {
       // 创建图片记录
       const image = await tx.image.create({
@@ -128,6 +129,9 @@ export class StorageDatabaseService {
           metadata: record.metadata || undefined
         }))
       };
+    }, {
+      maxWait: 15000, // 最多等待 15 秒获取事务锁
+      timeout: 30000  // 事务执行最多 30 秒
     });
 
     console.log(`保存图片成功: ${imageId}, 存储提供商: ${data.storageResults.map(sr => sr.provider).join(', ')}`);

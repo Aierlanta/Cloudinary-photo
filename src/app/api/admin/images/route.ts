@@ -172,29 +172,48 @@ async function uploadImage(request: NextRequest): Promise<Response> {
     const storageDatabaseService = new StorageDatabaseService();
     const storageService = storageServiceManager.getService(selectedProvider as StorageProvider);
 
-    const uploadResult = await storageService.uploadImage(file, {
-      folder: 'random-image-api',
-      tags: uploadParams.tags,
-      title: uploadParams.title,
-      description: uploadParams.description,
-      groupId: uploadParams.groupId
-    });
+    let savedImage;
+    
+    try {
+      console.log(`[上传] 开始上传到 ${selectedProvider}, 文件: ${file.name}`);
+      
+      const uploadResult = await storageService.uploadImage(file, {
+        folder: 'random-image-api',
+        tags: uploadParams.tags,
+        title: uploadParams.title,
+        description: uploadParams.description,
+        groupId: uploadParams.groupId
+      });
 
-    // 保存到数据库
-    const savedImage = await storageDatabaseService.saveImageWithStorage({
-      publicId: uploadResult.publicId,
-      url: uploadResult.url,
-      title: uploadParams.title,
-      description: uploadParams.description,
-      groupId: uploadParams.groupId,
-      tags: uploadParams.tags,
-      primaryProvider: selectedProvider as StorageProvider,
-      backupProvider: undefined,
-      storageResults: [{
-        provider: selectedProvider as StorageProvider,
-        result: uploadResult
-      }]
-    });
+      console.log(`[上传] ${selectedProvider} 上传成功:`, {
+        publicId: uploadResult.publicId,
+        url: uploadResult.url?.substring(0, 100)
+      });
+
+      // 保存到数据库
+      console.log(`[上传] 开始保存到数据库...`);
+      
+      savedImage = await storageDatabaseService.saveImageWithStorage({
+        publicId: uploadResult.publicId,
+        url: uploadResult.url,
+        title: uploadParams.title,
+        description: uploadParams.description,
+        groupId: uploadParams.groupId,
+        tags: uploadParams.tags,
+        primaryProvider: selectedProvider as StorageProvider,
+        backupProvider: undefined,
+        storageResults: [{
+          provider: selectedProvider as StorageProvider,
+          result: uploadResult
+        }]
+      });
+      
+      console.log(`[上传] 数据库保存成功: ${savedImage.id}`);
+      
+    } catch (error) {
+      console.error(`[上传错误] 文件: ${file.name}, Provider: ${selectedProvider}`, error);
+      throw error;
+    }
 
     // 转换为兼容格式
     image = {

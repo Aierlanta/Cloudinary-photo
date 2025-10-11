@@ -28,6 +28,17 @@ interface Image {
   tags: string[];
 }
 
+type FileStatus = 'pending' | 'uploading' | 'success' | 'failed';
+
+interface FileUploadState {
+  file: File;
+  status: FileStatus;
+  progress?: number;
+  error?: string;
+  uploadedImage?: Image;
+  retryCount: number;
+}
+
 interface ImageUploadProps {
   groups: Group[];
   onUploadSuccess: (image: Image) => void;
@@ -47,7 +58,7 @@ export default function ImageUpload({
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileStates, setFileStates] = useState<FileUploadState[]>([]);
   const [groupId, setGroupId] = useState("");
   const [tags, setTags] = useState("");
   const [dragActive, setDragActive] = useState(false);
@@ -104,7 +115,14 @@ export default function ImageUpload({
     const files = Array.from(e.dataTransfer.files).filter((file) =>
       file.type.startsWith("image/")
     );
-    setSelectedFiles(files);
+    
+    const newFileStates: FileUploadState[] = files.map(file => ({
+      file,
+      status: 'pending' as FileStatus,
+      retryCount: 0
+    }));
+    
+    setFileStates(prev => [...prev, ...newFileStates]);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,12 +130,19 @@ export default function ImageUpload({
       const files = Array.from(e.target.files).filter((file) =>
         file.type.startsWith("image/")
       );
-      setSelectedFiles(files);
+      
+      const newFileStates: FileUploadState[] = files.map(file => ({
+        file,
+        status: 'pending' as FileStatus,
+        retryCount: 0
+      }));
+      
+      setFileStates(prev => [...prev, ...newFileStates]);
     }
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setFileStates((prev) => prev.filter((_, i) => i !== index));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -147,9 +172,17 @@ export default function ImageUpload({
     return Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelay);
   };
 
+  // 更新文件状态
+  const updateFileState = (index: number, updates: Partial<FileUploadState>) => {
+    setFileStates((prev) =>
+      prev.map((fs, i) => (i === index ? { ...fs, ...updates } : fs))
+    );
+  };
+
   // 限制并发上传的函数
   const uploadWithConcurrencyLimit = async (
-    files: File[],
+    fileStatesToUpload: FileUploadState[],
+    startIndex: number = 0,
     maxConcurrency: number = 5
   ) => {
     const results: any[] = [];
@@ -157,9 +190,11 @@ export default function ImageUpload({
 
     // 上传单个文件的函数（带重试机制）
     const uploadSingleFile = async (
-      file: File,
+      fileState: FileUploadState,
+      fileIndex: number,
       retryCount = 0
     ): Promise<any> => {
+      const file = fileState.file;
       const formData = new FormData();
       formData.append("file", file);
       formData.append("provider", selectedProvider); // 新增：图床选择
@@ -175,7 +210,14 @@ export default function ImageUpload({
         if (response.ok) {
           const data = await response.json();
           completedCount++;
-          setUploadProgress((completedCount / files.length) * 100);
+          setUploadProgress((completedCount / fileStatesToUpload.length) * 100);
+          
+          // 更新文件状态为成功
+          updateFileState(fileIndex, {
+            status: 'success',
+            uploadedImage: data.data.image
+          });
+          
           return data.data.image;
         } else {
           // 检查是否是可重试的错误
@@ -191,7 +233,7 @@ export default function ImageUpload({
             );
 
             await delay(retryDelay);
-            return uploadSingleFile(file, retryCount + 1);
+            return uploadSingleFile(fileState, fileIndex, retryCount + 1);
           } else {
             // 获取错误详情
             let errorMessage = `上传 ${file.name} 失败 (状态码: ${response.status})`;
@@ -203,6 +245,13 @@ export default function ImageUpload({
             } catch {
               // 忽略解析错误响应的错误
             }
+            
+            // 更新文件状态为失败
+            updateFileState(fileIndex, {
+              status: 'failed',
+              error: errorMessage
+            });
+            
             throw new Error(errorMessage);
           }
         }
@@ -218,13 +267,19 @@ export default function ImageUpload({
           );
 
           await delay(retryDelay);
-          return uploadSingleFile(file, retryCount + 1);
+          return uploadSingleFile(fileState, fileIndex, retryCount + 1);
         } else {
-          throw new Error(
-            `上传 ${file.name} 失败: ${
-              error instanceof Error ? error.message : "网络错误"
-            }`
-          );
+          const errorMessage = `上传 ${file.name} 失败: ${
+            error instanceof Error ? error.message : "网络错误"
+          }`;
+          
+          // 更新文件状态为失败
+          updateFileState(fileIndex, {
+            status: 'failed',
+            error: errorMessage
+          });
+          
+          throw new Error(errorMessage);
         }
       }
     };
@@ -234,20 +289,24 @@ export default function ImageUpload({
     let currentIndex = 0;
 
     const processFile = async (): Promise<any> => {
-      if (currentIndex >= files.length) return null;
+      if (currentIndex >= fileStatesToUpload.length) return null;
 
-      const fileIndex = currentIndex++;
-      const file = files[fileIndex];
+      const arrayIndex = currentIndex++;
+      const fileState = fileStatesToUpload[arrayIndex];
+      const realIndex = startIndex + arrayIndex;
+      
+      // 更新为上传中状态
+      updateFileState(realIndex, { status: 'uploading' });
 
       try {
-        const result = await uploadSingleFile(file);
+        const result = await uploadSingleFile(fileState, realIndex);
 
         // 继续处理下一个文件
         const nextResult = await processFile();
         return nextResult ? [result, nextResult].flat() : result;
       } catch (error) {
         // 即使单个文件失败，也继续处理其他文件
-        console.error(`文件 ${file.name} 上传失败:`, error);
+        console.error(`文件 ${fileState.file.name} 上传失败:`, error);
         const nextResult = await processFile();
         throw error; // 重新抛出错误，但不阻止其他文件的处理
       }
@@ -288,27 +347,131 @@ export default function ImageUpload({
     }
   };
 
+  // 重试单个文件
+  const retryFile = async (index: number) => {
+    const fileState = fileStates[index];
+    if (fileState.status !== 'failed') return;
+    
+    updateFileState(index, { 
+      status: 'uploading', 
+      error: undefined,
+      retryCount: fileState.retryCount + 1
+    });
+    
+    try {
+      await uploadWithConcurrencyLimit([fileState], index, 1);
+      success("重试成功！", `${fileState.file.name} 已上传`, 3000);
+    } catch (error) {
+      showError(
+        "重试失败",
+        error instanceof Error ? error.message : "未知错误",
+        4000
+      );
+    }
+  };
+  
+  // 重试所有失败的文件
+  const retryAllFailed = async () => {
+    const failedFiles = fileStates.filter(fs => fs.status === 'failed');
+    if (failedFiles.length === 0) return;
+    
+    setUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      const failedIndices = fileStates
+        .map((fs, idx) => ({ fs, idx }))
+        .filter(({ fs }) => fs.status === 'failed');
+      
+      // 更新所有失败文件的状态
+      failedIndices.forEach(({ idx }) => {
+        updateFileState(idx, { status: 'uploading', error: undefined });
+      });
+      
+      // 并发上传所有失败的文件
+      for (const { fs, idx } of failedIndices) {
+        try {
+          await uploadWithConcurrencyLimit([fs], idx, 1);
+        } catch (error) {
+          console.error(`重试 ${fs.file.name} 失败:`, error);
+        }
+      }
+      
+      const successCount = fileStates.filter(fs => fs.status === 'success').length;
+      const stillFailedCount = fileStates.filter(fs => fs.status === 'failed').length;
+      
+      if (stillFailedCount > 0) {
+        showError(
+          "部分重试失败",
+          `成功: ${successCount} 张，失败: ${stillFailedCount} 张`,
+          6000
+        );
+      } else {
+        success("全部重试成功！", `成功上传 ${successCount} 张图片`, 4000);
+      }
+    } catch (error) {
+      console.error("重试失败:", error);
+      showError(
+        "重试失败",
+        error instanceof Error ? error.message : "未知错误",
+        6000
+      );
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+  
+  // 清除所有成功的文件
+  const clearSuccessful = () => {
+    setFileStates(prev => prev.filter(fs => fs.status !== 'success'));
+  };
+  
+  // 清除所有文件
+  const clearAll = () => {
+    setFileStates([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleUpload = async () => {
-    if (selectedFiles.length === 0) return;
+    const pendingFiles = fileStates.filter(fs => fs.status === 'pending');
+    if (pendingFiles.length === 0) return;
 
     setUploading(true);
     setUploadProgress(0);
 
     try {
       // 降低并发数量，避免触发限流（从5降到3）
-      const uploadedImages = await uploadWithConcurrencyLimit(selectedFiles, 3);
+      const pendingIndices = fileStates
+        .map((fs, idx) => ({ fs, idx }))
+        .filter(({ fs }) => fs.status === 'pending');
+      
+      const startIdx = pendingIndices.length > 0 ? pendingIndices[0].idx : 0;
+      const uploadedImages = await uploadWithConcurrencyLimit(pendingFiles, startIdx, 3);
 
       // 通知父组件上传成功
-      uploadedImages.forEach((image) => onUploadSuccess(image));
+      uploadedImages.forEach((image: Image) => onUploadSuccess(image));
 
-      // 重置表单
-      setSelectedFiles([]);
+      // 只清除成功的文件和标签
       setTags("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
 
-      success("上传完成！", `成功上传 ${uploadedImages.length} 张图片`, 4000);
+      const successCount = fileStates.filter(fs => fs.status === 'success').length;
+      const failedCount = fileStates.filter(fs => fs.status === 'failed').length;
+      
+      if (failedCount > 0) {
+        showError(
+          "部分上传失败",
+          `成功: ${successCount} 张，失败: ${failedCount} 张`,
+          6000
+        );
+      } else {
+        success("上传完成！", `成功上传 ${successCount} 张图片`, 4000);
+      }
     } catch (error) {
       console.error("上传失败:", error);
       showError(
@@ -379,16 +542,39 @@ export default function ImageUpload({
       </div>
 
       {/* 已选择的文件列表 */}
-      {selectedFiles.length > 0 && (
+      {fileStates.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium panel-text">
-            已选择的文件 ({selectedFiles.length})
-          </h3>
-          <div className="space-y-1 max-h-32 overflow-y-auto">
-            {selectedFiles.map((file, index) => (
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium panel-text">
+              文件列表 ({fileStates.length} 个文件)
+            </h3>
+            <div className="flex gap-2">
+              {fileStates.some(fs => fs.status === 'success') && (
+                <button
+                  onClick={clearSuccessful}
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  清除成功
+                </button>
+              )}
+              <button
+                onClick={clearAll}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                清除全部
+              </button>
+            </div>
+          </div>
+          <div className="space-y-1 max-h-96 overflow-y-auto">
+            {fileStates.map((fileState, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded"
+                className={`flex items-center justify-between p-2 rounded ${
+                  fileState.status === 'success' ? 'bg-green-50 dark:bg-green-900 dark:bg-opacity-20' :
+                  fileState.status === 'failed' ? 'bg-red-50 dark:bg-red-900 dark:bg-opacity-20' :
+                  fileState.status === 'uploading' ? 'bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20' :
+                  'bg-gray-50 dark:bg-gray-800'
+                }`}
               >
                 <div className="flex items-center space-x-2 min-w-0 flex-1">
                   <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center flex-shrink-0">
@@ -407,32 +593,62 @@ export default function ImageUpload({
                     </svg>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium panel-text truncate">
-                      {file.name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-medium panel-text truncate">
+                        {fileState.file.name}
+                      </p>
+                      {fileState.status === 'uploading' && (
+                        <span className="text-xs text-blue-600">上传中...</span>
+                      )}
+                      {fileState.status === 'success' && (
+                        <span className="text-xs text-green-600">✓</span>
+                      )}
+                      {fileState.status === 'failed' && (
+                        <span className="text-xs text-red-600">✗</span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatFileSize(file.size)}
+                      {formatFileSize(fileState.file.size)}
+                      {fileState.retryCount > 0 && ` · 已重试 ${fileState.retryCount} 次`}
                     </p>
+                    {fileState.error && (
+                      <p className="text-xs text-red-600 dark:text-red-400 truncate">
+                        {fileState.error}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <button
-                  onClick={() => removeFile(index)}
-                  className="text-red-500 hover:text-red-700 p-1 flex-shrink-0"
-                >
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-1">
+                  {fileState.status === 'failed' && (
+                    <button
+                      onClick={() => retryFile(index)}
+                      className="text-blue-500 hover:text-blue-700 px-2 py-1 text-xs rounded border border-blue-500 hover:bg-blue-50"
+                      title="重试"
+                    >
+                      重试
+                    </button>
+                  )}
+                  {fileState.status !== 'uploading' && (
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:text-red-700 p-1 flex-shrink-0"
+                    >
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -517,39 +733,51 @@ export default function ImageUpload({
 
       {/* 上传按钮和进度 */}
       <div className="space-y-2">
-        <button
-          onClick={handleUpload}
-          disabled={selectedFiles.length === 0 || uploading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          {uploading ? (
-            <div className="flex items-center justify-center">
-              <svg
-                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              上传中... ({Math.round(uploadProgress)}%)
-            </div>
-          ) : (
-            `上传 ${selectedFiles.length} 张图片`
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleUpload}
+            disabled={fileStates.filter(fs => fs.status === 'pending').length === 0 || uploading}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            {uploading ? (
+              <div className="flex items-center justify-center">
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                {Math.round(uploadProgress)}%
+              </div>
+            ) : (
+              `上传 ${fileStates.filter(fs => fs.status === 'pending').length} 张图片`
+            )}
+          </button>
+          
+          {fileStates.some(fs => fs.status === 'failed') && (
+            <button
+              onClick={retryAllFailed}
+              disabled={uploading}
+              className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-orange-500"
+            >
+              重试失败 ({fileStates.filter(fs => fs.status === 'failed').length})
+            </button>
           )}
-        </button>
+        </div>
 
         {uploading && (
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
