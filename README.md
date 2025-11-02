@@ -1,351 +1,353 @@
-# 随机图片 API 服务
+[简体中文](./README.zh-CN.md) ｜ English（当前）
+
+# Random Image API Service
 
 [![wakatime](https://wakatime.com/badge/user/7dcace4a-8c3d-4c31-8e2c-ca241719b01b/project/a1234166-0f5e-4b15-a40f-bc487950578d.svg)](https://wakatime.com/badge/user/7dcace4a-8c3d-4c31-8e2c-ca241719b01b/project/a1234166-0f5e-4b15-a40f-bc487950578d)
 
-基于 Next.js 14 的随机图片 API 服务，支持多图床存储, 完整的管理面板。
+A random image API service based on Next.js 14, supporting multiple image hosting storage with a complete management panel.
 
-## 预览
+## Preview
 
-### 首页预览
+### Homepage Preview
 
 <img width="2548" height="1315" alt="image" src="https://github.com/user-attachments/assets/c9f9b5d5-45f6-44c5-8086-286ebe42766d" />
 
-### 仪表盘
+### Dashboard
 
 <img width="2560" height="1316" alt="image" src="https://github.com/user-attachments/assets/05cb8c91-f2ca-425c-ba63-cb6b2163ab5b" />
 
-### 图片管理
+### Image Management
 
 <img width="2558" height="1314" alt="image" src="https://github.com/user-attachments/assets/3335edca-b09d-45f0-bb45-9ffe1346e27c" />
 
-### 分组管理
+### Group Management
 
 <img width="2560" height="1321" alt="image" src="https://github.com/user-attachments/assets/95e31a3d-cd33-4dff-abba-e280273ec09d" />
 
-### API配置
+### API Configuration
 
 <img width="2560" height="1312" alt="image" src="https://github.com/user-attachments/assets/1d33cb5b-ee1e-49a6-96e2-781eb030c60d" />
 
-### 系统状态
+### System Status
 
 <img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/4fdf46e7-54e7-4169-84c6-369179bfd9fc" />
 
-### 系统日志
+### System Logs
 
 <img width="2556" height="1310" alt="image" src="https://github.com/user-attachments/assets/651e9756-7c76-4f69-b0f3-b3a07d044c30" />
 
-### 备份管理
+### Backup Management
 
 <img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
 
 
 
-## 快速开始
+## Quick Start
 
-### 环境要求
+### Requirements
 
 - Node.js 22+
 - MySQL 8.0+
-- npm 或 yarn 包管理器
+- npm or yarn package manager
 
-### 环境变量配置
+### Environment Variables Configuration
 
-创建 `.env.local` 文件并配置以下环境变量：
+Create a `.env.local` file and configure the following environment variables:
 
 ```env
-# 数据库配置
+# Database configuration
 DATABASE_URL="mysql://username:password@host:port/database"
 
-# Cloudinary 图床配置（主图床）
+# Cloudinary image hosting configuration (primary)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# TgState 图床配置（可选）
+# TgState image hosting configuration (optional)
 TGSTATE_BASE_URL=https://your-tgstate-domain.com
 
-# 管理员认证
+# Admin authentication
 ADMIN_PASSWORD=your_secure_admin_password
 ```
 
-### 安装和部署
+### Installation and Deployment
 
-#### 开发环境
+#### Development Environment
 
 ```bash
-# 1. 克隆项目
+# 1. Clone the project
 git clone https://github.com/Aierlanta/Cloudinary-photo.git
 cd Cloudinary-photo
 
-# 2. 安装依赖
+# 2. Install dependencies
 npm install
 
-# 3. 配置环境变量
+# 3. Configure environment variables
 cp .env.example .env.local
-# 编辑 .env.local 文件，填入你的配置
+# Edit .env.local file and fill in your configuration
 
-# 4. 初始化数据库
+# 4. Initialize database
 npx prisma generate
 npx prisma migrate dev
 
-# 5. 启动开发服务器
+# 5. Start development server
 npm run dev
 ```
 
-#### 生产环境
+#### Production Environment
 
 ```bash
-# 1. 构建项目
+# 1. Build the project
 npm run build
 
-# 2. 启动生产服务器
+# 2. Start production server
 npm run start
 
-# 或使用快速启动脚本
+# Or use the quick start script
 chmod +x fast-start.sh
 ./fast-start.sh
 ```
 
-## API 接口文档
+## API Documentation
 
-### 公开 API
+### Public API
 
-#### 随机图片接口
+#### Random Image Endpoint
 
 ```http
 GET /api/random
 ```
 
-**功能**: 获取随机图片，支持分组筛选和参数配置
-**响应**: 302 重定向到图片 URL
-**参数**:
+**Function**: Get a random image, supports group filtering and parameter configuration
+**Response**: 302 redirect to image URL
+**Parameters**:
 
-- 支持自定义参数（通过管理面板配置）
-- 例如: `?group=wallpaper&category=nature`
+- Supports custom parameters (configured via admin panel)
+- Example: `?group=wallpaper&category=nature`
 
-#### 直接响应接口
+#### Direct Response Endpoint
 
 ```http
 GET /api/response
 ```
 
-**功能**: 直接返回图片数据（可选功能）
-**响应**: 图片二进制数据
-**用途**: 适用于需要直接获取图片内容的场景
+**Function**: Directly return image data (optional feature)
+**Response**: Image binary data
+**Use Case**: Suitable for scenarios requiring direct image content retrieval
 
-#### 系统状态接口
+#### System Status Endpoint
 
 ```http
 GET /api/status
 GET /api/health
 ```
 
-**功能**: 系统健康检查和状态监控
-**响应**: JSON 格式的系统状态信息
+**Function**: System health check and status monitoring
+**Response**: System status information in JSON format
 
-### 管理 API（需要认证）
+### Admin API (Requires Authentication)
 
-#### 图片管理
-
-```http
-GET    /api/admin/images           # 获取图片列表（支持分页、筛选）
-POST   /api/admin/images           # 上传图片（支持批量上传）
-PUT    /api/admin/images/[id]      # 更新图片信息
-DELETE /api/admin/images/[id]      # 删除图片
-```
-
-#### 分组管理
+#### Image Management
 
 ```http
-GET    /api/admin/groups           # 获取分组列表
-POST   /api/admin/groups           # 创建分组
-PUT    /api/admin/groups/[id]      # 更新分组信息
-DELETE /api/admin/groups/[id]      # 删除分组
+GET    /api/admin/images           # Get image list (supports pagination, filtering)
+POST   /api/admin/images           # Upload images (supports batch upload)
+PUT    /api/admin/images/[id]      # Update image information
+DELETE /api/admin/images/[id]      # Delete image
 ```
 
-#### 系统配置
+#### Group Management
 
 ```http
-GET    /api/admin/config           # 获取 API 配置
-PUT    /api/admin/config           # 更新 API 配置
-GET    /api/admin/settings         # 获取系统设置
-PUT    /api/admin/settings         # 更新系统设置
+GET    /api/admin/groups           # Get group list
+POST   /api/admin/groups           # Create group
+PUT    /api/admin/groups/[id]      # Update group information
+DELETE /api/admin/groups/[id]      # Delete group
 ```
 
-#### 存储管理
+#### System Configuration
 
 ```http
-GET    /api/admin/storage          # 获取存储配置
-PUT    /api/admin/storage          # 更新存储配置
-GET    /api/admin/image-hosts      # 获取图床状态
-POST   /api/admin/multi-host       # 多图床操作
+GET    /api/admin/config           # Get API configuration
+PUT    /api/admin/config           # Update API configuration
+GET    /api/admin/settings         # Get system settings
+PUT    /api/admin/settings         # Update system settings
 ```
 
-#### 系统监控
+#### Storage Management
 
 ```http
-GET    /api/admin/stats            # 获取系统统计
-GET    /api/admin/logs             # 获取系统日志
-GET    /api/admin/health           # 获取详细健康状态
-POST   /api/admin/backup           # 创建数据备份
+GET    /api/admin/storage          # Get storage configuration
+PUT    /api/admin/storage          # Update storage configuration
+GET    /api/admin/image-hosts      # Get image host status
+POST   /api/admin/multi-host       # Multi-host operations
 ```
 
-## 项目架构
+#### System Monitoring
 
-### 目录结构
+```http
+GET    /api/admin/stats            # Get system statistics
+GET    /api/admin/logs             # Get system logs
+GET    /api/admin/health           # Get detailed health status
+POST   /api/admin/backup           # Create data backup
+```
+
+## Project Architecture
+
+### Directory Structure
 
 ```text
 ├── src/
 │   ├── app/                    # Next.js App Router
-│   │   ├── admin/             # 管理面板页面
-│   │   │   ├── images/        # 图片管理页面
-│   │   │   ├── groups/        # 分组管理页面
-│   │   │   ├── config/        # API配置页面
-│   │   │   ├── storage/       # 存储管理页面
-│   │   │   ├── logs/          # 日志查看页面
-│   │   │   └── status/        # 系统状态页面
-│   │   ├── api/               # API 路由
-│   │   │   ├── random/        # 随机图片API
-│   │   │   ├── response/      # 直接响应API
-│   │   │   ├── admin/         # 管理API
-│   │   │   └── health/        # 健康检查API
-│   │   ├── globals.css        # 全局样式
-│   │   ├── layout.tsx         # 根布局
-│   │   └── page.tsx           # 首页
-│   ├── components/            # React 组件
-│   │   ├── admin/             # 管理面板组件
-│   │   ├── ui/                # 基础UI组件
-│   │   └── ErrorBoundary.tsx  # 错误边界
-│   ├── lib/                   # 核心业务逻辑
-│   │   ├── storage/           # 存储服务
-│   │   │   ├── base.ts        # 存储接口定义
-│   │   │   ├── cloudinary.ts  # Cloudinary服务
-│   │   │   ├── tgstate.ts     # TgState服务
-│   │   │   ├── manager.ts     # 多图床管理器
-│   │   │   └── factory.ts     # 服务工厂
-│   │   ├── database/          # 数据库服务
-│   │   ├── auth.ts            # 认证服务
-│   │   ├── security.ts        # 安全中间件
-│   │   ├── logger.ts          # 日志服务
-│   │   └── utils.ts           # 工具函数
-│   ├── types/                 # TypeScript 类型定义
-│   │   ├── models.ts          # 数据模型
-│   │   ├── api.ts             # API类型
-│   │   ├── errors.ts          # 错误类型
-│   │   └── schemas.ts         # 验证模式
+│   │   ├── admin/             # Admin panel pages
+│   │   │   ├── images/        # Image management page
+│   │   │   ├── groups/        # Group management page
+│   │   │   ├── config/        # API configuration page
+│   │   │   ├── storage/       # Storage management page
+│   │   │   ├── logs/          # Log viewing page
+│   │   │   └── status/        # System status page
+│   │   ├── api/               # API routes
+│   │   │   ├── random/        # Random image API
+│   │   │   ├── response/      # Direct response API
+│   │   │   ├── admin/         # Admin API
+│   │   │   └── health/        # Health check API
+│   │   ├── globals.css        # Global styles
+│   │   ├── layout.tsx         # Root layout
+│   │   └── page.tsx           # Homepage
+│   ├── components/            # React components
+│   │   ├── admin/             # Admin panel components
+│   │   ├── ui/                # Base UI components
+│   │   └── ErrorBoundary.tsx  # Error boundary
+│   ├── lib/                   # Core business logic
+│   │   ├── storage/           # Storage services
+│   │   │   ├── base.ts        # Storage interface definition
+│   │   │   ├── cloudinary.ts  # Cloudinary service
+│   │   │   ├── tgstate.ts     # TgState service
+│   │   │   ├── manager.ts     # Multi-host manager
+│   │   │   └── factory.ts     # Service factory
+│   │   ├── database/          # Database services
+│   │   ├── auth.ts            # Authentication service
+│   │   ├── security.ts        # Security middleware
+│   │   ├── logger.ts          # Logging service
+│   │   └── utils.ts           # Utility functions
+│   ├── types/                 # TypeScript type definitions
+│   │   ├── models.ts          # Data models
+│   │   ├── api.ts             # API types
+│   │   ├── errors.ts          # Error types
+│   │   └── schemas.ts         # Validation schemas
 │   ├── hooks/                 # React Hooks
-│   └── middleware.ts          # Next.js 中间件
-├── prisma/                    # 数据库
-│   ├── schema.prisma          # 数据库模式
-│   └── migrations/            # 数据库迁移
-├── tests/                     # 测试文件
-├── scripts/                   # 构建脚本
-├── fast-start.sh              # 快速启动脚本
-└── 配置文件
-    ├── next.config.js         # Next.js配置
-    ├── tailwind.config.ts     # Tailwind配置
-    ├── jest.config.js         # Jest配置
-    └── tsconfig.json          # TypeScript配置
+│   └── middleware.ts          # Next.js middleware
+├── prisma/                    # Database
+│   ├── schema.prisma          # Database schema
+│   └── migrations/            # Database migrations
+├── tests/                     # Test files
+├── scripts/                   # Build scripts
+├── fast-start.sh              # Quick start script
+└── Configuration files
+    ├── next.config.js         # Next.js configuration
+    ├── tailwind.config.ts     # Tailwind configuration
+    ├── jest.config.js         # Jest configuration
+    └── tsconfig.json          # TypeScript configuration
 ```
 
-### 核心模块说明
+### Core Module Description
 
-#### 存储系统 (`src/lib/storage/`)
+#### Storage System (`src/lib/storage/`)
 
-- **多图床架构**: 支持 Cloudinary 和 TgState
-- **故障转移**: 自动检测服务状态，智能切换
-- **统一接口**: 抽象存储操作，便于扩展新的图床服务
+- **Multi-host Architecture**: Supports Cloudinary and TgState
+- **Failover**: Automatic service status detection and intelligent switching
+- **Unified Interface**: Abstract storage operations for easy extension of new image hosting services
 
-#### 安全系统 (`src/lib/security.ts`)
+#### Security System (`src/lib/security.ts`)
 
-- **请求限流**: 防止 API 滥用
-- **参数验证**: 严格的输入校验
-- **访问控制**: 基于角色的权限管理
+- **Request Rate Limiting**: Prevent API abuse
+- **Parameter Validation**: Strict input validation
+- **Access Control**: Role-based permission management
 
-#### 监控系统 (`src/lib/logger.ts`)
+#### Monitoring System (`src/lib/logger.ts`)
 
-- **结构化日志**: 统一的日志格式
-- **性能监控**: API 响应时间追踪
-- **错误追踪**: 详细的错误信息记录
+- **Structured Logging**: Unified log format
+- **Performance Monitoring**: API response time tracking
+- **Error Tracking**: Detailed error information logging
 
-## 开发命令
+## Development Commands
 
 ```bash
-# 开发相关
-npm run dev              # 启动开发服务器 (localhost:3000)
-npm run build            # 构建生产版本
-npm run start            # 启动生产服务器
-npm run lint             # ESLint 代码检查
-npm run type-check       # TypeScript 类型检查
+# Development related
+npm run dev              # Start development server (localhost:3000)
+npm run build            # Build production version
+npm run start            # Start production server
+npm run lint             # ESLint code check
+npm run type-check       # TypeScript type check
 
-# 测试相关
-npm run test             # 运行所有测试
-npm run test:watch       # 监听模式运行测试
-npm run test:coverage    # 生成测试覆盖率报告
+# Testing related
+npm run test             # Run all tests
+npm run test:watch       # Run tests in watch mode
+npm run test:coverage    # Generate test coverage report
 
-# 数据库相关
-npx prisma generate      # 生成 Prisma 客户端
-npx prisma migrate dev   # 运行数据库迁移（开发环境）
-npx prisma migrate deploy # 运行数据库迁移（生产环境）
-npx prisma studio        # 打开 Prisma Studio 数据库管理界面
+# Database related
+npx prisma generate      # Generate Prisma client
+npx prisma migrate dev   # Run database migration (development)
+npx prisma migrate deploy # Run database migration (production)
+npx prisma studio        # Open Prisma Studio database management interface
 
-# 生产部署
-./fast-start.sh          # 快速启动脚本（生产环境）
+# Production deployment
+./fast-start.sh          # Quick start script (production)
 ```
 
-## 高级配置
+## Advanced Configuration
 
-### 多图床配置
+### Multi-host Configuration
 
-项目支持多图床架构，提供更高的可用性和容错能力：
+The project supports multi-host architecture, providing higher availability and fault tolerance:
 
 #### Cloudinary
 
-- **优势**: 专业的图片 CDN 服务，全球节点，图片处理能力强
-- **配置**: 需要 Cloud Name、API Key 和 API Secret
-- **适用**: 生产环境推荐
+- **Advantages**: Professional image CDN service, global nodes, strong image processing capabilities
+- **Configuration**: Requires Cloud Name, API Key, and API Secret
+- **Usage**: Recommended for production environment
 
 #### TgState
 
-- **优势**: 基于 Telegram 的免费图床服务，无审查限制
-- **项目地址**: [TgState GitHub](https://github.com/csznet/tgState)
-- **配置**: 需要部署 TgState 服务并获取访问令牌
+- **Advantages**: Free image hosting service based on Telegram, no censorship restrictions
+- **Project URL**: [TgState GitHub](https://github.com/csznet/tgState)
+- **Configuration**: Requires deploying TgState service and obtaining access token
 
-## 监控和维护
+## Monitoring and Maintenance
 
-### 系统监控
+### System Monitoring
 
-- **健康检查**: `/api/health` 端点提供系统状态
-- **性能指标**: API 响应时间、成功率统计
-- **资源监控**: 数据库连接、存储使用情况
-- **错误追踪**: 详细的错误日志和堆栈信息
+- **Health Check**: `/api/health` endpoint provides system status
+- **Performance Metrics**: API response time and success rate statistics
+- **Resource Monitoring**: Database connections, storage usage
+- **Error Tracking**: Detailed error logs and stack information
 
-### 数据备份
+### Data Backup
 
-- **自动备份**: 定期备份数据库和配置
-- **手动备份**: 管理面板支持一键备份
-- **恢复机制**: 快速恢复数据和配置
+- **Automatic Backup**: Regular database and configuration backup
+- **Manual Backup**: Admin panel supports one-click backup
+- **Recovery Mechanism**: Quick data and configuration recovery
 
-### 日志管理
+### Log Management
 
-- **结构化日志**: JSON 格式，便于分析
-- **日志轮转**: 自动清理过期日志
-- **日志查询**: 管理面板支持日志搜索和筛选
+- **Structured Logging**: JSON format, easy to analyze
+- **Log Rotation**: Automatic cleanup of expired logs
+- **Log Query**: Admin panel supports log search and filtering
 
-## 许可证
+## License
 
-本项目采用 MIT 许可证，详见 [LICENSE](./LICENSE) 文件。
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
 
-## 致谢
+## Acknowledgments
 
-- [Next.js](https://nextjs.org/) - 强大的 React 框架
-- [Prisma](https://www.prisma.io/) - 现代化的数据库工具
-- [Cloudinary](https://cloudinary.com/) - 专业的图片云服务
-- [TgState](https://github.com/csznet/tgState) - 开源的 Telegram 图床服务
-- [Tailwind CSS](https://tailwindcss.com/) - 实用优先的 CSS 框架
+- [Next.js](https://nextjs.org/) - Powerful React framework
+- [Prisma](https://www.prisma.io/) - Modern database toolkit
+- [Cloudinary](https://cloudinary.com/) - Professional image cloud service
+- [TgState](https://github.com/csznet/tgState) - Open-source Telegram image hosting service
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 
 ---
 
-**当前版本**: v0.6.3 | **最后更新**: 2025-10-11
+**Current Version**: v0.6.3 | **Last Updated**: 2025-10-11
 
-如有问题或建议，欢迎提交 Issue 或 Pull Request！
+For issues or suggestions, feel free to submit an Issue or Pull Request!
