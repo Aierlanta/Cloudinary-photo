@@ -26,7 +26,12 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     try {
       const result = await onLogin(password)
       if (!result.success) {
-        setError(result.error || t.adminLogin.loginFailed)
+        // 识别网络错误标记并使用对应的国际化消息
+        if (result.error === '__NETWORK_ERROR__') {
+          setError(t.adminLogin.networkError)
+        } else {
+          setError(result.error || t.adminLogin.loginFailed)
+        }
       }
     } catch (error) {
       setError(t.adminLogin.networkError)

@@ -13,22 +13,30 @@ interface LocaleContextType {
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>(() => getCurrentLocale());
-  const [t, setT] = useState<Translations>(() => getTranslations(getCurrentLocale()));
+  // 优化：使用单一 state 对象，只调用一次 getCurrentLocale，避免重复的 localStorage 读取
+  const [state, setState] = useState<{ locale: Locale; t: Translations }>(() => {
+    const currentLocale = getCurrentLocale();
+    return {
+      locale: currentLocale,
+      t: getTranslations(currentLocale),
+    };
+  });
 
   const changeLocale = (newLocale: Locale) => {
-    setLocale(newLocale);
-    setT(getTranslations(newLocale));
+    setState({
+      locale: newLocale,
+      t: getTranslations(newLocale),
+    });
     saveLocale(newLocale);
   };
 
   const toggleLocale = () => {
-    const newLocale: Locale = locale === 'zh' ? 'en' : 'zh';
+    const newLocale: Locale = state.locale === 'zh' ? 'en' : 'zh';
     changeLocale(newLocale);
   };
 
   return (
-    <LocaleContext.Provider value={{ locale, t, changeLocale, toggleLocale }}>
+    <LocaleContext.Provider value={{ locale: state.locale, t: state.t, changeLocale, toggleLocale }}>
       {children}
     </LocaleContext.Provider>
   );

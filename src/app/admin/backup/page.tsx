@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { useLocale } from '@/hooks/useLocale';
 import { ToastContainer } from '@/components/ui/Toast';
@@ -16,6 +16,12 @@ interface BackupStatus {
 
 export default function BackupPage() {
   const { t } = useLocale();
+  // 使用 ref 保存最新的翻译对象，避免在 useCallback 依赖中包含 t
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+  
   const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -53,14 +59,15 @@ export default function BackupPage() {
       if (data.success) {
         setBackupStatus(data.data);
       } else {
-        showError(t.adminBackup.getStatusFailed);
+        // 使用 ref 访问最新的翻译，避免将 t 加入依赖数组导致语言切换时重新获取
+        showError(tRef.current.adminBackup.getStatusFailed);
       }
     } catch (error) {
-      showError(t.adminBackup.networkError);
+      showError(tRef.current.adminBackup.networkError);
     } finally {
       setLoading(false);
     }
-  }, [showError, t]);
+  }, [showError]);
 
   // 创建备份
   const createBackup = async () => {

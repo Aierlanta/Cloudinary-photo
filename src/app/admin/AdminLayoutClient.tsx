@@ -159,10 +159,12 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
         return { success: true }
       } else {
         const error = await response.json()
-        return { success: false, error: error.message || '登录失败' }
+        // 返回服务器的错误消息，如果没有则返回 undefined 让 LoginForm 使用国际化默认消息
+        return { success: false, error: error.message }
       }
     } catch (error) {
-      return { success: false, error: '网络错误' }
+      // 网络错误返回特殊标记，让 LoginForm 识别并使用国际化的网络错误消息
+      return { success: false, error: '__NETWORK_ERROR__' }
     }
   }
 
