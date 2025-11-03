@@ -19,6 +19,8 @@ interface APIConfig {
   defaultGroups: string[]
   allowedParameters: APIParameter[]
   enableDirectResponse: boolean
+  apiKeyEnabled: boolean
+  apiKey?: string
   updatedAt: string
 }
 
@@ -56,6 +58,8 @@ export default function ConfigPage() {
     defaultGroups: [],
     allowedParameters: [],
     enableDirectResponse: false,
+    apiKeyEnabled: false,
+    apiKey: '',
     updatedAt: new Date().toISOString()
   })
 
@@ -72,9 +76,15 @@ export default function ConfigPage() {
         const data = await response.json()
         console.log('配置加载成功:', data.data?.config)
         const loadedConfig = data.data?.config || getDefaultConfig()
-        // 确保 enableDirectResponse 字段存在
+        // 确保字段存在
         if (loadedConfig.enableDirectResponse === undefined) {
           loadedConfig.enableDirectResponse = false
+        }
+        if (loadedConfig.apiKeyEnabled === undefined) {
+          loadedConfig.apiKeyEnabled = false
+        }
+        if (loadedConfig.apiKey === undefined) {
+          loadedConfig.apiKey = ''
         }
         setConfig(loadedConfig)
       } else {
@@ -152,7 +162,9 @@ export default function ConfigPage() {
       defaultScope: config.defaultScope,
       defaultGroups: config.defaultGroups,
       allowedParameters: config.allowedParameters,
-      enableDirectResponse: config.enableDirectResponse
+      enableDirectResponse: config.enableDirectResponse,
+      apiKeyEnabled: config.apiKeyEnabled,
+      apiKey: config.apiKey
     }
     console.log('开始保存配置...', config)
     console.log('发送的请求数据:', requestData)
@@ -364,6 +376,57 @@ export default function ConfigPage() {
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {t.adminConfig.enableDirectResponseDesc}
               </p>
+            </div>
+          </div>
+
+          {/* API Key 鉴权设置 */}
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-md font-semibold panel-text mb-4">{t.adminConfig.apiKeyAuth}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={config.apiKeyEnabled}
+                    onChange={(e) => setConfig({ ...config, apiKeyEnabled: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                  <span className="ml-2 text-sm font-medium panel-text">{t.adminConfig.enableApiKey}</span>
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t.adminConfig.enableApiKeyDesc}
+                </p>
+              </div>
+
+              {config.apiKeyEnabled && (
+                <div>
+                  <label className="block text-sm font-medium panel-text mb-2">
+                    {t.adminConfig.apiKeyValue}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={config.apiKey || ''}
+                      onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+                      placeholder={t.adminConfig.apiKeyPlaceholder}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
+                    />
+                    <button
+                      onClick={() => {
+                        const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                        setConfig({ ...config, apiKey: randomKey });
+                      }}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors whitespace-nowrap"
+                      title={t.adminConfig.generateRandomKey}
+                    >
+                      {t.adminConfig.generateKey}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t.adminConfig.apiKeyValueDesc}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

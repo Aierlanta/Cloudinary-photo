@@ -102,6 +102,9 @@ export interface APIConfigUpdateRequest {
   }>;
   // 新增：响应模式配置
   enableDirectResponse?: boolean;
+  // 新增：API Key 鉴权
+  apiKeyEnabled?: boolean;
+  apiKey?: string;
 }
 
 // 随机图片API请求参数

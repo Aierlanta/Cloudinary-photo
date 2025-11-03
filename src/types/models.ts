@@ -44,6 +44,9 @@ export interface APIConfig {
   allowedParameters: APIParameter[];
   // 新增：响应模式配置
   enableDirectResponse: boolean; // 是否启用直接响应模式（/api/response端点）
+  // 新增：API Key 鉴权
+  apiKeyEnabled: boolean; // 是否启用 API Key 鉴权
+  apiKey?: string; // API Key
   updatedAt: Date;
 }
 

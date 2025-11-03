@@ -89,6 +89,8 @@ export class DatabaseService {
           defaultGroups: [],
           allowedParameters: [],
           enableDirectResponse: false, // 默认关闭直接响应模式
+          apiKeyEnabled: false, // 默认关闭 API Key 鉴权
+          apiKey: undefined,
           updatedAt: new Date()
         };
         await this.updateAPIConfig(defaultConfig);
@@ -775,6 +777,8 @@ export class DatabaseService {
         defaultGroups: config.defaultGroups ? JSON.parse(config.defaultGroups) : [],
         allowedParameters: config.allowedParameters ? JSON.parse(config.allowedParameters) : [],
         enableDirectResponse: config.enableDirectResponse || false,
+        apiKeyEnabled: config.apiKeyEnabled || false,
+        apiKey: config.apiKey || undefined,
         updatedAt: config.updatedAt
       };
     } catch (error) {
@@ -795,6 +799,8 @@ export class DatabaseService {
           defaultGroups: JSON.stringify(config.defaultGroups),
           allowedParameters: JSON.stringify(config.allowedParameters),
           enableDirectResponse: config.enableDirectResponse,
+          apiKeyEnabled: config.apiKeyEnabled,
+          apiKey: config.apiKey,
           updatedAt: new Date()
         },
         create: {
@@ -804,6 +810,8 @@ export class DatabaseService {
           defaultGroups: JSON.stringify(config.defaultGroups),
           allowedParameters: JSON.stringify(config.allowedParameters),
           enableDirectResponse: config.enableDirectResponse,
+          apiKeyEnabled: config.apiKeyEnabled || false,
+          apiKey: config.apiKey,
           updatedAt: new Date()
         }
       });

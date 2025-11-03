@@ -75,6 +75,45 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       );
     }
 
+    // 验证 API Key（如果启用）
+    if (apiConfig.apiKeyEnabled) {
+      const providedKey = queryParams.key;
+      
+      if (!providedKey) {
+        logger.warn('API访问被拒绝 - 缺少API Key', {
+          type: 'api_auth',
+          ip: getClientIP(request),
+          userAgent: request.headers.get('user-agent')
+        });
+
+        throw new AppError(
+          ErrorType.UNAUTHORIZED,
+          '缺少API Key参数',
+          401
+        );
+      }
+
+      if (providedKey !== apiConfig.apiKey) {
+        logger.warn('API访问被拒绝 - API Key无效', {
+          type: 'api_auth',
+          ip: getClientIP(request),
+          userAgent: request.headers.get('user-agent'),
+          providedKey
+        });
+
+        throw new AppError(
+          ErrorType.UNAUTHORIZED,
+          'API Key无效',
+          401
+        );
+      }
+
+      logger.info('API Key验证通过', {
+        type: 'api_auth',
+        ip: getClientIP(request)
+      });
+    }
+
     // 验证和解析参数
     const { allowedGroupIds, hasInvalidParams } = await validateAndParseParams(
       queryParams,
@@ -188,6 +227,9 @@ async function validateAndParseParams(
   const allowedGroupIds: string[] = [];
   let hasInvalidParams = false;
 
+  // 保留查询参数（不参与业务参数校验）
+  const RESERVED_PARAMS = new Set(['key']);
+
   // 如果没有配置允许的参数，则允许所有请求
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {
     return { allowedGroupIds: [], hasInvalidParams: false };
@@ -195,6 +237,10 @@ async function validateAndParseParams(
 
   // 检查每个查询参数
   for (const [paramName, paramValue] of Object.entries(queryParams)) {
+    // 跳过保留参数
+    if (RESERVED_PARAMS.has(paramName)) {
+      continue;
+    }
     // 查找对应的参数配置
     const paramConfig = apiConfig.allowedParameters.find(
       (p: any) => p.name === paramName && p.isEnabled

@@ -45,6 +45,8 @@ model APIConfig {
   defaultGroups        String?  @db.Text
   allowedParameters    String?  @db.Text
   enableDirectResponse Boolean  @default(false)
+  apiKeyEnabled        Boolean  @default(false)
+  apiKey               String?
   updatedAt            DateTime @default(now()) @updatedAt
 
   @@map("api_configs")

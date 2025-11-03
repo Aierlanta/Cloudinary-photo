@@ -60,6 +60,9 @@ export const APIConfigSchema = z.object({
   allowedParameters: z.array(APIParameterSchema).default([]),
   // 新增：响应模式配置
   enableDirectResponse: z.boolean().default(false),
+  // 新增：API Key 鉴权
+  apiKeyEnabled: z.boolean().default(false),
+  apiKey: z.string().optional(),
   updatedAt: z.date()
 });
 
@@ -134,7 +137,9 @@ export const APIConfigUpdateRequestSchema = z.object({
   defaultScope: z.enum(['all', 'groups']).optional(),
   defaultGroups: z.array(IdSchema).optional(),
   allowedParameters: z.array(APIParameterSchema).optional(),
-  enableDirectResponse: z.boolean().optional()
+  enableDirectResponse: z.boolean().optional(),
+  apiKeyEnabled: z.boolean().optional(),
+  apiKey: z.string().optional()
 }).refine(
   (data) => Object.keys(data).length > 0,
   {
