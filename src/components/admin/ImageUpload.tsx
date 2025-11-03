@@ -574,6 +574,8 @@ export default function ImageUpload({
     setUploading(true);
     setUploadProgress(0);
 
+    let uploadedImages: Image[] = [];
+
     try {
       // 降低并发数量，避免触发限流（从5降到3）
       const pendingIndices = fileStates
@@ -581,7 +583,7 @@ export default function ImageUpload({
         .filter(({ fs }) => fs.status === 'pending');
       
       const startIdx = pendingIndices.length > 0 ? pendingIndices[0].idx : 0;
-      const uploadedImages = await uploadWithConcurrencyLimit(pendingFiles, startIdx, 3);
+      uploadedImages = await uploadWithConcurrencyLimit(pendingFiles, startIdx, 3);
 
       // 通知父组件上传成功
       uploadedImages.forEach((image: Image) => onUploadSuccess(image));
@@ -606,11 +608,22 @@ export default function ImageUpload({
       }
     } catch (error) {
       console.error("上传失败:", error);
-      showError(
-        "上传失败",
-        error instanceof Error ? error.message : "未知错误",
-        6000
-      );
+      const successCount = uploadedImages.length;
+      const failedCount = Math.max(pendingFiles.length - successCount, 0);
+
+      if (successCount > 0) {
+        showError(
+          "部分上传失败",
+          `成功: ${successCount} 张，失败: ${failedCount} 张`,
+          6000
+        );
+      } else {
+        showError(
+          "上传失败",
+          error instanceof Error ? error.message : "未知错误",
+          6000
+        );
+      }
     } finally {
       setUploading(false);
       setUploadProgress(0);
