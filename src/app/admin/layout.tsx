@@ -7,6 +7,23 @@ import LoginForm from '@/components/admin/LoginForm'
 import TransparencyControl from '@/components/admin/TransparencyControl'
 import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 
+const getStoredTheme = () => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const stored = window.localStorage.getItem('admin-theme')
+  return stored === 'light' || stored === 'dark' ? stored : null
+}
+
+const getSystemTheme = () => {
+  if (typeof window === 'undefined') {
+    return 'light'
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 export default function AdminLayout({
   children,
 }: {
@@ -16,6 +33,12 @@ export default function AdminLayout({
   const [isLoading, setIsLoading] = useState(true)
   const [panelOpacity, setPanelOpacity] = useState(0.9)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const stored = getStoredTheme()
+    return stored ?? getSystemTheme()
+  })
+  const [isManualTheme, setIsManualTheme] = useState(() => getStoredTheme() !== null)
+
   const router = useRouter()
 
   useEffect(() => {
@@ -48,6 +71,54 @@ export default function AdminLayout({
     // 保存到localStorage
     localStorage.setItem('admin-panel-opacity', panelOpacity.toString())
   }, [panelOpacity])
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.theme = theme
+
+    if (theme === 'dark') {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+
+    if (typeof window !== 'undefined') {
+      if (isManualTheme) {
+        window.localStorage.setItem('admin-theme', theme)
+      } else {
+        window.localStorage.removeItem('admin-theme')
+      }
+    }
+  }, [theme, isManualTheme])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || isManualTheme) {
+      return
+    }
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (event: MediaQueryListEvent) => {
+      setTheme(event.matches ? 'dark' : 'light')
+    }
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', handleChange)
+      return () => media.removeEventListener('change', handleChange)
+    }
+
+    media.addListener(handleChange)
+    return () => media.removeListener(handleChange)
+  }, [isManualTheme])
+
+  const handleThemeToggle = () => {
+    setIsManualTheme(true)
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'))
+  }
+
+  const handleThemeReset = () => {
+    setIsManualTheme(false)
+    setTheme(getSystemTheme())
+  }
 
   const handleLogin = async (password: string) => {
     try {
@@ -105,8 +176,12 @@ export default function AdminLayout({
       <TransparencyControl
         opacity={panelOpacity}
         onChange={setPanelOpacity}
+        theme={theme}
+        isManualTheme={isManualTheme}
+        onThemeToggle={handleThemeToggle}
+        onThemeReset={handleThemeReset}
       />
-      
+
       {/* 主要布局 */}
       <div className="flex">
         {/* 侧边导航 */}

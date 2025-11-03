@@ -5,9 +5,13 @@ import { useState } from 'react'
 interface TransparencyControlProps {
   opacity: number
   onChange: (opacity: number) => void
+  theme: 'light' | 'dark'
+  onThemeToggle: () => void
+  isManualTheme: boolean
+  onThemeReset: () => void
 }
 
-export default function TransparencyControl({ opacity, onChange }: TransparencyControlProps) {
+export default function TransparencyControl({ opacity, onChange, theme, onThemeToggle, isManualTheme, onThemeReset }: TransparencyControlProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -26,8 +30,29 @@ export default function TransparencyControl({ opacity, onChange }: TransparencyC
       {/* 控制面板 */}
       {isOpen && (
         <div className="absolute top-14 right-0 w-80 transparent-panel rounded-lg shadow-lg p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold panel-text">透明度控制</h3>
+          <div className="flex items-start justify-between mb-4">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold panel-text">透明度控制</h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={onThemeToggle}
+                  className="px-3 py-1 text-xs rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                >
+                  切换到{theme === 'light' ? '夜间' : '日间'}模式
+                </button>
+                {isManualTheme && (
+                  <button
+                    onClick={onThemeReset}
+                    className="px-3 py-1 text-xs rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
+                  >
+                    恢复跟随浏览器
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 panel-text">
+                当前模式：{theme === 'light' ? '日间' : '夜间'}（{isManualTheme ? '手动选择' : '跟随浏览器'}）
+              </p>
+            </div>
             <button
               onClick={() => setIsOpen(false)}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
