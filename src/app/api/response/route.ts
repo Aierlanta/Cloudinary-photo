@@ -268,34 +268,46 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     // 如果targetGroupIds为空，则从所有图片中选择
 
     // 预取命中优先：若存在相同筛选条件的预取结果，直接返回并异步预取下一张
-    // 注意：如果有透明度处理需求，则不使用预取缓存
+    // 透明度处理会在预取的原始图片上完成，避免重复拉取源图
     const cacheKey = buildGroupKey(targetGroupIds);
-    const prefetched = !transparencyOptions ? takePrefetched(cacheKey) : undefined;
+    const prefetched = takePrefetched(cacheKey);
     if (prefetched) {
+      let finalBuffer = prefetched.buffer;
+      let finalMimeType = prefetched.mimeType;
+
+      if (transparencyOptions) {
+        const processed = await adjustImageTransparency(prefetched.buffer, transparencyOptions);
+        finalBuffer = processed.buffer;
+        finalMimeType = processed.mimeType;
+      }
+
+      const finalSize = finalBuffer.length;
       const duration = Math.round(performance.now() - startTime);
+
       logger.info('预取命中，直接返回', {
         type: 'api_prefetch',
         key: cacheKey,
         imageId: prefetched.imageId,
-        size: prefetched.size
+        size: finalSize,
+        transparency: transparencyOptions ? 'processed' : 'original'
       });
 
       // 异步预取下一张（不阻塞响应）
       prefetchNext(cacheKey, targetGroupIds).catch(() => {});
 
-      return new NextResponse(new Uint8Array(prefetched.buffer), {
+      return new NextResponse(new Uint8Array(finalBuffer), {
         status: 200,
         headers: {
-          'Content-Type': prefetched.mimeType,
-          'Content-Length': prefetched.size.toString(),
+          'Content-Type': finalMimeType,
+          'Content-Length': finalSize.toString(),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0',
           'X-Image-Id': prefetched.imageId,
           'X-Image-PublicId': prefetched.publicId,
-          'X-Image-Size': prefetched.size.toString(),
+          'X-Image-Size': finalSize.toString(),
           'X-Response-Time': `${duration}ms`,
-          'X-Transfer-Mode': 'prefetch'
+          'X-Transfer-Mode': transparencyOptions ? 'prefetch-processed' : 'prefetch'
         }
       });
     }
@@ -376,11 +388,8 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         transparency: transparencyOptions ? 'processed' : 'original'
       });
 
-      // 异步预取下一张（不阻塞响应）
-      // 注意：透明度处理的图片不预缓存
-      if (!transparencyOptions) {
-        prefetchNext(cacheKey, targetGroupIds).catch(() => {});
-      }
+      // 异步预取下一张（不阻塞响应；透明度请求同样复用原图预取流程）
+      prefetchNext(cacheKey, targetGroupIds).catch(() => {});
 
       // 返回缓冲响应
       return new NextResponse(new Uint8Array(finalBuffer), {
