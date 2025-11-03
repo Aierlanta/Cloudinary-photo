@@ -149,7 +149,10 @@ export function createRateLimitResponse(
         'Content-Type': 'application/json',
         'X-RateLimit-Remaining': remaining.toString(),
         'X-RateLimit-Reset': resetTimeSeconds.toString(),
-        'Retry-After': resetTimeSeconds.toString()
+        'Retry-After': resetTimeSeconds.toString(),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     }
   );
@@ -354,6 +357,9 @@ export function withSecurity(options: {
             },
             { status: error.statusCode }
           );
+          response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+          response.headers.set('Pragma', 'no-cache');
+          response.headers.set('Expires', '0');
           
           return setSecurityHeaders(response);
         }
@@ -372,6 +378,9 @@ export function withSecurity(options: {
             },
             { status: appError.type === ErrorType.UNAUTHORIZED ? 401 : 400 }
           );
+          response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+          response.headers.set('Pragma', 'no-cache');
+          response.headers.set('Expires', '0');
           
           return setSecurityHeaders(response);
         }
@@ -388,6 +397,9 @@ export function withSecurity(options: {
           },
           { status: 500 }
         );
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        response.headers.set('Pragma', 'no-cache');
+        response.headers.set('Expires', '0');
         
         return setSecurityHeaders(response);
       }

@@ -35,7 +35,7 @@ interface PrefetchedItem {
 function isCloudinaryUrl(urlStr: string): boolean {
   try {
     const { hostname } = new URL(urlStr);
-    return hostname.includes('res.cloudinary.com');
+    return hostname === 'res.cloudinary.com';
   } catch {
     return false;
   }

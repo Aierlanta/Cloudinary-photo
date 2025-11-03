@@ -320,7 +320,6 @@ describe('/api/response', () => {
       expect(res.status).toBeGreaterThanOrEqual(400);
     });
   });
-
   describe('响应头测试', () => {
     it('应该设置正确的响应头', async () => {
       const request = createMockRequest('http://localhost:3000/api/response');
@@ -337,5 +336,37 @@ describe('/api/response', () => {
       expect(response.headers.get('X-Image-Size')).toBe('15');
       expect(response.headers.get('X-Response-Time')).toMatch(/^\d+ms$/);
     });
+
+    it('错误 404 响应应包含禁止缓存头', async () => {
+      mockDatabaseService.getRandomImages.mockResolvedValueOnce([]);
+      const request = createMockRequest('http://localhost:3000/api/response');
+      const response = await GET(request);
+
+      expect(response.status).toBe(404);
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+      expect(response.headers.get('Pragma')).toBe('no-cache');
+      expect(response.headers.get('Expires')).toBe('0');
+    });
+
+    it('错误 403 响应应包含禁止缓存头', async () => {
+      mockDatabaseService.getAPIConfig.mockResolvedValueOnce({
+        id: 'default',
+        isEnabled: false,
+        enableDirectResponse: true,
+        defaultScope: 'all',
+        defaultGroups: [],
+        allowedParameters: [],
+        updatedAt: new Date()
+      });
+
+      const request = createMockRequest('http://localhost:3000/api/response');
+      const response = await GET(request);
+
+      expect(response.status).toBe(403);
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+      expect(response.headers.get('Pragma')).toBe('no-cache');
+      expect(response.headers.get('Expires')).toBe('0');
+    });
   });
+
 });

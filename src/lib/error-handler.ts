@@ -132,7 +132,14 @@ export function handleError(
     errorResponse.error.context = context
   }
 
-  return NextResponse.json(errorResponse, { status: statusCode })
+  return NextResponse.json(errorResponse, {
+    status: statusCode,
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  })
 }
 
 /**
