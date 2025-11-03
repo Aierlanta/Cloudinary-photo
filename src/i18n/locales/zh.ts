@@ -96,6 +96,19 @@ export const zh: Translations = {
     logout: '退出登录',
   },
 
+  adminLogin: {
+    title: '管理员登录',
+    description: '请输入管理员密码以访问管理面板',
+    passwordLabel: '管理员密码',
+    passwordPlaceholder: '请输入密码',
+    loggingIn: '登录中...',
+    login: '登录',
+    forgotPasswordHint: '如果忘记密码，请检查环境变量 ADMIN_PASSWORD',
+    enterPassword: '请输入密码',
+    loginFailed: '登录失败',
+    networkError: '网络错误，请重试',
+  },
+
   adminDashboard: {
     title: '管理面板',
     welcome: '欢迎使用随机图片API管理系统',

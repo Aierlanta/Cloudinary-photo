@@ -102,6 +102,19 @@ export interface Translations {
     storage: string;
     logout: string;
   };
+  
+  adminLogin: {
+    title: string;
+    description: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    loggingIn: string;
+    login: string;
+    forgotPasswordHint: string;
+    enterPassword: string;
+    loginFailed: string;
+    networkError: string;
+  };
 
   // 管理面板 - 仪表板
   adminDashboard: {

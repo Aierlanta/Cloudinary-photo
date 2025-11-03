@@ -96,6 +96,19 @@ export const en: Translations = {
     logout: 'Logout',
   },
 
+  adminLogin: {
+    title: 'Admin Login',
+    description: 'Please enter admin password to access the management panel',
+    passwordLabel: 'Admin Password',
+    passwordPlaceholder: 'Enter password',
+    loggingIn: 'Logging in...',
+    login: 'Login',
+    forgotPasswordHint: 'If you forgot the password, check the ADMIN_PASSWORD environment variable',
+    enterPassword: 'Please enter password',
+    loginFailed: 'Login failed',
+    networkError: 'Network error, please retry',
+  },
+
   adminDashboard: {
     title: 'Admin Panel',
     welcome: 'Welcome to Random Image API Management System',

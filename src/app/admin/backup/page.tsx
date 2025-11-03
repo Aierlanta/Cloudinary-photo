@@ -60,7 +60,7 @@ export default function BackupPage() {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, [showError, t]);
 
   // 创建备份
   const createBackup = async () => {
@@ -324,7 +324,7 @@ export default function BackupPage() {
           </label>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-300 panel-text mt-2">
-          {t.adminBackup.autoBackupDescription}数据库备份
+          {t.adminBackup.autoBackupDescription}
         </p>
       </div>
     </div>

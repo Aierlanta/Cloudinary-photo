@@ -13,15 +13,8 @@ interface LocaleContextType {
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>('en');
-  const [t, setT] = useState<Translations>(getTranslations('en'));
-
-  useEffect(() => {
-    // 初始化时获取当前语言
-    const currentLocale = getCurrentLocale();
-    setLocale(currentLocale);
-    setT(getTranslations(currentLocale));
-  }, []);
+  const [locale, setLocale] = useState<Locale>(() => getCurrentLocale());
+  const [t, setT] = useState<Translations>(() => getTranslations(getCurrentLocale()));
 
   const changeLocale = (newLocale: Locale) => {
     setLocale(newLocale);
