@@ -53,7 +53,17 @@ async function withRetry<T>(
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      
+
+      // 针对 4xx（非 429）错误不重试，直接结束
+      const maybeStatus = (error as any)?.status ?? (() => {
+        const m = (error as any)?.message?.match(/HTTP\s+(\d{3})/);
+        return m ? parseInt(m[1], 10) : undefined;
+      })();
+      if (typeof maybeStatus === 'number' && maybeStatus >= 400 && maybeStatus < 500 && maybeStatus !== 429) {
+        console.warn(`Cloudinary操作失败且为客户端错误(${maybeStatus})，不重试`);
+        break;
+      }
+
       // 如果是最后一次尝试，直接抛出错误
       if (attempt === config.maxRetries) {
         break;
@@ -246,9 +256,11 @@ export class CloudinaryService {
       const url = this.getImageUrl(publicId, transformations);
       
       const result = await withRetry(async () => {
-        const response = await fetch(url);
+        const response = await fetch(url, { cache: 'no-store' } as RequestInit);
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const err: any = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          err.status = response.status;
+          throw err;
         }
         return response.arrayBuffer();
       });

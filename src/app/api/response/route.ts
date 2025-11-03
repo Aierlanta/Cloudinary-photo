@@ -16,13 +16,127 @@ export const dynamic = 'force-dynamic'
 
 const cloudinaryService = CloudinaryService.getInstance();
 
+// ---------------- 预缓存（内存）实现 ----------------
+// 以参数筛选结果为维度的单槽预取缓存：同一筛选条件维持一个“下一张”的缓冲
+// key 规则：当无分组限制时使用 'all'，否则使用 'groups:<排序后的分组ID,逗号分隔>'
+interface PrefetchedItem {
+  buffer: Buffer;
+  mimeType: string;
+  size: number;
+  imageId: string;
+  publicId: string;
+  url: string;
+  createdAt: number;
+}
+
+/**
+ * 判断是否 Cloudinary 资源 URL
+ */
+function isCloudinaryUrl(urlStr: string): boolean {
+  try {
+    const { hostname } = new URL(urlStr);
+    return hostname.includes('res.cloudinary.com');
+  } catch {
+    return false;
+  }
+}
+
+interface PrefetchSlot {
+  item?: PrefetchedItem;
+  inflight?: Promise<void>;
+  expiresAt?: number;
+}
+
+const PREFETCH_TTL_MS = Number(process.env.RESPONSE_PREFETCH_TTL_MS ?? '120000'); // 预取缓存TTL（毫秒），默认2分钟
+const prefetchCache = new Map<string, PrefetchSlot>();
+
+function buildGroupKey(groupIds: string[]): string {
+  if (!groupIds || groupIds.length === 0) return 'all';
+  const uniqueSorted = Array.from(new Set(groupIds)).sort();
+  return `groups:${uniqueSorted.join(',')}`;
+}
+
+function takePrefetched(key: string): PrefetchedItem | undefined {
+  const slot = prefetchCache.get(key);
+  if (!slot || !slot.item) return undefined;
+  const item = slot.item;
+  // 单槽语义：消费即置空
+  slot.item = undefined;
+  return item;
+}
+
+async function prefetchNext(key: string, groupIds: string[]): Promise<void> {
+  // 已有进行中的预取则复用
+  const existing = prefetchCache.get(key);
+  if (existing?.inflight) return existing.inflight;
+
+  const inflight = (async () => {
+    try {
+      // 选择下一张随机图片（与当前筛选条件一致）
+      const img = await getRandomImageFromGroups(groupIds);
+      if (!img) return; // 无可用图片，跳过
+      const mimeType = getMimeTypeFromUrl(img.url);
+      // 优先按 URL 判断图床：Cloudinary 才走 Cloudinary 下载，否则直接 URL 抓取
+      let buffer: Buffer;
+      const secureUrl = img.url.replace(/^http:/, 'https:');
+      if (isCloudinaryUrl(secureUrl)) {
+        try {
+          buffer = await cloudinaryService.downloadImage(img.publicId);
+        } catch (err) {
+          logger.warn('Cloudinary下载失败，使用URL回退获取', { type: 'api_prefetch_fallback', error: err instanceof Error ? err.message : 'unknown' });
+          const resp = await fetch(secureUrl, { cache: 'no-store' } as RequestInit);
+          if (!resp.ok) throw err;
+          const ab = await resp.arrayBuffer();
+          buffer = Buffer.from(ab);
+        }
+      } else {
+        const resp = await fetch(secureUrl, { cache: 'no-store' } as RequestInit);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+        const ab = await resp.arrayBuffer();
+        buffer = Buffer.from(ab);
+      }
+      const size = buffer.length;
+
+      prefetchCache.set(key, {
+        item: {
+          buffer,
+          mimeType,
+          size,
+          imageId: img.id,
+          publicId: img.publicId,
+          url: img.url,
+          createdAt: Date.now()
+        },
+        inflight: undefined
+      });
+
+      logger.info('预取完成', { type: 'api_prefetch', key, imageId: img.id, size });
+    } catch (err) {
+      // 失败不影响主流程
+      logger.warn('预取失败', { type: 'api_prefetch', key, error: err instanceof Error ? err.message : 'unknown' });
+    } finally {
+      const s = prefetchCache.get(key);
+      if (s) s.inflight = undefined;
+    }
+  })();
+
+  prefetchCache.set(key, { ...(existing || {}), inflight });
+  await inflight; // 注意：调用方通常不 await；这里确保返回的是相同Promise
+}
+
+// 测试辅助：重置预取缓存（仅测试调用）
+export function __resetPrefetchCacheForTests() {
+  prefetchCache.clear();
+}
+
+
 /**
  * 处理直接图片响应请求
  * GET /api/response[?参数]
  */
 async function getImageResponse(request: NextRequest): Promise<Response> {
   const startTime = performance.now();
-  
+
   try {
     // 解析查询参数
     const url = new URL(request.url);
@@ -110,7 +224,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
 
     // 根据参数筛选图片（复用现有逻辑）
     let targetGroupIds: string[] = [];
-    
+
     if (allowedGroupIds.length > 0) {
       // 使用参数指定的分组
       targetGroupIds = allowedGroupIds;
@@ -120,9 +234,40 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
+    // 预取命中优先：若存在相同筛选条件的预取结果，直接返回并异步预取下一张
+    const cacheKey = buildGroupKey(targetGroupIds);
+    const prefetched = takePrefetched(cacheKey);
+    if (prefetched) {
+      const duration = Math.round(performance.now() - startTime);
+      logger.info('预取命中，直接返回', {
+        type: 'api_prefetch',
+        key: cacheKey,
+        imageId: prefetched.imageId,
+        size: prefetched.size
+      });
+
+      // 异步预取下一张（不阻塞响应）
+      prefetchNext(cacheKey, targetGroupIds).catch(() => {});
+
+      return new NextResponse(new Uint8Array(prefetched.buffer), {
+        status: 200,
+        headers: {
+          'Content-Type': prefetched.mimeType,
+          'Content-Length': prefetched.size.toString(),
+          'Cache-Control': 'public, max-age=3600',
+          'X-Image-Id': prefetched.imageId,
+          'X-Image-PublicId': prefetched.publicId,
+          'X-Image-Size': prefetched.size.toString(),
+          'X-Response-Time': `${duration}ms`,
+          'X-Transfer-Mode': 'prefetch'
+        }
+      });
+    }
+
+
     // 获取随机图片（复用现有逻辑）
     const randomImage = await getRandomImageFromGroups(targetGroupIds);
-    
+
     if (!randomImage) {
       logger.warn('没有找到符合条件的图片', {
         type: 'api_response',
@@ -153,87 +298,52 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     // 获取图片URL用于流式传输
     const imageUrl = randomImage.url.replace(/^http:/, 'https:');
 
-    try {
-      // 使用 fetch 获取图片流，禁用缓存保证随机性
-      const imageResponse = await fetch(imageUrl, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache'
+    {
+      // 直接缓冲模式（便于与预取缓存对接）
+      let imageBuffer: Buffer;
+      if (isCloudinaryUrl(imageUrl)) {
+        try {
+          imageBuffer = await cloudinaryService.downloadImage(randomImage.publicId);
+        } catch (err) {
+          logger.warn('Cloudinary下载失败，使用URL回退获取', { type: 'api_response_fallback', error: err instanceof Error ? err.message : 'unknown' });
+          const resp = await fetch(imageUrl, { cache: 'no-store' } as RequestInit);
+          if (!resp.ok) throw err;
+          const ab = await resp.arrayBuffer();
+          imageBuffer = Buffer.from(ab);
         }
-      });
-
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+      } else {
+        const resp = await fetch(imageUrl, { cache: 'no-store' } as RequestInit);
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+        }
+        const ab = await resp.arrayBuffer();
+        imageBuffer = Buffer.from(ab);
       }
-
+      const size = imageBuffer.length;
       const duration = Math.round(performance.now() - startTime);
 
       // 记录成功响应
       logger.apiResponse('GET', '/api/response', 200, duration, {
         imageId: randomImage.id,
-        imageUrl: imageUrl,
-        mimeType
-      });
-
-      // 获取图片大小（如果可用）
-      const contentLength = imageResponse.headers.get('content-length');
-
-      // 创建响应头
-      const responseHeaders = new Headers({
-        'Content-Type': mimeType,
-        'Cache-Control': 'no-cache, no-store, must-revalidate', // 禁用缓存保证随机性
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Image-Id': randomImage.id,
-        'X-Image-PublicId': randomImage.publicId,
-        'X-Response-Time': `${duration}ms`
-      });
-
-      // 如果有内容长度，添加到响应头
-      if (contentLength) {
-        responseHeaders.set('Content-Length', contentLength);
-        responseHeaders.set('X-Image-Size', contentLength);
-      }
-
-      // 返回流式响应
-      return new NextResponse(imageResponse.body, {
-        status: 200,
-        headers: responseHeaders
-      });
-
-    } catch (streamError) {
-      // 如果流式传输失败，回退到缓冲模式
-      logger.warn('流式传输失败，回退到缓冲模式', {
-        type: 'api_fallback',
-        imageId: randomImage.id,
-        error: streamError instanceof Error ? streamError.message : '未知错误'
-      });
-
-      const imageBuffer = await cloudinaryService.downloadImage(randomImage.publicId);
-
-      const duration = Math.round(performance.now() - startTime);
-
-      // 记录回退响应
-      logger.apiResponse('GET', '/api/response', 200, duration, {
-        imageId: randomImage.id,
-        imageSize: imageBuffer.length,
+        imageSize: size,
         mimeType,
-        mode: 'fallback'
+        mode: 'buffered'
       });
+
+      // 异步预取下一张（不阻塞响应）
+      prefetchNext(cacheKey, targetGroupIds).catch(() => {});
 
       // 返回缓冲响应
-      return new NextResponse(imageBuffer, {
+      return new NextResponse(new Uint8Array(imageBuffer), {
         status: 200,
         headers: {
           'Content-Type': mimeType,
-          'Content-Length': imageBuffer.length.toString(),
-          'Cache-Control': 'no-cache, no-store, must-revalidate', // 禁用缓存保证随机性
-          'Pragma': 'no-cache',
-          'Expires': '0',
+          'Content-Length': size.toString(),
+          'Cache-Control': 'public, max-age=3600',
           'X-Image-Id': randomImage.id,
           'X-Image-PublicId': randomImage.publicId,
           'X-Response-Time': `${duration}ms`,
-          'X-Image-Size': imageBuffer.length.toString(),
+          'X-Image-Size': size.toString(),
           'X-Transfer-Mode': 'buffered'
         }
       });
@@ -264,7 +374,7 @@ function getClientIP(request: NextRequest): string {
  */
 function getMimeTypeFromUrl(url: string): string {
   const extension = url.split('.').pop()?.toLowerCase();
-  
+
   switch (extension) {
     case 'jpg':
     case 'jpeg':
@@ -331,9 +441,9 @@ async function validateAndParseParams(
   // 去重
   const uniqueGroupIds = [...new Set(allowedGroupIds)];
 
-  return { 
-    allowedGroupIds: uniqueGroupIds, 
-    hasInvalidParams 
+  return {
+    allowedGroupIds: uniqueGroupIds,
+    hasInvalidParams
   };
 }
 

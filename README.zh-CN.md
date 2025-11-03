@@ -24,7 +24,7 @@
 
 <img width="2560" height="1321" alt="image" src="https://github.com/user-attachments/assets/95e31a3d-cd33-4dff-abba-e280273ec09d" />
 
-### API配置
+### API 配置
 
 <img width="2560" height="1312" alt="image" src="https://github.com/user-attachments/assets/1d33cb5b-ee1e-49a6-96e2-781eb030c60d" />
 
@@ -39,8 +39,6 @@
 ### 备份管理
 
 <img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
-
-
 
 ## 快速开始
 
@@ -134,6 +132,22 @@ GET /api/response
 **功能**: 直接返回图片数据（可选功能）
 **响应**: 图片二进制数据
 **用途**: 适用于需要直接获取图片内容的场景
+
+- 预取（更新）
+  - 每次成功返回后在后台预取下一张随机图片，并缓存在内存“单槽”中
+  - 单槽按筛选条件（如分组映射）划分；命中后即时返回并“消费清空”，随后异步预取下一张补位
+  - 无 TTL（不会因时间过期）；缓存为实例进程内存，实例重启/缩容后会丢失，首次请求为冷启动
+  - 响应头：`X-Transfer-Mode`（`buffered` | `prefetch`），`X-Image-Size`
+  - 预取失败不影响当前请求，仅记录日志
+
+- 传输兼容（新增）
+  - Cloudinary 资源通过 Cloudinary 下载；非 Cloudinary 资源统一使用数据库中的源 URL 抓取
+  - 对 `4xx`（除 `429`）不重试；失败会自动回退至源 URL
+  - 所有抓取均使用 `fetch(..., { cache: 'no-store' })`，避免 Next 数据缓存 2MB 限制
+
+- 部署提示（Replit autoscale）
+  - 单槽缓存位于实例进程内存；空闲缩容至 0 或实例重启后缓存会丢失，随后首个请求为冷启动
+  - 多实例并发时各实例各自维护单槽缓存，彼此不共享
 
 #### 系统状态接口
 
@@ -348,6 +362,6 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 
 ---
 
-**当前版本**: v0.6.3 | **最后更新**: 2025-10-11
+**当前版本**: v0.7.0 | **最后更新**: 2025-11-03
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request！

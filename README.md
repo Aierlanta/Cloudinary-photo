@@ -40,8 +40,6 @@ A random image API service based on Next.js 14, supporting multiple image hostin
 
 <img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
 
-
-
 ## Quick Start
 
 ### Requirements
@@ -134,6 +132,22 @@ GET /api/response
 **Function**: Directly return image data (optional feature)
 **Response**: Image binary data
 **Use Case**: Suitable for scenarios requiring direct image content retrieval
+
+- Prefetch (Updated)
+  - After each successful response, prefetch the next random image and keep it in a single in-memory slot
+  - The slot is keyed by the same filter condition (e.g., group mapping). On hit it returns instantly and the slot is consumed (cleared), then a new prefetch starts in the background
+  - No TTL. The cache lives in the process memory and is lost on restarts/scale-to-zero. The first request after a restart is a cold start
+  - Response headers: `X-Transfer-Mode` (`buffered` | `prefetch`), `X-Image-Size`
+  - Prefetch failures do not affect the current request, only logged
+
+- Transport compatibility (New)
+  - Cloudinary assets are downloaded via Cloudinary; non-Cloudinary assets are fetched from the database URL
+  - `4xx` (except `429`) errors are not retried; failures fall back to URL fetch
+  - All fetches use `fetch(..., { cache: 'no-store' })` to avoid Next.js data cache 2MB limits
+
+- Deployment note (Replit autoscale)
+  - The single-slot cache lives in the process memory; when the app scales to zero or restarts, the cache is lost and the first request becomes a cold start
+  - With multiple instances, each instance maintains its own single-slot cache; they are not shared
 
 #### System Status Endpoint
 
@@ -348,6 +362,6 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 
 ---
 
-**Current Version**: v0.6.3 | **Last Updated**: 2025-10-11
+**Current Version**: v0.7.0 | **Last Updated**: 2025-11-03
 
 For issues or suggestions, feel free to submit an Issue or Pull Request!
