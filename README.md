@@ -110,6 +110,31 @@ chmod +x fast-start.sh
 
 ### Public API
 
+#### API Key Authentication (Optional)
+
+If API Key authentication is enabled in the admin panel, all public API requests must include the `key` parameter:
+
+```bash
+# Without API Key (when authentication is disabled)
+GET /api/random
+
+# With API Key (when authentication is enabled)
+GET /api/random?key=your-api-key
+
+# Combine with other parameters
+GET /api/random?group=wallpaper&key=your-api-key
+```
+
+**Configuration**:
+- Go to Admin Panel → API Configuration → API Key Authentication
+- Enable API Key authentication
+- Generate or enter a custom API key
+- All API requests will require the `key` parameter
+
+**Error Responses**:
+- `401 Unauthorized` - Missing API key when authentication is enabled
+- `401 Unauthorized` - Invalid API key
+
 #### Random Image Endpoint
 
 ```http
@@ -120,8 +145,10 @@ GET /api/random
 **Response**: 302 redirect to image URL
 **Parameters**:
 
+- `key` - API key (required if authentication is enabled)
 - Supports custom parameters (configured via admin panel)
 - Example: `?group=wallpaper&category=nature`
+- Example with key: `?group=wallpaper&key=your-api-key`
 
 #### Direct Response Endpoint
 
@@ -133,10 +160,11 @@ GET /api/response
 **Response**: Image binary data
 **Use Case**: Suitable for scenarios requiring direct image content retrieval
 
-**Transparency Adjustment Parameters** (Optional):
+**Parameters**:
 
-- `opacity` - Image opacity (0-1.0), 0 for fully transparent, 1 for fully opaque
-- `bgColor` - Background color, supports the following formats:
+- `key` - API key (required if authentication is enabled)
+- `opacity` - Image opacity (0-1.0), 0 for fully transparent, 1 for fully opaque (optional)
+- `bgColor` - Background color (optional), supports the following formats:
   - Preset color names: `white` (default), `black`
   - Hexadecimal: `ffffff` or `#ffffff`
 
@@ -146,11 +174,14 @@ GET /api/response
 # Original image (no transparency adjustment)
 GET /api/response
 
+# With API Key
+GET /api/response?key=your-api-key
+
 # 50% opacity with white background
 GET /api/response?opacity=0.5&bgColor=white
 
-# 80% opacity with black background
-GET /api/response?opacity=0.8&bgColor=black
+# 80% opacity with black background and API key
+GET /api/response?opacity=0.8&bgColor=black&key=your-api-key
 
 # 30% opacity with custom color background
 GET /api/response?opacity=0.3&bgColor=ff6b6b

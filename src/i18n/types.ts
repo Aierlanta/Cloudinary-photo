@@ -210,6 +210,14 @@ export interface Translations {
     enablePublicAPIDesc: string;
     enableDirectResponse: string;
     enableDirectResponseDesc: string;
+    apiKeyAuth: string;
+    enableApiKey: string;
+    enableApiKeyDesc: string;
+    apiKeyValue: string;
+    apiKeyPlaceholder: string;
+    apiKeyValueDesc: string;
+    generateKey: string;
+    generateRandomKey: string;
     defaultScope: string;
     scopeAll: string;
     scopeGroups: string;
@@ -560,6 +568,10 @@ export interface Translations {
     baseApiAddress: string;
     copyApiAddress: string;
     copyLink: string;
+    apiKeyAuth: string;
+    apiKeyAuthDesc: string;
+    withApiKey: string;
+    apiKeyConfigTip: string;
     usageExamples: string;
     redirectMode: string;
     directResponseMode: string;

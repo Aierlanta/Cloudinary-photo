@@ -110,6 +110,33 @@ chmod +x fast-start.sh
 
 ### 公开 API
 
+#### API Key 鉴权（可选）
+
+如果在管理面板中启用了 API Key 鉴权，所有公开 API 请求都必须包含 `key` 参数：
+
+```bash
+# 未启用 API Key 鉴权时
+GET /api/random
+
+# 启用 API Key 鉴权后
+GET /api/random?key=你的API密钥
+
+# 与其他参数组合使用
+GET /api/random?group=wallpaper&key=你的API密钥
+```
+
+**配置方法**:
+
+- 进入管理后台 → API配置管理 → API Key 鉴权
+- 启用 API Key 鉴权
+- 生成或输入自定义 API Key
+- 所有 API 请求都需要携带 `key` 参数
+
+**错误响应**:
+
+- `401 Unauthorized` - 启用鉴权后缺少 API Key
+- `401 Unauthorized` - API Key 无效
+
 #### 随机图片接口
 
 ```http
@@ -120,8 +147,10 @@ GET /api/random
 **响应**: 302 重定向到图片 URL
 **参数**:
 
+- `key` - API 密钥（启用鉴权时必需）
 - 支持自定义参数（通过管理面板配置）
 - 例如: `?group=wallpaper&category=nature`
+- 带密钥示例: `?group=wallpaper&key=你的API密钥`
 
 #### 直接响应接口
 
@@ -133,10 +162,11 @@ GET /api/response
 **响应**: 图片二进制数据
 **用途**: 适用于需要直接获取图片内容的场景
 
-**透明度调整参数**（可选）:
+**参数**:
 
-- `opacity` - 图片透明度（0-1.0），0 表示完全透明，1 表示完全不透明
-- `bgColor` - 背景颜色，支持以下格式：
+- `key` - API 密钥（启用鉴权时必需）
+- `opacity` - 图片透明度（0-1.0），0 表示完全透明，1 表示完全不透明（可选）
+- `bgColor` - 背景颜色（可选），支持以下格式：
   - 预设颜色名称：`white`（默认）、`black`
   - 十六进制：`ffffff` 或 `#ffffff`
 
@@ -146,11 +176,14 @@ GET /api/response
 # 原始图片（无透明度调整）
 GET /api/response
 
+# 使用 API Key
+GET /api/response?key=你的API密钥
+
 # 50% 透明度，白色背景
 GET /api/response?opacity=0.5&bgColor=white
 
-# 80% 透明度，黑色背景
-GET /api/response?opacity=0.8&bgColor=black
+# 80% 透明度，黑色背景，带 API Key
+GET /api/response?opacity=0.8&bgColor=black&key=你的API密钥
 
 # 30% 透明度，自定义颜色背景
 GET /api/response?opacity=0.3&bgColor=ff6b6b
