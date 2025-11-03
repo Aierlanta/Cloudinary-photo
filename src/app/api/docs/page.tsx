@@ -207,6 +207,182 @@ export default function APIDocsPage() {
           </div>
         </div>
 
+        {/* 透明度调整功能 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            透明度调整功能
+          </h2>
+
+          <div className="mb-6">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm">
+                /api/response
+              </code>{" "}
+              端点支持图片透明度调整功能，可以通过参数调整图片的不透明度并合成到指定背景颜色上。
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                参数说明
+              </h3>
+              <div className="space-y-3">
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <div className="flex items-start">
+                    <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm text-blue-600 dark:text-blue-400 mr-3">
+                      opacity
+                    </code>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-300">
+                        图片不透明度（0-1.0）
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        • 0 = 完全透明，1 = 完全不透明
+                        <br />• 可选参数，不指定则不进行透明度处理
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-l-4 border-green-500 pl-4">
+                  <div className="flex items-start">
+                    <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm text-green-600 dark:text-green-400 mr-3">
+                      bgColor
+                    </code>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-300">
+                        背景颜色
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        • 预设颜色：<code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">white</code>（默认）、
+                        <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">black</code>
+                        <br />• 十六进制：<code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">ffffff</code> 或{" "}
+                        <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">#ff6b6b</code>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                使用示例
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    50% 透明度，白色背景
+                  </p>
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
+                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
+                      {baseUrl}/api/response?opacity=0.5&bgColor=white
+                    </code>
+                    {baseUrl && (
+                      <button
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            `${baseUrl}/api/response?opacity=0.5&bgColor=white`
+                          )
+                        }
+                        className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                        title="复制链接"
+                      >
+                        复制
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    80% 透明度，黑色背景
+                  </p>
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
+                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
+                      {baseUrl}/api/response?opacity=0.8&bgColor=black
+                    </code>
+                    {baseUrl && (
+                      <button
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            `${baseUrl}/api/response?opacity=0.8&bgColor=black`
+                          )
+                        }
+                        className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                        title="复制链接"
+                      >
+                        复制
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    30% 透明度，自定义颜色背景
+                  </p>
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
+                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
+                      {baseUrl}/api/response?opacity=0.3&bgColor=ff6b6b
+                    </code>
+                    {baseUrl && (
+                      <button
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            `${baseUrl}/api/response?opacity=0.3&bgColor=ff6b6b`
+                          )
+                        }
+                        className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                        title="复制链接"
+                      >
+                        复制
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    结合分组参数使用
+                  </p>
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
+                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
+                      {baseUrl}/api/response?sfw=sfw&opacity=0.6&bgColor=white
+                    </code>
+                    {baseUrl && (
+                      <button
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            `${baseUrl}/api/response?sfw=sfw&opacity=0.6&bgColor=white`
+                          )
+                        }
+                        className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                        title="复制链接"
+                      >
+                        复制
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4">
+              <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                注意事项
+              </h4>
+              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• 透明度处理会将图片转换为 JPEG 格式（质量90）</li>
+                <li>• 使用透明度参数时不会使用预取缓存，响应时间会略长</li>
+                <li>• 如果未指定 bgColor 参数，默认使用白色背景</li>
+                <li>• 可以与其他分组参数组合使用</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* 响应格式 */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">

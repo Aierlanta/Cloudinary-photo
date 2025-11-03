@@ -10,6 +10,7 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
+import { adjustImageTransparency, parseTransparencyParams } from '@/lib/image-processor';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -167,11 +168,18 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     const url = new URL(request.url);
     const queryParams = Object.fromEntries(url.searchParams.entries());
 
+    // 解析透明度参数
+    const transparencyOptions = parseTransparencyParams(
+      queryParams.opacity,
+      queryParams.bgColor
+    );
+
     logger.info('收到直接响应图片请求', {
       type: 'api_request',
       method: 'GET',
       path: '/api/response',
       params: queryParams,
+      transparency: transparencyOptions ? 'enabled' : 'disabled',
       ip: getClientIP(request),
       userAgent: request.headers.get('user-agent')
     });
@@ -260,8 +268,9 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     // 如果targetGroupIds为空，则从所有图片中选择
 
     // 预取命中优先：若存在相同筛选条件的预取结果，直接返回并异步预取下一张
+    // 注意：如果有透明度处理需求，则不使用预取缓存
     const cacheKey = buildGroupKey(targetGroupIds);
-    const prefetched = takePrefetched(cacheKey);
+    const prefetched = !transparencyOptions ? takePrefetched(cacheKey) : undefined;
     if (prefetched) {
       const duration = Math.round(performance.now() - startTime);
       logger.info('预取命中，直接返回', {
@@ -346,25 +355,38 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         const ab = await resp.arrayBuffer();
         imageBuffer = Buffer.from(ab);
       }
-      const size = imageBuffer.length;
+      // 应用透明度处理（如果需要）
+      let finalBuffer = imageBuffer;
+      let finalMimeType = mimeType;
+      if (transparencyOptions) {
+        const processed = await adjustImageTransparency(imageBuffer, transparencyOptions);
+        finalBuffer = processed.buffer;
+        finalMimeType = processed.mimeType;
+      }
+
+      const size = finalBuffer.length;
       const duration = Math.round(performance.now() - startTime);
 
       // 记录成功响应
       logger.apiResponse('GET', '/api/response', 200, duration, {
         imageId: randomImage.id,
         imageSize: size,
-        mimeType,
-        mode: 'buffered'
+        mimeType: finalMimeType,
+        mode: 'buffered',
+        transparency: transparencyOptions ? 'processed' : 'original'
       });
 
       // 异步预取下一张（不阻塞响应）
-      prefetchNext(cacheKey, targetGroupIds).catch(() => {});
+      // 注意：透明度处理的图片不预缓存
+      if (!transparencyOptions) {
+        prefetchNext(cacheKey, targetGroupIds).catch(() => {});
+      }
 
       // 返回缓冲响应
-      return new NextResponse(new Uint8Array(imageBuffer), {
+      return new NextResponse(new Uint8Array(finalBuffer), {
         status: 200,
         headers: {
-          'Content-Type': mimeType,
+          'Content-Type': finalMimeType,
           'Content-Length': size.toString(),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
@@ -373,7 +395,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
           'X-Image-PublicId': randomImage.publicId,
           'X-Response-Time': `${duration}ms`,
           'X-Image-Size': size.toString(),
-          'X-Transfer-Mode': 'buffered'
+          'X-Transfer-Mode': transparencyOptions ? 'buffered-processed' : 'buffered'
         }
       });
     }
@@ -435,18 +457,22 @@ async function validateAndParseParams(
 ): Promise<{ allowedGroupIds: string[]; hasInvalidParams: boolean }> {
   const allowedGroupIds: string[] = [];
   let hasInvalidParams = false;
+  
+  // 保留查询参数（不参与业务参数校验）
+  const RESERVED_PARAMS = new Set(['opacity', 'bgColor']);
+  const filteredEntries = Object.entries(queryParams).filter(([key]) => !RESERVED_PARAMS.has(key));
 
   // 如果没有配置允许的参数，直接返回
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {
-    // 检查是否有任何查询参数
-    if (Object.keys(queryParams).length > 0) {
+    // 当存在非保留参数时才判定为无效
+    if (filteredEntries.length > 0) {
       hasInvalidParams = true;
     }
     return { allowedGroupIds, hasInvalidParams };
   }
 
   // 验证每个查询参数
-  for (const [paramName, paramValue] of Object.entries(queryParams)) {
+  for (const [paramName, paramValue] of filteredEntries) {
     const paramConfig = apiConfig.allowedParameters.find(
       (p: any) => p.name === paramName && p.isEnabled
     );

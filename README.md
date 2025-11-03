@@ -133,6 +133,35 @@ GET /api/response
 **Response**: Image binary data
 **Use Case**: Suitable for scenarios requiring direct image content retrieval
 
+**Transparency Adjustment Parameters** (Optional):
+
+- `opacity` - Image opacity (0-1.0), 0 for fully transparent, 1 for fully opaque
+- `bgColor` - Background color, supports the following formats:
+  - Preset color names: `white` (default), `black`
+  - Hexadecimal: `ffffff` or `#ffffff`
+
+**Usage Examples**:
+
+```bash
+# Original image (no transparency adjustment)
+GET /api/response
+
+# 50% opacity with white background
+GET /api/response?opacity=0.5&bgColor=white
+
+# 80% opacity with black background
+GET /api/response?opacity=0.8&bgColor=black
+
+# 30% opacity with custom color background
+GET /api/response?opacity=0.3&bgColor=ff6b6b
+```
+
+**Notes**:
+
+- Transparency processing converts images to JPEG format (quality 90)
+- When using transparency parameters, prefetch cache is not used, response time may be slightly longer
+- If `bgColor` is not specified, white background is used by default
+
 - Prefetch (Updated)
   - After each successful response, prefetch the next random image and keep it in a single in-memory slot
   - The slot is keyed by the same filter condition (e.g., group mapping). On hit it returns instantly and the slot is consumed (cleared), then a new prefetch starts in the background
