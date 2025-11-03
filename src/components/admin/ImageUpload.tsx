@@ -514,25 +514,32 @@ export default function ImageUpload({
       });
       
       // 并发上传所有失败的文件
+      let retrySuccessCount = 0;
+      let retryFailCount = 0;
+
       for (const { fs, idx } of failedIndices) {
         try {
-          await uploadWithConcurrencyLimit([fs], idx, 1);
+          const res = await uploadWithConcurrencyLimit([fs], idx, 1);
+          const count = Array.isArray(res) ? res.length : (res ? 1 : 0);
+          if (count > 0) {
+            retrySuccessCount += count;
+          } else {
+            retryFailCount += 1;
+          }
         } catch (error) {
           console.error(`重试 ${fs.file.name} 失败:`, error);
+          retryFailCount += 1;
         }
       }
       
-      const successCount = fileStates.filter(fs => fs.status === 'success').length;
-      const stillFailedCount = fileStates.filter(fs => fs.status === 'failed').length;
-      
-      if (stillFailedCount > 0) {
+      if (retryFailCount > 0) {
         showError(
           "部分重试失败",
-          `成功: ${successCount} 张，失败: ${stillFailedCount} 张`,
+          `成功: ${retrySuccessCount} 张，失败: ${retryFailCount} 张`,
           6000
         );
       } else {
-        success("全部重试成功！", `成功上传 ${successCount} 张图片`, 4000);
+        success("全部重试成功！", `成功上传 ${retrySuccessCount} 张图片`, 4000);
       }
     } catch (error) {
       console.error("重试失败:", error);
@@ -585,8 +592,8 @@ export default function ImageUpload({
         fileInputRef.current.value = "";
       }
 
-      const successCount = fileStates.filter(fs => fs.status === 'success').length;
-      const failedCount = fileStates.filter(fs => fs.status === 'failed').length;
+      const successCount = uploadedImages.length;
+      const failedCount = pendingFiles.length - successCount;
       
       if (failedCount > 0) {
         showError(
