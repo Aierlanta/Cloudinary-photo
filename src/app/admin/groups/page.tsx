@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
+import { useLocale } from '@/hooks/useLocale'
 import Image from 'next/image'
 import { generateThumbnailUrl } from '@/lib/image-utils'
 
@@ -36,6 +37,7 @@ interface Image {
 }
 
 export default function GroupsPage() {
+  const { t } = useLocale();
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -143,7 +145,7 @@ export default function GroupsPage() {
 
   const handleCreateGroup = async () => {
     if (!formData.name.trim()) {
-      showError('验证失败', '请输入分组名称')
+      showError(t.adminGroups.validationError, t.adminGroups.enterGroupName)
       return
     }
 
@@ -163,13 +165,13 @@ export default function GroupsPage() {
         await loadTotalImages()
         setFormData({ name: '', description: '' })
         setShowCreateForm(false)
-        success('创建成功', '分组创建成功')
+        success(t.adminGroups.createSuccess, t.adminGroups.createSuccess)
       } else {
-        showError('创建失败', '创建分组失败')
+        showError(t.adminGroups.createFailed, t.adminGroups.createFailed)
       }
     } catch (error) {
       console.error('创建分组失败:', error)
-      showError('创建失败', '创建分组失败')
+      showError(t.adminGroups.createFailed, t.adminGroups.createFailed)
     } finally {
       setSubmitting(false)
     }
@@ -177,7 +179,7 @@ export default function GroupsPage() {
 
   const handleUpdateGroup = async () => {
     if (!editingGroup || !formData.name.trim()) {
-      alert('请输入分组名称')
+      alert(t.adminGroups.enterGroupName)
       return
     }
 
@@ -197,20 +199,20 @@ export default function GroupsPage() {
         await loadTotalImages()
         setEditingGroup(null)
         setFormData({ name: '', description: '' })
-        alert('分组更新成功')
+        alert(t.adminGroups.updateSuccess)
       } else {
-        alert('更新分组失败')
+        alert(t.adminGroups.updateFailed)
       }
     } catch (error) {
       console.error('更新分组失败:', error)
-      alert('更新分组失败')
+      alert(t.adminGroups.updateFailed)
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
-    if (!confirm(`确定要删除分组"${groupName}"吗？此操作将会影响该分组下的所有图片。`)) {
+    if (!confirm(`${t.adminGroups.confirmDelete} "${groupName}"？此操作将会影响该分组下的所有图片。`)) {
       return
     }
 
@@ -224,15 +226,15 @@ export default function GroupsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        success('删除成功', data.data.message)
+        success(t.adminGroups.deleteSuccess, data.data.message)
         await loadGroups()
         await loadTotalImages()
       } else {
-        showError('删除失败', '删除分组失败')
+        showError(t.adminGroups.deleteFailed, t.adminGroups.deleteFailed)
       }
     } catch (error) {
       console.error('删除分组失败:', error)
-      showError('删除失败', '删除分组失败')
+      showError(t.adminGroups.deleteFailed, t.adminGroups.deleteFailed)
     }
   }
 
@@ -295,7 +297,7 @@ export default function GroupsPage() {
 
   const assignImagesToGroup = async () => {
     if (selectedImages.size === 0 || !assigningToGroup) {
-      alert('请选择图片和目标分组')
+      alert(t.adminGroups.selectImagesAndGroup)
       return
     }
 
@@ -315,18 +317,18 @@ export default function GroupsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(`成功将 ${selectedImages.size} 张图片分配到分组`)
+        alert(`${t.adminGroups.assignSuccess} ${selectedImages.size} ${t.adminGroups.images}`)
         await loadUnassignedImages()
         await loadGroups()
         await loadTotalImages()
         clearSelection()
         setAssigningToGroup('')
       } else {
-        alert('分配图片失败')
+        alert(t.adminGroups.assignFailed)
       }
     } catch (error) {
       console.error('分配图片失败:', error)
-      alert('分配图片失败')
+      alert(t.adminGroups.assignFailed)
     }
   }
 
@@ -340,9 +342,9 @@ export default function GroupsPage() {
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold panel-text mb-2">分组管理</h1>
+            <h1 className="text-2xl font-bold panel-text mb-2">{t.adminGroups.title}</h1>
             <p className="text-gray-600 dark:text-gray-300 panel-text">
-              创建和管理图片分组，组织您的图片库
+              {t.adminGroups.description}
             </p>
           </div>
           <div className="text-right">
@@ -350,7 +352,7 @@ export default function GroupsPage() {
               {groups.length}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-              个分组
+              {t.adminGroups.groupsCount}
             </div>
           </div>
         </div>
@@ -361,25 +363,25 @@ export default function GroupsPage() {
             <div className="text-lg font-semibold panel-text">
               {totalImages}
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-300">总图片数</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">{t.adminGroups.totalImages}</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold panel-text">
               {groups.filter(g => g.imageCount > 0).length}
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-300">有图片的分组</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">{t.adminGroups.groupsWithImages}</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold panel-text">
               {groups.filter(g => g.imageCount === 0).length}
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-300">空分组</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">{t.adminGroups.emptyGroups}</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-semibold panel-text">
               {groups.length > 0 ? Math.round(groups.reduce((sum, group) => sum + group.imageCount, 0) / groups.length) : 0}
             </div>
-            <div className="text-xs text-gray-600 dark:text-gray-300">平均图片数</div>
+            <div className="text-xs text-gray-600 dark:text-gray-300">{t.adminGroups.averageImages}</div>
           </div>
         </div>
       </div>
@@ -388,19 +390,19 @@ export default function GroupsPage() {
       {(showCreateForm || editingGroup) && (
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
           <h2 className="text-lg font-semibold panel-text mb-4">
-            {editingGroup ? '编辑分组' : '创建新分组'}
+            {editingGroup ? t.adminGroups.editGroup : t.adminGroups.createGroup}
           </h2>
 
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium panel-text mb-2">
-                分组名称 *
+                {t.adminGroups.groupName} *
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="输入分组名称"
+                placeholder={t.adminGroups.groupNamePlaceholder}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
                 maxLength={50}
               />
@@ -408,12 +410,12 @@ export default function GroupsPage() {
 
             <div>
               <label className="block text-sm font-medium panel-text mb-2">
-                分组描述
+                {t.adminGroups.groupDescription}
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="输入分组描述（可选）"
+                placeholder={t.adminGroups.groupDescriptionPlaceholder}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text resize-none"
                 maxLength={200}
@@ -432,17 +434,17 @@ export default function GroupsPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    {editingGroup ? '更新中...' : '创建中...'}
+                    {editingGroup ? t.adminGroups.updating : t.adminGroups.creating}
                   </div>
                 ) : (
-                  editingGroup ? '更新分组' : '创建分组'
+                  editingGroup ? t.adminGroups.update : t.adminGroups.create
                 )}
               </button>
               <button
                 onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
                 className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
-                取消
+                {t.adminGroups.cancel}
               </button>
             </div>
           </div>
@@ -452,7 +454,7 @@ export default function GroupsPage() {
       {/* 分组列表 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold panel-text">分组列表</h2>
+          <h2 className="text-lg font-semibold panel-text">{t.adminGroups.groups}</h2>
           {!showCreateForm && !editingGroup && (
             <div className="flex space-x-3">
               <button
@@ -462,7 +464,7 @@ export default function GroupsPage() {
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                管理未分组图片
+                {t.adminGroups.manageUnassigned}
               </button>
               <button
                 onClick={startCreate}
@@ -471,7 +473,7 @@ export default function GroupsPage() {
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                创建分组
+                {t.adminGroups.createGroup}
               </button>
             </div>
           )}
@@ -499,15 +501,15 @@ export default function GroupsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium panel-text mb-2">暂无分组</h3>
+            <h3 className="text-lg font-medium panel-text mb-2">{t.adminGroups.noGroups}</h3>
             <p className="text-gray-500 dark:text-gray-400 panel-text mb-4">
-              还没有创建任何分组，点击上方的"创建分组"按钮开始吧！
+              {t.adminGroups.noGroupsDescription}
             </p>
             <button
               onClick={startCreate}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
             >
-              创建第一个分组
+              {t.adminGroups.createGroup}
             </button>
           </div>
         ) : (
@@ -526,7 +528,7 @@ export default function GroupsPage() {
                           ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                       }`}>
-                        {group.imageCount} 张图片
+                        {group.imageCount} {t.adminGroups.images}
                       </span>
                     </div>
 
@@ -540,7 +542,7 @@ export default function GroupsPage() {
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      创建于 {formatDate(group.createdAt)}
+                      {t.adminGroups.createdAt} {formatDate(group.createdAt)}
                     </div>
                   </div>
 
@@ -549,7 +551,7 @@ export default function GroupsPage() {
                       <button
                         onClick={() => viewGroupImages(group)}
                         className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900 rounded-lg transition-colors"
-                        title="查看图片"
+                        title={t.adminGroups.viewImages}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -559,7 +561,7 @@ export default function GroupsPage() {
                     <button
                       onClick={() => startEdit(group)}
                       className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-lg transition-colors"
-                      title="编辑分组"
+                      title={t.adminGroups.editGroup}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -568,7 +570,7 @@ export default function GroupsPage() {
                     <button
                       onClick={() => handleDeleteGroup(group.id, group.name)}
                       className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
-                      title="删除分组"
+                      title={t.adminGroups.deleteGroup}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -591,10 +593,10 @@ export default function GroupsPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold panel-text">
-                    分组图片 - {viewingGroup.name}
+                    {t.adminGroups.imagesInGroup} - {viewingGroup.name}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                    共 {viewingGroup.imageCount} 张图片
+                    {viewingGroup.imageCount} {t.adminGroups.images}
                   </p>
                 </div>
                 <button
@@ -623,7 +625,7 @@ export default function GroupsPage() {
                       </svg>
                     </div>
                     <p className="text-gray-500 dark:text-gray-400 panel-text">
-                      该分组暂无图片
+                      {t.adminGroups.noImagesInGroup}
                     </p>
                   </div>
                 ) : (
@@ -712,10 +714,10 @@ export default function GroupsPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold panel-text">
-                    未分组图片管理
+                    {t.adminGroups.unassignedImagesManagement}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                    选择图片并分配到分组中
+                    {t.adminGroups.selectAndAssign}
                   </p>
                 </div>
                 <button
@@ -734,20 +736,20 @@ export default function GroupsPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-4">
                       <span className="text-sm text-gray-600 dark:text-gray-400 panel-text">
-                        已选择 {selectedImages.size} 张图片
+                        {t.adminGroups.selectedCount} {selectedImages.size} {t.adminGroups.images}
                       </span>
                       <div className="flex space-x-2">
                         <button
                           onClick={selectAllImages}
                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
                         >
-                          全选
+                          {t.adminGroups.selectAll}
                         </button>
                         <button
                           onClick={clearSelection}
                           className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded transition-colors"
                         >
-                          清除选择
+                          {t.adminGroups.clearSelection}
                         </button>
                       </div>
                     </div>
@@ -797,9 +799,9 @@ export default function GroupsPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <h4 className="text-lg font-medium panel-text mb-2">所有图片都已分组</h4>
+                    <h4 className="text-lg font-medium panel-text mb-2">{t.adminGroups.allImagesAssigned}</h4>
                     <p className="text-gray-500 dark:text-gray-400 panel-text">
-                      没有未分组的图片需要处理
+                      {t.adminGroups.allImagesAssignedDesc}
                     </p>
                   </div>
                 ) : (
@@ -850,19 +852,6 @@ export default function GroupsPage() {
                     ))}
                   </div>
                 )}
-              </div>
-
-              {/* 底部操作 */}
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                  共 {unassignedImages.length} 张未分组图片
-                </div>
-                <button
-                  onClick={closeUnassignedImagesModal}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                >
-                  关闭
-                </button>
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
+import { useLocale } from "@/hooks/useLocale";
 
 interface Group {
   id: string;
@@ -57,6 +58,7 @@ export default function ImageUpload({
   groups,
   onUploadSuccess,
 }: ImageUploadProps) {
+  const { t } = useLocale();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileStates, setFileStates] = useState<FileUploadState[]>([]);
@@ -662,17 +664,10 @@ export default function ImageUpload({
           </div>
           <div>
             <p className="text-sm font-medium panel-text">
-              拖拽图片到此处，或
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-blue-600 hover:text-blue-700 ml-1"
-              >
-                点击选择文件
-              </button>
+              {t.adminImages.dragDropHint}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 panel-text mt-1">
-              支持 JPG、PNG、GIF、WebP 格式，单个文件最大 10MB
+              {t.adminImages.supportedFormats}
             </p>
           </div>
         </div>
@@ -805,7 +800,7 @@ export default function ImageUpload({
         {/* 图床选择器 */}
         <div>
           <label className="block text-xs font-medium panel-text mb-1">
-            图床服务
+            {t.adminImages.storageService}
           </label>
           {loadingProviders ? (
             <div className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-700 panel-text">
@@ -835,11 +830,20 @@ export default function ImageUpload({
                 const provider = providers.find(
                   (p) => p.id === selectedProvider
                 );
-                return provider ? (
+                if (!provider) return null;
+                
+                // 根据 provider.id 使用翻译
+                const descMap: Record<string, string> = {
+                  'cloudinary': t.adminImages.cloudinaryDesc,
+                  'tgstate': t.adminImages.tgStateDesc,
+                };
+                const desc = descMap[provider.id] || provider.description;
+                
+                return (
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {provider.description}
+                    {desc}
                   </p>
-                ) : null;
+                );
               })()}
             </div>
           )}
@@ -847,14 +851,14 @@ export default function ImageUpload({
 
         <div>
           <label className="block text-xs font-medium panel-text mb-1">
-            分组 (可选)
+            {t.adminImages.selectGroup} {t.adminImages.groupOptional}
           </label>
           <select
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
           >
-            <option value="">选择分组...</option>
+            <option value="">{t.adminImages.selectGroupPlaceholder}</option>
             {groups.map((group) => (
               <option key={group.id} value={group.id}>
                 {group.name}
@@ -864,13 +868,13 @@ export default function ImageUpload({
         </div>
         <div>
           <label className="block text-xs font-medium panel-text mb-1">
-            标签 (可选，用逗号分隔)
+            {t.adminImages.tagsOptional}
           </label>
           <input
             type="text"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            placeholder="例如: 风景, 自然, 蓝天"
+            placeholder={t.adminImages.tagsPlaceholder}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
           />
         </div>
@@ -909,7 +913,7 @@ export default function ImageUpload({
                 {Math.round(uploadProgress)}%
               </div>
             ) : (
-              `上传 ${fileStates.filter(fs => fs.status === 'pending').length} 张图片`
+              `${t.adminImages.uploadCount.replace('{count}', String(fileStates.filter(fs => fs.status === 'pending').length))}`
             )}
           </button>
           

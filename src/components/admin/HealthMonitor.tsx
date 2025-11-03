@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLocale } from '@/hooks/useLocale';
 
 interface HealthData {
   mainDatabase: {
@@ -23,6 +24,7 @@ interface HealthData {
 }
 
 export default function HealthMonitor() {
+  const { t } = useLocale();
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -76,7 +78,7 @@ export default function HealthMonitor() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-          <h2 className="text-xl font-semibold panel-text">系统健康监控</h2>
+          <h2 className="text-xl font-semibold panel-text">{t.healthMonitor.title}</h2>
         </div>
         <button
           onClick={handleRefresh}
@@ -86,11 +88,11 @@ export default function HealthMonitor() {
           <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          刷新
+          {refreshing ? t.healthMonitor.refreshing : t.healthMonitor.refresh}
         </button>
       </div>
       <p className="text-gray-600 dark:text-gray-300 panel-text mb-4">
-        实时监控数据库和系统状态
+        {t.healthMonitor.description}
       </p>
 
       <div className="space-y-4">
@@ -106,7 +108,7 @@ export default function HealthMonitor() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             )}
-            <span className="font-medium panel-text">整体状态</span>
+            <span className="font-medium panel-text">{t.healthMonitor.overallStatus}</span>
           </div>
           {healthData && (
             <span className={`px-2 py-1 text-xs rounded ${
@@ -114,8 +116,8 @@ export default function HealthMonitor() {
               healthData.overall.status === 'degraded' ? 'bg-yellow-500 text-white' :
               'bg-red-500 text-white'
             }`}>
-              {healthData.overall.status === 'healthy' ? '健康' :
-               healthData.overall.status === 'degraded' ? '降级' : '异常'}
+              {healthData.overall.status === 'healthy' ? t.healthMonitor.healthy :
+               healthData.overall.status === 'degraded' ? 'Degraded' : t.healthMonitor.unhealthy}
             </span>
           )}
         </div>
@@ -127,7 +129,7 @@ export default function HealthMonitor() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
               </svg>
-              <span className="font-medium panel-text">主数据库</span>
+              <span className="font-medium panel-text">{t.healthMonitor.mainDatabase}</span>
             </div>
             <div className="flex items-center gap-2">
               {healthData?.mainDatabase.healthy ? (
@@ -142,7 +144,7 @@ export default function HealthMonitor() {
               <span className={`px-2 py-1 text-xs rounded ${
                 healthData?.mainDatabase.status === 'healthy' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
               }`}>
-                {healthData?.mainDatabase.status === 'healthy' ? '健康' : '异常'}
+                {healthData?.mainDatabase.status === 'healthy' ? t.healthMonitor.healthy : t.healthMonitor.unhealthy}
               </span>
             </div>
           </div>
@@ -152,7 +154,7 @@ export default function HealthMonitor() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
               </svg>
-              <span className="font-medium panel-text">备份数据库</span>
+              <span className="font-medium panel-text">{t.healthMonitor.backupDatabase}</span>
             </div>
             <div className="flex items-center gap-2">
               {healthData?.backupDatabase.healthy ? (
@@ -167,7 +169,7 @@ export default function HealthMonitor() {
               <span className={`px-2 py-1 text-xs rounded ${
                 healthData?.backupDatabase.status === 'healthy' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
               }`}>
-                {healthData?.backupDatabase.status === 'healthy' ? '健康' : '异常'}
+                {healthData?.backupDatabase.status === 'healthy' ? t.healthMonitor.healthy : t.healthMonitor.unhealthy}
               </span>
             </div>
           </div>
@@ -176,19 +178,19 @@ export default function HealthMonitor() {
         {/* 统计信息 */}
         {healthData?.stats && (
           <div className="space-y-2">
-            <h4 className="font-medium panel-text">数据统计</h4>
+            <h4 className="font-medium panel-text">{t.healthMonitor.dataStats}</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-600 dark:text-gray-300">图片总数:</span>
+                <span className="text-gray-600 dark:text-gray-300">{t.healthMonitor.totalImagesLabel}:</span>
                 <span className="ml-2 font-medium panel-text">{healthData.stats.totalImages}</span>
               </div>
               <div>
-                <span className="text-gray-600 dark:text-gray-300">分组总数:</span>
+                <span className="text-gray-600 dark:text-gray-300">{t.healthMonitor.totalGroupsLabel}:</span>
                 <span className="ml-2 font-medium panel-text">{healthData.stats.totalGroups}</span>
               </div>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
-              最后检查: {new Date(healthData.stats.lastCheck).toLocaleString('zh-CN')}
+              {t.healthMonitor.lastCheck}: {new Date(healthData.stats.lastCheck).toLocaleString()}
             </div>
           </div>
         )}

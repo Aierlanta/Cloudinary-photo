@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import ParameterModal from '@/components/admin/ParameterModal'
+import { useLocale } from '@/hooks/useLocale'
 
 interface APIParameter {
   name: string
@@ -30,6 +31,7 @@ interface Group {
 }
 
 export default function ConfigPage() {
+  const { t } = useLocale();
   const [config, setConfig] = useState<APIConfig | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
@@ -115,32 +117,32 @@ export default function ConfigPage() {
   const saveConfig = async () => {
     if (!config) {
       console.error('配置为空，无法保存')
-      alert('配置未加载，请刷新页面重试')
+      alert(t.adminConfig.saveFailed)
       return
     }
 
     // 验证配置数据
     if (!config.defaultScope || !['all', 'groups'].includes(config.defaultScope)) {
-      alert('默认范围必须是 "all" 或 "groups"')
+      alert(t.adminConfig.invalidDefaultScope)
       return
     }
 
     // 验证参数配置
     for (const param of config.allowedParameters) {
       if (!param.name || param.name.trim() === '') {
-        alert('参数名称不能为空')
+        alert(t.adminConfig.invalidParameterName)
         return
       }
       if (!param.type || !['group', 'custom'].includes(param.type)) {
-        alert('参数类型必须是 "group" 或 "custom"')
+        alert(t.adminConfig.invalidParameterType)
         return
       }
       if (!param.allowedValues || param.allowedValues.length === 0) {
-        alert(`参数 "${param.name}" 必须至少有一个允许的值`)
+        alert(t.adminConfig.invalidAllowedValues)
         return
       }
       if (!param.mappedGroups || !Array.isArray(param.mappedGroups)) {
-        alert(`参数 "${param.name}" 的映射分组格式不正确`)
+        alert(t.adminConfig.invalidMappedGroups)
         return
       }
     }
@@ -170,7 +172,7 @@ export default function ConfigPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(data.message || '配置保存成功')
+        alert(data.message || t.adminConfig.saveSuccess)
         await loadConfig()
       } else {
         const errorData = await response.json()
@@ -179,11 +181,11 @@ export default function ConfigPage() {
           statusText: response.statusText,
           errorData
         })
-        alert(errorData.error?.message || `保存配置失败 (${response.status}: ${response.statusText})`)
+        alert(errorData.error?.message || `${t.adminConfig.saveFailed} (${response.status}: ${response.statusText})`)
       }
     } catch (error) {
       console.error('保存配置失败:', error)
-      alert(`保存配置失败: ${error instanceof Error ? error.message : '网络错误'}`)
+      alert(`${t.adminConfig.saveFailed}: ${error instanceof Error ? error.message : '网络错误'}`)
     } finally {
       setSaving(false)
     }
@@ -240,19 +242,19 @@ export default function ConfigPage() {
     const randomBaseUrl = generateApiUrl('random')
     const responseBaseUrl = generateApiUrl('response')
     const examples = [
-      { label: '重定向模式 (/api/random)', url: randomBaseUrl },
-      ...(config.enableDirectResponse ? [{ label: '直接响应模式 (/api/response)', url: responseBaseUrl }] : [])
+      { label: t.adminConfig.exampleRandom, url: randomBaseUrl },
+      ...(config.enableDirectResponse ? [{ label: t.adminConfig.exampleResponse, url: responseBaseUrl }] : [])
     ]
 
     config.allowedParameters.forEach(param => {
       if (param.isEnabled && param.allowedValues.length > 0) {
         examples.push({
-          label: `带参数 (${param.name}=${param.allowedValues[0]})`,
+          label: `${t.adminConfig.exampleWithParameter} (${param.name}=${param.allowedValues[0]})`,
           url: `${randomBaseUrl}?${param.name}=${param.allowedValues[0]}`
         })
         if (config.enableDirectResponse) {
           examples.push({
-            label: `直接响应带参数 (${param.name}=${param.allowedValues[0]})`,
+            label: `${t.adminConfig.exampleResponseWithParameter} (${param.name}=${param.allowedValues[0]})`,
             url: `${responseBaseUrl}?${param.name}=${param.allowedValues[0]}`
           })
         }
@@ -301,9 +303,9 @@ export default function ConfigPage() {
     return (
       <div className="space-y-6">
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
-          <h1 className="text-2xl font-bold panel-text mb-4">API配置</h1>
+          <h1 className="text-2xl font-bold panel-text mb-4">{t.adminConfig.title}</h1>
           <p className="text-red-600 dark:text-red-400">
-            加载配置失败，请刷新页面重试
+            {t.adminConfig.loadFailed}
           </p>
         </div>
       </div>
@@ -316,9 +318,9 @@ export default function ConfigPage() {
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold panel-text mb-2">API配置管理</h1>
+            <h1 className="text-2xl font-bold panel-text mb-2">{t.adminConfig.title}</h1>
             <p className="text-gray-600 dark:text-gray-300 panel-text">
-              配置公开API的参数和访问范围
+              {t.adminConfig.description}
             </p>
           </div>
           <div className="text-right">
@@ -326,7 +328,7 @@ export default function ConfigPage() {
               {config.isEnabled ? 'ON' : 'OFF'}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-              API状态
+              {t.adminConfig.apiStatus}
             </div>
           </div>
         </div>
@@ -342,10 +344,10 @@ export default function ConfigPage() {
                   onChange={(e) => setConfig({ ...config, isEnabled: e.target.checked })}
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                 />
-                <span className="ml-2 text-sm font-medium panel-text">启用公开API</span>
+                <span className="ml-2 text-sm font-medium panel-text">{t.adminConfig.enablePublicAPI}</span>
               </label>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                关闭后外部用户将无法访问随机图片API
+                {t.adminConfig.enablePublicAPIDesc}
               </p>
             </div>
 
@@ -357,10 +359,10 @@ export default function ConfigPage() {
                   onChange={(e) => setConfig({ ...config, enableDirectResponse: e.target.checked })}
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                 />
-                <span className="ml-2 text-sm font-medium panel-text">启用直接响应模式</span>
+                <span className="ml-2 text-sm font-medium panel-text">{t.adminConfig.enableDirectResponse}</span>
               </label>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                启用 /api/response 端点，直接返回图片数据流
+                {t.adminConfig.enableDirectResponseDesc}
               </p>
             </div>
           </div>
@@ -368,18 +370,18 @@ export default function ConfigPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <div>
               <label className="block text-sm font-medium panel-text mb-2">
-                默认访问范围
+                {t.adminConfig.defaultScope}
               </label>
               <select
                 value={config.defaultScope}
                 onChange={(e) => setConfig({ ...config, defaultScope: e.target.value as 'all' | 'groups' })}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
               >
-                <option value="all">所有图片</option>
-                <option value="groups">指定分组</option>
+                <option value="all">{t.adminConfig.scopeAll}</option>
+                <option value="groups">{t.adminConfig.scopeGroups}</option>
               </select>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                无参数访问时的默认图片范围
+                {t.adminConfig.defaultScopeDesc}
               </p>
             </div>
           </div>
@@ -387,7 +389,7 @@ export default function ConfigPage() {
           {config.defaultScope === 'groups' && (
             <div className="mt-4">
               <label className="block text-sm font-medium panel-text mb-2">
-                默认分组
+                {t.adminConfig.defaultGroups}
               </label>
               <div className="flex flex-wrap gap-2">
                 {groups.map(group => (
@@ -422,7 +424,7 @@ export default function ConfigPage() {
       {/* API参数管理 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold panel-text">API参数配置</h2>
+          <h2 className="text-lg font-semibold panel-text">{t.adminConfig.parameterManagement}</h2>
           <button
             onClick={() => setShowAddParameter(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
@@ -430,7 +432,7 @@ export default function ConfigPage() {
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            添加参数
+            {t.adminConfig.addParameter}
           </button>
         </div>
 
@@ -443,15 +445,15 @@ export default function ConfigPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium panel-text mb-2">暂无API参数</h3>
+            <h3 className="text-lg font-medium panel-text mb-2">{t.adminConfig.noParameters}</h3>
             <p className="text-gray-500 dark:text-gray-400 panel-text mb-4">
-              添加API参数来控制图片的筛选和访问
+              {t.adminConfig.addParameterDesc}
             </p>
             <button
               onClick={() => setShowAddParameter(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
             >
-              添加第一个参数
+              {t.adminConfig.addFirstParameter}
             </button>
           </div>
         ) : (
@@ -470,24 +472,24 @@ export default function ConfigPage() {
                           ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                       }`}>
-                        {param.isEnabled ? '启用' : '禁用'}
+                        {param.isEnabled ? t.adminConfig.enabled : t.adminConfig.disabled}
                       </span>
                       <span className={`ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                         param.type === 'group'
                           ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
                           : 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
                       }`}>
-                        {param.type === 'group' ? '分组参数' : '自定义参数'}
+                        {param.type === 'group' ? t.adminConfig.groupParameter : t.adminConfig.customParameter}
                       </span>
                     </div>
 
                     <div className="text-sm text-gray-600 dark:text-gray-300 panel-text mb-2">
-                      <strong>允许的值:</strong> {param.allowedValues.join(', ') || '无'}
+                      <strong>{t.adminConfig.allowedValues}:</strong> {param.allowedValues.join(', ') || t.adminConfig.none}
                     </div>
 
                     {param.type === 'group' && param.mappedGroups.length > 0 && (
                       <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                        <strong>映射分组:</strong> {param.mappedGroups.map(groupId => {
+                        <strong>{t.adminConfig.mappedGroups}:</strong> {param.mappedGroups.map(groupId => {
                           const group = groups.find(g => g.id === groupId)
                           return group?.name || groupId
                         }).join(', ')}
@@ -499,7 +501,7 @@ export default function ConfigPage() {
                     <button
                       onClick={() => setEditingParameter(param)}
                       className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-lg transition-colors"
-                      title="编辑参数"
+                      title={t.adminConfig.editParameter}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -508,7 +510,7 @@ export default function ConfigPage() {
                     <button
                       onClick={() => deleteParameter(index)}
                       className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
-                      title="删除参数"
+                      title={t.adminConfig.deleteParameter}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -524,12 +526,12 @@ export default function ConfigPage() {
 
       {/* API链接和示例 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-lg font-semibold panel-text mb-4">API访问链接</h2>
+        <h2 className="text-lg font-semibold panel-text mb-4">{t.adminConfig.apiLinks}</h2>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium panel-text mb-2">
-              基础API地址
+              {t.adminConfig.baseApiUrl}
             </label>
             <div className="flex">
               <input
@@ -541,7 +543,7 @@ export default function ConfigPage() {
               <button
                 onClick={() => navigator.clipboard.writeText(generateApiUrl())}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition-colors"
-                title="复制链接"
+                title={t.adminConfig.copyLink}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -552,7 +554,7 @@ export default function ConfigPage() {
 
           <div>
             <label className="block text-sm font-medium panel-text mb-2">
-              使用示例
+              {t.adminConfig.exampleUrls}
             </label>
             <div className="space-y-3">
               {generateExampleUrls().map((example, index) => (
@@ -570,7 +572,7 @@ export default function ConfigPage() {
                     <button
                       onClick={() => navigator.clipboard.writeText(example.url)}
                       className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white transition-colors"
-                      title="复制链接"
+                      title={t.adminConfig.copyLink}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -579,12 +581,12 @@ export default function ConfigPage() {
                     <button
                       onClick={() => window.open(example.url, '_blank')}
                       className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-r-lg transition-colors"
-                    title="在新窗口打开"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </button>
+                      title={t.adminConfig.openInNewTab}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -595,19 +597,19 @@ export default function ConfigPage() {
 
       {/* API测试 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-lg font-semibold panel-text mb-4">API测试</h2>
+        <h2 className="text-lg font-semibold panel-text mb-4">{t.adminConfig.apiTest}</h2>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium panel-text mb-2">
-              测试URL
+              {t.adminConfig.testUrl}
             </label>
             <div className="flex">
               <input
                 type="text"
                 value={testUrl}
                 onChange={(e) => setTestUrl(e.target.value)}
-                placeholder="输入要测试的API URL"
+                placeholder={t.adminConfig.testUrlPlaceholder}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
               />
               <button
@@ -615,7 +617,7 @@ export default function ConfigPage() {
                 disabled={!testUrl || testing}
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-r-lg transition-colors"
               >
-                {testing ? '测试中...' : '测试'}
+                {testing ? t.adminConfig.testing : t.adminConfig.test}
               </button>
             </div>
           </div>
@@ -623,22 +625,22 @@ export default function ConfigPage() {
           {testResult && (
             <div className={`p-4 rounded-lg ${testResult.success ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
               <h3 className={`font-medium mb-2 ${testResult.success ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
-                测试结果
+                {t.adminConfig.testResult}
               </h3>
               <div className="text-sm space-y-1">
                 {testResult.status && (
                   <div>
-                    <strong>状态:</strong> {testResult.status} {testResult.statusText}
+                    <strong>{t.adminConfig.status}:</strong> {testResult.status} {testResult.statusText}
                   </div>
                 )}
                 {testResult.error && (
                   <div className="text-red-600 dark:text-red-400">
-                    <strong>错误:</strong> {testResult.error}
+                    <strong>{t.adminConfig.error}:</strong> {testResult.error}
                   </div>
                 )}
                 {testResult.headers && (
                   <div>
-                    <strong>响应头:</strong>
+                    <strong>{t.adminConfig.headers}:</strong>
                     <pre className="mt-1 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto">
                       {JSON.stringify(testResult.headers, null, 2)}
                     </pre>
@@ -655,19 +657,9 @@ export default function ConfigPage() {
         <button
           onClick={saveConfig}
           disabled={saving}
-          className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+          className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
         >
-          {saving ? (
-            <div className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              保存中...
-            </div>
-          ) : (
-            '保存配置'
-          )}
+          {saving ? t.adminConfig.saving : t.adminConfig.saveConfig}
         </button>
       </div>
 

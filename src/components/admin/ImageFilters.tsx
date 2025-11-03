@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocale } from "@/hooks/useLocale";
 
 interface Group {
   id: string;
@@ -33,6 +34,7 @@ export default function ImageFilters({
   groups,
   onFilterChange,
 }: ImageFiltersProps) {
+  const { t } = useLocale();
   const [searchInput, setSearchInput] = useState(filters.search);
 
   // 搜索防抖
@@ -77,14 +79,14 @@ export default function ImageFilters({
       {/* 搜索框 */}
       <div>
         <label className="block text-xs font-medium panel-text mb-1">
-          搜索图片
+          {t.adminImages.imageList}
         </label>
         <div className="relative">
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="搜索文件名、标签..."
+            placeholder={t.adminImages.searchPlaceholder}
             className="w-full pl-8 pr-8 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
           />
           <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
@@ -135,14 +137,14 @@ export default function ImageFilters({
         {/* 分组筛选 */}
         <div>
           <label className="block text-xs font-medium panel-text mb-1">
-            按分组筛选
+            {t.adminImages.filterByGroup}
           </label>
           <select
             value={filters.groupId}
             onChange={(e) => onFilterChange({ groupId: e.target.value })}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
           >
-            <option value="">所有分组</option>
+            <option value="">{t.adminImages.allGroups}</option>
             <option value="unassigned">未分组</option>
             {groups.map((group) => (
               <option key={group.id} value={group.id}>
@@ -155,14 +157,14 @@ export default function ImageFilters({
         {/* 图床筛选 */}
         <div>
           <label className="block text-xs font-medium panel-text mb-1">
-            按图床筛选
+            {t.adminImages.filterByStorage}
           </label>
           <select
             value={filters.provider}
             onChange={(e) => onFilterChange({ provider: e.target.value })}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
           >
-            <option value="">所有图床</option>
+            <option value="">{t.adminImages.allStorages}</option>
             <option value="cloudinary">Cloudinary</option>
             <option value="tgstate">tgState</option>
           </select>
@@ -172,7 +174,7 @@ export default function ImageFilters({
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-xs font-medium panel-text mb-1">
-              开始日期
+              {t.adminImages.startDate}
             </label>
             <input
               type="date"
@@ -183,7 +185,7 @@ export default function ImageFilters({
           </div>
           <div>
             <label className="block text-xs font-medium panel-text mb-1">
-              结束日期
+              {t.adminImages.endDate}
             </label>
             <input
               type="date"
@@ -197,7 +199,7 @@ export default function ImageFilters({
         {/* 排序方式 */}
         <div>
           <label className="block text-xs font-medium panel-text mb-1">
-            排序方式
+            {t.adminImages.sortBy}
           </label>
           <select
             value={`${filters.sortBy || "uploadedAt"}-${
@@ -212,8 +214,8 @@ export default function ImageFilters({
             }}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
           >
-            <option value="uploadedAt-desc">最新上传</option>
-            <option value="uploadedAt-asc">最早上传</option>
+            <option value="uploadedAt-desc">{t.adminImages.latestUpload}</option>
+            <option value="uploadedAt-asc">{t.adminImages.oldestUpload}</option>
             <option value="filename-asc">文件名 A-Z</option>
             <option value="filename-desc">文件名 Z-A</option>
             <option value="bytes-desc">文件大小 大-小</option>
@@ -235,7 +237,7 @@ export default function ImageFilters({
           }
           className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded panel-text transition-colors"
         >
-          今天
+          {t.adminImages.today}
         </button>
         <button
           onClick={() =>
@@ -248,7 +250,7 @@ export default function ImageFilters({
           }
           className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded panel-text transition-colors"
         >
-          最近7天
+          {t.adminImages.last7Days}
         </button>
         <button
           onClick={() =>
@@ -261,7 +263,7 @@ export default function ImageFilters({
           }
           className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded panel-text transition-colors"
         >
-          最近30天
+          {t.adminImages.last30Days}
         </button>
         {/* 重置按钮 */}
         {hasActiveFilters && (

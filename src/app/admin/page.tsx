@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import HealthMonitor from '@/components/admin/HealthMonitor'
+import { useLocale } from '@/hooks/useLocale'
 
 interface Stats {
   totalImages: number
@@ -17,6 +18,7 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
+  const { t } = useLocale();
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -44,9 +46,9 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       {/* 欢迎标题 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h1 className="text-3xl font-bold panel-text mb-2">管理面板</h1>
+        <h1 className="text-3xl font-bold panel-text mb-2">{t.adminDashboard.title}</h1>
         <p className="text-gray-600 dark:text-gray-300 panel-text">
-          欢迎使用随机图片API管理系统
+          {t.adminDashboard.welcome}
         </p>
       </div>
 
@@ -60,7 +62,7 @@ export default function AdminDashboard() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">图片总数</h2>
+              <h2 className="text-lg font-semibold panel-text">{t.adminDashboard.totalImages}</h2>
               <p className="text-2xl font-bold text-blue-600 panel-text">
                 {loading ? '...' : stats?.totalImages || 0}
               </p>
@@ -76,7 +78,7 @@ export default function AdminDashboard() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">分组数量</h2>
+              <h2 className="text-lg font-semibold panel-text">{t.adminDashboard.groupCount}</h2>
               <p className="text-2xl font-bold text-green-600 panel-text">
                 {loading ? '...' : stats?.totalGroups || 0}
               </p>
@@ -93,7 +95,7 @@ export default function AdminDashboard() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">最近上传</h2>
+              <h2 className="text-lg font-semibold panel-text">{t.adminDashboard.recentUploads}</h2>
               <p className="text-2xl font-bold text-purple-600 panel-text">
                 {loading ? '...' : stats?.recentUploads || 0}
               </p>
@@ -109,10 +111,10 @@ export default function AdminDashboard() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">数据库备份</h2>
+              <h2 className="text-lg font-semibold panel-text">{t.adminDashboard.databaseBackup}</h2>
               <div className="flex items-center gap-2">
                 <p className="text-sm panel-text">
-                  {loading ? '...' : (stats?.backup.lastBackupTime || '从未备份')}
+                  {loading ? '...' : (stats?.backup.lastBackupTime || t.adminDashboard.neverBackedUp)}
                 </p>
                 {!loading && stats?.backup.isDatabaseHealthy && (
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -128,7 +130,7 @@ export default function AdminDashboard() {
 
       {/* 快速操作 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-xl font-semibold panel-text mb-4">快速操作</h2>
+        <h2 className="text-xl font-semibold panel-text mb-4">{t.adminDashboard.quickActions}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <a
             href="/admin/images"
@@ -137,7 +139,7 @@ export default function AdminDashboard() {
             <svg className="w-6 h-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            <span className="font-medium panel-text">上传图片</span>
+            <span className="font-medium panel-text">{t.adminDashboard.uploadImage}</span>
           </a>
           
           <a
@@ -147,7 +149,7 @@ export default function AdminDashboard() {
             <svg className="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <span className="font-medium panel-text">管理分组</span>
+            <span className="font-medium panel-text">{t.adminDashboard.manageGroups}</span>
           </a>
           
           <a
@@ -158,7 +160,7 @@ export default function AdminDashboard() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span className="font-medium panel-text">API配置</span>
+            <span className="font-medium panel-text">{t.adminDashboard.apiConfig}</span>
           </a>
           
           <a
@@ -168,7 +170,7 @@ export default function AdminDashboard() {
             <svg className="w-6 h-6 text-emerald-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
             </svg>
-            <span className="font-medium panel-text">备份管理</span>
+            <span className="font-medium panel-text">{t.adminDashboard.backupManagement}</span>
           </a>
 
           <a
@@ -179,7 +181,7 @@ export default function AdminDashboard() {
             <svg className="w-6 h-6 text-orange-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-            <span className="font-medium panel-text">测试API</span>
+            <span className="font-medium panel-text">{t.adminDashboard.testAPI}</span>
           </a>
         </div>
       </div>

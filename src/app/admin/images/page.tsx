@@ -6,6 +6,7 @@ import ImageList from "@/components/admin/ImageList";
 import ImageFilters from "@/components/admin/ImageFilters";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
+import { useLocale } from "@/hooks/useLocale";
 
 interface Image {
   id: string;
@@ -39,6 +40,7 @@ interface FilterState {
 }
 
 export default function ImagesPage() {
+  const { t } = useLocale();
   const [images, setImages] = useState<Image[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,7 +130,7 @@ export default function ImagesPage() {
   };
 
   const handleDeleteImage = async (imageId: string) => {
-    if (!confirm("确定要删除这张图片吗？")) return;
+    if (!confirm(t.adminImages.confirmDelete)) return;
 
     try {
       const response = await fetch(`/api/admin/images/${imageId}`, {
@@ -139,11 +141,11 @@ export default function ImagesPage() {
         // 重新加载图片列表
         setFilters((prev) => ({ ...prev }));
       } else {
-        showError("删除失败", "删除图片失败");
+        showError(t.adminGroups.deleteFailed, t.adminGroups.deleteFailed);
       }
     } catch (error) {
       console.error("删除图片失败:", error);
-      showError("删除失败", "删除图片失败");
+      showError(t.adminGroups.deleteFailed, t.adminGroups.deleteFailed);
     }
   };
 
@@ -159,15 +161,15 @@ export default function ImagesPage() {
 
       if (response.ok) {
         const data = await response.json();
-        success("删除成功", data.data.message);
+        success(t.adminGroups.deleteSuccess, data.data.message);
         // 重新加载图片列表
         setFilters((prev) => ({ ...prev }));
       } else {
-        showError("删除失败", "批量删除图片失败");
+        showError(t.adminGroups.deleteFailed, "批量删除图片失败");
       }
     } catch (error) {
       console.error("批量删除图片失败:", error);
-      showError("删除失败", "批量删除图片失败");
+      showError(t.adminGroups.deleteFailed, "批量删除图片失败");
     }
   };
 
@@ -215,15 +217,15 @@ export default function ImagesPage() {
 
       if (response.ok) {
         const data = await response.json();
-        success("批量更新成功", data.data.message);
+        success(t.adminGroups.updateSuccess, data.data.message);
         // 重新加载图片列表
         setFilters((prev) => ({ ...prev }));
       } else {
-        showError("批量更新失败", "批量更新图片失败");
+        showError(t.adminGroups.updateFailed, "批量更新图片失败");
       }
     } catch (error) {
       console.error("批量更新图片失败:", error);
-      showError("批量更新失败", "批量更新图片失败");
+      showError(t.adminGroups.updateFailed, "批量更新图片失败");
     }
   };
 
@@ -235,9 +237,9 @@ export default function ImagesPage() {
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold panel-text mb-2">图片管理</h1>
+            <h1 className="text-2xl font-bold panel-text mb-2">{t.adminImages.title}</h1>
             <p className="text-gray-600 dark:text-gray-300 panel-text">
-              上传、管理和组织您的图片库
+              {t.adminImages.description}
             </p>
           </div>
           <div className="text-right">
@@ -245,7 +247,7 @@ export default function ImagesPage() {
               {totalImages}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-              张图片
+              {t.adminImages.imagesCount}
             </div>
           </div>
         </div>
@@ -257,7 +259,7 @@ export default function ImagesPage() {
               {groups.length}
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-300">
-              分组数量
+              {t.adminImages.groupCount}
             </div>
           </div>
           <div className="text-center">
@@ -265,7 +267,7 @@ export default function ImagesPage() {
               {Math.ceil(totalImages / filters.limit)}
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-300">
-              总页数
+              {t.adminImages.totalPages}
             </div>
           </div>
           <div className="text-center">
@@ -273,7 +275,7 @@ export default function ImagesPage() {
               {filters.page}
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-300">
-              当前页
+              {t.adminImages.currentPage}
             </div>
           </div>
           <div className="text-center">
@@ -281,7 +283,7 @@ export default function ImagesPage() {
               {images.length}
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-300">
-              本页图片
+              {t.adminImages.imagesOnPage}
             </div>
           </div>
           <div className="text-center">
@@ -289,7 +291,7 @@ export default function ImagesPage() {
               {loadTime > 0 ? `${loadTime}ms` : "-"}
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-300">
-              加载时间
+              {t.adminImages.loadTime}
             </div>
           </div>
         </div>
@@ -300,7 +302,7 @@ export default function ImagesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 图片上传 */}
           <div>
-            <h2 className="text-lg font-semibold panel-text mb-4">上传图片</h2>
+            <h2 className="text-lg font-semibold panel-text mb-4">{t.adminImages.uploadImage}</h2>
             <ImageUpload
               groups={groups}
               onUploadSuccess={handleUploadSuccess}
@@ -310,7 +312,7 @@ export default function ImagesPage() {
           {/* 筛选器 */}
           <div>
             <h2 className="text-lg font-semibold panel-text mb-4">
-              筛选和搜索
+              {t.adminImages.filterAndSearch}
             </h2>
             <ImageFilters
               filters={filters}
@@ -325,10 +327,10 @@ export default function ImagesPage() {
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold panel-text">
-            图片列表 ({totalImages} 张)
+            {t.adminImages.imageList} ({totalImages} {t.adminImages.imagesCount})
           </h2>
           <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300 panel-text">
-            <span>每页显示:</span>
+            <span>{t.adminImages.itemsPerPage}:</span>
             <select
               value={filters.limit}
               onChange={(e) =>
@@ -362,7 +364,7 @@ export default function ImagesPage() {
               disabled={filters.page <= 1}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 panel-text"
             >
-              上一页
+              {t.adminImages.previousPage}
             </button>
 
             <div className="flex space-x-1">
@@ -391,7 +393,7 @@ export default function ImagesPage() {
               disabled={filters.page >= totalPages}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 panel-text"
             >
-              下一页
+              {t.adminImages.nextPage}
             </button>
           </div>
         )}

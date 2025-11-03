@@ -6,6 +6,7 @@ import AdminNavigation from '@/components/admin/AdminNavigation'
 import LoginForm from '@/components/admin/LoginForm'
 import TransparencyControl from '@/components/admin/TransparencyControl'
 import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
+import { LocaleProvider } from '@/hooks/useLocale'
 import {
   ADMIN_THEME_COOKIE,
   ADMIN_THEME_COOKIE_MAX_AGE,
@@ -185,36 +186,40 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <LoginForm onLogin={handleLogin} />
+      <LocaleProvider>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <LoginForm onLogin={handleLogin} />
+          </div>
         </div>
-      </div>
+      </LocaleProvider>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <TransparencyControl
-        opacity={panelOpacity}
-        onChange={setPanelOpacity}
-        theme={theme}
-        isManualTheme={isManualTheme}
-        onThemeToggle={handleThemeToggle}
-        onThemeReset={handleThemeReset}
-      />
+    <LocaleProvider>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <TransparencyControl
+          opacity={panelOpacity}
+          onChange={setPanelOpacity}
+          theme={theme}
+          isManualTheme={isManualTheme}
+          onThemeToggle={handleThemeToggle}
+          onThemeReset={handleThemeReset}
+        />
 
-      <div className="flex">
-        <AdminNavigation onLogout={handleLogout} onToggleCollapse={setSidebarCollapsed} />
+        <div className="flex">
+          <AdminNavigation onLogout={handleLogout} onToggleCollapse={setSidebarCollapsed} />
 
-        <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
-          <div className="p-6">
-            <ComponentErrorBoundary componentName="AdminPage">
-              {children}
-            </ComponentErrorBoundary>
-          </div>
-        </main>
+          <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+            <div className="p-6">
+              <ComponentErrorBoundary componentName="AdminPage">
+                {children}
+              </ComponentErrorBoundary>
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </LocaleProvider>
   )
 }

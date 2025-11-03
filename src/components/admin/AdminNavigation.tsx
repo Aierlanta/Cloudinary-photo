@@ -6,6 +6,8 @@ import Link from "next/link";
 
 import { usePathname } from "next/navigation";
 
+import { useLocale } from "@/hooks/useLocale";
+
 const navigationItems = [
   {
     name: "仪表板",
@@ -208,6 +210,7 @@ export default function AdminNavigation({
   onLogout,
   onToggleCollapse,
 }: AdminNavigationProps) {
+  const { t } = useLocale();
   const pathname = usePathname();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -222,7 +225,7 @@ export default function AdminNavigation({
 
   const navigationItems = [
     {
-      name: "仪表板",
+      name: t.adminNav.dashboard,
 
       href: "/admin",
 
@@ -251,7 +254,7 @@ export default function AdminNavigation({
     },
 
     {
-      name: "图片管理",
+      name: t.adminNav.images,
 
       href: "/admin/images",
 
@@ -273,7 +276,7 @@ export default function AdminNavigation({
     },
 
     {
-      name: "分组管理",
+      name: t.adminNav.groups,
 
       href: "/admin/groups",
 
@@ -295,7 +298,7 @@ export default function AdminNavigation({
     },
 
     {
-      name: "API配置",
+      name: t.adminNav.apiConfig,
 
       href: "/admin/config",
 
@@ -324,7 +327,7 @@ export default function AdminNavigation({
     },
 
     {
-      name: "系统状态",
+      name: t.adminNav.status,
 
       href: "/admin/status",
 
@@ -346,7 +349,7 @@ export default function AdminNavigation({
     },
 
     {
-      name: "系统日志",
+      name: 'Logs',
 
       href: "/admin/logs",
 
@@ -368,7 +371,7 @@ export default function AdminNavigation({
     },
 
     {
-      name: "备份管理",
+      name: t.adminNav.backup,
 
       href: "/admin/backup",
 
@@ -401,7 +404,7 @@ export default function AdminNavigation({
 
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           {!isCollapsed && (
-            <h2 className="text-lg font-semibold panel-text">管理面板</h2>
+            <h2 className="text-lg font-semibold panel-text">{t.adminDashboard.title}</h2>
           )}
 
           <button
@@ -478,7 +481,7 @@ export default function AdminNavigation({
               />
             </svg>
 
-            {!isCollapsed && <span className="ml-3 font-medium">退出登录</span>}
+            {!isCollapsed && <span className="ml-3 font-medium">{t.adminNav.logout}</span>}
           </button>
         </div>
       </div>

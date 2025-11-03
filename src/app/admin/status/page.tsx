@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocale } from '@/hooks/useLocale'
 
 interface SystemStatus {
   status: 'healthy' | 'degraded' | 'down'
@@ -62,6 +63,7 @@ interface SystemStatus {
 }
 
 export default function SystemStatusPage() {
+  const { t } = useLocale();
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -76,14 +78,14 @@ export default function SystemStatusPage() {
         if (data.success) {
           setStatus(data.data)
         } else {
-          setError('获取状态失败：响应格式错误')
+          setError(t.adminStatus.loadFailedFormat)
         }
       } else {
-        setError(`获取状态失败：HTTP ${response.status}`)
+        setError(`${t.adminStatus.loadFailedHttp} ${response.status}`)
       }
     } catch (error) {
       console.error('加载系统状态失败:', error)
-      setError('获取状态失败：网络错误')
+      setError(t.adminStatus.loadFailedNetwork)
     } finally {
       setLoading(false)
     }
@@ -106,11 +108,11 @@ export default function SystemStatusPage() {
     const minutes = Math.floor((seconds % 3600) / 60)
     
     if (days > 0) {
-      return `${days}天${hours}小时${minutes}分钟`
+      return `${days}${t.adminStatus.days}${hours}${t.adminStatus.hours}${minutes}${t.adminStatus.minutes}`
     } else if (hours > 0) {
-      return `${hours}小时${minutes}分钟`
+      return `${hours}${t.adminStatus.hours}${minutes}${t.adminStatus.minutes}`
     } else {
-      return `${minutes}分钟`
+      return `${minutes}${t.adminStatus.minutes}`
     }
   }
 
@@ -130,13 +132,13 @@ export default function SystemStatusPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'healthy':
-        return '正常'
+        return t.adminStatus.healthy
       case 'degraded':
-        return '部分可用'
+        return t.adminStatus.degraded
       case 'down':
-        return '不可用'
+        return t.adminStatus.down
       default:
-        return '未知'
+        return t.adminStatus.unknown
     }
   }
 
@@ -166,7 +168,7 @@ export default function SystemStatusPage() {
     return (
       <div className="space-y-6">
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
-          <h1 className="text-2xl font-bold panel-text mb-4">系统状态</h1>
+          <h1 className="text-2xl font-bold panel-text mb-4">{t.adminStatus.title}</h1>
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <div className="flex items-center">
               <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +180,7 @@ export default function SystemStatusPage() {
               onClick={loadStatus}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >
-              重试
+              {t.adminStatus.retry}
             </button>
           </div>
         </div>
@@ -196,9 +198,9 @@ export default function SystemStatusPage() {
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold panel-text mb-2">系统状态</h1>
+            <h1 className="text-2xl font-bold panel-text mb-2">{t.adminStatus.title}</h1>
             <p className="text-gray-600 dark:text-gray-300 panel-text">
-              实时监控系统运行状态和性能指标
+              {t.adminStatus.description}
             </p>
           </div>
           <div className="text-right">
@@ -206,7 +208,7 @@ export default function SystemStatusPage() {
               {getStatusText(status.status)}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-              系统状态
+              {t.adminStatus.systemStatus}
             </div>
           </div>
         </div>
@@ -217,7 +219,7 @@ export default function SystemStatusPage() {
               onClick={loadStatus}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm transition-colors"
             >
-              刷新状态
+              {t.adminStatus.refreshStatus}
             </button>
             <label className="flex items-center space-x-2">
               <input
@@ -226,11 +228,11 @@ export default function SystemStatusPage() {
                 onChange={(e) => setAutoRefresh(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm panel-text">自动刷新</span>
+              <span className="text-sm panel-text">{t.adminStatus.autoRefresh}</span>
             </label>
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            最后更新: {new Date(status.timestamp).toLocaleString('zh-CN')}
+            {t.adminStatus.lastUpdate}: {new Date(status.timestamp).toLocaleString('zh-CN')}
           </div>
         </div>
       </div>
@@ -245,7 +247,7 @@ export default function SystemStatusPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">运行时间</h2>
+              <h2 className="text-lg font-semibold panel-text">{t.adminStatus.uptime}</h2>
               <p className="text-2xl font-bold text-blue-600 panel-text">
                 {formatUptime(status.uptime)}
               </p>
@@ -261,7 +263,7 @@ export default function SystemStatusPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">健康评分</h2>
+              <h2 className="text-lg font-semibold panel-text">{t.adminStatus.healthScore}</h2>
               <p className={`text-2xl font-bold ${getHealthScoreColor(status.health.score)}`}>
                 {status.health.score}/100
               </p>
@@ -277,7 +279,7 @@ export default function SystemStatusPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">响应时间</h2>
+              <h2 className="text-lg font-semibold panel-text">{t.adminStatus.responseTime}</h2>
               <p className="text-2xl font-bold text-purple-600 panel-text">
                 {status.performance.responseTime}
               </p>
@@ -293,7 +295,7 @@ export default function SystemStatusPage() {
               </svg>
             </div>
             <div className="ml-4">
-              <h2 className="text-lg font-semibold panel-text">版本</h2>
+              <h2 className="text-lg font-semibold panel-text">{t.adminStatus.version}</h2>
               <p className="text-2xl font-bold text-orange-600 panel-text">
                 {status.version}
               </p>
@@ -304,27 +306,27 @@ export default function SystemStatusPage() {
 
       {/* 服务状态 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-xl font-semibold panel-text mb-4">服务状态</h2>
+        <h2 className="text-xl font-semibold panel-text mb-4">{t.adminStatus.serviceStatus}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* 数据库状态 */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium panel-text">数据库</h3>
+              <h3 className="font-medium panel-text">{t.adminStatus.database}</h3>
               <div className={`w-3 h-3 rounded-full ${
                 status.services.database.healthy ? 'bg-green-500' : 'bg-red-500'
               }`}></div>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              状态: {status.services.database.healthy ? '正常' : '异常'}
+              {t.adminStatus.status}: {status.services.database.healthy ? t.adminStatus.normal : t.adminStatus.abnormal}
             </p>
             {status.services.database.responseTime && (
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                响应时间: {status.services.database.responseTime}ms
+                {t.adminStatus.responseTime}: {status.services.database.responseTime}ms
               </p>
             )}
             {status.services.database.error && (
               <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                错误: {status.services.database.error}
+                {t.adminStatus.error}: {status.services.database.error}
               </p>
             )}
           </div>
@@ -338,16 +340,16 @@ export default function SystemStatusPage() {
               }`}></div>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              状态: {status.services.cloudinary.healthy ? '正常' : '异常'}
+              {t.adminStatus.status}: {status.services.cloudinary.healthy ? t.adminStatus.normal : t.adminStatus.abnormal}
             </p>
             {status.services.cloudinary.responseTime && (
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                响应时间: {status.services.cloudinary.responseTime}ms
+                {t.adminStatus.responseTime}: {status.services.cloudinary.responseTime}ms
               </p>
             )}
             {status.services.cloudinary.error && (
               <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                错误: {status.services.cloudinary.error}
+                {t.adminStatus.error}: {status.services.cloudinary.error}
               </p>
             )}
           </div>
@@ -355,22 +357,22 @@ export default function SystemStatusPage() {
           {/* API状态 */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium panel-text">API服务</h3>
+              <h3 className="font-medium panel-text">{t.adminStatus.apiService}</h3>
               <div className={`w-3 h-3 rounded-full ${
                 status.services.api.enabled ? 'bg-green-500' : 'bg-red-500'
               }`}></div>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              状态: {status.services.api.enabled ? '启用' : '禁用'}
+              {t.adminStatus.status}: {status.services.api.enabled ? t.adminStatus.enabled : t.adminStatus.disabled}
             </p>
             {status.services.api.parametersCount !== undefined && (
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                参数数量: {status.services.api.parametersCount}
+                {t.adminStatus.parametersCount}: {status.services.api.parametersCount}
               </p>
             )}
             {status.services.api.error && (
               <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                错误: {status.services.api.error}
+                {t.adminStatus.error}: {status.services.api.error}
               </p>
             )}
           </div>
@@ -381,22 +383,22 @@ export default function SystemStatusPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 内存使用 */}
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
-          <h2 className="text-xl font-semibold panel-text mb-4">内存使用</h2>
+          <h2 className="text-xl font-semibold panel-text mb-4">{t.adminStatus.memoryUsage}</h2>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm panel-text">已使用</span>
+              <span className="text-sm panel-text">{t.adminStatus.used}</span>
               <span className="text-sm font-medium panel-text">{status.performance.memoryUsage.used}MB</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm panel-text">总内存</span>
+              <span className="text-sm panel-text">{t.adminStatus.totalMemory}</span>
               <span className="text-sm font-medium panel-text">{status.performance.memoryUsage.total}MB</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm panel-text">堆内存</span>
+              <span className="text-sm panel-text">{t.adminStatus.heapMemory}</span>
               <span className="text-sm font-medium panel-text">{status.performance.memoryUsage.heap}MB</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm panel-text">外部内存</span>
+              <span className="text-sm panel-text">{t.adminStatus.externalMemory}</span>
               <span className="text-sm font-medium panel-text">{status.performance.memoryUsage.external}MB</span>
             </div>
           </div>
@@ -404,30 +406,30 @@ export default function SystemStatusPage() {
 
         {/* 系统统计 */}
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
-          <h2 className="text-xl font-semibold panel-text mb-4">系统统计</h2>
+          <h2 className="text-xl font-semibold panel-text mb-4">{t.adminStatus.systemStats}</h2>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm panel-text">图片总数</span>
+              <span className="text-sm panel-text">{t.adminStatus.totalImages}</span>
               <span className="text-sm font-medium panel-text">{status.stats.totalImages}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm panel-text">分组数量</span>
+              <span className="text-sm panel-text">{t.adminStatus.groupsCount}</span>
               <span className="text-sm font-medium panel-text">{status.stats.totalGroups}</span>
             </div>
             {status.stats.logStats && (
               <>
                 <div className="flex justify-between">
-                  <span className="text-sm panel-text">日志总数</span>
+                  <span className="text-sm panel-text">{t.adminStatus.totalLogs}</span>
                   <span className="text-sm font-medium panel-text">{status.stats.logStats.totalLogs}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm panel-text">最近错误</span>
+                  <span className="text-sm panel-text">{t.adminStatus.recentErrors}</span>
                   <span className="text-sm font-medium panel-text">{status.stats.logStats.recentErrors}</span>
                 </div>
               </>
             )}
             <div className="flex justify-between">
-              <span className="text-sm panel-text">环境</span>
+              <span className="text-sm panel-text">{t.adminStatus.environment}</span>
               <span className="text-sm font-medium panel-text">{status.environment}</span>
             </div>
           </div>
@@ -437,7 +439,7 @@ export default function SystemStatusPage() {
       {/* 健康问题 */}
       {status.health.issues.length > 0 && (
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
-          <h2 className="text-xl font-semibold panel-text mb-4">健康问题</h2>
+          <h2 className="text-xl font-semibold panel-text mb-4">{t.adminStatus.healthIssues}</h2>
           <div className="space-y-2">
             {status.health.issues.map((issue, index) => (
               <div key={index} className="flex items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/useToast';
+import { useLocale } from '@/hooks/useLocale';
 import { ToastContainer } from '@/components/ui/Toast';
 
 interface BackupStatus {
@@ -14,6 +15,7 @@ interface BackupStatus {
 }
 
 export default function BackupPage() {
+  const { t } = useLocale();
   const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -23,7 +25,7 @@ export default function BackupPage() {
 
   // 格式化时间为上海时区
   const formatShanghaiTime = (timeString: string | null): string => {
-    if (!timeString) return '从未备份';
+    if (!timeString) return t.adminBackup.neverBackedUp;
 
     try {
       const date = new Date(timeString);
@@ -51,10 +53,10 @@ export default function BackupPage() {
       if (data.success) {
         setBackupStatus(data.data);
       } else {
-        showError('获取备份状态失败');
+        showError(t.adminBackup.getStatusFailed);
       }
     } catch (error) {
-      showError('网络错误');
+      showError(t.adminBackup.networkError);
     } finally {
       setLoading(false);
     }
@@ -71,13 +73,13 @@ export default function BackupPage() {
       const data = await response.json();
       
       if (data.success) {
-        showSuccess('备份创建成功');
+        showSuccess(t.adminBackup.backupCreated);
         await fetchBackupStatus();
       } else {
-        showError(data.message || '备份创建失败');
+        showError(data.message || t.adminBackup.backupCreateFailed);
       }
     } catch (error) {
-      showError('网络错误');
+      showError(t.adminBackup.networkError);
     } finally {
       setIsCreatingBackup(false);
     }
@@ -85,7 +87,7 @@ export default function BackupPage() {
 
   // 还原备份
   const restoreBackup = async () => {
-    if (!confirm('确定要从备份数据库还原数据吗？这将覆盖当前的所有数据！')) {
+    if (!confirm(t.adminBackup.restoreConfirm)) {
       return;
     }
 
@@ -102,13 +104,13 @@ export default function BackupPage() {
       const data = await response.json();
       
       if (data.success) {
-        showSuccess('数据还原成功');
+        showSuccess(t.adminBackup.dataRestored);
         await fetchBackupStatus();
       } else {
-        showError(data.message || '数据还原失败');
+        showError(data.message || t.adminBackup.dataRestoreFailed);
       }
     } catch (error) {
-      showError('网络错误');
+      showError(t.adminBackup.networkError);
     } finally {
       setIsRestoring(false);
     }
@@ -125,12 +127,12 @@ export default function BackupPage() {
       const data = await response.json();
       
       if (data.success) {
-        showSuccess('备份数据库初始化成功');
+        showSuccess(t.adminBackup.backupDbInitialized);
       } else {
-        showError(data.message || '备份数据库初始化失败');
+        showError(data.message || t.adminBackup.backupDbInitFailed);
       }
     } catch (error) {
-      showError('网络错误');
+      showError(t.adminBackup.networkError);
     } finally {
       setIsInitializing(false);
     }
@@ -150,12 +152,12 @@ export default function BackupPage() {
       
       if (data.success) {
         setBackupStatus(prev => prev ? { ...prev, isAutoBackupEnabled: enabled } : null);
-        showSuccess('设置更新成功');
+        showSuccess(t.adminBackup.settingsUpdated);
       } else {
-        showError(data.message || '设置更新失败');
+        showError(data.message || t.adminBackup.settingsUpdateFailed);
       }
     } catch (error) {
-      showError('网络错误');
+      showError(t.adminBackup.networkError);
     }
   };
 
@@ -179,68 +181,68 @@ export default function BackupPage() {
       
       {/* 页面标题 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h1 className="text-3xl font-bold panel-text mb-2">数据库备份管理</h1>
+        <h1 className="text-3xl font-bold panel-text mb-2">{t.adminBackup.title}</h1>
         <p className="text-gray-600 dark:text-gray-300 panel-text">
-          管理数据库备份和还原操作
+          {t.adminBackup.description}
         </p>
       </div>
 
       {/* 备份状态 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-xl font-semibold panel-text mb-4">备份状态</h2>
+        <h2 className="text-xl font-semibold panel-text mb-4">{t.adminBackup.backupStatus}</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium panel-text">数据库健康状态</label>
+            <label className="text-sm font-medium panel-text">{t.adminBackup.databaseHealth}</label>
             <div className="flex items-center gap-2">
               {backupStatus?.isDatabaseHealthy ? (
                 <>
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm panel-text">健康</span>
+                  <span className="text-sm panel-text">{t.adminBackup.healthy}</span>
                 </>
               ) : (
                 <>
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-sm panel-text">异常</span>
+                  <span className="text-sm panel-text">{t.adminBackup.abnormal}</span>
                 </>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium panel-text">上次备份时间</label>
+            <label className="text-sm font-medium panel-text">{t.adminBackup.lastBackupTime}</label>
             <p className="text-sm panel-text">
               {formatShanghaiTime(backupStatus?.lastBackupTime || null)}
             </p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium panel-text">备份状态</label>
+            <label className="text-sm font-medium panel-text">{t.adminBackup.backupStatusLabel}</label>
             <div className="flex items-center gap-2">
               {backupStatus?.lastBackupSuccess ? (
                 <>
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm panel-text">成功</span>
+                  <span className="text-sm panel-text">{t.adminBackup.success}</span>
                 </>
               ) : (
                 <>
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm panel-text">失败</span>
+                  <span className="text-sm panel-text">{t.adminBackup.failed}</span>
                 </>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium panel-text">备份次数</label>
-            <p className="text-sm panel-text">{backupStatus?.backupCount || 0} 次</p>
+            <label className="text-sm font-medium panel-text">{t.adminBackup.backupCount}</label>
+            <p className="text-sm panel-text">{backupStatus?.backupCount || 0} {t.adminBackup.times}</p>
           </div>
         </div>
 
         {backupStatus?.lastBackupError && (
           <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg mb-4">
             <p className="text-sm text-red-700 dark:text-red-300">
-              上次备份错误：{backupStatus.lastBackupError}
+              {t.adminBackup.lastBackupError}: {backupStatus.lastBackupError}
             </p>
           </div>
         )}
@@ -248,7 +250,7 @@ export default function BackupPage() {
 
       {/* 备份操作 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-xl font-semibold panel-text mb-4">备份操作</h2>
+        <h2 className="text-xl font-semibold panel-text mb-4">{t.adminBackup.backupOperations}</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <button
@@ -263,7 +265,7 @@ export default function BackupPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
             )}
-            {isCreatingBackup ? '创建中...' : '立即备份'}
+            {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
           </button>
 
           <button
@@ -278,7 +280,7 @@ export default function BackupPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 11l3 3m0 0l3-3m-3 3V8" />
               </svg>
             )}
-            {isRestoring ? '还原中...' : '从备份还原'}
+            {isRestoring ? t.adminBackup.restoring : t.adminBackup.restoreFromBackup}
           </button>
 
           <button
@@ -294,20 +296,20 @@ export default function BackupPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             )}
-            {isInitializing ? '初始化中...' : '初始化备份数据库'}
+            {isInitializing ? t.adminBackup.initializing : t.adminBackup.initializeBackupDb}
           </button>
         </div>
 
         <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
           <p className="text-sm text-yellow-700 dark:text-yellow-300">
-            ⚠️ 还原操作将覆盖当前数据库中的所有数据，请谨慎操作！
+            {t.adminBackup.restoreWarning}
           </p>
         </div>
       </div>
 
       {/* 自动备份设置 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-xl font-semibold panel-text mb-4">自动备份设置</h2>
+        <h2 className="text-xl font-semibold panel-text mb-4">{t.adminBackup.autoBackupSettings}</h2>
         
         <div className="flex items-center space-x-3">
           <input
@@ -318,11 +320,11 @@ export default function BackupPage() {
             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
           />
           <label htmlFor="auto-backup" className="text-sm font-medium panel-text">
-            启用自动备份
+            {t.adminBackup.enableAutoBackup}
           </label>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-300 panel-text mt-2">
-          启用后，系统将每6小时自动创建一次数据库备份
+          {t.adminBackup.autoBackupDescription}数据库备份
         </p>
       </div>
     </div>

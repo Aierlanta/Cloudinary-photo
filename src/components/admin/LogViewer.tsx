@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { LogLevel } from '@/lib/logger'
+import { useLocale } from '@/hooks/useLocale'
 
 interface LogEntry {
   timestamp: Date
@@ -23,6 +24,7 @@ export default function LogViewer({
   autoRefresh: initialAutoRefresh = false,
   refreshInterval = 5000
 }: LogViewerProps) {
+  const { t } = useLocale();
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -82,14 +84,14 @@ export default function LogViewer({
             totalPages: data.data?.totalPages || 0
           }))
         } else {
-          setError('获取日志失败：响应格式错误')
+          setError(t.adminLogs.loadFailedFormat)
         }
       } else {
-        setError(`获取日志失败：HTTP ${response.status}`)
+        setError(`${t.adminLogs.loadFailedHttp} ${response.status}`)
       }
     } catch (error) {
       console.error('加载日志失败:', error)
-      setError('获取日志失败：网络错误')
+      setError(t.adminLogs.loadFailedNetwork)
     } finally {
       setLoading(false)
     }
@@ -133,6 +135,111 @@ export default function LogViewer({
     return LogLevel[level] || 'UNKNOWN'
   }
 
+  // 翻译日志消息（智能模式匹配）
+  const translateLogMessage = (message: string): string => {
+    // 关键词模式匹配（按优先级排序）
+    const patterns: Array<{ pattern: RegExp; key: keyof typeof t.adminLogs.logMessages }> = [
+      // API 相关
+      { pattern: /API.*状态.*检查.*成功/i, key: 'apiStatusCheckSuccess' },
+      { pattern: /API.*状态.*检查.*失败/i, key: 'apiStatusCheckFailed' },
+      { pattern: /API.*状态.*记录/i, key: 'apiStatusRecorded' },
+      { pattern: /API.*状态.*完成/i, key: 'statusCheckComplete' },
+      
+      // 状态检查
+      { pattern: /.*状态.*检查.*完成/i, key: 'statusCheckComplete' },
+      { pattern: /.*自检.*完成/i, key: 'statusCheckComplete' },
+      
+      // 配置相关
+      { pattern: /.*配置.*保存.*成功/i, key: 'configSaveSuccess' },
+      { pattern: /.*配置.*更新/i, key: 'configUpdated' },
+      { pattern: /.*配置.*开.*启/i, key: 'configUpdated' },
+      { pattern: /.*配置.*开.*始/i, key: 'configUpdated' },
+      
+      // 存储相关
+      { pattern: /.*存储.*缺失/i, key: 'queryLastUsedStorage' },
+      { pattern: /.*上传.*存储/i, key: 'uploadLogToStorage' },
+      
+      // 管理操作
+      { pattern: /.*管理.*操作.*日志/i, key: 'getAdminActionLogs' },
+      { pattern: /.*获取.*日志/i, key: 'getAdminActionLogs' },
+      
+      // 任务相关
+      { pattern: /.*启动.*任务/i, key: 'startScheduledCleanup' },
+      { pattern: /.*开始.*任务/i, key: 'startScheduledCleanup' },
+      { pattern: /.*清理.*任务/i, key: 'startScheduledCleanup' },
+      
+      // 分组操作
+      { pattern: /.*分组.*操作/i, key: 'executeGroupOperation' },
+      { pattern: /.*分组.*创建/i, key: 'groupCreated' },
+      { pattern: /.*分组.*删除/i, key: 'groupDeleted' },
+      
+      // 数据库
+      { pattern: /.*数据库.*成功/i, key: 'databaseQuerySuccess' },
+      { pattern: /.*数据库.*失败/i, key: 'databaseQueryFailed' },
+      
+      // 图片操作
+      { pattern: /.*图片.*上传/i, key: 'imageUploaded' },
+      { pattern: /.*图片.*删除/i, key: 'imageDeleted' },
+      
+      // 备份相关
+      { pattern: /.*备份状态.*查询.*成功/i, key: 'backupStatusQueried' },
+      { pattern: /.*手动备份.*成功/i, key: 'manualBackupSuccess' },
+      { pattern: /.*数据库备份.*完成/i, key: 'databaseBackupComplete' },
+      { pattern: /.*开始.*数据库备份/i, key: 'startDatabaseBackup' },
+      { pattern: /.*表.*备份.*完成/i, key: 'tableBackupComplete' },
+      { pattern: /.*表数据.*逐行.*复制.*完成/i, key: 'tableDataRowCopied' },
+      { pattern: /.*表数据.*复制.*完成/i, key: 'tableDataCopied' },
+      { pattern: /.*表结构.*复制.*完成/i, key: 'tableStructureCopied' },
+      { pattern: /.*清空备份表.*成功/i, key: 'backupTableCleared' },
+      { pattern: /.*发现.*表.*备份/i, key: 'tablesFoundForBackup' },
+      { pattern: /.*跳过.*备份/i, key: 'skipBackup' },
+      { pattern: /.*启动.*备份.*调度器/i, key: 'startLogScheduler' },
+      { pattern: /.*备份.*操作/i, key: 'backupOperation' },
+      
+      // 任务相关（更具体）
+      { pattern: /.*定时.*清除/i, key: 'cleanupTask' },
+      { pattern: /.*定时.*处理/i, key: 'processingTask' },
+      { pattern: /.*定期.*处理/i, key: 'processingTask' },
+      { pattern: /.*定时.*任务/i, key: 'scheduleTask' },
+      { pattern: /.*定期.*任务/i, key: 'scheduleTask' },
+      
+      // 统计相关
+      { pattern: /.*统计.*日志/i, key: 'statisticsLog' },
+      { pattern: /.*统计.*任务/i, key: 'statisticsLog' },
+      
+      // 日志清理
+      { pattern: /.*没有.*清理.*旧日志/i, key: 'noOldLogs' },
+      { pattern: /.*开始.*日志清理/i, key: 'startLogCleanup' },
+      { pattern: /.*执行.*日志清理/i, key: 'startLogCleanup' },
+      { pattern: /.*启动.*清理.*调度器/i, key: 'startLogScheduler' },
+      
+      // 系统检查
+      { pattern: /.*开始.*系统.*检查/i, key: 'startSystemCheck' },
+      
+      // 其他
+      { pattern: /.*用户操作/i, key: 'userActionRecorded' },
+      { pattern: /.*安全事件/i, key: 'securityEventDetected' },
+      { pattern: /.*参数.*更新/i, key: 'parameterUpdated' },
+    ];
+
+    // 尝试模式匹配
+    for (const { pattern, key } of patterns) {
+      if (pattern.test(message)) {
+        // 如果原消息包含数字或特殊信息，保留它们
+        const translated = t.adminLogs.logMessages[key];
+        // 尝试提取数字和特殊标识
+        const numbers = message.match(/\d+/g);
+        if (numbers && numbers.length > 0) {
+          return `${translated} (${numbers.join(', ')})`;
+        }
+        return translated;
+      }
+    }
+
+    // 没有匹配则返回原消息
+    return message;
+  };
+
   const formatTimestamp = (timestamp: Date | string) => {
     try {
       const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
@@ -147,20 +254,20 @@ export default function LogViewer({
         hour12: false
       });
     } catch (error) {
-      return '无效时间';
+      return t.adminLogs.invalidTime;
     }
   }
 
   return (
     <div className="transparent-panel rounded-lg p-6 shadow-lg">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold panel-text">系统日志</h2>
+        <h2 className="text-lg font-semibold panel-text">{t.adminLogs.systemLogs}</h2>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => loadLogs()}
             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
           >
-            刷新
+            {t.adminLogs.refresh}
           </button>
           {(process.env.NODE_ENV === 'development' || true) && (
             <button
@@ -176,7 +283,7 @@ export default function LogViewer({
               }}
               className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors"
             >
-              生成测试日志
+              {t.adminLogs.generateTestLog}
             </button>
           )}
           <label className="flex items-center text-sm panel-text">
@@ -186,7 +293,7 @@ export default function LogViewer({
               onChange={(e) => setAutoRefresh(e.target.checked)}
               className="mr-2"
             />
-            自动刷新
+            {t.adminLogs.autoRefresh}
           </label>
         </div>
       </div>
@@ -197,14 +304,14 @@ export default function LogViewer({
           {/* 日志级别过滤 */}
           <div>
             <label className="block text-sm font-medium panel-text mb-2">
-              日志级别
+              {t.adminLogs.logLevel}
             </label>
             <select
               value={filter.level}
               onChange={(e) => setFilter(prev => ({ ...prev, level: e.target.value as LogLevel | 'all' }))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="all">全部级别</option>
+              <option value="all">{t.adminLogs.allLevels}</option>
               <option value={LogLevel.DEBUG}>DEBUG</option>
               <option value={LogLevel.INFO}>INFO</option>
               <option value={LogLevel.WARN}>WARN</option>
@@ -215,29 +322,29 @@ export default function LogViewer({
           {/* 日志类型过滤 */}
           <div>
             <label className="block text-sm font-medium panel-text mb-2">
-              日志类型
+              {t.adminLogs.logType}
             </label>
             <select
               value={filter.type}
               onChange={(e) => setFilter(prev => ({ ...prev, type: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="all">全部类型</option>
-              <option value="api_request">API请求</option>
-              <option value="api_response">API响应</option>
-              <option value="database">数据库</option>
-              <option value="user_action">用户操作</option>
-              <option value="security">安全</option>
-              <option value="admin_action">管理操作</option>
-              <option value="api_status">状态检查</option>
-              <option value="api_config">配置管理</option>
+              <option value="all">{t.adminLogs.allTypes}</option>
+              <option value="api_request">{t.adminLogs.apiRequest}</option>
+              <option value="api_response">{t.adminLogs.apiResponse}</option>
+              <option value="database">{t.adminLogs.database}</option>
+              <option value="user_action">{t.adminLogs.userAction}</option>
+              <option value="security">{t.adminLogs.security}</option>
+              <option value="admin_action">{t.adminLogs.adminAction}</option>
+              <option value="api_status">{t.adminLogs.statusCheck}</option>
+              <option value="api_config">{t.adminLogs.configManagement}</option>
             </select>
           </div>
 
           {/* 时间范围 */}
           <div>
             <label className="block text-sm font-medium panel-text mb-2">
-              时间范围
+              {t.adminLogs.timeRange}
             </label>
             <select
               value={filter.timeRange || 'all'}
@@ -276,18 +383,18 @@ export default function LogViewer({
               }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="all">全部时间</option>
-              <option value="1h">最近1小时</option>
-              <option value="24h">最近24小时</option>
-              <option value="7d">最近7天</option>
-              <option value="30d">最近30天</option>
+              <option value="all">{t.adminLogs.allTime}</option>
+              <option value="1h">{t.adminLogs.lastHour}</option>
+              <option value="24h">{t.adminLogs.last24Hours}</option>
+              <option value="7d">{t.adminLogs.last7Days}</option>
+              <option value="30d">{t.adminLogs.last30Days}</option>
             </select>
           </div>
 
           {/* 每页条数 */}
           <div>
             <label className="block text-sm font-medium panel-text mb-2">
-              每页条数
+              {t.adminLogs.itemsPerPage}
             </label>
             <select
               value={pagination.limit}
@@ -298,10 +405,10 @@ export default function LogViewer({
               }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="25">25条</option>
-              <option value="50">50条</option>
-              <option value="100">100条</option>
-              <option value="200">200条</option>
+              <option value="25">{t.adminLogs.items25}</option>
+              <option value="50">{t.adminLogs.items50}</option>
+              <option value="100">{t.adminLogs.items100}</option>
+              <option value="200">{t.adminLogs.items200}</option>
             </select>
           </div>
         </div>
@@ -310,14 +417,14 @@ export default function LogViewer({
         <div className="flex items-end space-x-4">
           <div className="flex-1">
             <label className="block text-sm font-medium panel-text mb-2">
-              搜索日志消息
+              {t.adminLogs.searchLogMessage}
             </label>
             <div className="relative">
               <input
                 type="text"
                 value={filter.search}
                 onChange={(e) => setFilter(prev => ({ ...prev, search: e.target.value }))}
-                placeholder="搜索日志消息、错误信息、用户ID等..."
+                placeholder={t.adminLogs.searchPlaceholder}
                 className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -343,7 +450,7 @@ export default function LogViewer({
             }}
             className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
-            清除过滤器
+            {t.adminLogs.clearFilters}
           </button>
         </div>
       </div>
@@ -393,11 +500,11 @@ export default function LogViewer({
                         </span>
                       )}
                     </div>
-                    <p className="text-sm panel-text mb-1">{log.message}</p>
+                    <p className="text-sm panel-text mb-1">{translateLogMessage(log.message)}</p>
                     {log.context && Object.keys(log.context).length > 0 && (
                       <details className="mt-2">
                         <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
-                          查看详情
+                          {t.adminLogs.viewDetails}
                         </summary>
                         <pre className="text-xs text-gray-600 dark:text-gray-300 mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto">
                           {JSON.stringify(log.context, null, 2)}
@@ -433,7 +540,10 @@ export default function LogViewer({
       {pagination.totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            第 {pagination.page} 页，共 {pagination.totalPages} 页 (总计 {pagination.total} 条记录)
+            {t.adminLogs.pageInfo
+              .replace('{page}', pagination.page.toString())
+              .replace('{totalPages}', pagination.totalPages.toString())
+              .replace('{total}', pagination.total.toString())}
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -441,7 +551,7 @@ export default function LogViewer({
               disabled={pagination.page <= 1}
               className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600"
             >
-              上一页
+              {t.adminLogs.previous}
             </button>
             <span className="text-sm text-gray-500 dark:text-gray-400">
               {pagination.page} / {pagination.totalPages}
@@ -451,7 +561,7 @@ export default function LogViewer({
               disabled={pagination.page >= pagination.totalPages}
               className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600"
             >
-              下一页
+              {t.adminLogs.next}
             </button>
           </div>
         </div>
@@ -459,10 +569,10 @@ export default function LogViewer({
 
       {/* 统计信息 */}
       <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 panel-text">
-        显示 {logs.length} 条日志记录
-        {filter.search && ` (搜索: "${filter.search}")`}
-        {filter.level !== 'all' && ` (级别: ${getLevelName(filter.level as LogLevel)})`}
-        {filter.type !== 'all' && ` (类型: ${filter.type})`}
+        {t.adminLogs.showingRecords.replace('{count}', logs.length.toString())}
+        {filter.search && ` (${t.adminLogs.searchFilter.replace('{search}', filter.search)})`}
+        {filter.level !== 'all' && ` (${t.adminLogs.levelFilter.replace('{level}', getLevelName(filter.level as LogLevel))})`}
+        {filter.type !== 'all' && ` (${t.adminLogs.typeFilter.replace('{type}', filter.type)})`}
       </div>
     </div>
   )

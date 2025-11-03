@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
+import { useLocale } from '@/hooks/useLocale'
 
 interface APIParameter {
   name: string
@@ -37,6 +38,7 @@ export default function ParameterModal({
   onSave, 
   isEditing 
 }: ParameterModalProps) {
+  const { t } = useLocale();
   const [formData, setFormData] = useState<APIParameter>({
     name: '',
     type: 'group',
@@ -65,12 +67,12 @@ export default function ParameterModal({
 
   const handleSave = () => {
     if (!formData.name.trim()) {
-      showError('验证失败', '请输入参数名称')
+      showError(t.adminConfig.validationError, t.adminConfig.validationFailedEnterName)
       return
     }
 
     if (formData.allowedValues.length === 0) {
-      showError('验证失败', '请至少添加一个允许的值')
+      showError(t.adminConfig.validationError, t.adminConfig.validationFailedAddValue)
       return
     }
 
@@ -82,7 +84,7 @@ export default function ParameterModal({
     if (!newValue.trim()) return
     
     if (formData.allowedValues.includes(newValue.trim())) {
-      alert('该值已存在')
+      alert(t.adminConfig.valueAlreadyExists)
       return
     }
 
@@ -123,7 +125,7 @@ export default function ParameterModal({
           {/* 头部 */}
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold panel-text">
-              {isEditing ? '编辑API参数' : '添加API参数'}
+              {isEditing ? t.adminConfig.editApiParameter : t.adminConfig.addApiParameter}
             </h3>
             <button
               onClick={onClose}
@@ -141,28 +143,28 @@ export default function ParameterModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium panel-text mb-2">
-                  参数名称 *
+                  {t.adminConfig.parameterNameLabel} *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="例如: category, style"
+                  placeholder={t.adminConfig.parameterNamePlaceholder}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium panel-text mb-2">
-                  参数类型
+                  {t.adminConfig.parameterTypeLabel}
                 </label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as 'group' | 'custom' })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
                 >
-                  <option value="group">分组参数</option>
-                  <option value="custom">自定义参数</option>
+                  <option value="group">{t.adminConfig.groupParameterOption}</option>
+                  <option value="custom">{t.adminConfig.customParameterOption}</option>
                 </select>
               </div>
             </div>
@@ -176,21 +178,21 @@ export default function ParameterModal({
                   onChange={(e) => setFormData({ ...formData, isEnabled: e.target.checked })}
                   className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                 />
-                <span className="ml-2 text-sm font-medium panel-text">启用此参数</span>
+                <span className="ml-2 text-sm font-medium panel-text">{t.adminConfig.enableParameter}</span>
               </label>
             </div>
 
             {/* 允许的值 */}
             <div>
               <label className="block text-sm font-medium panel-text mb-2">
-                允许的值 *
+                {t.adminConfig.allowedValuesLabel} *
               </label>
               <div className="flex mb-3">
                 <input
                   type="text"
                   value={newValue}
                   onChange={(e) => setNewValue(e.target.value)}
-                  placeholder="输入参数值"
+                  placeholder={t.adminConfig.enterParameterValue}
                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
                   onKeyPress={(e) => e.key === 'Enter' && addValue()}
                 />
@@ -198,7 +200,7 @@ export default function ParameterModal({
                   onClick={addValue}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition-colors"
                 >
-                  添加
+                  {t.adminConfig.add}
                 </button>
               </div>
               
@@ -226,10 +228,10 @@ export default function ParameterModal({
             {formData.type === 'group' && (
               <div>
                 <label className="block text-sm font-medium panel-text mb-2">
-                  映射到分组
+                  {t.adminConfig.mappedGroupsLabel}
                 </label>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  选择参数值对应的分组，用户使用此参数时将从这些分组中随机返回图片
+                  {t.adminConfig.mappedGroupsDesc}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                   {groups.map(group => (
@@ -255,13 +257,13 @@ export default function ParameterModal({
               onClick={handleSave}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
             >
-              {isEditing ? '更新参数' : '添加参数'}
+              {isEditing ? t.adminConfig.updateParameter : t.adminConfig.addParameterButton}
             </button>
             <button
               onClick={onClose}
               className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors"
             >
-              取消
+              {t.adminConfig.cancel}
             </button>
           </div>
         </div>

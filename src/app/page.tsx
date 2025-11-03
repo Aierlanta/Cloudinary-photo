@@ -10,6 +10,7 @@ import {
   setSiteManualTheme,
   clearSiteManualTheme,
 } from "@/lib/adminTheme";
+import { useLocale, LocaleProvider } from "@/hooks/useLocale";
 
 interface APIStatus {
   status: string;
@@ -24,7 +25,8 @@ interface APIStatus {
   };
 }
 
-export default function Home() {
+function HomeContent() {
+  const { locale, t, toggleLocale } = useLocale();
   const [apiStatus, setApiStatus] = useState<APIStatus | null>(null);
   const [randomImageUrl, setRandomImageUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -123,7 +125,7 @@ export default function Home() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                随机图片API
+                {locale === 'zh' ? '随机图片API' : 'Random Image API'}
               </h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -131,18 +133,26 @@ export default function Home() {
                 href="/admin"
                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
-                管理面板
+                {t.home.managementPanel}
               </Link>
               <Link
                 href="/api/docs"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                API文档
+                {t.home.apiDocs}
               </Link>
               <button
+                onClick={toggleLocale}
+                title={t.home.toggleLanguage}
+                aria-label={t.home.toggleLanguage}
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-semibold"
+              >
+                {locale === 'zh' ? 'EN' : '中'}
+              </button>
+              <button
                 onClick={handleThemeToggle}
-                title="切换日间/夜间"
-                aria-label="切换日间/夜间"
+                title={t.home.toggleTheme}
+                aria-label={t.home.toggleTheme}
                 className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 {theme === "dark" ? (
@@ -166,11 +176,10 @@ export default function Home() {
         {/* 主标题区域 */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">
-            随机图片API服务
+            {t.home.title}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            简单易用的随机图片API，支持参数筛选，完美适配各种应用场景。
-            直接通过HTTP请求获取高质量随机图片。
+            {t.home.subtitle}
           </p>
 
           {/* API状态指示器 */}
@@ -184,7 +193,7 @@ export default function Home() {
                 }`}
               ></div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                API状态: {apiStatus.status === "healthy" ? "正常" : "部分可用"}
+                {t.home.apiStatus}: {apiStatus.status === "healthy" ? t.home.statusHealthy : t.home.statusPartial}
               </span>
             </div>
           )}
@@ -193,19 +202,19 @@ export default function Home() {
         {/* 快速体验区域 */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-16">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
-            快速体验
+            {t.home.quickExperience}
           </h2>
 
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                随机图片预览
+                {t.home.randomImagePreview}
               </h3>
               <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4 relative">
                 {randomImageUrl ? (
                   <img
                     src={randomImageUrl}
-                    alt="随机图片"
+                    alt={t.home.randomImagePreview}
                     className="w-full h-64 object-cover rounded-lg"
                     onLoad={() => setImageLoading(false)}
                     onError={() => {
@@ -216,8 +225,8 @@ export default function Home() {
                 ) : (
                   <div className="w-full h-64 flex items-center justify-center bg-gray-200 dark:bg-gray-600 rounded-lg">
                     <div className="text-center text-gray-500 dark:text-gray-400">
-                      <p className="mb-2">暂无图片</p>
-                      <p className="text-sm">请先在管理面板中上传图片</p>
+                      <p className="mb-2">{t.home.noImage}</p>
+                      <p className="text-sm">{t.home.uploadFirst}</p>
                     </div>
                   </div>
                 )}
@@ -226,7 +235,7 @@ export default function Home() {
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
                     <div className="text-center text-white">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                      <p>加载中...</p>
+                      <p>{t.common.loading}</p>
                     </div>
                   </div>
                 )}
@@ -236,18 +245,18 @@ export default function Home() {
                 disabled={imageLoading}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
-                {imageLoading ? "加载中..." : "刷新图片"}
+                {imageLoading ? t.common.loading : t.home.refreshImage}
               </button>
             </div>
 
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                API调用示例
+                {t.home.apiCallExample}
               </h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    基础调用
+                    {t.home.basicCall}
                   </label>
                   <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between">
                     <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
@@ -258,16 +267,16 @@ export default function Home() {
                         navigator.clipboard.writeText(`${baseUrl}/api/random`)
                       }
                       className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                      title="复制链接"
+                      title={t.common.copy}
                     >
-                      复制
+                      {t.common.copy}
                     </button>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    HTML中使用
+                    {t.home.htmlUsage}
                   </label>
                   <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between">
                     <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
@@ -280,9 +289,9 @@ export default function Home() {
                         )
                       }
                       className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                      title="复制代码"
+                      title={t.common.copy}
                     >
-                      复制
+                      {t.common.copy}
                     </button>
                   </div>
                 </div>
@@ -310,10 +319,10 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              高性能
+              {t.features.performance.title}
             </h3>
             <p className="text-gray-600 dark:text-gray-300">
-              基于Cloudinary CDN，全球加速，毫秒级响应，支持高并发访问。
+              {t.features.performance.description}
             </p>
           </div>
 
@@ -334,10 +343,10 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              简单易用
+              {t.features.easyToUse.title}
             </h3>
             <p className="text-gray-600 dark:text-gray-300">
-              RESTful API设计，无需认证，一个URL即可获取随机图片。
+              {t.features.easyToUse.description}
             </p>
           </div>
 
@@ -358,10 +367,10 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              灵活配置
+              {t.features.flexible.title}
             </h3>
             <p className="text-gray-600 dark:text-gray-300">
-              支持参数筛选，可按分类、风格等条件获取特定类型图片。
+              {t.features.flexible.description}
             </p>
           </div>
         </div>
@@ -370,7 +379,7 @@ export default function Home() {
         {apiStatus && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              服务统计
+              {t.stats.title}
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
@@ -378,7 +387,7 @@ export default function Home() {
                   {apiStatus.stats.totalImages}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                  总图片数
+                  {t.stats.totalImages}
                 </div>
               </div>
               <div>
@@ -386,15 +395,15 @@ export default function Home() {
                   {apiStatus.stats.totalGroups}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                  图片分组
+                  {t.stats.imageGroups}
                 </div>
               </div>
               <div>
                 <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                  {apiStatus.services.api.enabled ? "启用" : "禁用"}
+                  {apiStatus.services.api.enabled ? t.stats.enabled : t.stats.disabled}
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                  API状态
+                  {t.stats.apiStatus}
                 </div>
               </div>
               <div>
@@ -402,7 +411,7 @@ export default function Home() {
                   24/7
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                  服务时间
+                  {t.stats.serviceTime}
                 </div>
               </div>
             </div>
@@ -415,23 +424,30 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600 dark:text-gray-300">
             <p>
-              &copy; {new Date().getFullYear()} 随机图片API服务. 基于 Next.js 和
-              Cloudinary 构建.
+              &copy; {new Date().getFullYear()} {t.footer.copyright}
             </p>
             <p className="mt-2">
-              作者: Aierlanta |{" "}
+              {t.footer.author} |{" "}
               <a
                 href="https://github.com/Aierlanta/Cloudinary-photo"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors underline"
               >
-                GitHub 项目仓库
+                {t.footer.github}
               </a>
             </p>
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <LocaleProvider>
+      <HomeContent />
+    </LocaleProvider>
   );
 }

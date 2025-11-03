@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { generateThumbnailUrl, getImageUrls } from "@/lib/image-utils";
 import SmartImage from "@/components/ui/SmartImage";
 import { useImageCachePrewarming } from "@/hooks/useImageCachePrewarming";
+import { useLocale } from "@/hooks/useLocale";
 
 interface ImageItem {
   id: string;
@@ -531,6 +532,7 @@ export default function ImageList({
   onUpdateImage,
   onBulkUpdate,
 }: ImageListProps) {
+  const { t } = useLocale();
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [editingImage, setEditingImage] = useState<ImageItem | null>(null);
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
@@ -685,7 +687,7 @@ export default function ImageList({
                 : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
             }`}
           >
-            {bulkMode ? "退出批量模式" : "批量操作"}
+            {bulkMode ? t.adminImages.exitBulkMode : t.adminImages.bulkActions}
           </button>
 
           {bulkMode && selectedImages.size > 0 && (
