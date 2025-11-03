@@ -33,9 +33,15 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       queryParams[key] = value;
     });
 
+    // 用于日志的参数脱敏（避免泄露API Key）
+    const redactedParams = { ...queryParams };
+    if (typeof redactedParams.key !== 'undefined') {
+      redactedParams.key = '***';
+    }
+
     // 记录API请求
     logger.apiRequest('GET', '/api/random', {
-      params: queryParams,
+      params: redactedParams,
       ip: getClientIP(request),
       userAgent: request.headers.get('user-agent')
     });
@@ -97,8 +103,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
         logger.warn('API访问被拒绝 - API Key无效', {
           type: 'api_auth',
           ip: getClientIP(request),
-          userAgent: request.headers.get('user-agent'),
-          providedKey
+          userAgent: request.headers.get('user-agent')
         });
 
         throw new AppError(
@@ -123,7 +128,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     if (hasInvalidParams) {
       logger.warn('API请求包含无效参数', {
         type: 'api_validation',
-        params: queryParams,
+        params: redactedParams,
         ip: getClientIP(request)
       });
 
@@ -170,7 +175,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       imageId: randomImage.id,
       publicId: randomImage.publicId,
       groupId: randomImage.groupId,
-      params: queryParams
+      params: redactedParams
     });
 
     const duration = Math.round(performance.now() - startTime);

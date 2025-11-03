@@ -171,6 +171,10 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     // 解析查询参数
     const url = new URL(request.url);
     const queryParams = Object.fromEntries(url.searchParams.entries());
+    const redactedParams = { ...queryParams } as Record<string, string>;
+    if (typeof redactedParams.key !== 'undefined') {
+      redactedParams.key = '***';
+    }
 
     // 解析透明度参数
     const transparencyOptions = parseTransparencyParams(
@@ -182,7 +186,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       type: 'api_request',
       method: 'GET',
       path: '/api/response',
-      params: queryParams,
+      params: redactedParams,
       transparency: transparencyOptions ? 'enabled' : 'disabled',
       ip: getClientIP(request),
       userAgent: request.headers.get('user-agent')
@@ -261,8 +265,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         logger.warn('API访问被拒绝 - API Key无效', {
           type: 'api_auth',
           ip: getClientIP(request),
-          userAgent: request.headers.get('user-agent'),
-          providedKey
+          userAgent: request.headers.get('user-agent')
         });
 
         throw new AppError(
@@ -287,7 +290,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     if (hasInvalidParams) {
       logger.warn('API请求包含无效参数', {
         type: 'api_validation',
-        params: queryParams,
+        params: redactedParams,
         ip: getClientIP(request)
       });
 
@@ -380,7 +383,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       imageId: randomImage.id,
       publicId: randomImage.publicId,
       groupId: randomImage.groupId,
-      params: queryParams
+      params: redactedParams
     });
 
     // 确定图片的MIME类型
