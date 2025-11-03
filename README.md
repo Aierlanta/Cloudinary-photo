@@ -432,6 +432,6 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 
 ---
 
-**Current Version**: v0.7.0 | **Last Updated**: 2025-11-03
+**Current Version**: v1.0.1 | **Last Updated**: 2025-11-03
 
 For issues or suggestions, feel free to submit an Issue or Pull Request!
