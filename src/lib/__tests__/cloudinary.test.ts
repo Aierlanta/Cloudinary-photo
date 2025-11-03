@@ -276,7 +276,10 @@ describe('CloudinaryService', () => {
 
       expect(result).toBeInstanceOf(Buffer);
       expect(result.length).toBe(10);
-      expect(global.fetch).toHaveBeenCalledWith(expectedUrl);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expectedUrl,
+        expect.objectContaining({ cache: 'no-store' })
+      );
     });
 
     it('HTTP请求失败时应该抛出CloudinaryError', async () => {

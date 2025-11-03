@@ -202,9 +202,50 @@ POST   /api/admin/multi-host       # Multi-host operations
 ```http
 GET    /api/admin/stats            # Get system statistics
 GET    /api/admin/logs             # Get system logs
-GET    /api/admin/health           # Get detailed health status
-POST   /api/admin/backup           # Create data backup
-```
+  GET    /api/admin/health           # Get detailed health status
+  POST   /api/admin/backup           # Create data backup
+  ```
+
+## CDN Configuration Recommendations
+
+- **Goals**
+  - Keep `/api/response` uncached at the browser/CDN to preserve randomness.
+  - Reduce latency by leveraging the server-side in-memory prefetch (already implemented). Do NOT rely on edge cache for this route.
+
+- **Required settings**
+  - Respect origin headers: `Cache-Control: no-cache, no-store, must-revalidate`, `Pragma: no-cache`, `Expires: 0`.
+  - Add a bypass/disable-cache rule for path: `/api/response*`.
+  - Optional: if your CDN supports it, enforce `Surrogate-Control: no-store` at the edge to avoid accidental caching by surrogate layers.
+
+- **Provider playbooks**
+  - **Cloudflare**
+    - Cache Rule or Page Rule: condition `URI Path` matches `/api/response*`.
+    - Actions: `Cache level = Bypass`, `Origin Cache Control = On`, `Edge TTL = 0`. Do not transform caching headers.
+  - **Vercel**
+    - The route sets `dynamic = 'force-dynamic'`, so Vercel will not edge-cache it.
+    - If an external CDN/proxy sits in front of Vercel, still add a bypass rule for `/api/response*` there.
+  - **AWS CloudFront**
+    - Behavior for `/api/response*`: `Cache policy = CachingDisabled` (or custom with TTL 0 and honor origin), suitable `Origin request policy`.
+  - **Nginx / Reverse Proxy**
+    - Example:
+      ```nginx
+      location /api/response {
+          expires off;
+          add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+          add_header Pragma "no-cache" always;
+          add_header Expires "0" always;
+          proxy_pass http://your_upstream;
+      }
+      ```
+  - **Fastly / Akamai**
+    - Fastly VCL: for `/api/response*` set `beresp.http.Surrogate-Control = "no-store"` and `beresp.ttl = 0s`.
+    - Akamai: configure property behavior to respect origin `no-store` and disable cache for the path.
+
+- **Troubleshooting**
+  - If you still observe repeated images from cache:
+    - Inspect response/edge headers (e.g., `CF-Cache-Status`, `X-Cache`, `Age`).
+    - Disable any worker/transform that rewrites caching headers.
+    - Ensure the URL is not rewritten to bypass your cache rule.
 
 ## Project Architecture
 

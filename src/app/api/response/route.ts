@@ -254,7 +254,9 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         headers: {
           'Content-Type': prefetched.mimeType,
           'Content-Length': prefetched.size.toString(),
-          'Cache-Control': 'public, max-age=3600',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-Image-Id': prefetched.imageId,
           'X-Image-PublicId': prefetched.publicId,
           'X-Image-Size': prefetched.size.toString(),
@@ -339,7 +341,9 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         headers: {
           'Content-Type': mimeType,
           'Content-Length': size.toString(),
-          'Cache-Control': 'public, max-age=3600',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           'X-Image-Id': randomImage.id,
           'X-Image-PublicId': randomImage.publicId,
           'X-Response-Time': `${duration}ms`,

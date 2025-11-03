@@ -329,7 +329,9 @@ describe('/api/response', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('Content-Type')).toBe('image/jpeg');
       expect(response.headers.get('Content-Length')).toBe('15'); // 'fake-image-data'.length
-      expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+      expect(response.headers.get('Pragma')).toBe('no-cache');
+      expect(response.headers.get('Expires')).toBe('0');
       expect(response.headers.get('X-Image-Id')).toBe('img_000001');
       expect(response.headers.get('X-Image-PublicId')).toBe('test_image');
       expect(response.headers.get('X-Image-Size')).toBe('15');

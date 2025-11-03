@@ -206,6 +206,48 @@ GET    /api/admin/health           # 获取详细健康状态
 POST   /api/admin/backup           # 创建数据备份
 ```
 
+## CDN 配置建议
+
+- **目标**
+  - 保持 `/api/response` 在浏览器/CDN 侧不被缓存，保证随机性；
+  - 降低时延依赖服务端进程内的“预取单槽”机制，而非边缘缓存。
+
+- **必需设置**
+  - 遵守源站响应头：`Cache-Control: no-cache, no-store, must-revalidate`，`Pragma: no-cache`，`Expires: 0`；
+  - 为路径 `/api/response*` 添加“绕过/禁止缓存”的规则；
+  - 可选：若 CDN 支持，在边缘强制 `Surrogate-Control: no-store`，避免中间代理误缓存。
+
+- **平台指引**
+  - **Cloudflare**
+    - Cache Rule 或 Page Rule：条件 `URI Path` 匹配 `/api/response*`；
+    - 动作：`Cache level = Bypass`，`Origin Cache Control = On`，`Edge TTL = 0`；避免重写缓存头。
+  - **Vercel**
+    - 路由已声明 `dynamic = 'force-dynamic'`，Vercel 默认不缓存；
+    - 若前置了外部 CDN/反代，仍需在该层对 `/api/response*` 绕过缓存。
+  - **AWS CloudFront**
+    - 为 `/api/response*` 配置 Behavior：`Cache policy = CachingDisabled`（或自定义 TTL=0 且遵守源站）；
+    合理设置 `Origin request policy`。
+  - **Nginx / 反向代理**
+    - 示例：
+      ```nginx
+      location /api/response {
+          expires off;
+          add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+          add_header Pragma "no-cache" always;
+          add_header Expires "0" always;
+          proxy_pass http://your_upstream;
+      }
+      ```
+  - **Fastly / Akamai**
+    - Fastly VCL：对 `/api/response*` 设置 `beresp.http.Surrogate-Control = "no-store"` 且 `beresp.ttl = 0s`；
+    - Akamai：在属性中启用“遵守源站 no-store”并对该路径禁用缓存。
+
+- **排障建议**
+  - 若仍出现缓存复用导致图片重复：
+    - 检查响应/边缘头部（如 `CF-Cache-Status`、`X-Cache`、`Age`）；
+    - 关闭任何会改写缓存头的 Worker/Transform；
+    - 确认 URL 未被重写从而绕开了你的匹配规则。
+
 ## 项目架构
 
 ### 目录结构
