@@ -31,11 +31,36 @@ interface PrefetchedItem {
 
 /**
  * 判断是否 Cloudinary 资源 URL
+ * 支持：
+ * - 标准域名：res.cloudinary.com
+ * - 分片域名：res-1.cloudinary.com 到 res-5.cloudinary.com
+ * - 自定义域名：通过 CLOUDINARY_ALLOWED_HOSTS 环境变量配置（逗号分隔）
  */
 function isCloudinaryUrl(urlStr: string): boolean {
   try {
     const { hostname } = new URL(urlStr);
-    return hostname === 'res.cloudinary.com';
+    
+    // 标准 Cloudinary 域名
+    if (hostname === 'res.cloudinary.com') {
+      return true;
+    }
+    
+    // Cloudinary 分片域名（res-1 到 res-5）
+    if (/^res-[1-5]\.cloudinary\.com$/i.test(hostname)) {
+      return true;
+    }
+    
+    // 自定义域名白名单（可选）
+    const customHosts = (process.env.CLOUDINARY_ALLOWED_HOSTS || '')
+      .split(',')
+      .map(h => h.trim().toLowerCase())
+      .filter(Boolean);
+    
+    if (customHosts.length > 0 && customHosts.includes(hostname.toLowerCase())) {
+      return true;
+    }
+    
+    return false;
   } catch {
     return false;
   }

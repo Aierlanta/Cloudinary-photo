@@ -14,7 +14,7 @@ import {
   clearRateLimitStore,
   getRateLimitStats
 } from '../security';
-import { APIError, ErrorType } from '@/types/errors';
+import { AppError, ErrorType } from '@/types/errors';
 
 // 模拟全局Response对象
 global.Response = class MockResponse {
@@ -138,7 +138,7 @@ describe('安全中间件测试', () => {
 
       expect(() => {
         validateContentType(mockRequest, ['text/plain']);
-      }).toThrow(APIError);
+      }).toThrow(AppError);
     });
 
     it('应该验证HTTP方法', () => {
@@ -152,7 +152,7 @@ describe('安全中间件测试', () => {
 
       expect(() => {
         validateMethod(mockRequest, ['GET']);
-      }).toThrow(APIError);
+      }).toThrow(AppError);
     });
 
     it('应该验证请求大小', () => {
@@ -166,7 +166,7 @@ describe('安全中间件测试', () => {
 
       expect(() => {
         validateRequestSize(mockRequest, 512);
-      }).toThrow(APIError);
+      }).toThrow(AppError);
     });
   });
 
@@ -286,6 +286,44 @@ describe('安全中间件测试', () => {
 
       expect(response.status).toBe(429);
       expect(response.headers.get('X-RateLimit-Remaining')).toBe('5');
+      expect(response.headers.get('Retry-After')).toBeDefined();
+    });
+
+    it('限流 429 响应应包含统一安全响应头', async () => {
+      const mockHandler = jest.fn().mockResolvedValue({
+        text: () => Promise.resolve('{"success": true}'),
+        status: 200,
+        headers: new Map()
+      });
+
+      const secureHandler = withSecurity({ 
+        rateLimit: { windowMs: 1000, maxRequests: 1, message: '请求过于频繁' } 
+      })(mockHandler);
+
+      const mockRequest = {
+        method: 'GET',
+        nextUrl: { pathname: '/api/test' },
+        headers: new Map([['x-forwarded-for', '192.168.1.100']])
+      } as any;
+
+      // 首次请求应该通过
+      await secureHandler(mockRequest);
+      
+      // 第二次请求应该触发限流
+      const response = await secureHandler(mockRequest);
+
+      expect(response.status).toBe(429);
+      
+      // 验证统一安全响应头
+      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+      expect(response.headers.get('X-Frame-Options')).toBe('DENY');
+      expect(response.headers.get('X-XSS-Protection')).toBe('1; mode=block');
+      expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+      expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
+      expect(response.headers.get('Permissions-Policy')).toContain('camera=()');
+      
+      // 验证限流相关头仍然存在
+      expect(response.headers.get('X-RateLimit-Remaining')).toBeDefined();
       expect(response.headers.get('Retry-After')).toBeDefined();
     });
   });

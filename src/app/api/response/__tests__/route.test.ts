@@ -42,6 +42,7 @@ jest.mock('next/server', () => {
     async arrayBuffer() {
       if (this._body == null) return new ArrayBuffer(0);
       if (this._body instanceof ArrayBuffer) return this._body;
+      if (this._body instanceof Uint8Array) return this._body.buffer.slice(this._body.byteOffset, this._body.byteOffset + this._body.byteLength);
       if (typeof this._body === 'string') return new TextEncoder().encode(this._body).buffer;
       if (typeof Buffer !== 'undefined' && Buffer.isBuffer(this._body)) return this._body.buffer.slice(this._body.byteOffset, this._body.byteOffset + this._body.byteLength);
       return new ArrayBuffer(0);
@@ -178,6 +179,41 @@ describe('/api/response', () => {
 
       expect(response.status).toBe(200);
       expect(response.headers.get('Content-Type')).toBe('image/png');
+    });
+
+    it('应识别 Cloudinary 分片域名并使用 SDK 下载', async () => {
+      // 测试 res-1.cloudinary.com 分片域名
+      mockDatabaseService.getRandomImages.mockResolvedValueOnce([{
+        id: 'img_shard_1',
+        publicId: 'test_image_shard',
+        url: 'https://res-1.cloudinary.com/test/image/upload/test_image.jpg',
+        groupId: null,
+        uploadedAt: new Date()
+      }]);
+
+      const request = createMockRequest('http://localhost:3000/api/response');
+      await GET(request);
+
+      // 验证通过 Cloudinary SDK 下载（而非 URL 直取）
+      expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith('test_image_shard');
+    });
+
+    it('应识别所有 Cloudinary 分片域名（res-1 到 res-5）', async () => {
+      for (let i = 1; i <= 5; i++) {
+        mockDatabaseService.getRandomImages.mockResolvedValueOnce([{
+          id: `img_shard_${i}`,
+          publicId: `test_image_${i}`,
+          url: `https://res-${i}.cloudinary.com/test/image/upload/test_image.jpg`,
+          groupId: null,
+          uploadedAt: new Date()
+        }]);
+        mockCloudinaryService.downloadImage.mockClear();
+
+        const request = createMockRequest('http://localhost:3000/api/response');
+        await GET(request);
+
+        expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith(`test_image_${i}`);
+      }
     });
   });
 

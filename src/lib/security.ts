@@ -303,11 +303,12 @@ export function withSecurity(options: {
           const rateLimitResult = rateLimit(config)(request);
 
           if (!rateLimitResult.allowed) {
-            return createRateLimitResponse(
+            const rateLimitResp = createRateLimitResponse(
               config.message || '请求过于频繁',
               rateLimitResult.resetTime,
               rateLimitResult.remaining
             );
+            return setSecurityHeaders(rateLimitResp);
           }
 
           // 添加限流头到响应
