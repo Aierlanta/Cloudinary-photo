@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /**
  * /api/response 端点测试
  */
@@ -108,8 +109,11 @@ describe('/api/response', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // 重置预取缓存，避免跨用例干扰
-    const { __resetPrefetchCacheForTests } = require('../route');
-    __resetPrefetchCacheForTests();
+    require('../route');
+    const resetPrefetchCache = (globalThis as any).__resetPrefetchCacheForTests;
+    if (typeof resetPrefetchCache === 'function') {
+      resetPrefetchCache();
+    }
 
     // 默认配置
     mockDatabaseService.getAPIConfig.mockResolvedValue({

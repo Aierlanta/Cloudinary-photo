@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from '@/hooks/useLocale'
 
 interface SystemStatus {
@@ -69,7 +69,7 @@ export default function SystemStatusPage() {
   const [error, setError] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
 
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     try {
       setError(null)
       const response = await fetch('/api/status')
@@ -89,18 +89,18 @@ export default function SystemStatusPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
 
   useEffect(() => {
     loadStatus()
-  }, [])
+  }, [loadStatus])
 
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(loadStatus, 30000) // 30秒刷新一次
       return () => clearInterval(interval)
     }
-  }, [autoRefresh])
+  }, [autoRefresh, loadStatus])
 
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400)

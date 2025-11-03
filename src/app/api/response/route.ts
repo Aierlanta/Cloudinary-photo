@@ -151,8 +151,12 @@ async function prefetchNext(key: string, groupIds: string[]): Promise<void> {
 }
 
 // 测试辅助：重置预取缓存（仅测试调用）
-export function __resetPrefetchCacheForTests() {
+function resetPrefetchCacheForTests() {
   prefetchCache.clear();
+}
+
+if (process.env.NODE_ENV === 'test') {
+  (globalThis as { __resetPrefetchCacheForTests?: () => void }).__resetPrefetchCacheForTests = resetPrefetchCacheForTests;
 }
 
 

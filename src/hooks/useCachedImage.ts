@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { imageCacheManager } from '@/lib/cache/imageCache';
 
 interface UseCachedImageOptions {
@@ -75,6 +75,11 @@ export function useCachedImage(
     error: false,
     fromCache: false
   });
+  const latestSrcRef = useRef(state.src);
+
+  useEffect(() => {
+    latestSrcRef.current = state.src;
+  }, [state.src]);
 
   /**
    * 从网络加载图片并缓存
@@ -201,10 +206,11 @@ export function useCachedImage(
       });
     }
 
-    // 清理blob URL
+    // 清理当前blob URL
     return () => {
-      if (state.src && state.src.startsWith('blob:')) {
-        URL.revokeObjectURL(state.src);
+      const currentSrc = latestSrcRef.current;
+      if (currentSrc && currentSrc.startsWith('blob:')) {
+        URL.revokeObjectURL(currentSrc);
       }
     };
   }, [originalUrl, loadImage]);

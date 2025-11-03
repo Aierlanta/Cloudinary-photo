@@ -25,6 +25,11 @@ export default function LogViewer({
   refreshInterval = 5000
 }: LogViewerProps) {
   const { t } = useLocale();
+  const {
+    loadFailedFormat,
+    loadFailedHttp,
+    loadFailedNetwork
+  } = t.adminLogs;
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -84,18 +89,18 @@ export default function LogViewer({
             totalPages: data.data?.totalPages || 0
           }))
         } else {
-          setError(t.adminLogs.loadFailedFormat)
+          setError(loadFailedFormat)
         }
       } else {
-        setError(`${t.adminLogs.loadFailedHttp} ${response.status}`)
+        setError(`${loadFailedHttp} ${response.status}`)
       }
     } catch (error) {
       console.error('加载日志失败:', error)
-      setError(t.adminLogs.loadFailedNetwork)
+      setError(loadFailedNetwork)
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.limit, filter])
+  }, [pagination.page, pagination.limit, filter, loadFailedFormat, loadFailedHttp, loadFailedNetwork])
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }))
