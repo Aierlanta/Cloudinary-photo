@@ -38,7 +38,7 @@ export default function TransparencyControl({ opacity, onChange, theme, onThemeT
                   onClick={onThemeToggle}
                   className="px-3 py-1 text-xs rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors"
                 >
-                  切换到{theme === 'light' ? '夜间' : '日间'}模式
+                  切换主题
                 </button>
                 {isManualTheme && (
                   <button

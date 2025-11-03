@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import {
+  type Theme,
+  resolveSiteClientTheme,
+  getClientSystemTheme,
+  applyThemeToRoot,
+  setSiteManualTheme,
+  clearSiteManualTheme,
+} from "@/lib/adminTheme";
 
 interface APIStatus {
   status: string;
@@ -22,6 +30,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [baseUrl, setBaseUrl] = useState<string>("");
   const [imageLoading, setImageLoading] = useState(false);
+  const [theme, setTheme] = useState<Theme>("light");
+  const [isManualTheme, setIsManualTheme] = useState(false);
 
   // 生成完整的基础URL
   const generateBaseUrl = () => {
@@ -35,6 +45,12 @@ export default function Home() {
   };
 
   useEffect(() => {
+    // 初始化站点主题（半小时手动选择 / 否则跟随系统）
+    const pref = resolveSiteClientTheme();
+    setTheme(pref.theme);
+    setIsManualTheme(pref.isManual);
+    applyThemeToRoot(pref.theme);
+
     // 设置基础URL
     const currentBaseUrl = generateBaseUrl();
     setBaseUrl(currentBaseUrl);
@@ -55,6 +71,44 @@ export default function Home() {
       setRandomImageUrl(generateRandomImageUrl(currentBaseUrl));
     }
   }, []);
+
+  // 非手动模式下，跟随系统主题切换
+  useEffect(() => {
+    if (typeof window === "undefined" || isManualTheme) return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = (matches: boolean) => {
+      const next: Theme = matches ? "dark" : "light";
+      setTheme((prev) => (prev === next ? prev : next));
+      applyThemeToRoot(next);
+    };
+    apply(media.matches);
+    const listener = (e: MediaQueryListEvent) => apply(e.matches);
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", listener);
+      return () => media.removeEventListener("change", listener);
+    }
+    media.addListener(listener);
+    return () => media.removeListener(listener);
+  }, [isManualTheme]);
+
+  const handleThemeToggle = () => {
+    setIsManualTheme(true);
+    setTheme((prev) => {
+      const next: Theme = prev === "light" ? "dark" : "light";
+      applyThemeToRoot(next);
+      setSiteManualTheme(next); // 30分钟有效期在工具默认
+      return next;
+    });
+  };
+
+  // 可选：当用户长时间停留或决定回到系统模式时调用。此处不放按钮，仅保留API以便未来使用。
+  const resetToSystemTheme = () => {
+    setIsManualTheme(false);
+    clearSiteManualTheme();
+    const sys = getClientSystemTheme();
+    setTheme(sys);
+    applyThemeToRoot(sys);
+  };
 
   const refreshRandomImage = () => {
     // 刷新整个页面来获取新的随机图片
@@ -85,6 +139,24 @@ export default function Home() {
               >
                 API文档
               </Link>
+              <button
+                onClick={handleThemeToggle}
+                title="切换日间/夜间"
+                aria-label="切换日间/夜间"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                {theme === "dark" ? (
+                  // 太阳图标（表示当前为夜间，点击将切到日间）
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M7.05 7.05 5.636 5.636m12.728 0-1.414 1.414M7.05 16.95l-1.414 1.414M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  // 月亮图标（表示当前为日间，点击将切到夜间）
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
