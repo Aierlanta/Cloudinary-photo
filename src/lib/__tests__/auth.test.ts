@@ -8,7 +8,8 @@ import {
   extractAuthFromRequest,
   verifyAdminAuth,
   createAuthResponse,
-  withAdminAuth
+  withAdminAuth,
+  generateSessionToken
 } from '../auth';
 import { AppError } from '@/types/errors';
 
@@ -166,8 +167,9 @@ describe('认证中间件测试', () => {
     });
 
     it('应该接受有效的Session Token', () => {
+      const token = generateSessionToken();
       const mockRequest = createMockRequest({
-        sessionToken: 'valid-session-token'
+        sessionToken: token
       });
 
       expect(() => {

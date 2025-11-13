@@ -92,7 +92,7 @@ describe('DatabaseService', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null);
       mockPrisma.counter.create
-        .mockResolvedValueOnce({ id: 'imageId', value: 0 })
+        .mockResolvedValueOnce({ id: 'image_counter', value: 0 })
         .mockResolvedValueOnce({ id: 'groupId', value: 0 });
 
       // 模拟API配置不存在
@@ -112,14 +112,14 @@ describe('DatabaseService', () => {
       await databaseService.initialize();
 
       expect(mockPrisma.counter.findUnique).toHaveBeenNthCalledWith(1, {
-        where: { id: 'imageId' }
+        where: { id: 'image_counter' }
       });
       expect(mockPrisma.counter.findUnique).toHaveBeenNthCalledWith(2, {
         where: { id: 'groupId' }
       });
 
       expect(mockPrisma.counter.create).toHaveBeenNthCalledWith(1, {
-        data: { id: 'imageId', value: 0 }
+        data: { id: 'image_counter', value: 0 }
       });
       expect(mockPrisma.counter.create).toHaveBeenNthCalledWith(2, {
         data: { id: 'groupId', value: 0 }

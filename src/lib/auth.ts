@@ -5,6 +5,7 @@
 
 import { NextRequest } from 'next/server';
 import { AppError, ErrorType } from '@/types/errors';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 /**
  * 验证管理员密码
@@ -27,9 +28,57 @@ export function validateAdminPassword(password: string): boolean {
  * 验证session token
  */
 export function validateSessionToken(token: string): boolean {
-  // 简单验证：session token存在即认为有效
-  // 在实际生产环境中，应该验证token的有效性和过期时间
-  return Boolean(token && token.length > 0);
+  // 使用 HMAC-SHA256 校验签名并校验过期时间（默认24小时）
+  try {
+    if (!token) return false;
+
+    const parts = token.split('.');
+    if (parts.length !== 2) return false;
+
+    const [issuedAtMsStr, signature] = parts;
+    const issuedAtMs = Number(issuedAtMsStr);
+    if (!Number.isFinite(issuedAtMs)) return false;
+
+    // 过期时间：24小时
+    const now = Date.now();
+    const maxAgeMs = 24 * 60 * 60 * 1000;
+    if (issuedAtMs > now + 5 * 60 * 1000) return false; // 防止未来时间漂移超过5分钟
+    if (now - issuedAtMs > maxAgeMs) return false;
+
+    const secret = getSessionSecret();
+    const expected = createHmac('sha256', secret).update(issuedAtMsStr).digest('hex');
+
+    const a = Buffer.from(signature);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 生成会话 token（HMAC 签名）
+ * 格式：`${issuedAtMs}.${signature}`
+ */
+export function generateSessionToken(): string {
+  const issuedAtMs = Date.now().toString();
+  const secret = getSessionSecret();
+  const signature = createHmac('sha256', secret).update(issuedAtMs).digest('hex');
+  return `${issuedAtMs}.${signature}`;
+}
+
+function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD;
+  if (!secret) {
+    throw new AppError(
+      ErrorType.INTERNAL_ERROR,
+      '服务器配置错误：未设置 SESSION_SECRET 或 ADMIN_PASSWORD',
+      500
+    );
+  }
+  return secret;
 }
 
 /**

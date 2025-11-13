@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createHash } from 'crypto'
+import { generateSessionToken } from '@/lib/auth'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -31,10 +31,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 创建简单的会话token
-    const sessionToken = createHash('sha256')
-      .update(`${adminPassword}-${Date.now()}`)
-      .digest('hex')
+    // 创建签名会话token
+    const sessionToken = generateSessionToken()
 
     // 设置cookie
     const cookieStore = cookies()

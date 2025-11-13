@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { validateSessionToken } from '@/lib/auth'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -9,14 +10,14 @@ export async function GET() {
     const cookieStore = cookies()
     const sessionToken = cookieStore.get('admin-session')
 
-    if (!sessionToken) {
+    if (!sessionToken || !validateSessionToken(sessionToken.value)) {
       return NextResponse.json(
         { message: '未登录' },
         { status: 401 }
       )
     }
 
-    // 简单验证session存在即可
+    // 会话令牌有效
     return NextResponse.json({ message: '已登录' })
   } catch (error) {
     console.error('认证检查错误:', error)

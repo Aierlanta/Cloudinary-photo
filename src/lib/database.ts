@@ -169,7 +169,7 @@ export class DatabaseService {
       await prisma.$transaction(async (tx) => {
         // 先尝试查找现有计数器
         const existingImageCounter = await tx.counter.findUnique({
-          where: { id: 'imageId' }
+          where: { id: 'image_counter' }
         });
 
         const existingGroupCounter = await tx.counter.findUnique({
@@ -179,11 +179,11 @@ export class DatabaseService {
         // 如果计数器不存在，则创建；如果存在，则更新
         if (!existingImageCounter) {
           await tx.counter.create({
-            data: { id: 'imageId', value: maxImageId }
+            data: { id: 'image_counter', value: maxImageId }
           });
         } else {
           await tx.counter.update({
-            where: { id: 'imageId' },
+            where: { id: 'image_counter' },
             data: { value: Math.max(maxImageId, existingImageCounter.value) }
           });
         }
