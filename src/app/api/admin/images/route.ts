@@ -29,19 +29,12 @@ import {
 } from '@/types/api';
 import {
   getEnabledProviders,
-  getEnabledProvidersAsStrings,
-  getDefaultProvider,
   isStorageEnabled,
   isProviderInEnabledList
 } from '@/lib/storage';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
-
-// ✅ 修复问题 #2 & #4：使用统一配置模块和强类型
-const enabledProviders = getEnabledProviders();
-const enabledProviderStrings = getEnabledProvidersAsStrings();
-
 
 /**
  * GET /api/admin/images
@@ -146,6 +139,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
   }
 
   // ✅ 修复问题 #3：提前检查空数组，避免越界访问
+  const enabledProviders = getEnabledProviders();
   if (enabledProviders.length === 0) {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
@@ -155,8 +149,9 @@ async function uploadImage(request: NextRequest): Promise<Response> {
   }
 
   // 按启用开关确定使用的图床服务
-  const defaultProvider = getDefaultProvider(); // 使用统一函数获取默认提供商
-  const selectedProviderString = (provider as string | undefined) ?? (defaultProvider ? defaultProvider.toString() : undefined);
+  const defaultProvider = enabledProviders[0];
+  const defaultProviderString = defaultProvider ? defaultProvider.toString() : undefined;
+  const selectedProviderString = (provider as string | undefined) ?? defaultProviderString;
   
   if (!selectedProviderString) {
     throw new AppError(

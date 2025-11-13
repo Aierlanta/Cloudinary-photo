@@ -107,8 +107,10 @@ export function handleError(
     )
   }
 
-  // 确定HTTP状态码
-  statusCode = getStatusCodeFromErrorType(appError.type)
+  // 确定HTTP状态码（优先使用 AppError 指定的值，必要时再按类型回退）
+  statusCode = Number.isFinite(appError.statusCode)
+    ? appError.statusCode
+    : getStatusCodeFromErrorType(appError.type)
 
   // 记录错误日志
   logError(appError, context, duration)
@@ -149,7 +151,9 @@ function logError(error: AppError, context: ErrorContext, duration?: number): vo
   const logContext = {
     ...context,
     errorType: error.type,
-    statusCode: getStatusCodeFromErrorType(error.type),
+    statusCode: Number.isFinite(error.statusCode)
+      ? error.statusCode
+      : getStatusCodeFromErrorType(error.type),
     details: error.details,
     duration
   }
