@@ -22,6 +22,16 @@ export type {
 // 重新导出枚举
 export { StorageProvider, FailoverStrategy } from './base';
 
+// 导出配置管理工具
+export {
+  isStorageEnabled,
+  getEnabledProviders,
+  getEnabledProvidersAsStrings,
+  validateAtLeastOneEnabled,
+  getDefaultProvider,
+  isProviderInEnabledList
+} from './config';
+
 // 具体实现
 export { CloudinaryService } from './cloudinary';
 export type { CloudinaryConfig } from './cloudinary';
@@ -38,7 +48,8 @@ export {
 // 便捷函数
 import { MultiStorageManager } from './manager';
 import { EnvironmentConfigFactory, storageServiceManager } from './factory';
-import { StorageProvider } from './base';
+import { StorageProvider, StorageError } from './base';
+import { getEnabledProviders, validateAtLeastOneEnabled, isStorageEnabled } from './config';
 
 /**
  * 创建配置好的多图床管理器
@@ -46,21 +57,19 @@ import { StorageProvider } from './base';
 export function createMultiStorageManager(): MultiStorageManager {
   const config = EnvironmentConfigFactory.createMultiStorageConfig();
 
-  const isEnabled = (provider: StorageProvider): boolean => {
-    if (provider === StorageProvider.CLOUDINARY) return process.env.CLOUDINARY_ENABLE !== 'false';
-    if (provider === StorageProvider.TGSTATE) return process.env.TGSTATE_ENABLE !== 'false';
-    return true;
-  };
+  // ✅ 修复问题 #1：前置验证，确保至少有一个服务启用
+  validateAtLeastOneEnabled();
 
-  // 计算已启用的提供商
-  const availableProviders = [StorageProvider.CLOUDINARY, StorageProvider.TGSTATE].filter(isEnabled);
+  // 计算已启用的提供商（使用统一配置模块）
+  const availableProviders = getEnabledProviders();
 
   // 根据开关矫正 Primary/Backup
-  const effectivePrimary = isEnabled(config.primaryProvider)
+  // 注意：此时 availableProviders 至少有一个元素（已通过 validateAtLeastOneEnabled 验证）
+  const effectivePrimary = isStorageEnabled(config.primaryProvider)
     ? config.primaryProvider
-    : (availableProviders[0] ?? config.primaryProvider);
+    : availableProviders[0]; // 安全：availableProviders 不为空
 
-  let effectiveBackup = (config.backupProvider && isEnabled(config.backupProvider))
+  let effectiveBackup = (config.backupProvider && isStorageEnabled(config.backupProvider))
     ? config.backupProvider
     : undefined;
 
@@ -76,13 +85,11 @@ export function createMultiStorageManager(): MultiStorageManager {
     backupProvider: effectiveBackup && effectiveBackup !== effectivePrimary ? effectiveBackup : undefined,
   });
 
-  // 仅注册已启用且在有效配置内的服务
-  if (isEnabled(effectivePrimary)) {
-    const primaryService = storageServiceManager.getService(effectivePrimary);
-    manager.registerService(primaryService);
-  }
+  // 注册已启用的服务（此时确保至少有一个服务会被注册）
+  const primaryService = storageServiceManager.getService(effectivePrimary);
+  manager.registerService(primaryService);
 
-  if (effectiveBackup && isEnabled(effectiveBackup) && effectiveBackup !== effectivePrimary) {
+  if (effectiveBackup && effectiveBackup !== effectivePrimary) {
     const backupService = storageServiceManager.getService(effectiveBackup);
     manager.registerService(backupService);
   }

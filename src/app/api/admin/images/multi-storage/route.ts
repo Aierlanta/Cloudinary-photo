@@ -11,7 +11,7 @@ import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { StorageProvider } from '@/lib/storage/base';
-import { getDefaultStorageManager } from '@/lib/storage';
+import { getDefaultStorageManager, validateAtLeastOneEnabled } from '@/lib/storage';
 import { storageDatabaseService } from '@/lib/database/storage';
 import {
   ImageUploadRequestSchema,
@@ -24,13 +24,6 @@ import {
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
-
-// 图床开关（默认启用，设置为 'false' 以禁用）
-const CLOUDINARY_ENABLED = process.env.CLOUDINARY_ENABLE !== 'false';
-const TGSTATE_ENABLED = process.env.TGSTATE_ENABLE !== 'false';
-
-
-// 创建默认的多图床管理器
 
 /**
  * POST /api/admin/images/multi-storage
@@ -78,12 +71,16 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
       params: uploadParams
     });
 
-    // 前置：检查是否启用了至少一个图床
-    if (!CLOUDINARY_ENABLED && !TGSTATE_ENABLED) {
+    // ✅ 修复问题 #1：使用统一配置模块验证
+    // 注意：getDefaultStorageManager() 内部已有验证，此处为双重保险
+    try {
+      validateAtLeastOneEnabled();
+    } catch (error) {
       throw new AppError(
         ErrorType.INTERNAL_ERROR,
         '未启用任何图床服务，请先在环境变量中开启',
-        503
+        503,
+        { originalError: error }
       );
     }
 

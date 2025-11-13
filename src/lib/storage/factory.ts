@@ -13,6 +13,7 @@ import {
 } from './base';
 import { CloudinaryService, CloudinaryConfig } from './cloudinary';
 import { TgStateService, TgStateConfig } from './tgstate';
+import { getEnabledProviders } from './config';
 
 export class DefaultStorageServiceFactory implements StorageServiceFactory {
   /**
@@ -36,15 +37,10 @@ export class DefaultStorageServiceFactory implements StorageServiceFactory {
   }
 
   /**
-   * 获取支持的提供商列表
+   * 获取支持的提供商列表（使用统一配置模块）
    */
   getSupportedProviders(): StorageProvider[] {
-    const cloudinaryEnabled = process.env.CLOUDINARY_ENABLE !== 'false';
-    const tgstateEnabled = process.env.TGSTATE_ENABLE !== 'false';
-    return [
-      ...(cloudinaryEnabled ? [StorageProvider.CLOUDINARY] : []),
-      ...(tgstateEnabled ? [StorageProvider.TGSTATE] : []),
-    ];
+    return getEnabledProviders();
   }
 
   /**

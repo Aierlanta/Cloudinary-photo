@@ -20,12 +20,9 @@ import {
 import { StorageProvider } from '@/lib/storage/base';
 import { storageServiceManager } from '@/lib/storage/factory';
 import { StorageDatabaseService } from '@/lib/database/storage';
+import { getEnabledProviders, isProviderInEnabledList } from '@/lib/storage';
 
 const storageDatabaseService = new StorageDatabaseService();
-
-// 图床开关（默认启用，设置为 'false' 以禁用）
-const CLOUDINARY_ENABLED = process.env.CLOUDINARY_ENABLE !== 'false';
-const TGSTATE_ENABLED = process.env.TGSTATE_ENABLE !== 'false';
 
 
 /**
@@ -60,11 +57,8 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
     );
   }
 
-  // 验证提供商是否支持且已启用
-  const supportedProviders = [
-    ...(CLOUDINARY_ENABLED ? [StorageProvider.CLOUDINARY] : []),
-    ...(TGSTATE_ENABLED ? [StorageProvider.TGSTATE] : []),
-  ];
+  // ✅ 修复问题 #2 & #4：使用统一配置模块验证提供商
+  const supportedProviders = getEnabledProviders();
 
   if (supportedProviders.length === 0) {
     throw new AppError(
@@ -74,7 +68,7 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
     );
   }
 
-  if (!supportedProviders.includes(provider as StorageProvider)) {
+  if (!isProviderInEnabledList(provider)) {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
       `图床服务 ${provider} 未启用或不受支持`,

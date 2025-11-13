@@ -4,11 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-
-
-// 图床开关（默认启用，设置为 'false' 以禁用）
-const CLOUDINARY_ENABLED = process.env.CLOUDINARY_ENABLE !== 'false';
-const TGSTATE_ENABLED = process.env.TGSTATE_ENABLE !== 'false';
+import { isStorageEnabled, StorageProvider } from '@/lib/storage';
 
 interface StorageProviderInfo {
   id: string;
@@ -28,7 +24,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       id: 'cloudinary',
       name: 'Cloudinary',
       description: '专业的云端图片和视频管理服务',
-      isAvailable: CLOUDINARY_ENABLED && !!(process.env.CLOUDINARY_CLOUD_NAME &&
+      isAvailable: isStorageEnabled(StorageProvider.CLOUDINARY) && !!(process.env.CLOUDINARY_CLOUD_NAME &&
                      process.env.CLOUDINARY_API_KEY &&
                      process.env.CLOUDINARY_API_SECRET),
       features: [
@@ -43,7 +39,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       id: 'tgstate',
       name: 'tgState',
       description: '基于Telegram的免费图床服务',
-      isAvailable: TGSTATE_ENABLED && !!process.env.TGSTATE_BASE_URL,
+      isAvailable: isStorageEnabled(StorageProvider.TGSTATE) && !!process.env.TGSTATE_BASE_URL,
       features: [
         '免费存储',
         '无限容量',
