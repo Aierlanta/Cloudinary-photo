@@ -23,6 +23,11 @@ import { StorageDatabaseService } from '@/lib/database/storage';
 
 const storageDatabaseService = new StorageDatabaseService();
 
+// 图床开关（默认启用，设置为 'false' 以禁用）
+const CLOUDINARY_ENABLED = process.env.CLOUDINARY_ENABLE !== 'false';
+const TGSTATE_ENABLED = process.env.TGSTATE_ENABLE !== 'false';
+
+
 /**
  * POST /api/admin/images/upload-to-provider
  * 上传图片到指定的图床服务
@@ -36,7 +41,7 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
   const title = formData.get('title') as string | null;
   const description = formData.get('description') as string | null;
   const tagsString = formData.get('tags') as string | null;
-  
+
   // 验证文件
   if (!file) {
     throw new AppError(
@@ -55,12 +60,24 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
     );
   }
 
-  // 验证提供商是否支持
-  const supportedProviders = [StorageProvider.CLOUDINARY, StorageProvider.TGSTATE];
+  // 验证提供商是否支持且已启用
+  const supportedProviders = [
+    ...(CLOUDINARY_ENABLED ? [StorageProvider.CLOUDINARY] : []),
+    ...(TGSTATE_ENABLED ? [StorageProvider.TGSTATE] : []),
+  ];
+
+  if (supportedProviders.length === 0) {
+    throw new AppError(
+      ErrorType.INTERNAL_ERROR,
+      '未启用任何图床服务，请先在环境变量中开启',
+      503
+    );
+  }
+
   if (!supportedProviders.includes(provider as StorageProvider)) {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
-      `不支持的图床服务提供商: ${provider}`,
+      `图床服务 ${provider} 未启用或不受支持`,
       400
     );
   }
@@ -71,7 +88,7 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
     size: file.size,
     type: file.type
   });
-  
+
   // 解析标签
   let tags: string[] = [];
   if (tagsString) {
@@ -81,7 +98,7 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
       tags = tagsString.split(',').map(tag => tag.trim()).filter(Boolean);
     }
   }
-  
+
   // 验证上传参数
   const uploadParams = ImageUploadRequestSchema.parse({
     groupId: groupId || undefined,
@@ -101,7 +118,7 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
   try {
     // 获取指定的图床服务
     const storageService = storageServiceManager.getService(provider as StorageProvider);
-    
+
     // 上传到指定图床
     const uploadResult = await storageService.uploadImage(file, {
       folder: 'random-image-api',

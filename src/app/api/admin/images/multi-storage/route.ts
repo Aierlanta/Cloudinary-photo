@@ -10,9 +10,8 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
-import { StorageProvider, MultiStorageConfig, FailoverStrategy } from '@/lib/storage/base';
-import { MultiStorageManager } from '@/lib/storage/manager';
-import { storageServiceManager } from '@/lib/storage/factory';
+import { StorageProvider } from '@/lib/storage/base';
+import { getDefaultStorageManager } from '@/lib/storage';
 import { storageDatabaseService } from '@/lib/database/storage';
 import {
   ImageUploadRequestSchema,
@@ -26,38 +25,12 @@ import {
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
 
+// 图床开关（默认启用，设置为 'false' 以禁用）
+const CLOUDINARY_ENABLED = process.env.CLOUDINARY_ENABLE !== 'false';
+const TGSTATE_ENABLED = process.env.TGSTATE_ENABLE !== 'false';
+
+
 // 创建默认的多图床管理器
-function createDefaultStorageManager(): MultiStorageManager {
-  const config: MultiStorageConfig = {
-    primaryProvider: StorageProvider.CLOUDINARY,
-    backupProvider: StorageProvider.TGSTATE,
-    failoverStrategy: FailoverStrategy.RETRY_THEN_FAILOVER,
-    retryAttempts: 3,
-    retryDelay: 1000,
-    healthCheckInterval: 300,
-    enableBackupUpload: false
-  };
-
-  const manager = new MultiStorageManager(config);
-
-  // 注册服务
-  const cloudinaryService = storageServiceManager.getService(StorageProvider.CLOUDINARY);
-  const tgstateService = storageServiceManager.getService(StorageProvider.TGSTATE);
-
-  manager.registerService(cloudinaryService);
-  manager.registerService(tgstateService);
-
-  return manager;
-}
-
-let defaultManager: MultiStorageManager | null = null;
-
-function getDefaultStorageManager(): MultiStorageManager {
-  if (!defaultManager) {
-    defaultManager = createDefaultStorageManager();
-  }
-  return defaultManager;
-}
 
 /**
  * POST /api/admin/images/multi-storage
@@ -104,6 +77,15 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
       type: file.type,
       params: uploadParams
     });
+
+    // 前置：检查是否启用了至少一个图床
+    if (!CLOUDINARY_ENABLED && !TGSTATE_ENABLED) {
+      throw new AppError(
+        ErrorType.INTERNAL_ERROR,
+        '未启用任何图床服务，请先在环境变量中开启',
+        503
+      );
+    }
 
     // 获取多图床管理器
     const storageManager = getDefaultStorageManager();
@@ -162,7 +144,7 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
       groupId: uploadParams.groupId,
       tags: uploadParams.tags,
       primaryProvider: uploadResult.provider,
-      backupProvider: uploadResult.backupResult ? 
+      backupProvider: uploadResult.backupResult ?
         (await storageDatabaseService.getStorageConfig())?.backupProvider : undefined,
       storageResults
     });
@@ -200,11 +182,11 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
 
   } catch (error) {
     logger.error('多图床上传失败', error instanceof Error ? error : new Error(String(error)));
-    
+
     if (error instanceof AppError) {
       throw error;
     }
-    
+
     throw new AppError(
       ErrorType.INTERNAL_ERROR,
       `上传过程中发生错误: ${error instanceof Error ? error.message : '未知错误'}`,
@@ -274,7 +256,7 @@ async function getImagesMultiStorage(request: NextRequest): Promise<Response> {
 
   } catch (error) {
     logger.error('获取多图床图片列表失败', error instanceof Error ? error : new Error(String(error)));
-    
+
     throw new AppError(
       ErrorType.INTERNAL_ERROR,
       `获取图片列表失败: ${error instanceof Error ? error.message : '未知错误'}`,

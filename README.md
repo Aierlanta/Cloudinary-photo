@@ -68,6 +68,20 @@ TGSTATE_BASE_URL=https://your-tgstate-domain.com
 ADMIN_PASSWORD=your_secure_admin_password
 ```
 
+#### Enable/Disable image hosts on demand (New)
+
+Control which hosts are enabled via environment variables. Defaults to enabled when not set:
+
+```env
+# Host toggles (enabled by default if not set)
+CLOUDINARY_ENABLE=true
+TGSTATE_ENABLE=true
+```
+
+- Set to `false` to disable a host (e.g., enable TgState only: `CLOUDINARY_ENABLE=false`).
+- When both are `false`, upload APIs return `503 No image hosting service enabled`.
+- The multi-host manager registers only enabled services; selectable providers and defaults follow accordingly.
+
 ### Installation and Deployment
 
 #### Development Environment
@@ -126,12 +140,14 @@ GET /api/random?group=wallpaper&key=your-api-key
 ```
 
 **Configuration**:
+
 - Go to Admin Panel → API Configuration → API Key Authentication
 - Enable API Key authentication
 - Generate or enter a custom API key
 - All API requests will require the `key` parameter
 
 **Error Responses**:
+
 - `401 Unauthorized` - Missing API key when authentication is enabled
 - `401 Unauthorized` - Invalid API key
 
@@ -194,6 +210,7 @@ GET /api/response?opacity=0.3&bgColor=ff6b6b
 - If `bgColor` is not specified, white background is used by default
 
 - Prefetch (Updated)
+
   - After each successful response, prefetch the next random image and keep it in a single in-memory slot
   - The slot is keyed by the same filter condition (e.g., group mapping). On hit it returns instantly and the slot is consumed (cleared), then a new prefetch starts in the background
   - No TTL. The cache lives in the process memory and is lost on restarts/scale-to-zero. The first request after a restart is a cold start
@@ -201,6 +218,7 @@ GET /api/response?opacity=0.3&bgColor=ff6b6b
   - Prefetch failures do not affect the current request, only logged
 
 - Transport compatibility (New)
+
   - Cloudinary assets are downloaded via Cloudinary; non-Cloudinary assets are fetched from the database URL
   - `4xx` (except `429`) errors are not retried; failures fall back to URL fetch
   - All fetches use `fetch(..., { cache: 'no-store' })` to avoid Next.js data cache 2MB limits
@@ -264,20 +282,23 @@ GET    /api/admin/stats            # Get system statistics
 GET    /api/admin/logs             # Get system logs
   GET    /api/admin/health           # Get detailed health status
   POST   /api/admin/backup           # Create data backup
-  ```
+```
 
 ## CDN Configuration Recommendations
 
 - **Goals**
+
   - Keep `/api/response` uncached at the browser/CDN to preserve randomness.
   - Reduce latency by leveraging the server-side in-memory prefetch (already implemented). Do NOT rely on edge cache for this route.
 
 - **Required settings**
+
   - Respect origin headers: `Cache-Control: no-cache, no-store, must-revalidate`, `Pragma: no-cache`, `Expires: 0`.
   - Add a bypass/disable-cache rule for path: `/api/response*`.
   - Optional: if your CDN supports it, enforce `Surrogate-Control: no-store` at the edge to avoid accidental caching by surrogate layers.
 
 - **Provider playbooks**
+
   - **Cloudflare**
     - Cache Rule or Page Rule: condition `URI Path` matches `/api/response*`.
     - Actions: `Cache level = Bypass`, `Origin Cache Control = On`, `Edge TTL = 0`. Do not transform caching headers.

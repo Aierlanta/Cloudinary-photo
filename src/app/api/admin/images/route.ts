@@ -31,7 +31,15 @@ import {
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 
-const cloudinaryService = CloudinaryService.getInstance();
+
+// 图床开关（默认启用，设置为 'false' 以禁用）
+const CLOUDINARY_ENABLED = process.env.CLOUDINARY_ENABLE !== 'false';
+const TGSTATE_ENABLED = process.env.TGSTATE_ENABLE !== 'false';
+const enabledProviders = [
+  ...(CLOUDINARY_ENABLED ? ['cloudinary'] : []),
+  ...(TGSTATE_ENABLED ? ['tgstate'] : []),
+];
+
 
 /**
  * GET /api/admin/images
@@ -41,10 +49,10 @@ async function getImages(request: NextRequest): Promise<Response> {
   // 解析查询参数
   const url = new URL(request.url);
   const searchParams = Object.fromEntries(url.searchParams.entries());
-  
+
   // 验证请求参数
   const validatedParams = ImageListRequestSchema.parse(searchParams);
-  
+
   // 获取图片列表
   const images = await databaseService.getImages({
     page: validatedParams.page,
@@ -57,13 +65,13 @@ async function getImages(request: NextRequest): Promise<Response> {
     sortBy: validatedParams.sortBy,
     sortOrder: validatedParams.sortOrder
   });
-  
+
   const response: APIResponse<ImageListResponse> = {
     success: true,
     data: { images },
     timestamp: new Date()
   };
-  
+
   return NextResponse.json(response);
 }
 
@@ -88,7 +96,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
   const title = formData.get('title') as string | null;
   const description = formData.get('description') as string | null;
   const tagsString = formData.get('tags') as string | null;
-  
+
   // 验证文件
   if (!file) {
     throw new AppError(
@@ -97,14 +105,14 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       400
     );
   }
-  
+
   // 验证文件类型和大小
   const fileValidation = FileValidationSchema.parse({
     name: file.name,
     size: file.size,
     type: file.type
   });
-  
+
   // 解析标签
   let tags: string[] = [];
   if (tagsString) {
@@ -114,7 +122,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       tags = tagsString.split(',').map(tag => tag.trim()).filter(Boolean);
     }
   }
-  
+
   // 验证上传参数
   const uploadParams = ImageUploadRequestSchema.parse({
     groupId: groupId || undefined,
@@ -122,7 +130,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
     description: description || undefined,
     tags
   });
-  
+
   // 如果指定了分组，验证分组是否存在
   if (uploadParams.groupId) {
     const group = await databaseService.getGroup(uploadParams.groupId);
@@ -135,15 +143,22 @@ async function uploadImage(request: NextRequest): Promise<Response> {
     }
   }
 
-  // 确定使用的图床服务
-  const selectedProvider = provider || 'cloudinary';
+  // 按启用开关确定使用的图床服务与校验
+  const selectedProvider = (provider as string | undefined) ?? enabledProviders[0];
+  if (!selectedProvider) {
+    throw new AppError(
+      ErrorType.VALIDATION_ERROR,
+      '未启用任何图床服务，请先在环境变量中开启',
+      503
+    );
+  }
 
-  // 验证图床提供商
-  const supportedProviders = ['cloudinary', 'tgstate'];
+  // 验证图床提供商（仅允许已启用的）
+  const supportedProviders = enabledProviders;
   if (!supportedProviders.includes(selectedProvider)) {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
-      `不支持的图床服务提供商: ${selectedProvider}`,
+      `图床服务 ${selectedProvider} 未启用`,
       400
     );
   }
@@ -173,10 +188,10 @@ async function uploadImage(request: NextRequest): Promise<Response> {
     const storageService = storageServiceManager.getService(selectedProvider as StorageProvider);
 
     let savedImage;
-    
+
     try {
       console.log(`[上传] 开始上传到 ${selectedProvider}, 文件: ${file.name}`);
-      
+
       const uploadResult = await storageService.uploadImage(file, {
         folder: 'random-image-api',
         tags: uploadParams.tags,
@@ -192,7 +207,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
 
       // 保存到数据库
       console.log(`[上传] 开始保存到数据库...`);
-      
+
       savedImage = await storageDatabaseService.saveImageWithStorage({
         publicId: uploadResult.publicId,
         url: uploadResult.url,
@@ -207,9 +222,9 @@ async function uploadImage(request: NextRequest): Promise<Response> {
           result: uploadResult
         }]
       });
-      
+
       console.log(`[上传] 数据库保存成功: ${savedImage.id}`);
-      
+
     } catch (error) {
       console.error(`[上传错误] 文件: ${file.name}, Provider: ${selectedProvider}`, error);
       throw error;
@@ -227,7 +242,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       uploadedAt: savedImage.uploadedAt
     };
   }
-  
+
   const response: APIResponse<ImageUploadResponse> = {
     success: true,
     data: {
@@ -236,7 +251,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
     },
     timestamp: new Date()
   };
-  
+
   return NextResponse.json(response, { status: 201 });
 }
 
@@ -274,8 +289,11 @@ async function bulkDeleteImages(request: NextRequest): Promise<Response> {
       }
 
       try {
-        // 从Cloudinary删除图片
-        await cloudinaryService.deleteImage(image.publicId);
+        // 从Cloudinary删除图片（仅在启用且配置完成时尝试）
+        if (CLOUDINARY_ENABLED) {
+          const cloudinaryService = CloudinaryService.getInstance();
+          await cloudinaryService.deleteImage(image.publicId);
+        }
       } catch (error) {
         console.warn(`从Cloudinary删除图片 ${imageId} 失败，继续删除数据库记录:`, error);
       }

@@ -68,6 +68,20 @@ TGSTATE_BASE_URL=https://your-tgstate-domain.com
 ADMIN_PASSWORD=your_secure_admin_password
 ```
 
+#### 按需启用/禁用图床服务（新增）
+
+通过环境变量控制启用哪些图床，未设置时默认启用：
+
+```env
+# 图床开关（未设置即为启用）
+CLOUDINARY_ENABLE=true
+TGSTATE_ENABLE=true
+```
+
+- 设为 `false` 即禁用对应图床（例如仅启用 TgState：`CLOUDINARY_ENABLE=false`）。
+- 当两者均为 `false` 时，上传接口将返回 `503 未启用任何图床服务`。
+- 多图床管理器仅会注册已启用的服务；前端/接口的“可选图床列表”和默认图床也将随之变化。
+
 ### 安装和部署
 
 #### 开发环境
@@ -127,7 +141,7 @@ GET /api/random?group=wallpaper&key=你的API密钥
 
 **配置方法**:
 
-- 进入管理后台 → API配置管理 → API Key 鉴权
+- 进入管理后台 → API 配置管理 → API Key 鉴权
 - 启用 API Key 鉴权
 - 生成或输入自定义 API Key
 - 所有 API 请求都需要携带 `key` 参数
@@ -191,11 +205,12 @@ GET /api/response?opacity=0.3&bgColor=ff6b6b
 
 **注意事项**:
 
-- 透明度处理会将图片转换为 JPEG 格式（质量90）
+- 透明度处理会将图片转换为 JPEG 格式（质量 90）
 - 使用透明度参数时不会使用预取缓存，响应时间会略长
 - 如果未指定 `bgColor`，默认使用白色背景
 
 - 预取（更新）
+
   - 每次成功返回后在后台预取下一张随机图片，并缓存在内存“单槽”中
   - 单槽按筛选条件（如分组映射）划分；命中后即时返回并“消费清空”，随后异步预取下一张补位
   - 无 TTL（不会因时间过期）；缓存为实例进程内存，实例重启/缩容后会丢失，首次请求为冷启动
@@ -203,6 +218,7 @@ GET /api/response?opacity=0.3&bgColor=ff6b6b
   - 预取失败不影响当前请求，仅记录日志
 
 - 传输兼容（新增）
+
   - Cloudinary 资源通过 Cloudinary 下载；非 Cloudinary 资源统一使用数据库中的源 URL 抓取
   - 对 `4xx`（除 `429`）不重试；失败会自动回退至源 URL
   - 所有抓取均使用 `fetch(..., { cache: 'no-store' })`，避免 Next 数据缓存 2MB 限制
@@ -271,15 +287,18 @@ POST   /api/admin/backup           # 创建数据备份
 ## CDN 配置建议
 
 - **目标**
+
   - 保持 `/api/response` 在浏览器/CDN 侧不被缓存，保证随机性；
   - 降低时延依赖服务端进程内的“预取单槽”机制，而非边缘缓存。
 
 - **必需设置**
+
   - 遵守源站响应头：`Cache-Control: no-cache, no-store, must-revalidate`，`Pragma: no-cache`，`Expires: 0`；
   - 为路径 `/api/response*` 添加“绕过/禁止缓存”的规则；
   - 可选：若 CDN 支持，在边缘强制 `Surrogate-Control: no-store`，避免中间代理误缓存。
 
 - **平台指引**
+
   - **Cloudflare**
     - Cache Rule 或 Page Rule：条件 `URI Path` 匹配 `/api/response*`；
     - 动作：`Cache level = Bypass`，`Origin Cache Control = On`，`Edge TTL = 0`；避免重写缓存头。
@@ -288,7 +307,7 @@ POST   /api/admin/backup           # 创建数据备份
     - 若前置了外部 CDN/反代，仍需在该层对 `/api/response*` 绕过缓存。
   - **AWS CloudFront**
     - 为 `/api/response*` 配置 Behavior：`Cache policy = CachingDisabled`（或自定义 TTL=0 且遵守源站）；
-    合理设置 `Origin request policy`。
+      合理设置 `Origin request policy`。
   - **Nginx / 反向代理**
     - 示例：
       ```nginx

@@ -45,15 +45,45 @@ import { StorageProvider } from './base';
  */
 export function createMultiStorageManager(): MultiStorageManager {
   const config = EnvironmentConfigFactory.createMultiStorageConfig();
-  const manager = new MultiStorageManager(config);
 
-  // 注册主要图床服务
-  const primaryService = storageServiceManager.getService(config.primaryProvider);
-  manager.registerService(primaryService);
+  const isEnabled = (provider: StorageProvider): boolean => {
+    if (provider === StorageProvider.CLOUDINARY) return process.env.CLOUDINARY_ENABLE !== 'false';
+    if (provider === StorageProvider.TGSTATE) return process.env.TGSTATE_ENABLE !== 'false';
+    return true;
+  };
 
-  // 注册备用图床服务（如果配置了）
-  if (config.backupProvider) {
-    const backupService = storageServiceManager.getService(config.backupProvider);
+  // 计算已启用的提供商
+  const availableProviders = [StorageProvider.CLOUDINARY, StorageProvider.TGSTATE].filter(isEnabled);
+
+  // 根据开关矫正 Primary/Backup
+  const effectivePrimary = isEnabled(config.primaryProvider)
+    ? config.primaryProvider
+    : (availableProviders[0] ?? config.primaryProvider);
+
+  let effectiveBackup = (config.backupProvider && isEnabled(config.backupProvider))
+    ? config.backupProvider
+    : undefined;
+
+  if (!effectiveBackup && availableProviders.length > 1) {
+    // 若未显式设置备份且存在第二个已启用的提供商，则选择其为备份（与主不同）
+    const candidate = availableProviders.find(p => p !== effectivePrimary);
+    if (candidate) effectiveBackup = candidate;
+  }
+
+  const manager = new MultiStorageManager({
+    ...config,
+    primaryProvider: effectivePrimary,
+    backupProvider: effectiveBackup && effectiveBackup !== effectivePrimary ? effectiveBackup : undefined,
+  });
+
+  // 仅注册已启用且在有效配置内的服务
+  if (isEnabled(effectivePrimary)) {
+    const primaryService = storageServiceManager.getService(effectivePrimary);
+    manager.registerService(primaryService);
+  }
+
+  if (effectiveBackup && isEnabled(effectiveBackup) && effectiveBackup !== effectivePrimary) {
+    const backupService = storageServiceManager.getService(effectiveBackup);
     manager.registerService(backupService);
   }
 

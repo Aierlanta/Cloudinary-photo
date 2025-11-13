@@ -39,7 +39,12 @@ export class DefaultStorageServiceFactory implements StorageServiceFactory {
    * 获取支持的提供商列表
    */
   getSupportedProviders(): StorageProvider[] {
-    return [StorageProvider.CLOUDINARY, StorageProvider.TGSTATE];
+    const cloudinaryEnabled = process.env.CLOUDINARY_ENABLE !== 'false';
+    const tgstateEnabled = process.env.TGSTATE_ENABLE !== 'false';
+    return [
+      ...(cloudinaryEnabled ? [StorageProvider.CLOUDINARY] : []),
+      ...(tgstateEnabled ? [StorageProvider.TGSTATE] : []),
+    ];
   }
 
   /**
