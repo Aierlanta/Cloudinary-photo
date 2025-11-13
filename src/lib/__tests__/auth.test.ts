@@ -9,9 +9,11 @@ import {
   verifyAdminAuth,
   createAuthResponse,
   withAdminAuth,
-  generateSessionToken
+  generateSessionToken,
+  validateSessionToken
 } from '../auth';
-import { AppError } from '@/types/errors';
+import { AppError, ErrorType } from '@/types/errors';
+import { createHmac } from 'crypto';
 
 // 模拟全局Response对象，保持旧测试的断言形式
 global.Response = class MockResponse {
@@ -41,6 +43,7 @@ beforeEach(() => {
   jest.resetModules();
   process.env = { ...originalEnv };
   process.env.ADMIN_PASSWORD = 'test-password-123';
+  process.env.SESSION_SECRET = 'test-session-secret';
 });
 
 afterEach(() => {
@@ -194,6 +197,16 @@ describe('认证中间件测试', () => {
         verifyAdminAuth(mockRequest);
       }).toThrow(AppError);
     });
+
+    it('应该在无效的Session Token时抛出Session过期错误', () => {
+      const mockRequest = createMockRequest({
+        sessionToken: 'invalid-token'
+      });
+
+      expect(() => {
+        verifyAdminAuth(mockRequest);
+      }).toThrow('Session已过期');
+    });
   });
 
   describe('createAuthResponse', () => {
@@ -269,6 +282,25 @@ describe('认证中间件测试', () => {
 
       await expect(authHandler(mockRequest)).rejects.toThrow('其他错误');
     });
+
+    it('应该兼容测试环境中的AppError对象结构', async () => {
+      const mockHandler = jest.fn().mockRejectedValue({
+        type: ErrorType.UNAUTHORIZED,
+        message: '模拟Session过期'
+      });
+
+      const authHandler = withAdminAuth(mockHandler);
+
+      const mockRequest = createMockRequest({
+        headers: { authorization: 'Bearer test-password-123' }
+      });
+
+      const response = await authHandler(mockRequest);
+
+      expect(response.status).toBe(401);
+      const body = await response.json();
+      expect(body.error?.message).toBe('模拟Session过期');
+    });
   });
 
   describe('多种认证方式组合', () => {
@@ -297,6 +329,66 @@ describe('认证中间件测试', () => {
         sessionToken: 'session-token-value'
       });
       expect(extractAuthFromRequest(request4)).toBe('session-token-value');
+    });
+  });
+
+  describe('会话令牌验证', () => {
+    it('生成的令牌应该通过验证', () => {
+      const token = generateSessionToken();
+      expect(validateSessionToken(token)).toBe(true);
+    });
+
+    it('空令牌应该验证失败', () => {
+      expect(validateSessionToken('')).toBe(false);
+      expect(validateSessionToken('..')).toBe(false);
+    });
+
+    it('缺少签名或时间戳的令牌应该验证失败', () => {
+      expect(validateSessionToken('123456789')).toBe(false);
+      expect(validateSessionToken('.signature-only')).toBe(false);
+      expect(validateSessionToken('timestamp-only.')).toBe(false);
+    });
+
+    it('非数字时间戳应该验证失败', () => {
+      expect(validateSessionToken('not-a-number.signature')).toBe(false);
+    });
+
+    it('未来时间戳超过允许范围应该验证失败', () => {
+      const futureMs = Date.now() + 10 * 60 * 1000;
+      const signature = createHmac('sha256', process.env.SESSION_SECRET!).update(futureMs.toString()).digest('hex');
+      const token = `${futureMs}.${signature}`;
+
+      expect(validateSessionToken(token)).toBe(false);
+    });
+
+    it('过期时间戳应该验证失败', () => {
+      const expiredMs = Date.now() - 25 * 60 * 60 * 1000;
+      const signature = createHmac('sha256', process.env.SESSION_SECRET!).update(expiredMs.toString()).digest('hex');
+      const token = `${expiredMs}.${signature}`;
+
+      expect(validateSessionToken(token)).toBe(false);
+    });
+
+    it('签名不匹配应该验证失败', () => {
+      const issuedMs = Date.now();
+      const signature = createHmac('sha256', process.env.SESSION_SECRET!).update((issuedMs + 1).toString()).digest('hex');
+      const token = `${issuedMs}.${signature}`;
+
+      expect(validateSessionToken(token)).toBe(false);
+    });
+
+    it('缺少密钥配置时验证应安全失败', () => {
+      delete process.env.SESSION_SECRET;
+      delete process.env.ADMIN_PASSWORD;
+
+      expect(validateSessionToken('123.456')).toBe(false);
+    });
+
+    it('缺少密钥配置时生成令牌应抛出错误', () => {
+      delete process.env.SESSION_SECRET;
+      delete process.env.ADMIN_PASSWORD;
+
+      expect(() => generateSessionToken()).toThrow(AppError);
     });
   });
 });
