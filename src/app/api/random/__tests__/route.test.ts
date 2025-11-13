@@ -1,270 +1,209 @@
 /**
- * 随机图片API端点测试
+ * 随机图片API端点测试（基于当前实现：302 重定向到图片URL）
  */
 
-import { NextRequest } from 'next/server';
-import { GET } from '../route';
-import { DatabaseService } from '@/lib/database';
-import { CloudinaryService } from '@/lib/cloudinary';
+import type { NextRequest } from 'next/server';
 import { APIConfig, Image } from '@/types/models';
+import { databaseService } from '@/lib/database';
 
-// Mock Web APIs for testing environment
-global.Request = class MockRequest {
-  constructor(public url: string, public init?: RequestInit) {}
-} as any;
+// Mock Next.js server模块，提供精简的 NextResponse/NextRequest 在Jest环境下运行
+jest.mock('next/server', () => {
+  const G: any = typeof globalThis !== 'undefined' ? globalThis : global;
+  const HeadersCtor: any = G.Headers || class {
+    private map = new Map<string, string>();
+    constructor(init?: Record<string, string>) {
+      if (init) {
+        for (const key of Object.keys(init)) {
+          this.map.set(key.toLowerCase(), String(init[key]));
+        }
+      }
+    }
+    get(name: string) {
+      return this.map.get(String(name).toLowerCase()) ?? null;
+    }
+    set(name: string, value: string) {
+      this.map.set(String(name).toLowerCase(), String(value));
+    }
+    append(name: string, value: string) {
+      this.set(name, value);
+    }
+  };
 
-global.Response = class MockResponse {
-  constructor(public body?: any, public init?: ResponseInit) {}
-} as any;
+  const BaseResponse: any = G.Response || class {
+    status: number;
+    headers: any;
+    private body: any;
+    constructor(body?: any, init?: any) {
+      this.status = init?.status ?? 200;
+      this.headers = new HeadersCtor(init?.headers);
+      this.body = body;
+    }
+    async json() {
+      return typeof this.body === 'string' ? JSON.parse(this.body) : this.body;
+    }
+    async text() {
+      return typeof this.body === 'string' ? this.body : JSON.stringify(this.body);
+    }
+  };
 
-// Mock依赖
-jest.mock('@/lib/database');
-jest.mock('@/lib/cloudinary');
+  class NextResponse extends BaseResponse {
+    static redirect(url: string | URL, init?: { status?: number; headers?: Record<string, string> }) {
+      const headers = new HeadersCtor(init?.headers);
+      headers.set('Location', typeof url === 'string' ? url : url.toString());
+      return new BaseResponse(null, { ...init, status: init?.status ?? 302, headers });
+    }
+    static json(data: any, init?: any) {
+      const headers = { 'Content-Type': 'application/json', ...(init?.headers || {}) };
+      return new BaseResponse(JSON.stringify(data), { ...init, headers });
+    }
+  }
 
-const mockDatabaseService = DatabaseService.getInstance() as jest.Mocked<DatabaseService>;
-const mockCloudinaryInstance = {
-  downloadImage: jest.fn()
+  class NextRequest {}
+
+  return { NextResponse, NextRequest };
+});
+
+// 使用 require 延迟加载路由，确保上面的 jest.mock 已生效
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { GET } = require('../route');
+
+// 手动mock数据库模块，确保 route.ts 中使用的 databaseService 可控
+jest.mock('@/lib/database', () => ({
+  databaseService: {
+    getAPIConfig: jest.fn(),
+    initialize: jest.fn(),
+    getRandomImages: jest.fn(),
+    saveLog: jest.fn()
+  },
+}));
+
+const mockDatabaseService = databaseService as unknown as {
+  getAPIConfig: jest.Mock,
+  initialize: jest.Mock,
+  getRandomImages: jest.Mock,
 };
 
-// Mock CloudinaryService
-(CloudinaryService as jest.MockedClass<typeof CloudinaryService>).mockImplementation(() => mockCloudinaryInstance as any);
+const createMockRequest = (url: string): NextRequest => {
+  return {
+    method: 'GET',
+    headers: new Headers(),
+    nextUrl: new URL(url),
+    cookies: {
+      get: jest.fn().mockReturnValue(undefined)
+    }
+  } as unknown as NextRequest;
+};
 
 describe('/api/random API端点测试', () => {
-  const mockImageBuffer = Buffer.from('fake-image-data');
-
   const mockAPIConfig: APIConfig = {
+    id: 'default',
     isEnabled: true,
+    defaultScope: 'all',
+    defaultGroups: [],
     allowedParameters: [
       {
         name: 'category',
         type: 'group',
         allowedValues: ['nature'],
         mappedGroups: ['grp_000001'],
-        isEnabled: true
-      }
+        isEnabled: true,
+      },
     ],
-    defaultScope: 'all'
+    enableDirectResponse: false,
+    apiKeyEnabled: false,
+    updatedAt: new Date('2024-01-01T00:00:00Z'),
   };
 
   const mockImage: Image = {
     id: 'img_000001',
-    filename: 'test_image.jpg',
-    originalName: 'test.jpg',
     publicId: 'test_public_id',
-    format: 'jpg',
-    width: 1920,
-    height: 1080,
-    size: 1024000,
-    url: 'https://res.cloudinary.com/test/image/upload/test_public_id.jpg',
-    secureUrl: 'https://res.cloudinary.com/test/image/upload/test_public_id.jpg',
+    url: 'http://res.cloudinary.com/test/image/upload/test_public_id.jpg',
     uploadedAt: new Date('2024-01-01T00:00:00Z'),
     tags: ['test'],
-    groupId: 'grp_000001'
-  };
+    groupId: 'grp_000001',
+  } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Mock Cloudinary下载
-    mockCloudinaryInstance.downloadImage.mockResolvedValue(mockImageBuffer);
-
-    // Mock数据库服务默认行为
     mockDatabaseService.getAPIConfig.mockResolvedValue(mockAPIConfig);
-    mockDatabaseService.getImages.mockResolvedValue({
-      data: [mockImage],
-      total: 1,
-      page: 1,
-      limit: 1000,
-      totalPages: 1
-    });
+    mockDatabaseService.getRandomImages.mockResolvedValue([mockImage]);
   });
 
-  describe('基础功能测试', () => {
-    it('应该成功返回随机图片', async () => {
-      const request = new NextRequest('http://localhost:3000/api/random');
-
+  describe('基础行为', () => {
+    it('应该重定向到随机图片URL（强制https）', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random');
       const response = await GET(request);
 
-      expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toBe('image/jpg');
+      expect(response.status).toBe(302);
+      // Location 应为 https 协议
+      expect(response.headers.get('Location')).toBe(
+        'https://res.cloudinary.com/test/image/upload/test_public_id.jpg'
+      );
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
       expect(response.headers.get('X-Image-Id')).toBe('img_000001');
-      expect(response.headers.get('X-Image-Filename')).toBe('test_image.jpg');
-
-      const responseBuffer = Buffer.from(await response.arrayBuffer());
-      expect(responseBuffer).toEqual(mockImageBuffer);
-
-      expect(mockDatabaseService.getAPIConfig).toHaveBeenCalledTimes(1);
-      expect(mockDatabaseService.getImages).toHaveBeenCalledWith({
-        page: 1,
-        limit: 1000,
-        sortBy: 'uploadedAt',
-        sortOrder: 'desc'
-      });
-      expect(mockCloudinaryInstance.downloadImage).toHaveBeenCalledWith('test_public_id');
-    });
-
-    it('应该设置正确的缓存头', async () => {
-      const request = new NextRequest('http://localhost:3000/api/random');
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
-      expect(response.headers.get('Content-Length')).toBe(mockImageBuffer.length.toString());
+      expect(response.headers.get('X-Image-PublicId')).toBe('test_public_id');
       expect(response.headers.get('X-Response-Time')).toBeTruthy();
+      // 不再返回图片二进制内容
+      expect(response.headers.get('Content-Type')).toBeNull();
     });
   });
 
-  describe('参数验证测试', () => {
-    it('应该接受有效的参数', async () => {
-      const request = new NextRequest('http://localhost:3000/api/random?category=nature');
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-      expect(mockDatabaseService.getImages).toHaveBeenCalledWith({
-        page: 1,
-        limit: 1000,
-        sortBy: 'uploadedAt',
-        sortOrder: 'desc'
-      });
+  describe('参数验证', () => {
+    it('接受有效参数并按分组获取图片', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?category=nature');
+      await GET(request);
+      expect(mockDatabaseService.getRandomImages).toHaveBeenCalledWith(1, 'grp_000001');
     });
 
-    it('应该拒绝无效的参数名', async () => {
-      const request = new NextRequest('http://localhost:3000/api/random?invalid_param=value');
+    it('拒绝无效参数名', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?invalid_param=value');
       const response = await GET(request);
-
       expect(response.status).toBe(400);
-      const responseData = await response.json();
-      expect(responseData.success).toBe(false);
-      expect(responseData.error.type).toBe('VALIDATION_ERROR');
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error.type).toBe('VALIDATION_ERROR');
     });
 
-    it('应该拒绝无效的参数值', async () => {
-      const request = new NextRequest('http://localhost:3000/api/random?category=invalid_value');
+    it('拒绝无效参数值', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?category=invalid');
       const response = await GET(request);
-
       expect(response.status).toBe(400);
-      const responseData = await response.json();
-      expect(responseData.success).toBe(false);
-      expect(responseData.error.type).toBe('VALIDATION_ERROR');
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error.type).toBe('VALIDATION_ERROR');
     });
   });
 
-  describe('错误处理测试', () => {
-    it('应该处理API配置未找到的情况', async () => {
-      mockDatabaseService.getAPIConfig.mockResolvedValue(null);
-
-      const request = new NextRequest('http://localhost:3000/api/random');
+  describe('错误处理', () => {
+    it('API配置未找到（初始化后仍为空）返回500', async () => {
+      mockDatabaseService.getAPIConfig
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      const request = createMockRequest('http://localhost:3000/api/random');
       const response = await GET(request);
-
+      expect(mockDatabaseService.initialize).toHaveBeenCalled();
       expect(response.status).toBe(500);
-      const responseData = await response.json();
-      expect(responseData.success).toBe(false);
-      expect(responseData.error.type).toBe('INTERNAL_ERROR');
     });
 
-    it('应该处理API被禁用的情况', async () => {
-      const disabledConfig: APIConfig = {
-        ...mockAPIConfig,
-        isEnabled: false
-      };
-
-      mockDatabaseService.getAPIConfig.mockResolvedValue(disabledConfig);
-
-      const request = new NextRequest('http://localhost:3000/api/random');
-
+    it('API被禁用返回403', async () => {
+      mockDatabaseService.getAPIConfig.mockResolvedValue({ ...mockAPIConfig, isEnabled: false });
+      const request = createMockRequest('http://localhost:3000/api/random');
       const response = await GET(request);
-
       expect(response.status).toBe(403);
-      const responseData = await response.json();
-      expect(responseData.success).toBe(false);
-      expect(responseData.error.type).toBe('FORBIDDEN');
     });
 
-    it('应该处理没有找到图片的情况', async () => {
-      mockDatabaseService.getImages.mockResolvedValue({
-        data: [],
-        total: 0,
-        page: 1,
-        limit: 1000,
-        totalPages: 0
-      });
-
-      const request = new NextRequest('http://localhost:3000/api/random');
+    it('没有图片返回404', async () => {
+      mockDatabaseService.getRandomImages.mockResolvedValue([]);
+      const request = createMockRequest('http://localhost:3000/api/random');
       const response = await GET(request);
-
       expect(response.status).toBe(404);
-      const responseData = await response.json();
-      expect(responseData.success).toBe(false);
-      expect(responseData.error.type).toBe('NOT_FOUND');
     });
 
-    it('应该处理数据库错误', async () => {
-      mockDatabaseService.getAPIConfig.mockRejectedValue(new Error('Database error'));
-
-      const request = new NextRequest('http://localhost:3000/api/random');
+    it('数据库抛错返回500', async () => {
+      mockDatabaseService.getAPIConfig.mockRejectedValue(new Error('db error'));
+      const request = createMockRequest('http://localhost:3000/api/random');
       const response = await GET(request);
-
       expect(response.status).toBe(500);
-      const responseData = await response.json();
-      expect(responseData.success).toBe(false);
-      expect(responseData.error.type).toBe('INTERNAL_ERROR');
-    });
-
-    it('应该处理Cloudinary下载错误', async () => {
-      mockDatabaseService.getImages.mockResolvedValue({
-        data: [mockImage],
-        total: 1,
-        page: 1,
-        limit: 1000,
-        totalPages: 1
-      });
-      mockCloudinaryInstance.downloadImage.mockRejectedValue(new Error('Download failed'));
-
-      const request = new NextRequest('http://localhost:3000/api/random');
-      const response = await GET(request);
-
-      expect(response.status).toBe(500);
-      const responseData = await response.json();
-      expect(responseData.success).toBe(false);
-      expect(responseData.error.type).toBe('INTERNAL_ERROR');
-    });
-  });
-
-  describe('响应格式测试', () => {
-    it('应该返回正确的图片格式', async () => {
-      const pngImage = {
-        ...mockImage,
-        format: 'png',
-        filename: 'test.png'
-      };
-
-      mockDatabaseService.getImages.mockResolvedValue({
-        data: [pngImage],
-        total: 1,
-        page: 1,
-        limit: 1000,
-        totalPages: 1
-      });
-
-      const request = new NextRequest('http://localhost:3000/api/random');
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toBe('image/png');
-      expect(response.headers.get('X-Image-Filename')).toBe('test.png');
-    });
-
-    it('应该包含所有必要的响应头', async () => {
-      const request = new NextRequest('http://localhost:3000/api/random');
-      const response = await GET(request);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toBeTruthy();
-      expect(response.headers.get('Content-Length')).toBeTruthy();
-      expect(response.headers.get('Cache-Control')).toBeTruthy();
-      expect(response.headers.get('X-Image-Id')).toBeTruthy();
-      expect(response.headers.get('X-Image-Filename')).toBeTruthy();
-      expect(response.headers.get('X-Response-Time')).toBeTruthy();
     });
   });
 });

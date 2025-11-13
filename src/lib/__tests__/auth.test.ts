@@ -2,7 +2,7 @@
  * 认证中间件测试
  */
 
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 import {
   validateAdminPassword,
   extractAuthFromRequest,
@@ -10,9 +10,9 @@ import {
   createAuthResponse,
   withAdminAuth
 } from '../auth';
-import { APIError, ErrorType } from '@/types/errors';
+import { AppError } from '@/types/errors';
 
-// 模拟全局Response对象
+// 模拟全局Response对象，保持旧测试的断言形式
 global.Response = class MockResponse {
   status: number;
   headers: Map<string, string>;
@@ -46,6 +46,32 @@ afterEach(() => {
   process.env = originalEnv;
 });
 
+const createMockRequest = (options: {
+  headers?: Record<string, string>;
+  url?: string;
+  sessionToken?: string | null;
+} = {}) => {
+  const headerEntries = Object.entries(options.headers || {});
+  const headerMap = new Map<string, string>();
+  headerEntries.forEach(([key, value]) => headerMap.set(key.toLowerCase(), value));
+
+  return {
+    method: 'GET',
+    headers: {
+      get: (key: string) => headerMap.get(key.toLowerCase()) ?? null
+    },
+    url: options.url || 'http://localhost:3000/api/admin/test',
+    cookies: {
+      get: (name: string) => {
+        if (name === 'admin-session' && options.sessionToken) {
+          return { name, value: options.sessionToken };
+        }
+        return undefined;
+      }
+    }
+  } as unknown as NextRequest;
+};
+
 describe('认证中间件测试', () => {
   describe('validateAdminPassword', () => {
     it('应该验证正确的密码', () => {
@@ -58,74 +84,91 @@ describe('认证中间件测试', () => {
 
     it('应该在密码未配置时抛出错误', () => {
       delete process.env.ADMIN_PASSWORD;
-      
+
       expect(() => {
         validateAdminPassword('any-password');
-      }).toThrow(APIError);
+      }).toThrow(AppError);
     });
   });
 
   describe('extractAuthFromRequest', () => {
     it('应该从Authorization头提取密码', () => {
-      const mockRequest = {
-        headers: new Map([['authorization', 'Bearer test-password-123']]),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest({
+        headers: { authorization: 'Bearer test-password-123' }
+      });
 
       const password = extractAuthFromRequest(mockRequest);
       expect(password).toBe('test-password-123');
     });
 
     it('应该从X-Admin-Password头提取密码', () => {
-      const mockRequest = {
-        headers: new Map([['x-admin-password', 'test-password-123']]),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest({
+        headers: { 'x-admin-password': 'test-password-123' }
+      });
 
       const password = extractAuthFromRequest(mockRequest);
       expect(password).toBe('test-password-123');
     });
 
     it('应该从查询参数提取密码', () => {
-      const mockRequest = {
-        headers: new Map(),
+      const mockRequest = createMockRequest({
         url: 'http://localhost:3000/api/admin/test?admin_password=test-password-123'
-      } as any;
+      });
 
       const password = extractAuthFromRequest(mockRequest);
       expect(password).toBe('test-password-123');
     });
 
     it('应该在没有认证信息时返回null', () => {
-      const mockRequest = {
-        headers: new Map(),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest();
 
       const password = extractAuthFromRequest(mockRequest);
       expect(password).toBeNull();
     });
 
     it('应该优先使用Authorization头', () => {
-      const mockRequest = {
-        headers: new Map([
-          ['authorization', 'Bearer auth-header-password'],
-          ['x-admin-password', 'header-password']
-        ]),
+      const mockRequest = createMockRequest({
+        headers: {
+          authorization: 'Bearer auth-header-password',
+          'x-admin-password': 'header-password'
+        },
         url: 'http://localhost:3000/api/admin/test?admin_password=query-password'
-      } as any;
+      });
 
       const password = extractAuthFromRequest(mockRequest);
       expect(password).toBe('auth-header-password');
+    });
+
+    it('应该优先使用Session Cookie', () => {
+      const mockRequest = createMockRequest({
+        headers: {
+          authorization: 'Bearer should-not-use',
+          'x-admin-password': 'header-password'
+        },
+        url: 'http://localhost:3000/api/admin/test?admin_password=query-password',
+        sessionToken: 'session-token-value'
+      });
+
+      const password = extractAuthFromRequest(mockRequest);
+      expect(password).toBe('session-token-value');
     });
   });
 
   describe('verifyAdminAuth', () => {
     it('应该验证有效的认证', () => {
-      const mockRequest = {
-        headers: new Map([['authorization', 'Bearer test-password-123']]),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest({
+        headers: { authorization: 'Bearer test-password-123' }
+      });
+
+      expect(() => {
+        verifyAdminAuth(mockRequest);
+      }).not.toThrow();
+    });
+
+    it('应该接受有效的Session Token', () => {
+      const mockRequest = createMockRequest({
+        sessionToken: 'valid-session-token'
+      });
 
       expect(() => {
         verifyAdminAuth(mockRequest);
@@ -133,25 +176,21 @@ describe('认证中间件测试', () => {
     });
 
     it('应该在缺少认证时抛出错误', () => {
-      const mockRequest = {
-        headers: new Map(),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest();
 
       expect(() => {
         verifyAdminAuth(mockRequest);
-      }).toThrow(APIError);
+      }).toThrow(AppError);
     });
 
     it('应该在密码错误时抛出错误', () => {
-      const mockRequest = {
-        headers: new Map([['authorization', 'Bearer wrong-password']]),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest({
+        headers: { authorization: 'Bearer wrong-password' }
+      });
 
       expect(() => {
         verifyAdminAuth(mockRequest);
-      }).toThrow(APIError);
+      }).toThrow(AppError);
     });
   });
 
@@ -179,10 +218,9 @@ describe('认证中间件测试', () => {
 
       const authHandler = withAdminAuth(mockHandler);
 
-      const mockRequest = {
-        headers: new Map([['authorization', 'Bearer test-password-123']]),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest({
+        headers: { authorization: 'Bearer test-password-123' }
+      });
 
       const response = await authHandler(mockRequest);
 
@@ -195,10 +233,9 @@ describe('认证中间件测试', () => {
 
       const authHandler = withAdminAuth(mockHandler);
 
-      const mockRequest = {
-        headers: new Map([['authorization', 'Bearer wrong-password']]),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest({
+        headers: { authorization: 'Bearer wrong-password' }
+      });
 
       const response = await authHandler(mockRequest);
 
@@ -211,10 +248,7 @@ describe('认证中间件测试', () => {
 
       const authHandler = withAdminAuth(mockHandler);
 
-      const mockRequest = {
-        headers: new Map(),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest();
 
       const response = await authHandler(mockRequest);
 
@@ -227,10 +261,9 @@ describe('认证中间件测试', () => {
 
       const authHandler = withAdminAuth(mockHandler);
 
-      const mockRequest = {
-        headers: new Map([['authorization', 'Bearer test-password-123']]),
-        url: 'http://localhost:3000/api/admin/test'
-      } as any;
+      const mockRequest = createMockRequest({
+        headers: { authorization: 'Bearer test-password-123' }
+      });
 
       await expect(authHandler(mockRequest)).rejects.toThrow('其他错误');
     });
@@ -238,32 +271,30 @@ describe('认证中间件测试', () => {
 
   describe('多种认证方式组合', () => {
     it('应该支持多种认证方式的优先级', () => {
-      // Authorization头优先级最高
-      const request1 = {
-        headers: new Map([
-          ['authorization', 'Bearer auth-password'],
-          ['x-admin-password', 'header-password']
-        ]),
+      const request1 = createMockRequest({
+        headers: {
+          authorization: 'Bearer auth-password',
+          'x-admin-password': 'header-password'
+        },
         url: 'http://localhost:3000/api/admin/test?admin_password=query-password'
-      } as any;
-
+      });
       expect(extractAuthFromRequest(request1)).toBe('auth-password');
 
-      // X-Admin-Password头次之
-      const request2 = {
-        headers: new Map([['x-admin-password', 'header-password']]),
+      const request2 = createMockRequest({
+        headers: { 'x-admin-password': 'header-password' },
         url: 'http://localhost:3000/api/admin/test?admin_password=query-password'
-      } as any;
-
+      });
       expect(extractAuthFromRequest(request2)).toBe('header-password');
 
-      // 查询参数优先级最低
-      const request3 = {
-        headers: new Map(),
+      const request3 = createMockRequest({
         url: 'http://localhost:3000/api/admin/test?admin_password=query-password'
-      } as any;
-
+      });
       expect(extractAuthFromRequest(request3)).toBe('query-password');
+
+      const request4 = createMockRequest({
+        sessionToken: 'session-token-value'
+      });
+      expect(extractAuthFromRequest(request4)).toBe('session-token-value');
     });
   });
 });

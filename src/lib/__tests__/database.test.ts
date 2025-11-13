@@ -7,8 +7,8 @@ import { Image, Group, APIConfig } from '@/types/models';
 import { DatabaseError, NotFoundError } from '@/types/errors';
 
 // Mock Prisma Client
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn().mockImplementation(() => ({
+jest.mock('@prisma/client', () => {
+  const mockPrisma = {
     image: {
       create: jest.fn(),
       findUnique: jest.fn(),
@@ -27,21 +27,45 @@ jest.mock('@prisma/client', () => ({
       delete: jest.fn(),
       count: jest.fn(),
       deleteMany: jest.fn(),
+      updateMany: jest.fn(),
     },
     aPIConfig: {
       findUnique: jest.fn(),
       upsert: jest.fn(),
       deleteMany: jest.fn(),
     },
+    systemLog: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      deleteMany: jest.fn(),
+      count: jest.fn()
+    },
     counter: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
       upsert: jest.fn(),
       update: jest.fn(),
       deleteMany: jest.fn(),
     },
     $queryRaw: jest.fn(),
     $disconnect: jest.fn(),
-  }))
-}));
+    $transaction: jest.fn(),
+  };
+
+  mockPrisma.$transaction.mockImplementation(async (handler) =>
+    handler({
+      counter: {
+        findUnique: mockPrisma.counter.findUnique,
+        create: mockPrisma.counter.create,
+        update: mockPrisma.counter.update,
+      },
+    })
+  );
+
+  return {
+    PrismaClient: jest.fn().mockImplementation(() => mockPrisma),
+  };
+});
 
 // 获取mock实例
 const { PrismaClient } = require('@prisma/client');
@@ -56,12 +80,20 @@ describe('DatabaseService', () => {
 
     // 创建新的数据库服务实例
     databaseService = new DatabaseService();
+
+    mockPrisma.systemLog.create.mockResolvedValue({});
   });
 
   describe('初始化', () => {
     it('应该正确初始化数据库', async () => {
-      // 模拟计数器upsert
-      mockPrisma.counter.upsert.mockResolvedValue({ id: 'imageId', value: 0 });
+      mockPrisma.image.findMany.mockResolvedValue([]);
+      mockPrisma.group.findMany.mockResolvedValue([]);
+      mockPrisma.counter.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockPrisma.counter.create
+        .mockResolvedValueOnce({ id: 'imageId', value: 0 })
+        .mockResolvedValueOnce({ id: 'groupId', value: 0 });
 
       // 模拟API配置不存在
       mockPrisma.aPIConfig.findUnique.mockResolvedValue(null);
@@ -71,26 +103,42 @@ describe('DatabaseService', () => {
         defaultScope: 'all',
         defaultGroups: '[]',
         allowedParameters: '[]',
+        enableDirectResponse: false,
+        apiKeyEnabled: false,
+        apiKey: null,
         updatedAt: new Date()
       });
 
       await databaseService.initialize();
 
-      // 验证计数器初始化
-      expect(mockPrisma.counter.upsert).toHaveBeenCalledWith({
-        where: { id: 'imageId' },
-        update: {},
-        create: { id: 'imageId', value: 0 }
+      expect(mockPrisma.counter.findUnique).toHaveBeenNthCalledWith(1, {
+        where: { id: 'imageId' }
+      });
+      expect(mockPrisma.counter.findUnique).toHaveBeenNthCalledWith(2, {
+        where: { id: 'groupId' }
       });
 
-      expect(mockPrisma.counter.upsert).toHaveBeenCalledWith({
-        where: { id: 'groupId' },
-        update: {},
-        create: { id: 'groupId', value: 0 }
+      expect(mockPrisma.counter.create).toHaveBeenNthCalledWith(1, {
+        data: { id: 'imageId', value: 0 }
+      });
+      expect(mockPrisma.counter.create).toHaveBeenNthCalledWith(2, {
+        data: { id: 'groupId', value: 0 }
       });
 
-      // 验证API配置初始化
-      expect(mockPrisma.aPIConfig.upsert).toHaveBeenCalled();
+      expect(mockPrisma.aPIConfig.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({
+            enableDirectResponse: false,
+            apiKeyEnabled: false,
+            apiKey: undefined
+          }),
+          create: expect.objectContaining({
+            enableDirectResponse: false,
+            apiKeyEnabled: false,
+            apiKey: undefined
+          })
+        })
+      );
     });
   });
 
@@ -102,11 +150,13 @@ describe('DatabaseService', () => {
         title: '测试图片',
         description: '这是一个测试图片',
         tags: ['test', 'image'],
-        groupId: 'grp_000001'
+        groupId: 'grp_000001',
+        primaryProvider: 'cloudinary',
+        backupProvider: 'tgstate'
       };
 
       // 模拟计数器更新
-      mockPrisma.counter.update.mockResolvedValue({ id: 'imageId', value: 1 });
+      mockPrisma.counter.update.mockResolvedValue({ id: 'image_counter', value: 1 });
 
       // 模拟图片创建
       const mockImage = {
@@ -117,6 +167,8 @@ describe('DatabaseService', () => {
         description: imageData.description,
         tags: JSON.stringify(imageData.tags),
         groupId: imageData.groupId,
+        primaryProvider: imageData.primaryProvider,
+        backupProvider: imageData.backupProvider,
         uploadedAt: new Date(),
         group: { id: 'grp_000001', name: '测试分组' }
       };
@@ -128,7 +180,7 @@ describe('DatabaseService', () => {
       const result = await databaseService.saveImage(imageData);
 
       expect(mockPrisma.counter.update).toHaveBeenCalledWith({
-        where: { id: 'imageId' },
+        where: { id: 'image_counter' },
         data: { value: { increment: 1 } }
       });
 
@@ -141,6 +193,8 @@ describe('DatabaseService', () => {
           description: imageData.description,
           tags: JSON.stringify(imageData.tags),
           groupId: imageData.groupId,
+          primaryProvider: imageData.primaryProvider,
+          backupProvider: imageData.backupProvider
         },
         include: { group: true }
       });
@@ -172,6 +226,8 @@ describe('DatabaseService', () => {
         tags: '["test","image"]',
         groupId: 'grp_000001',
         uploadedAt: new Date(),
+        primaryProvider: 'cloudinary',
+        backupProvider: 'tgstate',
         group: { id: 'grp_000001', name: '测试分组' }
       };
 
@@ -192,7 +248,9 @@ describe('DatabaseService', () => {
         description: '这是一个测试图片',
         tags: ['test', 'image'],
         groupId: 'grp_000001',
-        uploadedAt: expect.any(Date)
+        uploadedAt: expect.any(Date),
+        primaryProvider: 'cloudinary',
+        backupProvider: 'tgstate'
       });
     });
 
@@ -258,7 +316,18 @@ describe('DatabaseService', () => {
         isEnabled: true,
         defaultScope: 'all',
         defaultGroups: '["grp_000001"]',
-        allowedParameters: '["groupId","count"]',
+        allowedParameters: JSON.stringify([
+          {
+            name: 'category',
+            type: 'group',
+            allowedValues: ['grp_000001'],
+            mappedGroups: ['grp_000001'],
+            isEnabled: true
+          }
+        ]),
+        enableDirectResponse: true,
+        apiKeyEnabled: true,
+        apiKey: 'secret',
         updatedAt: new Date()
       };
 
@@ -275,7 +344,18 @@ describe('DatabaseService', () => {
         isEnabled: true,
         defaultScope: 'all',
         defaultGroups: ['grp_000001'],
-        allowedParameters: ['groupId', 'count'],
+        allowedParameters: [
+          {
+            name: 'category',
+            type: 'group',
+            allowedValues: ['grp_000001'],
+            mappedGroups: ['grp_000001'],
+            isEnabled: true
+          }
+        ],
+        enableDirectResponse: true,
+        apiKeyEnabled: true,
+        apiKey: 'secret',
         updatedAt: expect.any(Date)
       });
     });
