@@ -4,12 +4,6 @@
  */
 
 /**
- * 从Cloudinary URL生成缩略图URL
- * @param originalUrl 原始图片URL
- * @param size 缩略图尺寸（默认300px）
- * @returns 缩略图URL
- */
-/**
  * 检查是否是 tgState 图片
  */
 export function isTgStateImage(url: string): boolean {
@@ -18,7 +12,8 @@ export function isTgStateImage(url: string): boolean {
 
   try {
     const tgStateDomain = new URL(tgStateBaseUrl).hostname;
-    return url.includes(tgStateDomain);
+    const urlDomain = new URL(url).hostname;
+    return urlDomain === tgStateDomain;
   } catch {
     return false;
   }
@@ -60,9 +55,12 @@ export function convertTgStateToProxyUrl(originalUrl: string): string {
     const urlObj = new URL(originalUrl);
     const relativePath = urlObj.pathname + urlObj.search + urlObj.hash;
 
-    // 拼接代理URL
+    // 拼接代理URL，保留代理路径配置
     const proxyUrlObj = new URL(proxyUrl);
-    return `${proxyUrlObj.origin}${relativePath}`;
+    const basePath = `${proxyUrlObj.origin}${proxyUrlObj.pathname.replace(/\/$/, '')}`;
+    const normalizedRelativePath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+
+    return `${basePath}${normalizedRelativePath}`;
   } catch (error) {
     console.warn('转换 tgState 代理URL失败:', error);
     return originalUrl; // 出错时返回原URL

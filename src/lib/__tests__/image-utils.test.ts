@@ -105,6 +105,26 @@ describe('Image Utils - tgState Proxy', () => {
       expect(result).toBe('https://proxy.example.com/d/abc123?w=300#top');
     });
 
+    it('当代理URL包含路径时应正确拼接', () => {
+      process.env.TGSTATE_BASE_URL = 'https://tg.example.com';
+      process.env.TGSTATE_PROXY_URL = 'https://proxy.example.com/tg-images';
+      
+      const originalUrl = 'https://tg.example.com/d/abc123?w=300#top';
+      const result = convertTgStateToProxyUrl(originalUrl);
+      
+      expect(result).toBe('https://proxy.example.com/tg-images/d/abc123?w=300#top');
+    });
+
+    it('当代理URL包含以斜杠结尾的路径时也应正确拼接', () => {
+      process.env.TGSTATE_BASE_URL = 'https://tg.example.com';
+      process.env.TGSTATE_PROXY_URL = 'https://proxy.example.com/tg-images/';
+      
+      const originalUrl = 'https://tg.example.com/d/abc123';
+      const result = convertTgStateToProxyUrl(originalUrl);
+      
+      expect(result).toBe('https://proxy.example.com/tg-images/d/abc123');
+    });
+
     it('非 tgState 图片不应被转换', () => {
       process.env.TGSTATE_BASE_URL = 'https://tg.example.com';
       process.env.TGSTATE_PROXY_URL = 'https://proxy.example.com';
