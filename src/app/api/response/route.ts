@@ -11,6 +11,7 @@ import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { adjustImageTransparency, parseTransparencyParams } from '@/lib/image-processor';
+import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -390,7 +391,10 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     const mimeType = getMimeTypeFromUrl(randomImage.url);
 
     // 获取图片URL用于流式传输
-    const imageUrl = randomImage.url.replace(/^http:/, 'https:');
+    let imageUrl = randomImage.url.replace(/^http:/, 'https:');
+    
+    // 应用代理URL转换（如果配置了 tgState 代理）
+    imageUrl = convertTgStateToProxyUrl(imageUrl);
 
     {
       // 直接缓冲模式（便于与预取缓存对接）

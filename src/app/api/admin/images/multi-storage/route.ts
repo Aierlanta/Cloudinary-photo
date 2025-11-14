@@ -13,6 +13,7 @@ import { AppError, ErrorType } from '@/types/errors';
 import { StorageProvider } from '@/lib/storage/base';
 import { getDefaultStorageManager, validateAtLeastOneEnabled } from '@/lib/storage';
 import { storageDatabaseService } from '@/lib/database/storage';
+import { applyProxyToImageUrl } from '@/lib/image-utils';
 import {
   ImageUploadRequestSchema,
   FileValidationSchema
@@ -154,22 +155,25 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
       uploadTime: uploadResult.metadata?.uploadTime
     });
 
+    // 应用代理URL转换（如果配置了 tgState 代理）
+    const imageWithProxy = applyProxyToImageUrl({
+      id: savedImage.id,
+      url: savedImage.url,
+      publicId: savedImage.publicId,
+      title: savedImage.title,
+      description: savedImage.description,
+      tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
+      groupId: savedImage.groupId,
+      uploadedAt: savedImage.uploadedAt,
+      // 多图床特有字段
+      primaryProvider: savedImage.primaryProvider,
+      backupProvider: savedImage.backupProvider
+    });
+
     const response: APIResponse<ImageUploadResponse> = {
       success: true,
       data: {
-        image: {
-          id: savedImage.id,
-          url: savedImage.url,
-          publicId: savedImage.publicId,
-          title: savedImage.title,
-          description: savedImage.description,
-          tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
-          groupId: savedImage.groupId,
-          uploadedAt: savedImage.uploadedAt,
-          // 多图床特有字段
-          primaryProvider: savedImage.primaryProvider,
-          backupProvider: savedImage.backupProvider
-        },
+        image: imageWithProxy,
         message: `图片上传成功${uploadResult.failedOver ? ' (已故障转移)' : ''}`
       },
       timestamp: new Date()

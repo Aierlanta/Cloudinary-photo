@@ -17,6 +17,7 @@ export interface TgStateConfig {
   baseUrl: string;
   password?: string;
   timeout?: number;
+  proxyUrl?: string; // 图片代理URL，用于加速访问
 }
 
 export interface TgStateResponse {
@@ -29,6 +30,7 @@ export class TgStateService extends ImageStorageService {
   private baseUrl: string;
   private password?: string;
   private timeout: number;
+  private proxyUrl?: string; // 代理URL配置
   private stats: {
     totalUploads: number;
     successCount: number;
@@ -41,6 +43,7 @@ export class TgStateService extends ImageStorageService {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // 移除末尾斜杠
     this.password = config.password;
     this.timeout = config.timeout || 30000; // 30秒超时
+    this.proxyUrl = config.proxyUrl; // 存储代理URL配置
     this.stats = {
       totalUploads: 0,
       successCount: 0,

@@ -15,6 +15,7 @@ import { AppError, ErrorType } from '@/types/errors';
 import { StorageProvider } from '@/lib/storage/base';
 import { storageServiceManager } from '@/lib/storage/factory';
 import { StorageDatabaseService } from '@/lib/database/storage';
+import { applyProxyToImageUrls, applyProxyToImageUrl } from '@/lib/image-utils';
 import {
   ImageListRequestSchema,
   ImageUploadRequestSchema,
@@ -61,9 +62,15 @@ async function getImages(request: NextRequest): Promise<Response> {
     sortOrder: validatedParams.sortOrder
   });
 
+  // 应用代理URL转换（如果配置了 tgState 代理）
+  const imagesWithProxy = {
+    ...images,
+    data: applyProxyToImageUrls(images.data)
+  };
+
   const response: APIResponse<ImageListResponse> = {
     success: true,
-    data: { images },
+    data: { images: imagesWithProxy },
     timestamp: new Date()
   };
 
@@ -248,6 +255,9 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       groupId: savedImage.groupId,
       uploadedAt: savedImage.uploadedAt
     };
+    
+    // 应用代理URL转换（如果配置了 tgState 代理）
+    image = applyProxyToImageUrl(image);
   }
 
   const response: APIResponse<ImageUploadResponse> = {

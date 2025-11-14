@@ -24,6 +24,81 @@ export function isTgStateImage(url: string): boolean {
   }
 }
 
+/**
+ * 将 tgState 图片 URL 转换为代理 URL（如果配置了代理）
+ * @param originalUrl 原始 tgState 图片 URL
+ * @returns 代理 URL 或原始 URL
+ * 
+ * @example
+ * // 未配置代理时
+ * convertTgStateToProxyUrl('https://tg.example.com/d/abc123')
+ * // 返回: 'https://tg.example.com/d/abc123'
+ * 
+ * // 配置代理后 (TGSTATE_PROXY_URL=https://tg-proxy.example.com)
+ * convertTgStateToProxyUrl('https://tg.example.com/d/abc123')
+ * // 返回: 'https://tg-proxy.example.com/d/abc123'
+ */
+export function convertTgStateToProxyUrl(originalUrl: string): string {
+  // 如果没有原始URL，直接返回
+  if (!originalUrl) return originalUrl;
+
+  const proxyUrl = process.env.TGSTATE_PROXY_URL;
+  const baseUrl = process.env.TGSTATE_BASE_URL;
+
+  // 如果没配置代理URL，或者没有baseUrl，直接返回原URL
+  if (!proxyUrl || !baseUrl) {
+    return originalUrl;
+  }
+
+  // 如果不是 tgState 图片，直接返回原URL
+  if (!isTgStateImage(originalUrl)) {
+    return originalUrl;
+  }
+
+  try {
+    // 提取相对路径
+    const urlObj = new URL(originalUrl);
+    const relativePath = urlObj.pathname + urlObj.search + urlObj.hash;
+
+    // 拼接代理URL
+    const proxyUrlObj = new URL(proxyUrl);
+    return `${proxyUrlObj.origin}${relativePath}`;
+  } catch (error) {
+    console.warn('转换 tgState 代理URL失败:', error);
+    return originalUrl; // 出错时返回原URL
+  }
+}
+
+/**
+ * 批量转换图片URL为代理URL
+ * @param urls 图片URL数组
+ * @returns 转换后的URL数组
+ */
+export function convertTgStateUrlsToProxy(urls: string[]): string[] {
+  return urls.map(url => convertTgStateToProxyUrl(url));
+}
+
+/**
+ * 为图片对象的URL字段应用代理转换
+ * @param image 包含url字段的图片对象
+ * @returns 转换后的图片对象（不修改原对象）
+ */
+export function applyProxyToImageUrl<T extends { url: string }>(image: T): T {
+  return {
+    ...image,
+    url: convertTgStateToProxyUrl(image.url)
+  };
+}
+
+/**
+ * 为图片数组批量应用代理转换
+ * @param images 图片对象数组
+ * @returns 转换后的图片数组
+ */
+export function applyProxyToImageUrls<T extends { url: string }>(images: T[]): T[] {
+  return images.map(image => applyProxyToImageUrl(image));
+}
+
 export function generateThumbnailUrl(originalUrl: string, size: number = 300): string {
   // 检查是否是 tgState URL
   if (isTgStateImage(originalUrl)) {

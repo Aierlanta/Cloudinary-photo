@@ -63,6 +63,11 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 # TgState 图床配置（可选）
 TGSTATE_BASE_URL=https://your-tgstate-domain.com
+# TgState 图片代理URL（可选，用于加速访问或CDN加速）
+# 如果配置了此项，API返回的图片URL将使用代理地址
+# TGSTATE_PROXY_URL=https://tg-img.your-domain.com
+# 或使用 Cloudflare Worker 等反代服务：
+# TGSTATE_PROXY_URL=https://tg-proxy.workers.dev
 
 # 管理员认证
 ADMIN_PASSWORD=your_secure_admin_password
@@ -310,6 +315,7 @@ POST   /api/admin/backup           # 创建数据备份
       合理设置 `Origin request policy`。
   - **Nginx / 反向代理**
     - 示例：
+
       ```nginx
       location /api/response {
           expires off;
@@ -319,6 +325,7 @@ POST   /api/admin/backup           # 创建数据备份
           proxy_pass http://your_upstream;
       }
       ```
+
   - **Fastly / Akamai**
     - Fastly VCL：对 `/api/response*` 设置 `beresp.http.Surrogate-Control = "no-store"` 且 `beresp.ttl = 0s`；
     - Akamai：在属性中启用“遵守源站 no-store”并对该路径禁用缓存。

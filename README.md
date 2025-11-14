@@ -63,6 +63,11 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 # TgState image hosting configuration (optional)
 TGSTATE_BASE_URL=https://your-tgstate-domain.com
+# TgState image proxy URL (optional, for faster access or CDN acceleration)
+# If configured, API will return image URLs using the proxy address
+# TGSTATE_PROXY_URL=https://tg-img.your-domain.com
+# Or use Cloudflare Worker as reverse proxy:
+# TGSTATE_PROXY_URL=https://tg-proxy.workers.dev
 
 # Admin authentication
 ADMIN_PASSWORD=your_secure_admin_password
@@ -309,6 +314,7 @@ GET    /api/admin/logs             # Get system logs
     - Behavior for `/api/response*`: `Cache policy = CachingDisabled` (or custom with TTL 0 and honor origin), suitable `Origin request policy`.
   - **Nginx / Reverse Proxy**
     - Example:
+
       ```nginx
       location /api/response {
           expires off;
@@ -318,6 +324,7 @@ GET    /api/admin/logs             # Get system logs
           proxy_pass http://your_upstream;
       }
       ```
+
   - **Fastly / Akamai**
     - Fastly VCL: for `/api/response*` set `beresp.http.Surrogate-Control = "no-store"` and `beresp.ttl = 0s`.
     - Akamai: configure property behavior to respect origin `no-store` and disable cache for the path.

@@ -143,6 +143,7 @@ export class EnvironmentConfigFactory {
     const baseUrl = process.env.TGSTATE_BASE_URL;
     const password = process.env.TGSTATE_PASSWORD;
     const timeout = process.env.TGSTATE_TIMEOUT;
+    const proxyUrl = process.env.TGSTATE_PROXY_URL; // 读取代理URL配置
 
     if (!baseUrl) {
       throw new StorageError(
@@ -156,7 +157,8 @@ export class EnvironmentConfigFactory {
     return {
       baseUrl,
       password: password || undefined,
-      timeout: timeout ? parseInt(timeout, 10) : undefined
+      timeout: timeout ? parseInt(timeout, 10) : undefined,
+      proxyUrl: proxyUrl || undefined // 添加代理URL配置（可选）
     };
   }
 

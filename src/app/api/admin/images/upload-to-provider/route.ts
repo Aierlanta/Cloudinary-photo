@@ -9,6 +9,7 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
+import { applyProxyToImageUrl } from '@/lib/image-utils';
 import {
   ImageUploadRequestSchema,
   FileValidationSchema
@@ -144,21 +145,24 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
       url: uploadResult.url
     });
 
+    // 应用代理URL转换（如果配置了 tgState 代理）
+    const imageWithProxy = applyProxyToImageUrl({
+      id: savedImage.id,
+      url: savedImage.url,
+      publicId: savedImage.publicId,
+      title: savedImage.title,
+      description: savedImage.description,
+      tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
+      groupId: savedImage.groupId,
+      uploadedAt: savedImage.uploadedAt,
+      primaryProvider: savedImage.primaryProvider,
+      backupProvider: savedImage.backupProvider
+    });
+
     const response: APIResponse<ImageUploadResponse> = {
       success: true,
       data: {
-        image: {
-          id: savedImage.id,
-          url: savedImage.url,
-          publicId: savedImage.publicId,
-          title: savedImage.title,
-          description: savedImage.description,
-          tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
-          groupId: savedImage.groupId,
-          uploadedAt: savedImage.uploadedAt,
-          primaryProvider: savedImage.primaryProvider,
-          backupProvider: savedImage.backupProvider
-        },
+        image: imageWithProxy,
         message: `图片已成功上传到 ${provider} 图床`
       },
       timestamp: new Date()

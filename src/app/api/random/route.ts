@@ -10,6 +10,7 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
+import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -180,14 +181,17 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
 
     const duration = Math.round(performance.now() - startTime);
 
+    // 确保图片URL使用HTTPS协议
+    let secureImageUrl = randomImage.url.replace(/^http:/, 'https:');
+    
+    // 应用代理URL转换（如果配置了 tgState 代理）
+    secureImageUrl = convertTgStateToProxyUrl(secureImageUrl);
+
     // 记录成功响应
     logger.apiResponse('GET', '/api/random', 302, duration, {
       imageId: randomImage.id,
-      redirectUrl: randomImage.url
+      redirectUrl: secureImageUrl
     });
-
-    // 确保图片URL使用HTTPS协议
-    const secureImageUrl = randomImage.url.replace(/^http:/, 'https:');
 
     // 重定向到图片URL
     return NextResponse.redirect(secureImageUrl, {
