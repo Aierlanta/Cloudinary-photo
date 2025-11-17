@@ -3,7 +3,7 @@
  * 支持自动备份到 bak 数据库和手动还原功能
  */
 
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { DatabaseError } from '@/types/errors';
 import { LogLevel, Logger } from './logger';
 
@@ -370,20 +370,60 @@ export class BackupService {
       const backupTables = this.filterTables(backupTablesAll);
       this.logger.debug(`备份库表（过滤后）: ${backupTables.join(', ')}`);
 
-      // 2. 删除主库所有业务表（过滤系统表）
-      const mainTablesAll = await this.getAllTables();
-      const mainTables = this.filterTables(mainTablesAll);
-      await this.dropAllMainTables(mainTables);
-
-      // 3. 按表从备份库复制结构与数据到主库
-      //    禁用外键检查，避免顺序依赖问题
-      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-      for (const tableName of backupTables) {
-        // 特例：api_configs 需要跳过 backup_status 记录，最后再恢复
-        const skipBackupStatus = tableName === 'api_configs';
-        await this.recreateAndFillTableFromBackup(tableName, { skipBackupStatus });
+      // 2. 为每个表创建主库中的临时表并填充数据，全部成功后再原子切换
+      const tmpSuffix = '__tmp_restore';
+      const createdTmpTables: string[] = [];
+      try {
+        for (const tableName of backupTables) {
+          // 特例：api_configs 需要跳过 backup_status 记录，最后再恢复
+          const skipBackupStatus = tableName === 'api_configs';
+          const targetTableName = `${tableName}${tmpSuffix}`;
+          await this.recreateAndFillTableFromBackup(tableName, { skipBackupStatus, targetTableName });
+          createdTmpTables.push(targetTableName);
+        }
+      } catch (e) {
+        // 清理已创建的临时表，确保不留下脏状态
+        for (const t of createdTmpTables) {
+          try {
+            await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${t}\`;`);
+          } catch {}
+        }
+        throw e;
       }
-      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+
+      // 3. 原子切换：RENAME TABLE（批量重命名是原子的）
+      const timestamp = Date.now();
+      const mainTablesAll = await this.getAllTables();
+      const existingMainTables = new Set(this.filterTables(mainTablesAll));
+      const renamePairs: string[] = [];
+      const oldTablesToDrop: string[] = [];
+      for (const tableName of backupTables) {
+        const tmpName = `${tableName}${tmpSuffix}`;
+        if (existingMainTables.has(tableName)) {
+          const oldName = `\`${tableName}__old_${timestamp}\``;
+          renamePairs.push(`\`${tableName}\` TO ${oldName}`);
+          oldTablesToDrop.push(`${tableName}__old_${timestamp}`);
+        }
+        renamePairs.push(`\`${tmpName}\` TO \`${tableName}\``);
+      }
+      if (renamePairs.length > 0) {
+        await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+        try {
+          const renameSQL = `RENAME TABLE ${renamePairs.join(', ')}`;
+          await mainPrisma.$executeRawUnsafe(renameSQL);
+        } finally {
+          await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+        }
+      }
+
+      // 4. 清理旧表
+      for (const oldTable of oldTablesToDrop) {
+        try {
+          await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${oldTable}\`;`);
+        } catch (e) {
+          this.logger.warn(`删除旧表 ${oldTable} 失败: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
 
       // 4. 恢复 backup_status（如果之前存在）
       if (preservedBackupStatus) {
@@ -431,21 +471,24 @@ export class BackupService {
       // 兼容旧接口：动态清空所有业务表的数据（保留 backup_status）
       const mainTables = this.filterTables(await this.getAllTables());
       await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-      for (const tableName of mainTables) {
-        try {
-          if (tableName === 'api_configs') {
-            await mainPrisma.$executeRawUnsafe(
-              "DELETE FROM `api_configs` WHERE `id` <> 'backup_status';"
-            );
-          } else {
-            await mainPrisma.$executeRawUnsafe(`DELETE FROM \`${tableName}\`;`);
+      try {
+        for (const tableName of mainTables) {
+          try {
+            if (tableName === 'api_configs') {
+              await mainPrisma.$executeRawUnsafe(
+                "DELETE FROM `api_configs` WHERE `id` <> 'backup_status';"
+              );
+            } else {
+              await mainPrisma.$executeRawUnsafe(`DELETE FROM \`${tableName}\`;`);
+            }
+            this.logger.debug(`清空主库表 ${tableName} 成功`);
+          } catch (e) {
+            this.logger.warn(`清空主库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
           }
-          this.logger.debug(`清空主库表 ${tableName} 成功`);
-        } catch (e) {
-          this.logger.warn(`清空主库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
         }
+      } finally {
+        await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
       }
-      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
     } catch (error) {
       throw new DatabaseError(`清空主数据库失败: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -483,15 +526,18 @@ export class BackupService {
   private async dropAllMainTables(tables: string[]): Promise<void> {
     try {
       await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-      for (const tableName of tables) {
-        try {
-          await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
-          this.logger.debug(`删除主库表 ${tableName} 成功`);
-        } catch (e) {
-          this.logger.warn(`删除主库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
+      try {
+        for (const tableName of tables) {
+          try {
+            await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+            this.logger.debug(`删除主库表 ${tableName} 成功`);
+          } catch (e) {
+            this.logger.warn(`删除主库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
+          }
         }
+      } finally {
+        await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
       }
-      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
     } catch (error) {
       throw new DatabaseError(`删除主库表失败: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -502,9 +548,10 @@ export class BackupService {
    */
   private async recreateAndFillTableFromBackup(
     tableName: string,
-    options?: { skipBackupStatus?: boolean }
+    options?: { skipBackupStatus?: boolean; targetTableName?: string }
   ): Promise<void> {
-    const { skipBackupStatus = false } = options || {};
+    const { skipBackupStatus = false, targetTableName } = options || {};
+    const effectiveTarget = targetTableName || tableName;
     try {
       // 1) 使用备份库的建表语句
       const createTableResult = await backupPrisma.$queryRawUnsafe(
@@ -513,11 +560,13 @@ export class BackupService {
 
       if (createTableResult.length > 0) {
         const createTableSQL = createTableResult[0]['Create Table'];
-        // 先删除主库的同名表
-        await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
-        // 在主库中创建表
-        await mainPrisma.$executeRawUnsafe(createTableSQL);
-        this.logger.debug(`主库表结构 ${tableName} 已根据备份库重建`);
+        // 先删除主库的目标表（如果存在）
+        await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${effectiveTarget}\`;`);
+        // 调整建表语句为目标表名
+        const targetCreateSQL = createTableSQL.replace(/CREATE TABLE `[^`]+`/i, `CREATE TABLE \`${effectiveTarget}\``);
+        // 在主库中创建目标表
+        await mainPrisma.$executeRawUnsafe(targetCreateSQL);
+        this.logger.debug(`主库表结构 ${effectiveTarget} 已根据备份库重建`);
       }
 
       // 2) 从备份库读取数据
@@ -539,27 +588,20 @@ export class BackupService {
 
       // 3) 批量插入到主库
       const columns = Object.keys(rows[0]);
-      const columnList = columns.map(col => `\`${col}\``).join(', ');
+      const columnsSql = Prisma.join(columns.map(col => Prisma.raw(`\`${col}\``)));
       const batchSize = 100;
       for (let i = 0; i < rows.length; i += batchSize) {
         const batch = rows.slice(i, i + batchSize);
-        const values = batch.map(row => {
-          const valueList = columns.map(col => {
-            const value = row[col];
-            if (value === null || value === undefined) return 'NULL';
-            if (typeof value === 'string') return `'${value.replace(/'/g, "''")}'`;
-            if (value instanceof Date) return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`;
-            return String(value);
-          }).join(', ');
-          return `(${valueList})`;
-        }).join(', ');
+        const valuesTuples = batch.map(row =>
+          Prisma.sql`(${Prisma.join(columns.map(col => Prisma.sql`${row[col]}`))})`
+        );
 
-        await mainPrisma.$executeRawUnsafe(`
-          INSERT INTO \`${tableName}\` (${columnList}) VALUES ${values}
-        `);
+        await mainPrisma.$executeRaw(
+          Prisma.sql`INSERT INTO ${Prisma.raw(`\`${effectiveTarget}\``)} (${columnsSql}) VALUES ${Prisma.join(valuesTuples)}`
+        );
       }
 
-      this.logger.debug(`表 ${tableName} 已从备份库导入 ${rows.length} 行`);
+      this.logger.debug(`表 ${effectiveTarget} 已从备份库导入 ${rows.length} 行`);
     } catch (error) {
       throw new DatabaseError(`从备份库恢复表 ${tableName} 失败: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -695,15 +737,18 @@ export class BackupService {
 
       // 3) 依据主库结构在备份库重建所有表结构
       await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-      for (const tableName of mainTables) {
-        try {
-          await this.copyTableStructure(tableName);
-          this.logger.debug(`备份库表结构已创建: ${tableName}`);
-        } catch (e) {
-          this.logger.warn(`创建备份库表结构失败 ${tableName}: ${e instanceof Error ? e.message : String(e)}`);
+      try {
+        for (const tableName of mainTables) {
+          try {
+            await this.copyTableStructure(tableName);
+            this.logger.debug(`备份库表结构已创建: ${tableName}`);
+          } catch (e) {
+            this.logger.warn(`创建备份库表结构失败 ${tableName}: ${e instanceof Error ? e.message : String(e)}`);
+          }
         }
+      } finally {
+        await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
       }
-      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
 
       this.logger.info('备份数据库表结构创建完成（已对齐主库）');
       return true;
@@ -721,15 +766,18 @@ export class BackupService {
   private async dropAllBackupTables(tables: string[]): Promise<void> {
     try {
       await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-      for (const tableName of tables) {
-        try {
-          await backupPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
-          this.logger.debug(`删除备份库表 ${tableName} 成功`);
-        } catch (e) {
-          this.logger.warn(`删除备份库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
+      try {
+        for (const tableName of tables) {
+          try {
+            await backupPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+            this.logger.debug(`删除备份库表 ${tableName} 成功`);
+          } catch (e) {
+            this.logger.warn(`删除备份库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
+          }
         }
+      } finally {
+        await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
       }
-      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
     } catch (error) {
       throw new DatabaseError(`删除备份库表失败: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -879,23 +927,24 @@ export class BackupService {
     try {
       // 禁用外键检查
       await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-
-      for (const tableName of tables) {
-        try {
-          await backupPrisma.$executeRawUnsafe(`DELETE FROM \`${tableName}\`;`);
-          this.logger.debug(`清空备份表 ${tableName} 成功`);
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          if (errorMessage.includes('does not exist') || errorMessage.includes("doesn't exist")) {
-            this.logger.debug(`备份表 ${tableName} 不存在，跳过清空操作`);
-          } else {
-            this.logger.warn(`清空备份表 ${tableName} 失败: ${errorMessage}`);
+      try {
+        for (const tableName of tables) {
+          try {
+            await backupPrisma.$executeRawUnsafe(`DELETE FROM \`${tableName}\`;`);
+            this.logger.debug(`清空备份表 ${tableName} 成功`);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (errorMessage.includes('does not exist') || errorMessage.includes("doesn't exist")) {
+              this.logger.debug(`备份表 ${tableName} 不存在，跳过清空操作`);
+            } else {
+              this.logger.warn(`清空备份表 ${tableName} 失败: ${errorMessage}`);
+            }
           }
         }
+      } finally {
+        // 重新启用外键检查
+        await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
       }
-
-      // 重新启用外键检查
-      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
     } catch (error) {
       throw new DatabaseError(`清空备份数据库失败: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -908,24 +957,25 @@ export class BackupService {
     try {
       // 禁用外键检查
       await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+      try {
+        for (const tableName of tables) {
+          try {
+            // 1. 复制表结构（如果不存在）
+            await this.copyTableStructure(tableName);
 
-      for (const tableName of tables) {
-        try {
-          // 1. 复制表结构（如果不存在）
-          await this.copyTableStructure(tableName);
+            // 2. 复制表数据
+            await this.copyTableData(tableName);
 
-          // 2. 复制表数据
-          await this.copyTableData(tableName);
-
-          this.logger.debug(`表 ${tableName} 备份完成`);
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          this.logger.warn(`备份表 ${tableName} 失败: ${errorMessage}`);
+            this.logger.debug(`表 ${tableName} 备份完成`);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.warn(`备份表 ${tableName} 失败: ${errorMessage}`);
+          }
         }
+      } finally {
+        // 重新启用外键检查
+        await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
       }
-
-      // 重新启用外键检查
-      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
     } catch (error) {
       throw new DatabaseError(`复制表失败: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -988,26 +1038,19 @@ export class BackupService {
       if (Array.isArray(data) && data.length > 0) {
         // 获取列名
         const columns = Object.keys(data[0]);
-        const columnList = columns.map(col => `\`${col}\``).join(', ');
+        const columnsSql = Prisma.join(columns.map(col => Prisma.raw(`\`${col}\``)));
 
         // 批量插入数据
         const batchSize = 100;
         for (let i = 0; i < data.length; i += batchSize) {
           const batch = data.slice(i, i + batchSize);
-          const values = batch.map(row => {
-            const valueList = columns.map(col => {
-              const value = row[col];
-              if (value === null) return 'NULL';
-              if (typeof value === 'string') return `'${value.replace(/'/g, "''")}'`;
-              if (value instanceof Date) return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`;
-              return String(value);
-            }).join(', ');
-            return `(${valueList})`;
-          }).join(', ');
+          const valuesTuples = batch.map(row =>
+            Prisma.sql`(${Prisma.join(columns.map(col => Prisma.sql`${row[col]}`))})`
+          );
 
-          await backupPrisma.$executeRawUnsafe(`
-            INSERT INTO \`${tableName}\` (${columnList}) VALUES ${values}
-          `);
+          await backupPrisma.$executeRaw(
+            Prisma.sql`INSERT INTO ${Prisma.raw(`\`${tableName}\``)} (${columnsSql}) VALUES ${Prisma.join(valuesTuples)}`
+          );
         }
 
         this.logger.debug(`表数据 ${tableName} 逐行复制完成 (${data.length} 行)`);
