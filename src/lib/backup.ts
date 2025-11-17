@@ -417,12 +417,19 @@ export class BackupService {
       }
 
       // 4. 清理旧表
+      const failedToDrop: string[] = [];
       for (const oldTable of oldTablesToDrop) {
         try {
           await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${oldTable}\`;`);
         } catch (e) {
           this.logger.warn(`删除旧表 ${oldTable} 失败: ${e instanceof Error ? e.message : String(e)}`);
+          failedToDrop.push(oldTable);
         }
+      }
+      if (failedToDrop.length > 0) {
+        this.logger.error(
+          `以下旧表在还原后未能成功清理，请手动检查: ${failedToDrop.join(', ')}`
+        );
       }
 
       // 4. 恢复 backup_status（如果之前存在）
