@@ -226,8 +226,9 @@ export async function incrementIPTotalAccess(ip: string): Promise<void> {
       update: { count: { increment: 1 } },
     });
   } catch (error) {
-    console.error('Failed to increment IP total access:', error);
+    console.error(`Failed to increment IP total access for IP: ${ip}`, error);
     // 计数失败不影响主流程,只记录错误
+    // TODO: 考虑实现重试机制或后台对账任务以确保数据一致性
   }
 }
 
