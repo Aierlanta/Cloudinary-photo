@@ -71,6 +71,9 @@ TGSTATE_BASE_URL=https://your-tgstate-domain.com
 
 # Admin authentication
 ADMIN_PASSWORD=your_secure_admin_password
+
+# Session security (optional, auto-generated if not set)
+# SESSION_SECRET=your_random_secret_key_for_session_signing
 ```
 
 #### Enable/Disable image hosts on demand (New)
@@ -285,8 +288,21 @@ POST   /api/admin/multi-host       # Multi-host operations
 ```http
 GET    /api/admin/stats            # Get system statistics
 GET    /api/admin/logs             # Get system logs
-  GET    /api/admin/health           # Get detailed health status
-  POST   /api/admin/backup           # Create data backup
+GET    /api/admin/health           # Get detailed health status
+POST   /api/admin/backup           # Create data backup
+```
+
+#### Security Management (New in v1.4.0)
+
+```http
+GET    /api/admin/security/stats           # Get access statistics
+GET    /api/admin/security/banned-ips      # Get banned IP list
+POST   /api/admin/security/banned-ips      # Ban an IP address
+DELETE /api/admin/security/banned-ips      # Unban an IP address
+GET    /api/admin/security/rate-limits     # Get IP rate limit configuration
+POST   /api/admin/security/rate-limits     # Set IP rate limit
+DELETE /api/admin/security/rate-limits     # Remove IP rate limit
+GET    /api/admin/security/ip-info         # Get IP information and statistics
 ```
 
 ## CDN Configuration Recommendations
@@ -313,6 +329,7 @@ GET    /api/admin/logs             # Get system logs
   - **AWS CloudFront**
     - Behavior for `/api/response*`: `Cache policy = CachingDisabled` (or custom with TTL 0 and honor origin), suitable `Origin request policy`.
   - **Nginx / Reverse Proxy**
+
     - Example:
 
       ```nginx
@@ -335,6 +352,29 @@ GET    /api/admin/logs             # Get system logs
     - Disable any worker/transform that rewrites caching headers.
     - Ensure the URL is not rewritten to bypass your cache rule.
 
+## Features
+
+### Core Features
+
+- **Random Image API**: Fast random image retrieval with group filtering support
+- **Multi-host Storage**: Support for Cloudinary and TgState with automatic failover
+- **Management Panel**: Complete web-based admin interface for image and group management
+- **API Key Authentication**: Optional API key authentication for public endpoints
+- **Image Processing**: Support for transparency adjustment and background color customization
+- **Prefetch Cache**: Single-slot in-memory cache for improved response time
+- **Security Management** (v1.4.0): Access logging, IP banning, and rate limiting
+- **Internationalization**: Support for English and Chinese languages
+- **Theme System**: Dark/light mode with system preference detection
+- **Backup & Restore**: Automated database backup with one-click restore functionality
+
+### Security Features
+
+- **Access Control**: Role-based admin authentication with session tokens
+- **Rate Limiting**: Configurable rate limits per IP address
+- **IP Banning**: Block malicious IPs with automatic or manual banning
+- **Access Logging**: Detailed access logs with IP tracking and statistics
+- **Session Security**: HMAC-SHA256 signed session tokens for enhanced security
+
 ## Project Architecture
 
 ### Directory Structure
@@ -347,6 +387,7 @@ GET    /api/admin/logs             # Get system logs
 │   │   │   ├── groups/        # Group management page
 │   │   │   ├── config/        # API configuration page
 │   │   │   ├── storage/       # Storage management page
+│   │   │   ├── security/      # Security management page (v1.4.0)
 │   │   │   ├── logs/          # Log viewing page
 │   │   │   └── status/        # System status page
 │   │   ├── api/               # API routes
@@ -367,17 +408,28 @@ GET    /api/admin/logs             # Get system logs
 │   │   │   ├── cloudinary.ts  # Cloudinary service
 │   │   │   ├── tgstate.ts     # TgState service
 │   │   │   ├── manager.ts     # Multi-host manager
-│   │   │   └── factory.ts     # Service factory
+│   │   │   ├── factory.ts     # Service factory
+│   │   │   └── config.ts      # Storage configuration (v1.2.1)
 │   │   ├── database/          # Database services
 │   │   ├── auth.ts            # Authentication service
 │   │   ├── security.ts        # Security middleware
+│   │   ├── access-tracking.ts # Access logging (v1.4.0)
+│   │   ├── ip-management.ts   # IP management (v1.4.0)
+│   │   ├── backup.ts          # Backup service
 │   │   ├── logger.ts          # Logging service
+│   │   ├── image-utils.ts     # Image utility functions
 │   │   └── utils.ts           # Utility functions
 │   ├── types/                 # TypeScript type definitions
 │   │   ├── models.ts          # Data models
 │   │   ├── api.ts             # API types
 │   │   ├── errors.ts          # Error types
 │   │   └── schemas.ts         # Validation schemas
+│   ├── i18n/                  # Internationalization (v1.0.0)
+│   │   ├── locales/           # Language files
+│   │   │   ├── en.ts          # English translations
+│   │   │   └── zh.ts          # Chinese translations
+│   │   ├── context.tsx        # Locale context
+│   │   └── types.ts           # i18n types
 │   ├── hooks/                 # React Hooks
 │   └── middleware.ts          # Next.js middleware
 ├── prisma/                    # Database
@@ -400,18 +452,31 @@ GET    /api/admin/logs             # Get system logs
 - **Multi-host Architecture**: Supports Cloudinary and TgState
 - **Failover**: Automatic service status detection and intelligent switching
 - **Unified Interface**: Abstract storage operations for easy extension of new image hosting services
+- **Dynamic Configuration** (v1.2.0): Enable/disable storage providers via environment variables
+- **Proxy Support** (v1.3.0): TgState proxy URL for CDN acceleration
 
-#### Security System (`src/lib/security.ts`)
+#### Security System (`src/lib/security.ts`, `src/lib/ip-management.ts`)
 
-- **Request Rate Limiting**: Prevent API abuse
+- **Request Rate Limiting**: Prevent API abuse with configurable per-IP limits
+- **IP Banning** (v1.4.0): Automatic and manual IP blocking
+- **Access Tracking** (v1.4.0): Comprehensive access logging with statistics
 - **Parameter Validation**: Strict input validation
 - **Access Control**: Role-based permission management
+- **Session Security** (v1.2.4): HMAC-SHA256 signed session tokens
 
 #### Monitoring System (`src/lib/logger.ts`)
 
 - **Structured Logging**: Unified log format
 - **Performance Monitoring**: API response time tracking
 - **Error Tracking**: Detailed error information logging
+- **Access Analytics** (v1.4.0): IP-based access statistics and trends
+
+#### Backup System (`src/lib/backup.ts`)
+
+- **Automated Backups**: Scheduled database backups
+- **One-click Restore**: Quick database restoration from backups
+- **Atomic Operations** (v1.4.5): Ensures data consistency during restore
+- **Error Recovery**: Enhanced error handling and rollback mechanisms
 
 ## Development Commands
 
@@ -458,22 +523,31 @@ The project supports multi-host architecture, providing higher availability and 
 
 ## Monitoring and Maintenance
 
-### System Monitoring
+### Health Monitoring
 
 - **Health Check**: `/api/health` endpoint provides system status
 - **Performance Metrics**: API response time and success rate statistics
 - **Resource Monitoring**: Database connections, storage usage
 - **Error Tracking**: Detailed error logs and stack information
 
+### Security Monitoring (v1.4.0)
+
+- **Access Statistics**: Real-time access counts and trends
+- **IP Tracking**: Monitor IP addresses and access patterns
+- **Rate Limit Monitoring**: Track rate limit violations
+- **Banned IP Management**: View and manage blocked IP addresses
+
 ### Data Backup
 
-- **Automatic Backup**: Regular database and configuration backup
+- **Automatic Backup**: Scheduled database backups with configurable intervals
 - **Manual Backup**: Admin panel supports one-click backup
-- **Recovery Mechanism**: Quick data and configuration recovery
+- **Recovery Mechanism**: Quick data and configuration recovery with atomic operations
+- **Backup Status**: Real-time backup status and history tracking
 
 ### Log Management
 
 - **Structured Logging**: JSON format, easy to analyze
+- **Access Logs** (v1.4.0): Detailed request logs with IP and endpoint information
 - **Log Rotation**: Automatic cleanup of expired logs
 - **Log Query**: Admin panel supports log search and filtering
 
@@ -491,6 +565,6 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 
 ---
 
-**Current Version**: v1.1.2 | **Last Updated**: 2025-11-04
+**Current Version**: v1.5.0 | **Last Updated**: 2025-11-17
 
 For issues or suggestions, feel free to submit an Issue or Pull Request!

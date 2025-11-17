@@ -71,6 +71,9 @@ TGSTATE_BASE_URL=https://your-tgstate-domain.com
 
 # 管理员认证
 ADMIN_PASSWORD=your_secure_admin_password
+
+# 会话安全（可选，未设置时自动生成）
+# SESSION_SECRET=your_random_secret_key_for_session_signing
 ```
 
 #### 按需启用/禁用图床服务（新增）
@@ -289,6 +292,19 @@ GET    /api/admin/health           # 获取详细健康状态
 POST   /api/admin/backup           # 创建数据备份
 ```
 
+#### 风控管理（v1.4.0 新增）
+
+```http
+GET    /api/admin/security/stats           # 获取访问统计
+GET    /api/admin/security/banned-ips      # 获取封禁IP列表
+POST   /api/admin/security/banned-ips      # 封禁IP地址
+DELETE /api/admin/security/banned-ips      # 解封IP地址
+GET    /api/admin/security/rate-limits     # 获取IP速率限制配置
+POST   /api/admin/security/rate-limits     # 设置IP速率限制
+DELETE /api/admin/security/rate-limits     # 移除IP速率限制
+GET    /api/admin/security/ip-info         # 获取IP信息和统计
+```
+
 ## CDN 配置建议
 
 - **目标**
@@ -314,6 +330,7 @@ POST   /api/admin/backup           # 创建数据备份
     - 为 `/api/response*` 配置 Behavior：`Cache policy = CachingDisabled`（或自定义 TTL=0 且遵守源站）；
       合理设置 `Origin request policy`。
   - **Nginx / 反向代理**
+
     - 示例：
 
       ```nginx
@@ -336,6 +353,29 @@ POST   /api/admin/backup           # 创建数据备份
     - 关闭任何会改写缓存头的 Worker/Transform；
     - 确认 URL 未被重写从而绕开了你的匹配规则。
 
+## 功能特性
+
+### 核心功能
+
+- **随机图片 API**: 快速的随机图片获取，支持分组过滤
+- **多图床存储**: 支持 Cloudinary 和 TgState，具备自动故障转移
+- **管理面板**: 完整的 Web 管理界面，用于图片和分组管理
+- **API Key 认证**: 可选的 API Key 认证功能，保护公共端点
+- **图片处理**: 支持透明度调整和背景颜色自定义
+- **预取缓存**: 单槽内存缓存，提升响应速度
+- **风控管理** (v1.4.0): 访问日志、IP 封禁和速率限制
+- **国际化**: 支持中英文双语
+- **主题系统**: 深色/浅色模式，支持系统偏好检测
+- **备份与恢复**: 自动数据库备份，一键恢复功能
+
+### 安全功能
+
+- **访问控制**: 基于角色的管理员认证，使用会话令牌
+- **速率限制**: 可配置的 IP 速率限制
+- **IP 封禁**: 自动或手动封禁恶意 IP
+- **访问日志**: 详细的访问日志，包含 IP 跟踪和统计
+- **会话安全**: HMAC-SHA256 签名的会话令牌，增强安全性
+
 ## 项目架构
 
 ### 目录结构
@@ -348,6 +388,7 @@ POST   /api/admin/backup           # 创建数据备份
 │   │   │   ├── groups/        # 分组管理页面
 │   │   │   ├── config/        # API配置页面
 │   │   │   ├── storage/       # 存储管理页面
+│   │   │   ├── security/      # 风控管理页面（v1.4.0）
 │   │   │   ├── logs/          # 日志查看页面
 │   │   │   └── status/        # 系统状态页面
 │   │   ├── api/               # API 路由
@@ -368,17 +409,28 @@ POST   /api/admin/backup           # 创建数据备份
 │   │   │   ├── cloudinary.ts  # Cloudinary服务
 │   │   │   ├── tgstate.ts     # TgState服务
 │   │   │   ├── manager.ts     # 多图床管理器
-│   │   │   └── factory.ts     # 服务工厂
+│   │   │   ├── factory.ts     # 服务工厂
+│   │   │   └── config.ts      # 存储配置（v1.2.1）
 │   │   ├── database/          # 数据库服务
 │   │   ├── auth.ts            # 认证服务
 │   │   ├── security.ts        # 安全中间件
+│   │   ├── access-tracking.ts # 访问日志（v1.4.0）
+│   │   ├── ip-management.ts   # IP管理（v1.4.0）
+│   │   ├── backup.ts          # 备份服务
 │   │   ├── logger.ts          # 日志服务
+│   │   ├── image-utils.ts     # 图片工具函数
 │   │   └── utils.ts           # 工具函数
 │   ├── types/                 # TypeScript 类型定义
 │   │   ├── models.ts          # 数据模型
 │   │   ├── api.ts             # API类型
 │   │   ├── errors.ts          # 错误类型
 │   │   └── schemas.ts         # 验证模式
+│   ├── i18n/                  # 国际化（v1.0.0）
+│   │   ├── locales/           # 语言文件
+│   │   │   ├── en.ts          # 英文翻译
+│   │   │   └── zh.ts          # 中文翻译
+│   │   ├── context.tsx        # 语言上下文
+│   │   └── types.ts           # i18n 类型
 │   ├── hooks/                 # React Hooks
 │   └── middleware.ts          # Next.js 中间件
 ├── prisma/                    # 数据库
@@ -401,18 +453,31 @@ POST   /api/admin/backup           # 创建数据备份
 - **多图床架构**: 支持 Cloudinary 和 TgState
 - **故障转移**: 自动检测服务状态，智能切换
 - **统一接口**: 抽象存储操作，便于扩展新的图床服务
+- **动态配置** (v1.2.0): 通过环境变量启用/禁用存储提供商
+- **代理支持** (v1.3.0): TgState 代理 URL，支持 CDN 加速
 
-#### 安全系统 (`src/lib/security.ts`)
+#### 安全系统 (`src/lib/security.ts`, `src/lib/ip-management.ts`)
 
-- **请求限流**: 防止 API 滥用
+- **请求限流**: 防止 API 滥用，支持可配置的 IP 速率限制
+- **IP 封禁** (v1.4.0): 自动和手动 IP 封禁
+- **访问追踪** (v1.4.0): 全面的访问日志和统计
 - **参数验证**: 严格的输入校验
 - **访问控制**: 基于角色的权限管理
+- **会话安全** (v1.2.4): HMAC-SHA256 签名的会话令牌
 
 #### 监控系统 (`src/lib/logger.ts`)
 
 - **结构化日志**: 统一的日志格式
 - **性能监控**: API 响应时间追踪
 - **错误追踪**: 详细的错误信息记录
+- **访问分析** (v1.4.0): 基于 IP 的访问统计和趋势
+
+#### 备份系统 (`src/lib/backup.ts`)
+
+- **自动备份**: 定时数据库备份
+- **一键恢复**: 快速从备份恢复数据库
+- **原子操作** (v1.4.5): 确保恢复过程中的数据一致性
+- **错误恢复**: 增强的错误处理和回滚机制
 
 ## 开发命令
 
@@ -459,22 +524,31 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 
 ## 监控和维护
 
-### 系统监控
+### 健康监控
 
 - **健康检查**: `/api/health` 端点提供系统状态
 - **性能指标**: API 响应时间、成功率统计
 - **资源监控**: 数据库连接、存储使用情况
 - **错误追踪**: 详细的错误日志和堆栈信息
 
+### 安全监控（v1.4.0）
+
+- **访问统计**: 实时访问计数和趋势
+- **IP 追踪**: 监控 IP 地址和访问模式
+- **速率限制监控**: 追踪速率限制违规
+- **封禁 IP 管理**: 查看和管理被封禁的 IP 地址
+
 ### 数据备份
 
-- **自动备份**: 定期备份数据库和配置
+- **自动备份**: 定时数据库备份，可配置备份间隔
 - **手动备份**: 管理面板支持一键备份
-- **恢复机制**: 快速恢复数据和配置
+- **恢复机制**: 快速恢复数据和配置，支持原子操作
+- **备份状态**: 实时备份状态和历史记录追踪
 
 ### 日志管理
 
 - **结构化日志**: JSON 格式，便于分析
+- **访问日志** (v1.4.0): 详细的请求日志，包含 IP 和端点信息
 - **日志轮转**: 自动清理过期日志
 - **日志查询**: 管理面板支持日志搜索和筛选
 
@@ -492,6 +566,6 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 
 ---
 
-**当前版本**: v1.1.2 | **最后更新**: 2025-11-04
+**当前版本**: v1.5.0 | **最后更新**: 2025-11-17
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request！
