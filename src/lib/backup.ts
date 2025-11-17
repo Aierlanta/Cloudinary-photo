@@ -369,15 +369,47 @@ export class BackupService {
     try {
       this.logger.info('开始从备份数据库还原数据');
 
-      // 1. 清空主数据库
-      await this.clearMainDatabase();
+      // 0. 读取并暂存主库中的 backup_status（用于还原后恢复该状态）
+      let preservedBackupStatus: any = null;
+      try {
+        preservedBackupStatus = await mainPrisma.aPIConfig.findUnique({
+          where: { id: 'backup_status' }
+        });
+      } catch (e) {
+        this.logger.warn('读取 backup_status 失败，将不保留该状态', {
+          error: e instanceof Error ? e.message : String(e)
+        });
+      }
 
-      // 2. 从备份数据库还原数据（按照外键依赖顺序：先还原被引用的表）
-      await this.restoreGroups();
-      await this.restoreAPIConfigs();
-      await this.restoreCounters();
-      await this.restoreImages();
-      await this.restoreSystemLogs();
+      // 1. 获取备份库中的所有业务表（过滤系统表）
+      const backupTablesAll = await this.getAllTablesFromBackup();
+      const backupTables = this.filterTables(backupTablesAll);
+      this.logger.debug(`备份库表（过滤后）: ${backupTables.join(', ')}`);
+
+      // 2. 删除主库所有业务表（过滤系统表）
+      const mainTablesAll = await this.getAllTables();
+      const mainTables = this.filterTables(mainTablesAll);
+      await this.dropAllMainTables(mainTables);
+
+      // 3. 按表从备份库复制结构与数据到主库
+      //    禁用外键检查，避免顺序依赖问题
+      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+      for (const tableName of backupTables) {
+        // 特例：api_configs 需要跳过 backup_status 记录，最后再恢复
+        const skipBackupStatus = tableName === 'api_configs';
+        await this.recreateAndFillTableFromBackup(tableName, { skipBackupStatus });
+      }
+      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+
+      // 4. 恢复 backup_status（如果之前存在）
+      if (preservedBackupStatus) {
+        await mainPrisma.aPIConfig.upsert({
+          where: { id: 'backup_status' },
+          update: preservedBackupStatus,
+          create: preservedBackupStatus
+        });
+        this.logger.debug('已恢复 backup_status 配置');
+      }
 
       this.logger.info('数据库还原完成');
       return true;
@@ -394,22 +426,142 @@ export class BackupService {
    */
   private async clearMainDatabase(): Promise<void> {
     try {
-      // 按照外键依赖顺序删除
-      await mainPrisma.systemLog.deleteMany();
-      await mainPrisma.image.deleteMany();
-      await mainPrisma.group.deleteMany();
-      // 保留API配置中的备份状态
-      await mainPrisma.aPIConfig.deleteMany({
-        where: {
-          id: { not: 'backup_status' }
+      // 兼容旧接口：动态清空所有业务表的数据（保留 backup_status）
+      const mainTables = this.filterTables(await this.getAllTables());
+      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+      for (const tableName of mainTables) {
+        try {
+          if (tableName === 'api_configs') {
+            await mainPrisma.$executeRawUnsafe(
+              "DELETE FROM `api_configs` WHERE `id` <> 'backup_status';"
+            );
+          } else {
+            await mainPrisma.$executeRawUnsafe(`DELETE FROM \`${tableName}\`;`);
+          }
+          this.logger.debug(`清空主库表 ${tableName} 成功`);
+        } catch (e) {
+          this.logger.warn(`清空主库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
         }
-      });
-      await mainPrisma.counter.deleteMany();
+      }
+      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
     } catch (error) {
       throw new DatabaseError(`清空主数据库失败: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
+  /**
+   * 获取备份数据库的所有表
+   */
+  private async getAllTablesFromBackup(): Promise<string[]> {
+    try {
+      const result = await backupPrisma.$queryRaw<Array<{ TABLE_NAME: string }>>`
+        SELECT TABLE_NAME
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_TYPE = 'BASE TABLE'
+        ORDER BY TABLE_NAME
+      `;
+      return result.map(row => row.TABLE_NAME);
+    } catch (error) {
+      throw new DatabaseError(`获取备份库表列表失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 过滤掉系统/内部表
+   */
+  private filterTables(tables: string[]): string[] {
+    const excluded = new Set<string>(['_prisma_migrations']);
+    return tables.filter(t => !excluded.has(t));
+  }
+
+  /**
+   * 删除主库中的所有给定表（禁用外键检查）
+   */
+  private async dropAllMainTables(tables: string[]): Promise<void> {
+    try {
+      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+      for (const tableName of tables) {
+        try {
+          await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+          this.logger.debug(`删除主库表 ${tableName} 成功`);
+        } catch (e) {
+          this.logger.warn(`删除主库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+      await mainPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+    } catch (error) {
+      throw new DatabaseError(`删除主库表失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 用备份库的表定义在主库重建，并复制数据
+   */
+  private async recreateAndFillTableFromBackup(
+    tableName: string,
+    options?: { skipBackupStatus?: boolean }
+  ): Promise<void> {
+    const { skipBackupStatus = false } = options || {};
+    try {
+      // 1) 使用备份库的建表语句
+      const createTableResult = await backupPrisma.$queryRawUnsafe(
+        `SHOW CREATE TABLE \`${tableName}\``
+      ) as Array<{ 'Create Table': string }>;
+
+      if (createTableResult.length > 0) {
+        const createTableSQL = createTableResult[0]['Create Table'];
+        // 先删除主库的同名表
+        await mainPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+        // 在主库中创建表
+        await mainPrisma.$executeRawUnsafe(createTableSQL);
+        this.logger.debug(`主库表结构 ${tableName} 已根据备份库重建`);
+      }
+
+      // 2) 从备份库读取数据
+      const data = await backupPrisma.$queryRawUnsafe(`SELECT * FROM \`${tableName}\``) as Array<Record<string, any>>;
+      if (!Array.isArray(data) || data.length === 0) {
+        this.logger.debug(`备份库表 ${tableName} 无数据，跳过数据导入`);
+        return;
+      }
+
+      // 特殊处理 api_configs：跳过 backup_status
+      const rows = skipBackupStatus
+        ? data.filter(r => r['id'] !== 'backup_status')
+        : data;
+
+      if (rows.length === 0) {
+        this.logger.debug(`表 ${tableName} 仅包含被跳过的数据，实际导入 0 行`);
+        return;
+      }
+
+      // 3) 批量插入到主库
+      const columns = Object.keys(rows[0]);
+      const columnList = columns.map(col => `\`${col}\``).join(', ');
+      const batchSize = 100;
+      for (let i = 0; i < rows.length; i += batchSize) {
+        const batch = rows.slice(i, i + batchSize);
+        const values = batch.map(row => {
+          const valueList = columns.map(col => {
+            const value = row[col];
+            if (value === null || value === undefined) return 'NULL';
+            if (typeof value === 'string') return `'${value.replace(/'/g, "''")}'`;
+            if (value instanceof Date) return `'${value.toISOString().slice(0, 19).replace('T', ' ')}'`;
+            return String(value);
+          }).join(', ');
+          return `(${valueList})`;
+        }).join(', ');
+
+        await mainPrisma.$executeRawUnsafe(`
+          INSERT INTO \`${tableName}\` (${columnList}) VALUES ${values}
+        `);
+      }
+
+      this.logger.debug(`表 ${tableName} 已从备份库导入 ${rows.length} 行`);
+    } catch (error) {
+      throw new DatabaseError(`从备份库恢复表 ${tableName} 失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
   /**
    * 还原图片数据
    */
