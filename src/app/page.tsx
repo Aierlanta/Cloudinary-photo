@@ -118,26 +118,30 @@ function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      {/* 导航栏 */}
-      <nav className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                {locale === 'zh' ? '随机图片API' : 'Random Image API'}
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
+    <div
+      className="min-h-screen"
+      style={{ background: "var(--background)", color: "var(--foreground)" }}
+    >
+      {/* 导航栏 - 布鲁塔主义风格 */}
+      <nav
+        className="brutalist-border-thick"
+        style={{ borderTop: "none", borderLeft: "none", borderRight: "none" }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h1 className="brutalist-text-large">
+              {locale === "zh" ? "随机图片API" : "RANDOM IMAGE API"}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <Link
                 href="/admin"
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="brutalist-button text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2"
               >
                 {t.home.managementPanel}
               </Link>
               <Link
                 href="/api/docs"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                className="brutalist-button text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2"
               >
                 {t.home.apiDocs}
               </Link>
@@ -145,272 +149,277 @@ function HomeContent() {
                 onClick={toggleLocale}
                 title={t.home.toggleLanguage}
                 aria-label={t.home.toggleLanguage}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-semibold"
+                className="brutalist-button text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2 min-w-[60px]"
               >
-                {locale === 'zh' ? 'EN' : '中'}
+                {locale === "zh" ? "EN" : "中文"}
               </button>
               <button
                 onClick={handleThemeToggle}
                 title={t.home.toggleTheme}
                 aria-label={t.home.toggleTheme}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="brutalist-button text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-2"
               >
-                {theme === "dark" ? (
-                  // 太阳图标（表示当前为夜间，点击将切到日间）
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M7.05 7.05 5.636 5.636m12.728 0-1.414 1.414M7.05 16.95l-1.414 1.414M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  // 月亮图标（表示当前为日间，点击将切到夜间）
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
-                  </svg>
-                )}
+                {theme === "dark" ? "☀" : "☾"}
               </button>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* 主标题区域 */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">
-            {t.home.title}
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* 主标题区域 - 布鲁塔主义风格 */}
+        <div className="brutalist-box p-6 sm:p-12 mb-8 sm:mb-12 text-center">
+          <h1 className="brutalist-text-huge mb-4 sm:mb-6">{t.home.title}</h1>
+          <p
+            className="brutalist-text-medium mb-6 sm:mb-8 max-w-4xl mx-auto leading-relaxed"
+            style={{ fontWeight: 400, textTransform: "none" }}
+          >
             {t.home.subtitle}
           </p>
 
           {/* API状态指示器 */}
           {!loading && apiStatus && (
-            <div className="inline-flex items-center space-x-2 bg-white dark:bg-gray-800 rounded-full px-4 py-2 shadow-lg">
+            <div className="brutalist-box inline-flex items-center gap-3 px-4 sm:px-6 py-3 sm:py-4">
               <div
-                className={`w-3 h-3 rounded-full ${
-                  apiStatus.status === "healthy"
-                    ? "bg-green-500"
-                    : "bg-yellow-500"
-                }`}
+                className="w-4 h-4 sm:w-6 sm:h-6 brutalist-border"
+                style={{
+                  background:
+                    apiStatus.status === "healthy"
+                      ? "var(--foreground)"
+                      : "var(--background)",
+                }}
               ></div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t.home.apiStatus}: {apiStatus.status === "healthy" ? t.home.statusHealthy : t.home.statusPartial}
+              <span className="brutalist-text-medium text-xs sm:text-base">
+                {t.home.apiStatus}:{" "}
+                {apiStatus.status === "healthy"
+                  ? t.home.statusHealthy
+                  : t.home.statusPartial}
               </span>
             </div>
           )}
         </div>
 
-        {/* 快速体验区域 */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-16">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
-            {t.home.quickExperience}
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                {t.home.randomImagePreview}
-              </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4 relative">
-                {randomImageUrl ? (
-                  <img
-                    src={randomImageUrl}
-                    alt={t.home.randomImagePreview}
-                    className="w-full h-64 object-cover rounded-lg"
-                    onLoad={() => setImageLoading(false)}
-                    onError={() => {
-                      console.error("图片加载失败:", randomImageUrl);
-                      setImageLoading(false);
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-64 flex items-center justify-center bg-gray-200 dark:bg-gray-600 rounded-lg">
-                    <div className="text-center text-gray-500 dark:text-gray-400">
-                      <p className="mb-2">{t.home.noImage}</p>
-                      <p className="text-sm">{t.home.uploadFirst}</p>
-                    </div>
-                  </div>
-                )}
-
-                {imageLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
-                    <div className="text-center text-white">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                      <p>{t.common.loading}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={refreshRandomImage}
-                disabled={imageLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                {imageLoading ? t.common.loading : t.home.refreshImage}
-              </button>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                {t.home.apiCallExample}
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.home.basicCall}
-                  </label>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between">
-                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                      GET {baseUrl}/api/random
-                    </code>
-                    <button
-                      onClick={() =>
-                        navigator.clipboard.writeText(`${baseUrl}/api/random`)
-                      }
-                      className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                      title={t.common.copy}
-                    >
-                      {t.common.copy}
-                    </button>
+        {/* 快速体验区域 - 布鲁塔主义网格 */}
+        <div className="brutalist-grid grid-cols-1 lg:grid-cols-2 mb-8 sm:mb-12">
+          {/* 左侧：随机图片预览 */}
+          <div className="p-6 sm:p-8">
+            <h2 className="brutalist-text-large mb-6">
+              {t.home.randomImagePreview}
+            </h2>
+            <div className="brutalist-box p-4 mb-6 relative min-h-[300px] sm:min-h-[400px]">
+              {randomImageUrl ? (
+                <img
+                  src={randomImageUrl}
+                  alt={t.home.randomImagePreview}
+                  className="w-full h-full object-cover"
+                  style={{ minHeight: "250px" }}
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => {
+                    console.error("图片加载失败:", randomImageUrl);
+                    setImageLoading(false);
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center min-h-[250px]">
+                  <div className="text-center">
+                    <p className="brutalist-text-medium mb-2">
+                      {t.home.noImage}
+                    </p>
+                    <p className="text-sm" style={{ fontWeight: 400 }}>
+                      {t.home.uploadFirst}
+                    </p>
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t.home.htmlUsage}
-                  </label>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 flex items-center justify-between">
-                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                      {`<img src="${baseUrl}/api/random" />`}
-                    </code>
-                    <button
-                      onClick={() =>
-                        navigator.clipboard.writeText(
-                          `<img src="${baseUrl}/api/random" />`
-                        )
-                      }
-                      className="ml-2 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                      title={t.common.copy}
-                    >
-                      {t.common.copy}
-                    </button>
+              {imageLoading && (
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ background: "var(--background)" }}
+                >
+                  <div className="text-center">
+                    <div className="brutalist-box w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 animate-pulse"></div>
+                    <p className="brutalist-text-medium">{t.common.loading}</p>
                   </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={refreshRandomImage}
+              disabled={imageLoading}
+              className="brutalist-button w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {imageLoading ? t.common.loading : t.home.refreshImage}
+            </button>
+          </div>
+
+          {/* 右侧：API调用示例 */}
+          <div className="p-6 sm:p-8">
+            <h2 className="brutalist-text-large mb-6">
+              {t.home.apiCallExample}
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <label className="brutalist-text-medium block mb-3 text-sm sm:text-base">
+                  {t.home.basicCall}
+                </label>
+                <div className="brutalist-box p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <code
+                    className="flex-1 text-xs sm:text-sm break-all"
+                    style={{ fontFamily: "monospace", fontWeight: 400 }}
+                  >
+                    GET {baseUrl}/api/random
+                  </code>
+                  <button
+                    onClick={() =>
+                      navigator.clipboard.writeText(`${baseUrl}/api/random`)
+                    }
+                    className="brutalist-button text-xs px-3 py-2 w-full sm:w-auto"
+                    title={t.common.copy}
+                  >
+                    {t.common.copy}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="brutalist-text-medium block mb-3 text-sm sm:text-base">
+                  {t.home.htmlUsage}
+                </label>
+                <div className="brutalist-box p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <code
+                    className="flex-1 text-xs sm:text-sm break-all"
+                    style={{ fontFamily: "monospace", fontWeight: 400 }}
+                  >
+                    {`<img src="${baseUrl}/api/random" />`}
+                  </code>
+                  <button
+                    onClick={() =>
+                      navigator.clipboard.writeText(
+                        `<img src="${baseUrl}/api/random" />`
+                      )
+                    }
+                    className="brutalist-button text-xs px-3 py-2 w-full sm:w-auto"
+                    title={t.common.copy}
+                  >
+                    {t.common.copy}
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 功能特性 */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-blue-600 dark:text-blue-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        {/* 功能特性 - 布鲁塔主义网格 */}
+        <div className="brutalist-grid grid-cols-1 md:grid-cols-3 mb-8 sm:mb-12">
+          <div className="p-6 sm:p-8">
+            <div
+              className="brutalist-box w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-6"
+              style={{ background: "var(--foreground)" }}
+            >
+              <span
+                className="text-3xl sm:text-4xl"
+                style={{ color: "var(--background)" }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
+                ⚡
+              </span>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="brutalist-text-large text-base sm:text-xl mb-4">
               {t.features.performance.title}
             </h3>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p
+              className="text-sm sm:text-base"
+              style={{ fontWeight: 400, textTransform: "none" }}
+            >
               {t.features.performance.description}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-green-600 dark:text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="p-6 sm:p-8">
+            <div
+              className="brutalist-box w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-6"
+              style={{ background: "var(--foreground)" }}
+            >
+              <span
+                className="text-3xl sm:text-4xl"
+                style={{ color: "var(--background)" }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+                ✓
+              </span>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="brutalist-text-large text-base sm:text-xl mb-4">
               {t.features.easyToUse.title}
             </h3>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p
+              className="text-sm sm:text-base"
+              style={{ fontWeight: 400, textTransform: "none" }}
+            >
               {t.features.easyToUse.description}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-purple-600 dark:text-purple-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="p-6 sm:p-8">
+            <div
+              className="brutalist-box w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mb-6"
+              style={{ background: "var(--foreground)" }}
+            >
+              <span
+                className="text-3xl sm:text-4xl"
+                style={{ color: "var(--background)" }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
-                />
-              </svg>
+                ⚙
+              </span>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="brutalist-text-large text-base sm:text-xl mb-4">
               {t.features.flexible.title}
             </h3>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p
+              className="text-sm sm:text-base"
+              style={{ fontWeight: 400, textTransform: "none" }}
+            >
               {t.features.flexible.description}
             </p>
           </div>
         </div>
 
-        {/* 统计信息 */}
+        {/* 统计信息 - 布鲁塔主义网格 */}
         {apiStatus && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+          <div className="brutalist-box p-6 sm:p-12 text-center">
+            <h2 className="brutalist-text-large mb-8 sm:mb-12">
               {t.stats.title}
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div>
-                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="brutalist-grid grid-cols-2 lg:grid-cols-4">
+              <div className="p-6 sm:p-8">
+                <div className="brutalist-text-huge text-3xl sm:text-5xl mb-2 sm:mb-4">
                   {apiStatus.stats.totalImages}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="brutalist-text-medium text-xs sm:text-sm">
                   {t.stats.totalImages}
                 </div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+              <div className="p-6 sm:p-8">
+                <div className="brutalist-text-huge text-3xl sm:text-5xl mb-2 sm:mb-4">
                   {apiStatus.stats.totalGroups}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="brutalist-text-medium text-xs sm:text-sm">
                   {t.stats.imageGroups}
                 </div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                  {apiStatus.services.api.enabled ? t.stats.enabled : t.stats.disabled}
+              <div className="p-6 sm:p-8">
+                <div className="brutalist-text-huge text-3xl sm:text-5xl mb-2 sm:mb-4">
+                  {apiStatus.services.api.enabled
+                    ? t.stats.enabled
+                    : t.stats.disabled}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="brutalist-text-medium text-xs sm:text-sm">
                   {t.stats.apiStatus}
                 </div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+              <div className="p-6 sm:p-8">
+                <div className="brutalist-text-huge text-3xl sm:text-5xl mb-2 sm:mb-4">
                   24/7
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300">
+                <div className="brutalist-text-medium text-xs sm:text-sm">
                   {t.stats.serviceTime}
                 </div>
               </div>
@@ -419,20 +428,28 @@ function HomeContent() {
         )}
       </main>
 
-      {/* 页脚 */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-gray-600 dark:text-gray-300">
-            <p>
+      {/* 页脚 - 布鲁塔主义风格 */}
+      <footer
+        className="brutalist-border-thick mt-8 sm:mt-16"
+        style={{
+          borderBottom: "none",
+          borderLeft: "none",
+          borderRight: "none",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="text-center">
+            <p className="brutalist-text-medium text-xs sm:text-sm mb-2">
               &copy; {new Date().getFullYear()} {t.footer.copyright}
             </p>
-            <p className="mt-2">
+            <p className="text-xs sm:text-sm" style={{ fontWeight: 400 }}>
               {t.footer.author} |{" "}
               <a
                 href="https://github.com/Aierlanta/Cloudinary-photo"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors underline"
+                className="brutalist-text-medium underline hover:no-underline"
+                style={{ textDecoration: "underline" }}
               >
                 {t.footer.github}
               </a>
