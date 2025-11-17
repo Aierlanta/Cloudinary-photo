@@ -10,6 +10,7 @@ import { withAdminAuth } from '@/lib/auth';
 import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { APIResponse } from '@/types/api';
+import { getRealtimeStats } from '@/lib/access-tracking';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,11 @@ interface StatsResponse {
     backupCount: number;
     isAutoBackupEnabled: boolean;
     isDatabaseHealthy: boolean;
+  };
+  access: {
+    lastHour: number;
+    last24Hours: number;
+    total: number;
   };
 }
 
@@ -50,6 +56,9 @@ async function getStats(request: NextRequest): Promise<Response> {
   const backupStatus = await backupService.getBackupStatus();
   const isDatabaseHealthy = await backupService.checkDatabaseHealth();
 
+  // 获取访问统计
+  const accessStats = await getRealtimeStats();
+
   const response: APIResponse<StatsResponse> = {
     success: true,
     data: {
@@ -73,7 +82,8 @@ async function getStats(request: NextRequest): Promise<Response> {
         backupCount: backupStatus.backupCount,
         isAutoBackupEnabled: backupStatus.isAutoBackupEnabled,
         isDatabaseHealthy
-      }
+      },
+      access: accessStats
     },
     timestamp: new Date()
   };
@@ -85,6 +95,7 @@ async function getStats(request: NextRequest): Promise<Response> {
 export const GET = withErrorHandler(
   withSecurity({
     rateLimit: 'admin',
-    allowedMethods: ['GET']
+    allowedMethods: ['GET'],
+    enableAccessLog: false
   })(withAdminAuth(getStats))
 );

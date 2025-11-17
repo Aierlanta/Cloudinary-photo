@@ -5,6 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AppError, ErrorType } from '@/types/errors';
+import { isIPBanned, getIPRateLimit, checkIPTotalLimit } from './ip-management';
+import { logAccess } from './access-tracking';
 
 // 限流存储 (内存存储，生产环境建议使用Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -79,46 +81,78 @@ function cleanupExpiredEntries(): void {
 }
 
 /**
- * API限流中间件
+ * API限流中间件 (支持自定义IP限制)
  */
 export function rateLimit(config: RateLimitConfig) {
-  return (request: NextRequest): { allowed: boolean; remaining: number; resetTime: number } => {
+  return async (request: NextRequest): Promise<{ allowed: boolean; remaining: number; resetTime: number; reason?: string }> => {
     const clientIP = getClientIP(request);
+
+    // 检查IP是否被封禁
+    const banned = await isIPBanned(clientIP);
+    if (banned) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: Date.now() + 60000,
+        reason: 'IP已被封禁'
+      };
+    }
+
+    // 检查IP总访问量限制
+    const totalLimit = await checkIPTotalLimit(clientIP);
+    if (totalLimit.exceeded) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: Date.now() + 60000,
+        reason: `已超过总访问量限制 (${totalLimit.limit})`
+      };
+    }
+
+    // 获取IP的自定义速率限制
+    const customLimit = await getIPRateLimit(clientIP);
+    const effectiveConfig = customLimit ? {
+      windowMs: customLimit.windowMs,
+      maxRequests: customLimit.maxRequests,
+      message: config.message
+    } : config;
+
     const key = `${clientIP}:${request.nextUrl.pathname}`;
     const now = Date.now();
-    
+
     // 清理过期记录
     cleanupExpiredEntries();
-    
+
     const existing = rateLimitStore.get(key);
-    
+
     if (!existing || now > existing.resetTime) {
       // 新的时间窗口
-      const resetTime = now + config.windowMs;
+      const resetTime = now + effectiveConfig.windowMs;
       rateLimitStore.set(key, { count: 1, resetTime });
       return {
         allowed: true,
-        remaining: config.maxRequests - 1,
+        remaining: effectiveConfig.maxRequests - 1,
         resetTime
       };
     }
-    
-    if (existing.count >= config.maxRequests) {
+
+    if (existing.count >= effectiveConfig.maxRequests) {
       // 超出限制
       return {
         allowed: false,
         remaining: 0,
-        resetTime: existing.resetTime
+        resetTime: existing.resetTime,
+        reason: '请求过于频繁'
       };
     }
-    
+
     // 增加计数
     existing.count++;
     rateLimitStore.set(key, existing);
-    
+
     return {
       allowed: true,
-      remaining: config.maxRequests - existing.count,
+      remaining: effectiveConfig.maxRequests - existing.count,
       resetTime: existing.resetTime
     };
   };
@@ -264,47 +298,60 @@ export function validateRequestSize(
 }
 
 /**
- * 安全中间件装饰器
+ * 安全中间件装饰器 (支持访问统计和IP管理)
  */
 export function withSecurity(options: {
   rateLimit?: keyof typeof DEFAULT_RATE_LIMITS | RateLimitConfig;
   allowedMethods?: string[];
   allowedContentTypes?: string[];
   maxRequestSize?: number;
+  enableAccessLog?: boolean; // 是否启用访问日志
 }) {
   return function<T extends any[]>(
     handler: (...args: T) => Promise<Response>
   ) {
     return async (...args: T): Promise<Response> => {
+      const startTime = Date.now();
+      const request = args[0] as NextRequest;
+      const clientIP = getClientIP(request);
+      const path = request.nextUrl.pathname;
+      const method = request.method;
+      const userAgent = request.headers.get('user-agent');
+
       try {
-        const request = args[0] as NextRequest;
-        
         // 验证HTTP方法
         if (options.allowedMethods) {
           validateMethod(request, options.allowedMethods);
         }
-        
+
         // 验证Content-Type
         if (options.allowedContentTypes && request.method !== 'GET') {
           validateContentType(request, options.allowedContentTypes);
         }
-        
+
         // 验证请求大小
         if (options.maxRequestSize) {
           validateRequestSize(request, options.maxRequestSize);
         }
-        
+
         // 应用限流
         if (options.rateLimit) {
           const config = typeof options.rateLimit === 'string'
             ? DEFAULT_RATE_LIMITS[options.rateLimit]
             : options.rateLimit;
 
-          const rateLimitResult = rateLimit(config)(request);
+          const rateLimitResult = await rateLimit(config)(request);
 
           if (!rateLimitResult.allowed) {
+            // 记录被限流的访问
+            if (options.enableAccessLog !== false) {
+              const responseTime = Date.now() - startTime;
+              logAccess(clientIP, path, method, userAgent, 429, responseTime).catch(console.error);
+            }
+
+            const message = rateLimitResult.reason || config.message || '请求过于频繁';
             const rateLimitResp = createRateLimitResponse(
-              config.message || '请求过于频繁',
+              message,
               rateLimitResult.resetTime,
               rateLimitResult.remaining
             );
@@ -316,18 +363,30 @@ export function withSecurity(options: {
           response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
           response.headers.set('X-RateLimit-Reset', Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString());
 
+          // 记录成功的访问
+          if (options.enableAccessLog !== false) {
+            const responseTime = Date.now() - startTime;
+            logAccess(clientIP, path, method, userAgent, response.status, responseTime).catch(console.error);
+          }
+
           // 直接返回响应，不尝试解析为JSON
           return setSecurityHeaders(response);
         }
-        
+
         // 执行处理器并设置安全头
         const response = await handler(...args);
-        
+
+        // 记录成功的访问
+        if (options.enableAccessLog !== false) {
+          const responseTime = Date.now() - startTime;
+          logAccess(clientIP, path, method, userAgent, response.status, responseTime).catch(console.error);
+        }
+
         // 如果响应已经是NextResponse，直接设置安全头
         if (response instanceof NextResponse) {
           return setSecurityHeaders(response);
         }
-        
+
         // 否则创建新的NextResponse
         try {
           const responseText = await response.text();
@@ -343,8 +402,13 @@ export function withSecurity(options: {
             { status: 500 }
           ));
         }
-        
+
       } catch (error) {
+        // 记录错误的访问
+        if (options.enableAccessLog !== false) {
+          const responseTime = Date.now() - startTime;
+          logAccess(clientIP, path, method, userAgent, 500, responseTime).catch(console.error);
+        }
         // 检查是否是AppError
         if (error instanceof AppError) {
           const response = NextResponse.json(

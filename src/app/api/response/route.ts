@@ -599,6 +599,7 @@ async function getRandomImageFromGroups(groupIds: string[]) {
 export const GET = withErrorHandler(
   withSecurity({
     rateLimit: 'public',
-    allowedMethods: ['GET']
+    allowedMethods: ['GET'],
+    enableAccessLog: true // 启用访问日志记录
   })(getImageResponse)
 );

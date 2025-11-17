@@ -111,3 +111,45 @@ model SystemLog {
   @@index([userId])
   @@map("system_logs")
 }
+
+model AccessLog {
+  id           String   @id @default(cuid())
+  ip           String
+  path         String
+  method       String
+  userAgent    String?  @db.Text
+  timestamp    DateTime @default(now())
+  statusCode   Int?
+  responseTime Int?
+
+  @@index([ip])
+  @@index([timestamp])
+  @@index([path])
+  @@map("access_logs")
+}
+
+model BannedIP {
+  id        String    @id @default(cuid())
+  ip        String    @unique
+  reason    String?   @db.Text
+  bannedAt  DateTime  @default(now())
+  bannedBy  String?
+  expiresAt DateTime?
+
+  @@index([ip])
+  @@index([expiresAt])
+  @@map("banned_ips")
+}
+
+model IPRateLimit {
+  id          String   @id @default(cuid())
+  ip          String   @unique
+  maxRequests Int      @default(60)
+  windowMs    Int      @default(60000)
+  maxTotal    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ip])
+  @@map("ip_rate_limits")
+}
