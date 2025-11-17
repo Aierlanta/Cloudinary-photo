@@ -153,3 +153,13 @@ model IPRateLimit {
   @@index([ip])
   @@map("ip_rate_limits")
 }
+
+// IP总访问计数表 - 用于高性能的总访问量限制检查
+model IPTotalAccess {
+  ip        String   @id
+  count     BigInt   @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ip_total_access")
+}

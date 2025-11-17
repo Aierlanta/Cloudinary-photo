@@ -404,11 +404,15 @@ export function withSecurity(options: {
         }
 
       } catch (error) {
-        // 记录错误的访问
+        // 检查是否是AppError并获取正确的状态码
+        const statusCode = error instanceof AppError ? error.statusCode : 500;
+
+        // 记录错误的访问(使用正确的状态码)
         if (options.enableAccessLog !== false) {
           const responseTime = Date.now() - startTime;
-          logAccess(clientIP, path, method, userAgent, 500, responseTime).catch(console.error);
+          logAccess(clientIP, path, method, userAgent, statusCode, responseTime).catch(console.error);
         }
+
         // 检查是否是AppError
         if (error instanceof AppError) {
           const response = NextResponse.json(

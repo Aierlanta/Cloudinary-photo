@@ -35,7 +35,8 @@ export async function isIPBanned(ip: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('Failed to check if IP is banned:', error);
-    return false;
+    // 安全策略: 数据库异常时采取"默认拒绝"策略
+    throw new Error(`IP ban check failed for IP: ${ip}`);
   }
 }
 
@@ -189,15 +190,17 @@ export async function checkIPTotalLimit(ip: string): Promise<{
   try {
     // 获取IP的自定义限制
     const rateLimit = await getIPRateLimit(ip);
-    
+
     if (!rateLimit || !rateLimit.maxTotal) {
       return { exceeded: false, current: 0 };
     }
 
-    // 统计该IP的总访问次数
-    const totalAccess = await prisma.accessLog.count({
+    // 使用高性能的计数器表而不是扫描整个访问日志表
+    const totalAccessRecord = await prisma.iPTotalAccess.findUnique({
       where: { ip },
     });
+
+    const totalAccess = totalAccessRecord ? Number(totalAccessRecord.count) : 0;
 
     return {
       exceeded: totalAccess >= rateLimit.maxTotal,
@@ -206,7 +209,25 @@ export async function checkIPTotalLimit(ip: string): Promise<{
     };
   } catch (error) {
     console.error('Failed to check IP total limit:', error);
-    return { exceeded: false, current: 0 };
+    // 安全策略: 检查失败时拒绝访问
+    throw new Error(`IP total limit check failed for IP: ${ip}`);
+  }
+}
+
+/**
+ * 增加IP的总访问计数
+ * 在记录访问日志后调用
+ */
+export async function incrementIPTotalAccess(ip: string): Promise<void> {
+  try {
+    await prisma.iPTotalAccess.upsert({
+      where: { ip },
+      create: { ip, count: 1 },
+      update: { count: { increment: 1 } },
+    });
+  } catch (error) {
+    console.error('Failed to increment IP total access:', error);
+    // 计数失败不影响主流程,只记录错误
   }
 }
 

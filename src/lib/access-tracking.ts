@@ -42,6 +42,7 @@ export async function logAccess(
   responseTime?: number
 ): Promise<void> {
   try {
+    // 记录访问日志
     await prisma.accessLog.create({
       data: {
         ip,
@@ -52,6 +53,11 @@ export async function logAccess(
         responseTime,
       },
     });
+
+    // 增加IP总访问计数(异步执行,不阻塞主流程)
+    // 动态导入避免循环依赖
+    const { incrementIPTotalAccess } = await import('./ip-management');
+    incrementIPTotalAccess(ip).catch(console.error);
   } catch (error) {
     // 记录失败不应该影响主流程
     console.error('Failed to log access:', error);
