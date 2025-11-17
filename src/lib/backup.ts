@@ -161,8 +161,8 @@ export class BackupService {
     try {
       this.logger.info('开始数据库备份', { timestamp: startTime });
 
-      // 1. 获取主数据库的所有表
-      const tables = await this.getAllTables();
+      // 1. 获取主数据库的所有表（过滤系统表）
+      const tables = this.filterTables(await this.getAllTables());
       this.logger.debug(`发现 ${tables.length} 个表需要备份`, { tables });
 
       // 2. 清空备份数据库的所有表
@@ -210,30 +210,9 @@ export class BackupService {
    */
   private async clearBackupDatabase(): Promise<void> {
     try {
-      // 使用原始 SQL 清空表，按照外键依赖顺序
-      const tableNames = [
-        'system_logs',
-        'images',
-        'groups',
-        'api_configs',
-        'counters'
-      ];
-
-      for (const tableName of tableNames) {
-        try {
-          await backupPrisma.$executeRawUnsafe(`DELETE FROM \`${tableName}\`;`);
-          this.logger.info(`清空表 ${tableName} 成功`);
-        } catch (error) {
-          // 如果表不存在，记录警告但继续执行
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          if (errorMessage.includes('does not exist') || errorMessage.includes("doesn't exist")) {
-            this.logger.warn(`表 ${tableName} 不存在，跳过清空操作`);
-          } else {
-            // 其他错误则抛出
-            throw error;
-          }
-        }
-      }
+      // 动态枚举备份库表并清空数据（排除系统表）
+      const tables = this.filterTables(await this.getAllTablesFromBackup());
+      await this.clearAllBackupTables(tables);
     } catch (error) {
       throw new DatabaseError(`清空备份数据库失败: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -241,6 +220,7 @@ export class BackupService {
 
   /**
    * 备份图片数据
+   * @deprecated 已被动态枚举复制方案取代，保留以兼容旧逻辑
    */
   private async backupImages(): Promise<void> {
     try {
@@ -263,6 +243,7 @@ export class BackupService {
 
   /**
    * 备份分组数据
+   * @deprecated 已被动态枚举复制方案取代，保留以兼容旧逻辑
    */
   private async backupGroups(): Promise<void> {
     try {
@@ -285,6 +266,7 @@ export class BackupService {
 
   /**
    * 备份API配置数据
+   * @deprecated 已被动态枚举复制方案取代，保留以兼容旧逻辑
    */
   private async backupAPIConfigs(): Promise<void> {
     try {
@@ -307,6 +289,7 @@ export class BackupService {
 
   /**
    * 备份计数器数据
+   * @deprecated 已被动态枚举复制方案取代，保留以兼容旧逻辑
    */
   private async backupCounters(): Promise<void> {
     try {
@@ -330,6 +313,7 @@ export class BackupService {
 
   /**
    * 备份系统日志数据（只备份最近7天的日志）
+   * @deprecated 已被动态枚举复制方案取代，保留以兼容旧逻辑
    */
   private async backupSystemLogs(): Promise<void> {
     try {
@@ -405,8 +389,26 @@ export class BackupService {
       if (preservedBackupStatus) {
         await mainPrisma.aPIConfig.upsert({
           where: { id: 'backup_status' },
-          update: preservedBackupStatus,
-          create: preservedBackupStatus
+          update: {
+            isEnabled: preservedBackupStatus.isEnabled,
+            defaultScope: preservedBackupStatus.defaultScope,
+            defaultGroups: preservedBackupStatus.defaultGroups,
+            allowedParameters: preservedBackupStatus.allowedParameters,
+            enableDirectResponse: preservedBackupStatus.enableDirectResponse,
+            apiKeyEnabled: preservedBackupStatus.apiKeyEnabled,
+            apiKey: preservedBackupStatus.apiKey,
+            updatedAt: new Date()
+          },
+          create: {
+            id: 'backup_status',
+            isEnabled: preservedBackupStatus.isEnabled ?? true,
+            defaultScope: preservedBackupStatus.defaultScope ?? 'backup',
+            defaultGroups: preservedBackupStatus.defaultGroups ?? null,
+            allowedParameters: preservedBackupStatus.allowedParameters ?? null,
+            enableDirectResponse: preservedBackupStatus.enableDirectResponse ?? false,
+            apiKeyEnabled: preservedBackupStatus.apiKeyEnabled ?? false,
+            apiKey: preservedBackupStatus.apiKey ?? null
+          }
         });
         this.logger.debug('已恢复 backup_status 配置');
       }
@@ -564,6 +566,7 @@ export class BackupService {
   }
   /**
    * 还原图片数据
+   * @deprecated 还原流程已改为动态枚举，保留以兼容旧逻辑
    */
   private async restoreImages(): Promise<void> {
     const images = await backupPrisma.image.findMany();
@@ -577,6 +580,7 @@ export class BackupService {
 
   /**
    * 还原分组数据
+   * @deprecated 还原流程已改为动态枚举，保留以兼容旧逻辑
    */
   private async restoreGroups(): Promise<void> {
     const groups = await backupPrisma.group.findMany();
@@ -590,6 +594,7 @@ export class BackupService {
 
   /**
    * 还原API配置数据
+   * @deprecated 还原流程已改为动态枚举，保留以兼容旧逻辑
    */
   private async restoreAPIConfigs(): Promise<void> {
     const configs = await backupPrisma.aPIConfig.findMany({
@@ -607,6 +612,7 @@ export class BackupService {
 
   /**
    * 还原计数器数据
+   * @deprecated 还原流程已改为动态枚举，保留以兼容旧逻辑
    */
   private async restoreCounters(): Promise<void> {
     const counters = await backupPrisma.counter.findMany();
@@ -620,6 +626,7 @@ export class BackupService {
 
   /**
    * 还原系统日志数据
+   * @deprecated 还原流程已改为动态枚举，保留以兼容旧逻辑
    */
   private async restoreSystemLogs(): Promise<void> {
     const logs = await backupPrisma.systemLog.findMany();
@@ -673,19 +680,32 @@ export class BackupService {
    */
   async initializeBackupDatabase(): Promise<boolean> {
     try {
-      this.logger.info('开始初始化备份数据库表结构');
+      this.logger.info('开始初始化备份数据库表结构（动态对齐主库）');
 
-      // 检查备份数据库连接
+      // 确保连接正常
       await backupPrisma.$connect();
+      await mainPrisma.$connect();
 
-      // 先删除可能存在的错误表结构
-      await this.dropExistingTables();
+      // 1) 获取主库与备份库的业务表列表
+      const mainTables = this.filterTables(await this.getAllTables());
+      const backupTables = this.filterTables(await this.getAllTablesFromBackup());
 
-      // 创建正确的表结构
-      this.logger.info('开始创建备份数据库表结构...');
-      await this.createBackupTables();
+      // 2) 备份库中删除所有现有业务表（禁用外键检查）
+      await this.dropAllBackupTables(backupTables);
 
-      this.logger.info('备份数据库表结构创建完成');
+      // 3) 依据主库结构在备份库重建所有表结构
+      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+      for (const tableName of mainTables) {
+        try {
+          await this.copyTableStructure(tableName);
+          this.logger.debug(`备份库表结构已创建: ${tableName}`);
+        } catch (e) {
+          this.logger.warn(`创建备份库表结构失败 ${tableName}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+
+      this.logger.info('备份数据库表结构创建完成（已对齐主库）');
       return true;
     } catch (error) {
       this.logger.error('初始化备份数据库失败', error instanceof Error ? error : undefined, {
@@ -696,7 +716,27 @@ export class BackupService {
   }
 
   /**
+   * 删除备份库中的所有给定表（禁用外键检查）
+   */
+  private async dropAllBackupTables(tables: string[]): Promise<void> {
+    try {
+      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
+      for (const tableName of tables) {
+        try {
+          await backupPrisma.$executeRawUnsafe(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+          this.logger.debug(`删除备份库表 ${tableName} 成功`);
+        } catch (e) {
+          this.logger.warn(`删除备份库表 ${tableName} 失败: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+      await backupPrisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
+    } catch (error) {
+      throw new DatabaseError(`删除备份库表失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  /**
    * 删除现有的表结构
+   * @deprecated 已被动态初始化方案替代，请使用 initializeBackupDatabase()
    */
   private async dropExistingTables(): Promise<void> {
     const tablesToDrop = [
@@ -720,6 +760,7 @@ export class BackupService {
 
   /**
    * 创建备份数据库表结构
+   * @deprecated 已被动态初始化方案替代，请使用 initializeBackupDatabase()
    */
   private async createBackupTables(): Promise<void> {
     // 创建表的 SQL 语句（使用与主数据库相同的 snake_case 命名）
