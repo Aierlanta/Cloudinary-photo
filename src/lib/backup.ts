@@ -4,8 +4,22 @@
  */
 
 import { Prisma, PrismaClient } from '@prisma/client';
-import { DatabaseError } from '@/types/errors';
+import { DatabaseError, ConfigurationError } from '@/types/errors';
 import { LogLevel, Logger } from './logger';
+
+// 获取备份数据库连接 URL
+function getBackupDatabaseUrl(): string | undefined {
+  if (process.env.BACKUP_DATABASE_URL) {
+    return process.env.BACKUP_DATABASE_URL;
+  }
+  // 仅在测试环境中允许自动推断备份库地址
+  if (process.env.DATABASE_URL?.includes('/test')) {
+    return process.env.DATABASE_URL.replace('/test', '/bak');
+  }
+  return undefined;
+}
+
+const BACKUP_DATABASE_URL = getBackupDatabaseUrl();
 
 // 主数据库连接
 const mainPrisma = new PrismaClient({
@@ -20,7 +34,7 @@ const mainPrisma = new PrismaClient({
 const backupPrisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.BACKUP_DATABASE_URL || process.env.DATABASE_URL?.replace('/test', '/bak')
+      url: BACKUP_DATABASE_URL || process.env.DATABASE_URL // Fallback to prevent Prisma init error, but logic should prevent usage
     }
   }
 });
@@ -57,7 +71,7 @@ export class BackupService {
         where: { id: 'backup_status' }
       });
 
-      const hasBackupDb = !!process.env.BACKUP_DATABASE_URL;
+      const hasBackupDb = !!BACKUP_DATABASE_URL;
 
       if (!config) {
         return {
@@ -723,8 +737,8 @@ export class BackupService {
    * 设置自动备份状态
    */
   async setAutoBackupEnabled(enabled: boolean): Promise<void> {
-    if (enabled && !process.env.BACKUP_DATABASE_URL) {
-      throw new Error('未配置备份数据库连接 (BACKUP_DATABASE_URL)，无法开启自动备份');
+    if (enabled && !BACKUP_DATABASE_URL) {
+      throw new ConfigurationError('未配置备份数据库连接 (BACKUP_DATABASE_URL)，无法开启自动备份');
     }
     await this.updateBackupStatus({ isAutoBackupEnabled: enabled });
   }

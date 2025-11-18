@@ -131,3 +131,11 @@ export class ForbiddenError extends AppError {
     this.name = 'ForbiddenError';
   }
 }
+
+// 配置错误类
+export class ConfigurationError extends AppError {
+  constructor(message: string, details?: any) {
+    super(ErrorType.CONFIG_ERROR, message, 400, details);
+    this.name = 'ConfigurationError';
+  }
+}
