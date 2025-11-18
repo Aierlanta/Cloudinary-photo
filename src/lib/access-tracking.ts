@@ -3,10 +3,8 @@
  * 记录API访问日志,用于统计和分析
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma';
 import { NextRequest } from 'next/server';
-
-const prisma = new PrismaClient();
 
 /**
  * 获取客户端IP地址

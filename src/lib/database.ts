@@ -3,21 +3,10 @@
  * 使用Prisma和MySQL进行数据存储和管理
  */
 
-import { PrismaClient } from '@prisma/client';
 import { Image, Group, APIConfig, PaginationOptions, PaginatedResult } from '@/types/models';
 import { DatabaseError, NotFoundError } from '@/types/errors';
 import { LogLevel, LogEntry } from './logger';
-
-// Prisma客户端全局实例
-declare global {
-  var prisma: PrismaClient | undefined;
-}
-
-const prisma = globalThis.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
-}
+import { prisma } from './prisma';
 
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -368,17 +357,44 @@ export class DatabaseService {
       const orderBy: any = {};
       orderBy[sortBy] = sortOrder;
 
-      // 获取总数
-      const total = await prisma.image.count({ where });
-
-      // 获取分页数据
-      const images = await prisma.image.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-        include: { group: true }
-      });
+      const [total, images] = await Promise.all([
+        prisma.image.count({ where }),
+        prisma.image.findMany({
+          where,
+          orderBy,
+          skip: (page - 1) * limit,
+          take: limit,
+          select: {
+            id: true,
+            url: true,
+            publicId: true,
+            title: true,
+            description: true,
+            tags: true,
+            groupId: true,
+            uploadedAt: true,
+            // 图床相关字段
+            // 这些字段用于列表展示/筛选
+            // 保持选择而不 include 关联，避免不必要 JOIN
+            // 并减少网络传输
+            // @ts-ignore
+            primaryProvider: true,
+            // @ts-ignore
+            backupProvider: true,
+            // Telegram 相关
+            // @ts-ignore
+            telegramFileId: true,
+            // @ts-ignore
+            telegramThumbnailFileId: true,
+            // @ts-ignore
+            telegramFilePath: true,
+            // @ts-ignore
+            telegramThumbnailPath: true,
+            // @ts-ignore
+            telegramBotToken: true
+          }
+        })
+      ]);
 
       // 转换为应用层的Image类型
       const data: Image[] = images.map(image => ({
@@ -703,15 +719,21 @@ export class DatabaseService {
   async getGroups(): Promise<Group[]> {
     try {
       const groups = await prisma.group.findMany({
-        include: { _count: { select: { images: true } } },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          imageCount: true,
+          createdAt: true
+        }
       });
 
       return groups.map(group => ({
         id: group.id,
         name: group.name,
         description: group.description || undefined,
-        imageCount: group._count.images,
+        imageCount: group.imageCount,
         createdAt: group.createdAt
       }));
     } catch (error) {

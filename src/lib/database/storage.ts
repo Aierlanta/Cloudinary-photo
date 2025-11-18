@@ -3,10 +3,8 @@
  * 处理图片存储记录和配置的数据库操作
  */
 
-import { PrismaClient } from '@prisma/client';
 import { StorageProvider, StorageResult, MultiStorageConfig } from '../storage/base';
-
-const prisma = new PrismaClient();
+import { prisma } from '../prisma';
 
 export interface ImageWithStorage {
   id: string;

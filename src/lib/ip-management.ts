@@ -3,9 +3,7 @@
  * 处理IP封禁、速率限制和访问总量限制
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from './prisma';
 
 /**
  * 检查IP是否被封禁

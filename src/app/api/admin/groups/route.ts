@@ -39,7 +39,8 @@ async function getGroups(request: NextRequest): Promise<Response> {
 // 应用安全中间件和认证
 export const GET = withSecurity({
   rateLimit: 'admin',
-  allowedMethods: ['GET']
+  allowedMethods: ['GET'],
+  enableAccessLog: false
 })(withAdminAuth(getGroups));
 
 /**

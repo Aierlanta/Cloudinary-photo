@@ -81,7 +81,8 @@ async function getImages(request: NextRequest): Promise<Response> {
 export const GET = withErrorHandler(
   withSecurity({
     rateLimit: 'admin',
-    allowedMethods: ['GET']
+    allowedMethods: ['GET'],
+    enableAccessLog: false
   })(withAdminAuth(getImages))
 );
 

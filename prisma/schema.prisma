@@ -31,6 +31,9 @@ model Image {
 
   @@index([groupId], map: "images_groupId_fkey")
   @@index([telegramFileId])
+  @@index([uploadedAt])
+  @@index([groupId, uploadedAt])
+  @@index([primaryProvider, uploadedAt])
   @@map("images")
 }
 
@@ -42,6 +45,7 @@ model Group {
   createdAt   DateTime @default(now())
   images      Image[]
 
+  @@index([createdAt])
   @@map("groups")
 }
 
