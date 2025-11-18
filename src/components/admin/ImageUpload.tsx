@@ -30,7 +30,7 @@ interface Image {
   tags: string[];
 }
 
-type FileStatus = 'pending' | 'uploading' | 'success' | 'failed';
+type FileStatus = "pending" | "uploading" | "success" | "failed";
 
 interface FileUploadState {
   file: File;
@@ -104,99 +104,102 @@ export default function ImageUpload({
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // 检查是否有正在上传的文件
-      const isUploading = uploading || fileStates.some(fs => fs.status === 'uploading');
-      
+      const isUploading =
+        uploading || fileStates.some((fs) => fs.status === "uploading");
+
       if (isUploading) {
         // 标准的方式
         e.preventDefault();
         // Chrome 需要 returnValue
-        e.returnValue = '图片正在上传中，确定要离开吗？上传将被中断。';
+        e.returnValue = "图片正在上传中，确定要离开吗？上传将被中断。";
         return e.returnValue;
       }
     };
 
     // 添加事件监听器
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     // 清理函数
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [uploading, fileStates]);
 
   // 拦截浏览器后退/前进按钮（popstate 事件）
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
-      const isUploading = uploading || fileStates.some(fs => fs.status === 'uploading');
-      
+      const isUploading =
+        uploading || fileStates.some((fs) => fs.status === "uploading");
+
       if (isUploading) {
         // 弹出确认对话框
         const confirmLeave = window.confirm(
-          '图片正在上传中，确定要离开吗？上传将被中断。'
+          "图片正在上传中，确定要离开吗？上传将被中断。"
         );
-        
+
         if (!confirmLeave) {
           // 用户选择取消，阻止导航
           // 将历史记录推回到当前页面
-          window.history.pushState(null, '', window.location.pathname);
+          window.history.pushState(null, "", window.location.pathname);
         }
         // 如果用户选择确定，什么都不做，让导航继续
       }
     };
 
     // 监听浏览器后退/前进
-    window.addEventListener('popstate', handlePopState);
-    
+    window.addEventListener("popstate", handlePopState);
+
     // 在上传开始时，向历史记录添加一个状态
     // 这样后退时会触发 popstate 事件
-    if (uploading || fileStates.some(fs => fs.status === 'uploading')) {
-      window.history.pushState(null, '', window.location.pathname);
+    if (uploading || fileStates.some((fs) => fs.status === "uploading")) {
+      window.history.pushState(null, "", window.location.pathname);
     }
 
     return () => {
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener("popstate", handlePopState);
     };
   }, [uploading, fileStates]);
 
   // 拦截页面内的所有链接点击和鼠标侧键
   useEffect(() => {
     const handleMouseClick = (e: MouseEvent) => {
-      const isUploading = uploading || fileStates.some(fs => fs.status === 'uploading');
-      
+      const isUploading =
+        uploading || fileStates.some((fs) => fs.status === "uploading");
+
       if (!isUploading) return;
-      
+
       // 检查是否是鼠标侧键（后退/前进按钮）
       // button 3 = 后退, button 4 = 前进
       if (e.button === 3 || e.button === 4) {
         const confirmLeave = window.confirm(
-          '图片正在上传中，确定要离开吗？上传将被中断。'
+          "图片正在上传中，确定要离开吗？上传将被中断。"
         );
-        
+
         if (!confirmLeave) {
           e.preventDefault();
           e.stopPropagation();
           // 阻止浏览器执行后退/前进操作
-          window.history.pushState(null, '', window.location.pathname);
+          window.history.pushState(null, "", window.location.pathname);
           return;
         }
       }
-      
+
       // 检查是否点击了链接或包含链接的元素
       const target = e.target as HTMLElement;
-      const link = target.closest('a');
-      
+      const link = target.closest("a");
+
       if (link && link.href) {
         // 如果是外部链接，beforeunload 会处理
         // 如果是内部链接，我们需要手动确认
         const currentOrigin = window.location.origin;
         const linkUrl = new URL(link.href, currentOrigin);
-        
+
         // 检查是否是跳转到其他页面（不是当前页面的锚点）
         if (linkUrl.pathname !== window.location.pathname) {
           const confirmLeave = window.confirm(
-            '图片正在上传中，确定要离开吗？上传将被中断。'
+            "图片正在上传中，确定要离开吗？上传将被中断。"
           );
-          
+
           if (!confirmLeave) {
             e.preventDefault();
             e.stopPropagation();
@@ -206,13 +209,13 @@ export default function ImageUpload({
     };
 
     // 监听所有鼠标按下事件（包括侧键）
-    document.addEventListener('mousedown', handleMouseClick, true);
+    document.addEventListener("mousedown", handleMouseClick, true);
     // 也监听点击事件作为备份
-    document.addEventListener('click', handleMouseClick, true);
+    document.addEventListener("click", handleMouseClick, true);
 
     return () => {
-      document.removeEventListener('mousedown', handleMouseClick, true);
-      document.removeEventListener('click', handleMouseClick, true);
+      document.removeEventListener("mousedown", handleMouseClick, true);
+      document.removeEventListener("click", handleMouseClick, true);
     };
   }, [uploading, fileStates]);
 
@@ -220,7 +223,7 @@ export default function ImageUpload({
   useEffect(() => {
     if (uploading) {
       // 在控制台显示提示，帮助开发调试
-      console.log('⚠️ 图片上传中，请勿关闭或刷新页面');
+      console.log("⚠️ 图片上传中，请勿关闭或刷新页面");
     }
   }, [uploading]);
 
@@ -242,14 +245,14 @@ export default function ImageUpload({
     const files = Array.from(e.dataTransfer.files).filter((file) =>
       file.type.startsWith("image/")
     );
-    
-    const newFileStates: FileUploadState[] = files.map(file => ({
+
+    const newFileStates: FileUploadState[] = files.map((file) => ({
       file,
-      status: 'pending' as FileStatus,
-      retryCount: 0
+      status: "pending" as FileStatus,
+      retryCount: 0,
     }));
-    
-    setFileStates(prev => [...prev, ...newFileStates]);
+
+    setFileStates((prev) => [...prev, ...newFileStates]);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,14 +260,14 @@ export default function ImageUpload({
       const files = Array.from(e.target.files).filter((file) =>
         file.type.startsWith("image/")
       );
-      
-      const newFileStates: FileUploadState[] = files.map(file => ({
+
+      const newFileStates: FileUploadState[] = files.map((file) => ({
         file,
-        status: 'pending' as FileStatus,
-        retryCount: 0
+        status: "pending" as FileStatus,
+        retryCount: 0,
       }));
-      
-      setFileStates(prev => [...prev, ...newFileStates]);
+
+      setFileStates((prev) => [...prev, ...newFileStates]);
     }
   };
 
@@ -300,7 +303,10 @@ export default function ImageUpload({
   };
 
   // 更新文件状态
-  const updateFileState = (index: number, updates: Partial<FileUploadState>) => {
+  const updateFileState = (
+    index: number,
+    updates: Partial<FileUploadState>
+  ) => {
     setFileStates((prev) =>
       prev.map((fs, i) => (i === index ? { ...fs, ...updates } : fs))
     );
@@ -338,13 +344,13 @@ export default function ImageUpload({
           const data = await response.json();
           completedCount++;
           setUploadProgress((completedCount / fileStatesToUpload.length) * 100);
-          
+
           // 更新文件状态为成功
           updateFileState(fileIndex, {
-            status: 'success',
-            uploadedImage: data.data.image
+            status: "success",
+            uploadedImage: data.data.image,
           });
-          
+
           return data.data.image;
         } else {
           // 检查是否是可重试的错误
@@ -372,13 +378,13 @@ export default function ImageUpload({
             } catch {
               // 忽略解析错误响应的错误
             }
-            
+
             // 更新文件状态为失败
             updateFileState(fileIndex, {
-              status: 'failed',
-              error: errorMessage
+              status: "failed",
+              error: errorMessage,
             });
-            
+
             throw new Error(errorMessage);
           }
         }
@@ -399,13 +405,13 @@ export default function ImageUpload({
           const errorMessage = `上传 ${file.name} 失败: ${
             error instanceof Error ? error.message : "网络错误"
           }`;
-          
+
           // 更新文件状态为失败
           updateFileState(fileIndex, {
-            status: 'failed',
-            error: errorMessage
+            status: "failed",
+            error: errorMessage,
           });
-          
+
           throw new Error(errorMessage);
         }
       }
@@ -421,9 +427,9 @@ export default function ImageUpload({
       const arrayIndex = currentIndex++;
       const fileState = fileStatesToUpload[arrayIndex];
       const realIndex = startIndex + arrayIndex;
-      
+
       // 更新为上传中状态
-      updateFileState(realIndex, { status: 'uploading' });
+      updateFileState(realIndex, { status: "uploading" });
 
       try {
         const result = await uploadSingleFile(fileState, realIndex);
@@ -477,14 +483,14 @@ export default function ImageUpload({
   // 重试单个文件
   const retryFile = async (index: number) => {
     const fileState = fileStates[index];
-    if (fileState.status !== 'failed') return;
-    
-    updateFileState(index, { 
-      status: 'uploading', 
+    if (fileState.status !== "failed") return;
+
+    updateFileState(index, {
+      status: "uploading",
       error: undefined,
-      retryCount: fileState.retryCount + 1
+      retryCount: fileState.retryCount + 1,
     });
-    
+
     try {
       await uploadWithConcurrencyLimit([fileState], index, 1);
       success("重试成功！", `${fileState.file.name} 已上传`, 3000);
@@ -496,25 +502,25 @@ export default function ImageUpload({
       );
     }
   };
-  
+
   // 重试所有失败的文件
   const retryAllFailed = async () => {
-    const failedFiles = fileStates.filter(fs => fs.status === 'failed');
+    const failedFiles = fileStates.filter((fs) => fs.status === "failed");
     if (failedFiles.length === 0) return;
-    
+
     setUploading(true);
     setUploadProgress(0);
-    
+
     try {
       const failedIndices = fileStates
         .map((fs, idx) => ({ fs, idx }))
-        .filter(({ fs }) => fs.status === 'failed');
-      
+        .filter(({ fs }) => fs.status === "failed");
+
       // 更新所有失败文件的状态
       failedIndices.forEach(({ idx }) => {
-        updateFileState(idx, { status: 'uploading', error: undefined });
+        updateFileState(idx, { status: "uploading", error: undefined });
       });
-      
+
       // 并发上传所有失败的文件
       let retrySuccessCount = 0;
       let retryFailCount = 0;
@@ -522,7 +528,7 @@ export default function ImageUpload({
       for (const { fs, idx } of failedIndices) {
         try {
           const res = await uploadWithConcurrencyLimit([fs], idx, 1);
-          const count = Array.isArray(res) ? res.length : (res ? 1 : 0);
+          const count = Array.isArray(res) ? res.length : res ? 1 : 0;
           if (count > 0) {
             retrySuccessCount += count;
           } else {
@@ -533,7 +539,7 @@ export default function ImageUpload({
           retryFailCount += 1;
         }
       }
-      
+
       if (retryFailCount > 0) {
         showError(
           "部分重试失败",
@@ -555,12 +561,12 @@ export default function ImageUpload({
       setUploadProgress(0);
     }
   };
-  
+
   // 清除所有成功的文件
   const clearSuccessful = () => {
-    setFileStates(prev => prev.filter(fs => fs.status !== 'success'));
+    setFileStates((prev) => prev.filter((fs) => fs.status !== "success"));
   };
-  
+
   // 清除所有文件
   const clearAll = () => {
     setFileStates([]);
@@ -570,7 +576,7 @@ export default function ImageUpload({
   };
 
   const handleUpload = async () => {
-    const pendingFiles = fileStates.filter(fs => fs.status === 'pending');
+    const pendingFiles = fileStates.filter((fs) => fs.status === "pending");
     if (pendingFiles.length === 0) return;
 
     setUploading(true);
@@ -582,10 +588,14 @@ export default function ImageUpload({
       // 降低并发数量，避免触发限流（从5降到3）
       const pendingIndices = fileStates
         .map((fs, idx) => ({ fs, idx }))
-        .filter(({ fs }) => fs.status === 'pending');
-      
+        .filter(({ fs }) => fs.status === "pending");
+
       const startIdx = pendingIndices.length > 0 ? pendingIndices[0].idx : 0;
-      uploadedImages = await uploadWithConcurrencyLimit(pendingFiles, startIdx, 3);
+      uploadedImages = await uploadWithConcurrencyLimit(
+        pendingFiles,
+        startIdx,
+        3
+      );
 
       // 通知父组件上传成功
       uploadedImages.forEach((image: Image) => onUploadSuccess(image));
@@ -598,7 +608,7 @@ export default function ImageUpload({
 
       const successCount = uploadedImages.length;
       const failedCount = pendingFiles.length - successCount;
-      
+
       if (failedCount > 0) {
         showError(
           "部分上传失败",
@@ -689,7 +699,7 @@ export default function ImageUpload({
               文件列表 ({fileStates.length} 个文件)
             </h3>
             <div className="flex gap-2">
-              {fileStates.some(fs => fs.status === 'success') && (
+              {fileStates.some((fs) => fs.status === "success") && (
                 <button
                   onClick={clearSuccessful}
                   className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -710,10 +720,13 @@ export default function ImageUpload({
               <div
                 key={index}
                 className={`flex items-center justify-between p-2 rounded ${
-                  fileState.status === 'success' ? 'bg-green-50 dark:bg-green-900 dark:bg-opacity-20' :
-                  fileState.status === 'failed' ? 'bg-red-50 dark:bg-red-900 dark:bg-opacity-20' :
-                  fileState.status === 'uploading' ? 'bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20' :
-                  'bg-gray-50 dark:bg-gray-800'
+                  fileState.status === "success"
+                    ? "bg-green-50 dark:bg-green-900 dark:bg-opacity-20"
+                    : fileState.status === "failed"
+                    ? "bg-red-50 dark:bg-red-900 dark:bg-opacity-20"
+                    : fileState.status === "uploading"
+                    ? "bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
+                    : "bg-gray-50 dark:bg-gray-800"
                 }`}
               >
                 <div className="flex items-center space-x-2 min-w-0 flex-1">
@@ -737,19 +750,20 @@ export default function ImageUpload({
                       <p className="text-xs font-medium panel-text truncate">
                         {fileState.file.name}
                       </p>
-                      {fileState.status === 'uploading' && (
+                      {fileState.status === "uploading" && (
                         <span className="text-xs text-blue-600">上传中...</span>
                       )}
-                      {fileState.status === 'success' && (
+                      {fileState.status === "success" && (
                         <span className="text-xs text-green-600">✓</span>
                       )}
-                      {fileState.status === 'failed' && (
+                      {fileState.status === "failed" && (
                         <span className="text-xs text-red-600">✗</span>
                       )}
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {formatFileSize(fileState.file.size)}
-                      {fileState.retryCount > 0 && ` · 已重试 ${fileState.retryCount} 次`}
+                      {fileState.retryCount > 0 &&
+                        ` · 已重试 ${fileState.retryCount} 次`}
                     </p>
                     {fileState.error && (
                       <p className="text-xs text-red-600 dark:text-red-400 truncate">
@@ -759,7 +773,7 @@ export default function ImageUpload({
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  {fileState.status === 'failed' && (
+                  {fileState.status === "failed" && (
                     <button
                       onClick={() => retryFile(index)}
                       className="text-blue-500 hover:text-blue-700 px-2 py-1 text-xs rounded border border-blue-500 hover:bg-blue-50"
@@ -768,7 +782,7 @@ export default function ImageUpload({
                       重试
                     </button>
                   )}
-                  {fileState.status !== 'uploading' && (
+                  {fileState.status !== "uploading" && (
                     <button
                       onClick={() => removeFile(index)}
                       className="text-red-500 hover:text-red-700 p-1 flex-shrink-0"
@@ -831,14 +845,15 @@ export default function ImageUpload({
                   (p) => p.id === selectedProvider
                 );
                 if (!provider) return null;
-                
+
                 // 根据 provider.id 使用翻译
                 const descMap: Record<string, string> = {
-                  'cloudinary': t.adminImages.cloudinaryDesc,
-                  'tgstate': t.adminImages.tgStateDesc,
+                  cloudinary: t.adminImages.cloudinaryDesc,
+                  tgstate: t.adminImages.tgStateDesc,
+                  telegram: t.adminImages.telegramDesc,
                 };
                 const desc = descMap[provider.id] || provider.description;
-                
+
                 return (
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {desc}
@@ -885,7 +900,10 @@ export default function ImageUpload({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={handleUpload}
-            disabled={fileStates.filter(fs => fs.status === 'pending').length === 0 || uploading}
+            disabled={
+              fileStates.filter((fs) => fs.status === "pending").length === 0 ||
+              uploading
+            }
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             {uploading ? (
@@ -913,17 +931,23 @@ export default function ImageUpload({
                 {Math.round(uploadProgress)}%
               </div>
             ) : (
-              `${t.adminImages.uploadCount.replace('{count}', String(fileStates.filter(fs => fs.status === 'pending').length))}`
+              `${t.adminImages.uploadCount.replace(
+                "{count}",
+                String(
+                  fileStates.filter((fs) => fs.status === "pending").length
+                )
+              )}`
             )}
           </button>
-          
-          {fileStates.some(fs => fs.status === 'failed') && (
+
+          {fileStates.some((fs) => fs.status === "failed") && (
             <button
               onClick={retryAllFailed}
               disabled={uploading}
               className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-orange-500"
             >
-              重试失败 ({fileStates.filter(fs => fs.status === 'failed').length})
+              重试失败 (
+              {fileStates.filter((fs) => fs.status === "failed").length})
             </button>
           )}
         </div>
@@ -936,13 +960,23 @@ export default function ImageUpload({
                 style={{ width: `${uploadProgress}%` }}
               ></div>
             </div>
-            
+
             {/* 上传中警告提示 */}
             <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-300 dark:border-yellow-700 rounded text-sm text-yellow-800 dark:text-yellow-200">
-              <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              <svg
+                className="w-4 h-4 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span className="font-medium">正在上传，请勿关闭或刷新页面，否则上传将被中断</span>
+              <span className="font-medium">
+                正在上传，请勿关闭或刷新页面，否则上传将被中断
+              </span>
             </div>
           </>
         )}

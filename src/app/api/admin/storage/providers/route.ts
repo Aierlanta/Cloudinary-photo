@@ -38,7 +38,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     {
       id: 'tgstate',
       name: 'tgState',
-      description: '基于Telegram的免费图床服务',
+      description: '基于Telegram的免费图床服务 (第三方)',
       isAvailable: isStorageEnabled(StorageProvider.TGSTATE) && !!process.env.TGSTATE_BASE_URL,
       features: [
         '免费存储',
@@ -46,6 +46,21 @@ export async function GET(request: NextRequest): Promise<Response> {
         '快速上传',
         '永久保存',
         '简单易用'
+      ]
+    },
+    {
+      id: 'telegram',
+      name: 'Telegram 直连',
+      description: 'Telegram Bot API 直连 (推荐)',
+      isAvailable: isStorageEnabled(StorageProvider.TELEGRAM) && !!(
+        process.env.TELEGRAM_BOT_TOKENS || process.env.TELEGRAM_BOT_TOKEN
+      ),
+      features: [
+        '无需第三方服务',
+        '多Token负载均衡',
+        '自动缩略图优化',
+        '健康检查和故障切换',
+        '免费无限存储'
       ]
     }
   ];

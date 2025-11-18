@@ -44,7 +44,8 @@ export interface StorageStats {
  */
 export enum StorageProvider {
   CLOUDINARY = 'cloudinary',
-  TGSTATE = 'tgstate'
+  TGSTATE = 'tgstate',
+  TELEGRAM = 'telegram' // 直连 Telegram Bot API
 }
 
 /**

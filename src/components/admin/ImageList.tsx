@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { generateThumbnailUrl, getImageUrls } from "@/lib/image-utils";
+import {
+  generateThumbnailUrl,
+  generateThumbnailUrlForImage,
+  getImageUrls,
+} from "@/lib/image-utils";
 import SmartImage from "@/components/ui/SmartImage";
 import { useImageCachePrewarming } from "@/hooks/useImageCachePrewarming";
 import { useLocale } from "@/hooks/useLocale";
@@ -15,8 +19,14 @@ interface ImageItem {
   groupId?: string;
   uploadedAt: string;
   tags?: string[];
-  primaryProvider?: string; // 新增：主要图床提供商
-  backupProvider?: string; // 新增：备用图床提供商
+  primaryProvider?: string; // 新增:主要图床提供商
+  backupProvider?: string; // 新增:备用图床提供商
+  // Telegram 相关字段
+  telegramFileId?: string | null;
+  telegramThumbnailFileId?: string | null;
+  telegramFilePath?: string | null;
+  telegramThumbnailPath?: string | null;
+  telegramBotToken?: string | null;
 }
 
 interface Group {
@@ -759,7 +769,7 @@ export default function ImageList({
             {/* 图片预览 */}
             <div className="aspect-square relative bg-gray-100 dark:bg-gray-800">
               <LazyImage
-                src={generateThumbnailUrl(image.url, 300)}
+                src={generateThumbnailUrlForImage(image, 300)}
                 alt={image.title || image.publicId}
                 className="w-full h-full"
                 onClick={() => {
@@ -778,12 +788,18 @@ export default function ImageList({
 
                   if (currentIndex > 0) {
                     preloadUrls.push(
-                      generateThumbnailUrl(images[currentIndex - 1].url, 300)
+                      generateThumbnailUrlForImage(
+                        images[currentIndex - 1],
+                        300
+                      )
                     );
                   }
                   if (currentIndex < images.length - 1) {
                     preloadUrls.push(
-                      generateThumbnailUrl(images[currentIndex + 1].url, 300)
+                      generateThumbnailUrlForImage(
+                        images[currentIndex + 1],
+                        300
+                      )
                     );
                   }
 

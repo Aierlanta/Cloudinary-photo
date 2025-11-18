@@ -391,7 +391,13 @@ export class DatabaseService {
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         primaryProvider: (image as any).primaryProvider || 'cloudinary', // 新增：图床信息
-        backupProvider: (image as any).backupProvider || undefined // 新增：备用图床信息
+        backupProvider: (image as any).backupProvider || undefined, // 新增：备用图床信息
+        // Telegram 相关字段
+        telegramFileId: (image as any).telegramFileId || undefined,
+        telegramThumbnailFileId: (image as any).telegramThumbnailFileId || undefined,
+        telegramFilePath: (image as any).telegramFilePath || undefined,
+        telegramThumbnailPath: (image as any).telegramThumbnailPath || undefined,
+        telegramBotToken: (image as any).telegramBotToken || undefined
       }));
 
       const totalPages = Math.ceil(total / limit);

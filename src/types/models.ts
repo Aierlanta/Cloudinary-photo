@@ -15,6 +15,12 @@ export interface Image {
   uploadedAt: Date;
   primaryProvider?: string; // 新增：主要图床提供商
   backupProvider?: string;  // 新增：备用图床提供商
+  // Telegram 相关字段
+  telegramFileId?: string;
+  telegramThumbnailFileId?: string;
+  telegramFilePath?: string;
+  telegramThumbnailPath?: string;
+  telegramBotToken?: string;
 }
 
 // 分组模型

@@ -9,21 +9,28 @@ datasource db {
 }
 
 model Image {
-  id              String               @id
-  url             String
-  publicId        String
-  title           String?
-  description     String?
-  tags            String?
-  groupId         String?
-  uploadedAt      DateTime             @default(now())
-  primaryProvider String               @default("cloudinary")
-  backupProvider  String?
-  storageMetadata String?              @db.Text
-  storageRecords  ImageStorageRecord[]
-  group           Group?               @relation(fields: [groupId], references: [id])
+  id                      String               @id
+  url                     String
+  publicId                String
+  title                   String?
+  description             String?
+  tags                    String?
+  groupId                 String?
+  uploadedAt              DateTime             @default(now())
+  primaryProvider         String               @default("cloudinary")
+  backupProvider          String?
+  storageMetadata         String?              @db.Text
+  // Telegram 直连相关字段
+  telegramFileId          String? // 原图的 file_id
+  telegramThumbnailFileId String? // 缩略图的 file_id
+  telegramFilePath        String? // 原图文件路径
+  telegramThumbnailPath   String? // 缩略图文件路径
+  telegramBotToken        String? // 使用的 Bot Token (加密存储或索引)
+  storageRecords          ImageStorageRecord[]
+  group                   Group?               @relation(fields: [groupId], references: [id])
 
   @@index([groupId], map: "images_groupId_fkey")
+  @@index([telegramFileId])
   @@map("images")
 }
 

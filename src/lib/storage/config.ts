@@ -29,6 +29,8 @@ export function isStorageEnabled(provider: StorageProvider): boolean {
       return process.env.CLOUDINARY_ENABLE !== 'false';
     case StorageProvider.TGSTATE:
       return process.env.TGSTATE_ENABLE !== 'false';
+    case StorageProvider.TELEGRAM:
+      return process.env.TELEGRAM_ENABLE !== 'false';
     default:
       return false;
   }
@@ -50,6 +52,7 @@ export function getEnabledProvidersAsStrings(): string[] {
   return [
     ...(isStorageEnabled(StorageProvider.CLOUDINARY) ? ['cloudinary'] : []),
     ...(isStorageEnabled(StorageProvider.TGSTATE) ? ['tgstate'] : []),
+    ...(isStorageEnabled(StorageProvider.TELEGRAM) ? ['telegram'] : []),
   ];
 }
 
@@ -66,7 +69,11 @@ export function getEnabledProvidersAsStrings(): string[] {
  * ```
  */
 export function getEnabledProviders(): StorageProvider[] {
-  return [StorageProvider.CLOUDINARY, StorageProvider.TGSTATE].filter(isStorageEnabled);
+  return [
+    StorageProvider.CLOUDINARY,
+    StorageProvider.TGSTATE,
+    StorageProvider.TELEGRAM
+  ].filter(isStorageEnabled);
 }
 
 /**

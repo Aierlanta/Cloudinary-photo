@@ -61,13 +61,26 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# TgState 图床配置（可选）
+# TgState 图床配置（可选，第三方服务）
 TGSTATE_BASE_URL=https://your-tgstate-domain.com
 # TgState 图片代理URL（可选，用于加速访问或CDN加速）
 # 如果配置了此项，API返回的图片URL将使用代理地址
 # TGSTATE_PROXY_URL=https://tg-img.your-domain.com
 # 或使用 Cloudflare Worker 等反代服务：
 # TGSTATE_PROXY_URL=https://tg-proxy.workers.dev
+
+# Telegram 直连配置（推荐，无需第三方服务）
+# 支持多个 Bot Token (逗号分隔),实现轮询和负载均衡,防止单个 token 被限速
+TELEGRAM_BOT_TOKENS=token1,token2,token3
+# 或单个 Token
+# TELEGRAM_BOT_TOKEN=your_bot_token
+# 可选: 指定上传到的 chat_id (默认使用 bot 自己的 Saved Messages)
+# TELEGRAM_CHAT_ID=your_chat_id
+
+# 图床开关（可选，未设置则默认启用）
+CLOUDINARY_ENABLE=true
+TGSTATE_ENABLE=false
+TELEGRAM_ENABLE=true
 
 # 管理员认证
 ADMIN_PASSWORD=your_secure_admin_password
@@ -76,19 +89,30 @@ ADMIN_PASSWORD=your_secure_admin_password
 # SESSION_SECRET=your_random_secret_key_for_session_signing
 ```
 
-#### 按需启用/禁用图床服务（新增）
+#### 按需启用/禁用图床服务
 
 通过环境变量控制启用哪些图床，未设置时默认启用：
 
 ```env
 # 图床开关（未设置即为启用）
 CLOUDINARY_ENABLE=true
-TGSTATE_ENABLE=true
+TGSTATE_ENABLE=false
+TELEGRAM_ENABLE=true
 ```
 
-- 设为 `false` 即禁用对应图床（例如仅启用 TgState：`CLOUDINARY_ENABLE=false`）。
-- 当两者均为 `false` 时，上传接口将返回 `503 未启用任何图床服务`。
+- 设为 `false` 即禁用对应图床（例如仅启用 Telegram：`CLOUDINARY_ENABLE=false TGSTATE_ENABLE=false`）。
+- 当所有图床均为 `false` 时，上传接口将返回 `503 未启用任何图床服务`。
 - 多图床管理器仅会注册已启用的服务；前端/接口的“可选图床列表”和默认图床也将随之变化。
+
+#### Telegram 直连 vs TgState
+
+**推荐使用 Telegram 直连模式**，优势如下：
+
+- ✅ **无需第三方服务**：直接使用 Telegram Bot API，无需部署 TgState
+- ✅ **多 Token 负载均衡**：支持多个 Bot Token 轮询，防止单个 token 被限速
+- ✅ **自动缩略图**：Telegram 自动生成 320x320 缩略图（~40KB），管理面板加载更快
+- ✅ **健康检查**：自动检测 token 健康状态，失败自动切换
+- ⚠️ **仅新图片**：只有新上传的图片才有缩略图优化，旧图片继续使用原有优化方案
 
 ### 安装和部署
 

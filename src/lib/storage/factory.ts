@@ -13,6 +13,7 @@ import {
 } from './base';
 import { CloudinaryService, CloudinaryConfig } from './cloudinary';
 import { TgStateService, TgStateConfig } from './tgstate';
+import { TelegramService, TelegramConfig } from './telegram';
 import { getEnabledProviders } from './config';
 
 export class DefaultStorageServiceFactory implements StorageServiceFactory {
@@ -23,10 +24,13 @@ export class DefaultStorageServiceFactory implements StorageServiceFactory {
     switch (provider) {
       case StorageProvider.CLOUDINARY:
         return this.createCloudinaryService(config as CloudinaryConfig);
-      
+
       case StorageProvider.TGSTATE:
         return this.createTgStateService(config as TgStateConfig);
-      
+
+      case StorageProvider.TELEGRAM:
+        return this.createTelegramService(config as TelegramConfig);
+
       default:
         throw new StorageError(
           `不支持的图床服务提供商: ${provider}`,
@@ -57,6 +61,14 @@ export class DefaultStorageServiceFactory implements StorageServiceFactory {
   private createTgStateService(config: TgStateConfig): TgStateService {
     this.validateTgStateConfig(config);
     return new TgStateService(config);
+  }
+
+  /**
+   * 创建 Telegram 服务
+   */
+  private createTelegramService(config: TelegramConfig): TelegramService {
+    this.validateTelegramConfig(config);
+    return new TelegramService(config);
   }
 
   /**
@@ -98,6 +110,31 @@ export class DefaultStorageServiceFactory implements StorageServiceFactory {
         StorageProvider.TGSTATE,
         'INVALID_URL',
         { baseUrl: config.baseUrl }
+      );
+    }
+  }
+
+  /**
+   * 验证 Telegram 配置
+   */
+  private validateTelegramConfig(config: TelegramConfig): void {
+    if (!config.botTokens || config.botTokens.length === 0) {
+      throw new StorageError(
+        'Telegram 配置缺失必需字段: botTokens (至少需要一个 Bot Token)',
+        StorageProvider.TELEGRAM,
+        'CONFIG_VALIDATION_FAILED',
+        { provided: Object.keys(config) }
+      );
+    }
+
+    // 验证 token 格式 (基本检查)
+    const invalidTokens = config.botTokens.filter(token => !token || token.length < 20);
+    if (invalidTokens.length > 0) {
+      throw new StorageError(
+        'Telegram Bot Token 格式无效',
+        StorageProvider.TELEGRAM,
+        'CONFIG_VALIDATION_FAILED',
+        { invalidCount: invalidTokens.length }
       );
     }
   }
@@ -159,6 +196,42 @@ export class EnvironmentConfigFactory {
       password: password || undefined,
       timeout: timeout ? parseInt(timeout, 10) : undefined,
       proxyUrl: proxyUrl || undefined // 添加代理URL配置（可选）
+    };
+  }
+
+  /**
+   * 从环境变量创建 Telegram 配置
+   */
+  static createTelegramConfig(): TelegramConfig {
+    const botTokensString = process.env.TELEGRAM_BOT_TOKENS || process.env.TELEGRAM_BOT_TOKEN;
+    const timeout = process.env.TELEGRAM_TIMEOUT;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (!botTokensString) {
+      throw new StorageError(
+        'Telegram 环境变量配置缺失，请检查 TELEGRAM_BOT_TOKENS 或 TELEGRAM_BOT_TOKEN',
+        StorageProvider.TELEGRAM,
+        'ENV_CONFIG_MISSING',
+        { hasTokens: false }
+      );
+    }
+
+    // 支持逗号分隔的多个 token
+    const botTokens = botTokensString.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+    if (botTokens.length === 0) {
+      throw new StorageError(
+        'Telegram Bot Token 配置无效',
+        StorageProvider.TELEGRAM,
+        'ENV_CONFIG_INVALID',
+        { tokenString: botTokensString }
+      );
+    }
+
+    return {
+      botTokens,
+      timeout: timeout ? parseInt(timeout, 10) : undefined,
+      chatId: chatId || undefined
     };
   }
 
@@ -231,10 +304,13 @@ export class StorageServiceManager {
     switch (provider) {
       case StorageProvider.CLOUDINARY:
         return EnvironmentConfigFactory.createCloudinaryConfig();
-      
+
       case StorageProvider.TGSTATE:
         return EnvironmentConfigFactory.createTgStateConfig();
-      
+
+      case StorageProvider.TELEGRAM:
+        return EnvironmentConfigFactory.createTelegramConfig();
+
       default:
         throw new StorageError(
           `不支持的图床服务提供商: ${provider}`,

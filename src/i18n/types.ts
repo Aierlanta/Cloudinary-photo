@@ -180,6 +180,7 @@ export interface Translations {
     storageDescription: string;
     cloudinaryDesc: string;
     tgStateDesc: string;
+    telegramDesc: string;
     selectGroup: string;
     groupOptional: string;
     selectGroupPlaceholder: string;

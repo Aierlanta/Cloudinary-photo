@@ -4,6 +4,16 @@
  */
 
 /**
+ * 图片接口 (扩展以支持 Telegram 字段)
+ */
+export interface ImageWithTelegram {
+  url: string;
+  telegramThumbnailFileId?: string | null;
+  telegramThumbnailPath?: string | null;
+  telegramBotToken?: string | null;
+}
+
+/**
  * 检查是否是 tgState 图片
  */
 export function isTgStateImage(url: string): boolean {
@@ -97,7 +107,54 @@ export function applyProxyToImageUrls<T extends { url: string }>(images: T[]): T
   return images.map(image => applyProxyToImageUrl(image));
 }
 
+/**
+ * 检查是否是 Telegram 图片
+ */
+export function isTelegramImage(url: string): boolean {
+  return url.includes('api.telegram.org/file/bot');
+}
+
+/**
+ * 生成 Telegram thumbnail URL (使用 file_id)
+ * @param fileId Telegram file_id
+ * @returns 代理 API URL
+ */
+export function getTelegramThumbnailUrl(fileId: string): string {
+  // 使用我们的代理 API 来获取 Telegram 图片
+  return `/api/telegram/image?file_id=${encodeURIComponent(fileId)}`;
+}
+
+/**
+ * 为图片生成缩略图 URL (智能选择策略)
+ * @param image 图片对象 (可能包含 Telegram 信息)
+ * @param size 缩略图尺寸
+ * @returns 缩略图 URL
+ */
+export function generateThumbnailUrlForImage(
+  image: ImageWithTelegram,
+  size: number = 300
+): string {
+  // 优先使用 Telegram thumbnail (如果有 file_id)
+  if (image.telegramThumbnailFileId) {
+    return getTelegramThumbnailUrl(image.telegramThumbnailFileId);
+  }
+
+  // 否则使用原有逻辑
+  return generateThumbnailUrl(image.url, size);
+}
+
 export function generateThumbnailUrl(originalUrl: string, size: number = 300): string {
+  // 检查是否是 Telegram URL
+  if (isTelegramImage(originalUrl)) {
+    // 对于 Telegram 图片，使用 Next.js 图片优化 API
+    const params = new URLSearchParams({
+      url: originalUrl,
+      w: size.toString(),
+      q: '75'
+    });
+    return `/_next/image?${params.toString()}`;
+  }
+
   // 检查是否是 tgState URL
   if (isTgStateImage(originalUrl)) {
     // 对于 tgState 图片，使用 Next.js 图片优化 API

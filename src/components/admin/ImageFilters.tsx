@@ -166,7 +166,8 @@ export default function ImageFilters({
           >
             <option value="">{t.adminImages.allStorages}</option>
             <option value="cloudinary">Cloudinary</option>
-            <option value="tgstate">tgState</option>
+            <option value="tgstate">tgState (第三方)</option>
+            <option value="telegram">Telegram 直连</option>
           </select>
         </div>
 
@@ -214,7 +215,9 @@ export default function ImageFilters({
             }}
             className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
           >
-            <option value="uploadedAt-desc">{t.adminImages.latestUpload}</option>
+            <option value="uploadedAt-desc">
+              {t.adminImages.latestUpload}
+            </option>
             <option value="uploadedAt-asc">{t.adminImages.oldestUpload}</option>
             <option value="filename-asc">文件名 A-Z</option>
             <option value="filename-desc">文件名 Z-A</option>

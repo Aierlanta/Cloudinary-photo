@@ -67,6 +67,11 @@ export class StorageDatabaseService {
         .map(sr => sr.result.url)
     };
 
+    // 提取 Telegram 相关信息 (如果有)
+    const telegramMetadata = data.storageResults.find(
+      sr => sr.provider === StorageProvider.TELEGRAM
+    )?.result.metadata;
+
     // 增加事务超时时间，因为 tgState 上传可能需要较长时间
     const result = await prisma.$transaction(async (tx) => {
       // 创建图片记录
@@ -81,7 +86,14 @@ export class StorageDatabaseService {
           tags: data.tags ? JSON.stringify(data.tags) : null,
           primaryProvider: data.primaryProvider,
           backupProvider: data.backupProvider,
-          storageMetadata: JSON.stringify(storageMetadata)
+          storageMetadata: JSON.stringify(storageMetadata),
+          // Telegram 相关字段
+          telegramFileId: telegramMetadata?.telegramFileId,
+          telegramThumbnailFileId: telegramMetadata?.telegramThumbnailFileId,
+          telegramFilePath: telegramMetadata?.telegramFilePath,
+          telegramThumbnailPath: telegramMetadata?.telegramThumbnailPath,
+          // 不存储 token,前端会使用环境变量中的 token
+          telegramBotToken: null
         }
       });
 
