@@ -14,27 +14,7 @@ import {
   StorageError
 } from './base';
 import { Readable } from 'stream';
-
-// Telegram 代理配置（上传/鉴权同样适用，可选）
-const TELEGRAM_PROXY_ENABLED = process.env.TELEGRAM_PROXY_ENABLED === 'true';
-const TELEGRAM_PROXY_URL = process.env.TELEGRAM_PROXY_URL || '';
-
-function buildFetchInitFor(url: string, extra: RequestInit = {}): RequestInit {
-  if (TELEGRAM_PROXY_ENABLED && TELEGRAM_PROXY_URL && /^https?:\/\/api\.telegram\.org\//i.test(url)) {
-    try {
-      // 动态引入，避免类型依赖
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const undici = require('undici');
-      if (undici?.ProxyAgent) {
-        const dispatcher = new undici.ProxyAgent(TELEGRAM_PROXY_URL);
-        return { dispatcher, ...extra } as RequestInit;
-      }
-    } catch {
-      // 代理不可用时静默回退
-    }
-  }
-  return { ...extra } as RequestInit;
-}
+import { buildFetchInitFor } from '@/lib/telegram-proxy';
 
 export interface TelegramConfig {
   botTokens: string[]; // 支持多个 Bot Token

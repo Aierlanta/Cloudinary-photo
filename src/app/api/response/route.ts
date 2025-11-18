@@ -12,33 +12,12 @@ import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { adjustImageTransparency, parseTransparencyParams } from '@/lib/image-processor';
 import { convertTgStateToProxyUrl } from '@/lib/image-utils';
+import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import type { Image } from '@/types/models';
 
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
-// Telegram 代理配置（仅在服务器端使用）
-const TELEGRAM_PROXY_ENABLED = process.env.TELEGRAM_PROXY_ENABLED === 'true';
-const TELEGRAM_PROXY_URL = process.env.TELEGRAM_PROXY_URL || '';
-
-function buildFetchInitFor(url: string, extra: RequestInit = {}): RequestInit {
-  // 仅对 Telegram 直连启用代理
-  if (TELEGRAM_PROXY_ENABLED && TELEGRAM_PROXY_URL && /^https?:\/\/api\.telegram\.org\//i.test(url)) {
-    try {
-      // 动态引入 undici，避免类型依赖
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const undici = require('undici');
-      if (undici?.ProxyAgent) {
-        const dispatcher = new undici.ProxyAgent(TELEGRAM_PROXY_URL);
-        return { dispatcher, ...extra } as RequestInit;
-      }
-    } catch (e) {
-      // 代理不可用时静默回退为直连
-    }
-  }
-  return { ...extra } as RequestInit;
-}
-
-
 const cloudinaryService = CloudinaryService.getInstance();
 
 // ---------------- 预缓存（内存）实现 ----------------
@@ -136,8 +115,8 @@ async function prefetchNext(key: string, groupIds: string[]): Promise<void> {
         if (secureUrl.startsWith('http')) {
           const u = new URL(secureUrl);
           if (u.pathname.startsWith('/api/telegram/image')) {
-            if ((img as any).telegramFilePath && !u.searchParams.get('file_path')) {
-              u.searchParams.set('file_path', (img as any).telegramFilePath);
+            if (img.telegramFilePath && !u.searchParams.get('file_path')) {
+              u.searchParams.set('file_path', img.telegramFilePath);
             }
             secureUrl = u.toString();
           }
@@ -439,8 +418,8 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     try {
       const urlObj = new URL(imageUrl, request.url); // 基于当前请求构建绝对URL
       if (urlObj.pathname.startsWith('/api/telegram/image')) {
-        if ((randomImage as any).telegramFilePath && !urlObj.searchParams.get('file_path')) {
-          urlObj.searchParams.set('file_path', (randomImage as any).telegramFilePath);
+        if (randomImage.telegramFilePath && !urlObj.searchParams.get('file_path')) {
+          urlObj.searchParams.set('file_path', randomImage.telegramFilePath);
         }
       }
       imageUrl = urlObj.toString();
@@ -616,7 +595,7 @@ async function validateAndParseParams(
 /**
  * 从指定分组中获取随机图片（复用自 /api/random）
  */
-async function getRandomImageFromGroups(groupIds: string[]) {
+async function getRandomImageFromGroups(groupIds: string[]): Promise<Image | null> {
   if (groupIds.length === 0) {
     // 从所有图片中选择
     const images = await databaseService.getRandomImagesIncludingTelegram(1);

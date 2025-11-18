@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { buildFetchInitFor } from '@/lib/telegram-proxy';
 
 interface TelegramFileResponse {
   ok: boolean;
@@ -14,25 +15,6 @@ interface TelegramFileResponse {
     file_path: string;
   };
   description?: string;
-}
-
-// 可选代理：当 TELEGRAM_PROXY_ENABLED=true 且 TELEGRAM_PROXY_URL 存在时，对 api.telegram.org 的请求走代理
-const TELEGRAM_PROXY_ENABLED = process.env.TELEGRAM_PROXY_ENABLED === 'true';
-const TELEGRAM_PROXY_URL = process.env.TELEGRAM_PROXY_URL || '';
-function buildFetchInitFor(url: string, extra: RequestInit = {}): RequestInit {
-  if (TELEGRAM_PROXY_ENABLED && TELEGRAM_PROXY_URL && /^https?:\/\/api\.telegram\.org\//i.test(url)) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const undici = require('undici');
-      if (undici?.ProxyAgent) {
-        const dispatcher = new undici.ProxyAgent(TELEGRAM_PROXY_URL);
-        return { dispatcher, ...extra } as RequestInit;
-      }
-    } catch {
-      // 忽略代理装配失败，回退为直连（也可能被 next.config.js 的全局代理接管）
-    }
-  }
-  return { ...extra } as RequestInit;
 }
 
 /**

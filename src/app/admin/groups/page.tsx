@@ -34,6 +34,17 @@ interface Image {
   groupId?: string
   uploadedAt: string
   tags: string[]
+  // 图床相关字段（与后台 Image 模型保持一致，便于复用工具方法）
+  primaryProvider?: string
+  backupProvider?: string
+  // Telegram 相关字段（用于生成缩略图和代理访问）
+  telegramFileId?: string | null
+  telegramThumbnailFileId?: string | null
+  telegramFilePath?: string | null
+  telegramThumbnailPath?: string | null
+  telegramBotToken?: string | null
+  // 存储扩展元数据（例如 telegramBotId），用于前端解码
+  storageMetadata?: string | null
 }
 
 export default function GroupsPage() {
@@ -636,7 +647,7 @@ export default function GroupsPage() {
                         className="group relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         <img
-                          src={generateThumbnailUrlForImage(image as any, 300)}
+                          src={generateThumbnailUrlForImage(image, 300)}
                           alt={image.filename}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -817,7 +828,7 @@ export default function GroupsPage() {
                         onClick={() => toggleImageSelection(image.id)}
                       >
                         <Image
-                          src={generateThumbnailUrlForImage(image as any, 300)}
+                          src={generateThumbnailUrlForImage(image, 300)}
                           alt={image.publicId}
                           fill
                           className="object-cover"
