@@ -128,7 +128,23 @@ async function prefetchNext(key: string, groupIds: string[]): Promise<void> {
       const mimeType = getMimeTypeFromUrl(img.url);
       // 优先按 URL 判断图床：Cloudinary 才走 Cloudinary 下载，否则直接 URL 抓取
       let buffer: Buffer;
-      const secureUrl = img.url.replace(/^http:/, 'https:');
+      let secureUrl = img.url.replace(/^http:/, 'https:');
+      // 应用代理URL转换（如果配置了 tgState 代理）
+      secureUrl = convertTgStateToProxyUrl(secureUrl);
+      // 如果是 Telegram 代理 URL，尝试附加 file_path 以提高成功率（当URL为绝对地址时）
+      try {
+        if (secureUrl.startsWith('http')) {
+          const u = new URL(secureUrl);
+          if (u.pathname.startsWith('/api/telegram/image')) {
+            if ((img as any).telegramFilePath && !u.searchParams.get('file_path')) {
+              u.searchParams.set('file_path', (img as any).telegramFilePath);
+            }
+            secureUrl = u.toString();
+          }
+        }
+      } catch {
+        // 忽略解析失败
+      }
       if (isCloudinaryUrl(secureUrl)) {
         try {
           buffer = await cloudinaryService.downloadImage(img.publicId);
@@ -419,6 +435,19 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     // 应用代理URL转换（如果配置了 tgState 代理）
     imageUrl = convertTgStateToProxyUrl(imageUrl);
 
+    // 如果是 Telegram 代理 URL，且我们已持有 file_path，则附加上以提高成功率；同时确保为绝对URL
+    try {
+      const urlObj = new URL(imageUrl, request.url); // 基于当前请求构建绝对URL
+      if (urlObj.pathname.startsWith('/api/telegram/image')) {
+        if ((randomImage as any).telegramFilePath && !urlObj.searchParams.get('file_path')) {
+          urlObj.searchParams.set('file_path', (randomImage as any).telegramFilePath);
+        }
+      }
+      imageUrl = urlObj.toString();
+    } catch {
+      // 忽略解析失败，保持原始URL
+    }
+
     {
       // 直接缓冲模式（便于与预取缓存对接）
       let imageBuffer: Buffer;
@@ -590,7 +619,7 @@ async function validateAndParseParams(
 async function getRandomImageFromGroups(groupIds: string[]) {
   if (groupIds.length === 0) {
     // 从所有图片中选择
-    const images = await databaseService.getRandomImages(1);
+    const images = await databaseService.getRandomImagesIncludingTelegram(1);
     return images[0] || null;
   }
 
@@ -599,14 +628,14 @@ async function getRandomImageFromGroups(groupIds: string[]) {
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
 
-  const images = await databaseService.getRandomImages(1, selectedGroupId);
+  const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId);
   const image = images[0] || null;
 
   if (!image && groupIds.length > 1) {
     // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
       if (groupId !== selectedGroupId) {
-        const fallbackImages = await databaseService.getRandomImages(1, groupId);
+        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId);
         const fallbackImage = fallbackImages[0] || null;
         if (fallbackImage) {
           return fallbackImage;

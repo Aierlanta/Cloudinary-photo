@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
 import { useLocale } from '@/hooks/useLocale'
 import Image from 'next/image'
-import { generateThumbnailUrl } from '@/lib/image-utils'
+import { generateThumbnailUrlForImage } from '@/lib/image-utils'
 
 interface Group {
   id: string
@@ -636,7 +636,7 @@ export default function GroupsPage() {
                         className="group relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         <img
-                          src={generateThumbnailUrl(image.url, 300)}
+                          src={generateThumbnailUrlForImage(image as any, 300)}
                           alt={image.filename}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -817,7 +817,7 @@ export default function GroupsPage() {
                         onClick={() => toggleImageSelection(image.id)}
                       >
                         <Image
-                          src={generateThumbnailUrl(image.url, 300)}
+                          src={generateThumbnailUrlForImage(image as any, 300)}
                           alt={image.publicId}
                           fill
                           className="object-cover"

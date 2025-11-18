@@ -1,7 +1,7 @@
 "use client";
 
 import { imageCacheManager } from './imageCache';
-import { generateThumbnailUrl } from '@/lib/image-utils';
+import { generateThumbnailUrl, isTelegramImage } from '@/lib/image-utils';
 
 interface PrewarmConfig {
   /**
@@ -74,10 +74,10 @@ export class CachePrewarmingService {
       // 选择要预热的图片
       const imagesToPrewarm = this.selectImagesForPrewarming(images);
       
-      // 生成缩略图URL
-      const thumbnailUrls = imagesToPrewarm.map(image => 
-        generateThumbnailUrl(image.url, this.config.thumbnailSize)
-      );
+      // 生成缩略图URL，并跳过 Telegram 直链（避免浏览器端 CORS 报错）
+      const thumbnailUrls = imagesToPrewarm
+        .map(image => generateThumbnailUrl(image.url, this.config.thumbnailSize))
+        .filter(url => !isTelegramImage(url));
 
       // 过滤已缓存的图片
       const uncachedUrls = await this.filterUncachedUrls(thumbnailUrls);

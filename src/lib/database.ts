@@ -682,6 +682,83 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * 获取随机图片（包含 Telegram）
+   * 用于 /api/response 端点：不排除 Telegram 直连图床
+   */
+  async getRandomImagesIncludingTelegram(count: number = 1, groupId?: string): Promise<Image[]> {
+    try {
+      const where: any = {};
+      if (groupId) {
+        if (groupId === 'unassigned') {
+          where.groupId = null;
+        } else {
+          where.groupId = groupId;
+        }
+      }
+
+      // 不排除 Telegram
+
+      // 获取总数
+      const total = await prisma.image.count({ where });
+      if (total === 0) return [];
+
+      // 生成随机偏移量
+      const randomOffsets = Array.from({ length: Math.min(count, total) }, () =>
+        Math.floor(Math.random() * total)
+      );
+
+      const images = await Promise.all(
+        randomOffsets.map(offset =>
+          prisma.image.findMany({
+            where,
+            skip: offset,
+            take: 1,
+            select: {
+              id: true,
+              url: true,
+              publicId: true,
+              title: true,
+              description: true,
+              tags: true,
+              groupId: true,
+              uploadedAt: true,
+              primaryProvider: true,
+              backupProvider: true,
+              telegramFileId: true,
+              telegramThumbnailFileId: true,
+              telegramFilePath: true,
+              telegramThumbnailPath: true,
+              telegramBotToken: true
+            }
+          })
+        )
+      );
+
+      return images
+        .flat()
+        .map(image => ({
+          id: image.id,
+          url: image.url,
+          publicId: image.publicId,
+          title: image.title || undefined,
+          description: image.description || undefined,
+          tags: image.tags ? JSON.parse(image.tags) : undefined,
+          groupId: image.groupId || undefined,
+          uploadedAt: image.uploadedAt,
+          primaryProvider: image.primaryProvider || 'cloudinary',
+          backupProvider: image.backupProvider || undefined,
+          telegramFileId: image.telegramFileId || undefined,
+          telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
+          telegramFilePath: image.telegramFilePath || undefined,
+          telegramThumbnailPath: image.telegramThumbnailPath || undefined,
+          telegramBotToken: image.telegramBotToken || undefined
+        }));
+    } catch (error) {
+      throw new DatabaseError('获取随机图片失败', error);
+    }
+  }
+
   // ==================== 分组相关操作 ====================
 
   /**
