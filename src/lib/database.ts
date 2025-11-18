@@ -377,20 +377,13 @@ export class DatabaseService {
             // 这些字段用于列表展示/筛选
             // 保持选择而不 include 关联，避免不必要 JOIN
             // 并减少网络传输
-            // @ts-ignore
             primaryProvider: true,
-            // @ts-ignore
             backupProvider: true,
             // Telegram 相关
-            // @ts-ignore
             telegramFileId: true,
-            // @ts-ignore
             telegramThumbnailFileId: true,
-            // @ts-ignore
             telegramFilePath: true,
-            // @ts-ignore
             telegramThumbnailPath: true,
-            // @ts-ignore
             telegramBotToken: true
           }
         })
@@ -406,14 +399,14 @@ export class DatabaseService {
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
-        primaryProvider: (image as any).primaryProvider || 'cloudinary', // 新增：图床信息
-        backupProvider: (image as any).backupProvider || undefined, // 新增：备用图床信息
+        primaryProvider: image.primaryProvider || 'cloudinary', // 新增：图床信息
+        backupProvider: image.backupProvider || undefined, // 新增：备用图床信息
         // Telegram 相关字段
-        telegramFileId: (image as any).telegramFileId || undefined,
-        telegramThumbnailFileId: (image as any).telegramThumbnailFileId || undefined,
-        telegramFilePath: (image as any).telegramFilePath || undefined,
-        telegramThumbnailPath: (image as any).telegramThumbnailPath || undefined,
-        telegramBotToken: (image as any).telegramBotToken || undefined
+        telegramFileId: image.telegramFileId || undefined,
+        telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
+        telegramFilePath: image.telegramFilePath || undefined,
+        telegramThumbnailPath: image.telegramThumbnailPath || undefined,
+        telegramBotToken: image.telegramBotToken || undefined
       }));
 
       const totalPages = Math.ceil(total / limit);

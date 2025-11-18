@@ -8,11 +8,25 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      // 允许 Telegram 文件直链域名
+      {
+        protocol: 'https',
+        hostname: 'api.telegram.org',
+        port: '',
+        pathname: '/**',
+      },
       // 动态添加 tgState 域名
       ...(process.env.TGSTATE_BASE_URL ? [{
         protocol: 'https',
         hostname: new URL(process.env.TGSTATE_BASE_URL).hostname,
         port: '',
+        pathname: '/**',
+      }] : []),
+      // 如果配置了 tgState 代理域名，也允许
+      ...(process.env.TGSTATE_PROXY_URL ? [{
+        protocol: new URL(process.env.TGSTATE_PROXY_URL).protocol.replace(':', ''),
+        hostname: new URL(process.env.TGSTATE_PROXY_URL).hostname,
+        port: new URL(process.env.TGSTATE_PROXY_URL).port || '',
         pathname: '/**',
       }] : []),
     ],

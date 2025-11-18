@@ -111,7 +111,7 @@ export function applyProxyToImageUrls<T extends { url: string }>(images: T[]): T
  * 检查是否是 Telegram 图片
  */
 export function isTelegramImage(url: string): boolean {
-  return url.includes('api.telegram.org/file/bot');
+  return url.includes('api.telegram.org/file/bot') || url.includes('/api/telegram/image?file_id=');
 }
 
 /**
@@ -144,27 +144,15 @@ export function generateThumbnailUrlForImage(
 }
 
 export function generateThumbnailUrl(originalUrl: string, size: number = 300): string {
-  // 检查是否是 Telegram URL
+  // 对于 Telegram 图片，直接返回原始/代理 URL，交给 next/image 处理，避免二次包裹
   if (isTelegramImage(originalUrl)) {
-    // 对于 Telegram 图片，使用 Next.js 图片优化 API
-    const params = new URLSearchParams({
-      url: originalUrl,
-      w: size.toString(),
-      q: '75'
-    });
-    return `/_next/image?${params.toString()}`;
+    return originalUrl;
   }
 
   // 检查是否是 tgState URL
   if (isTgStateImage(originalUrl)) {
-    // 对于 tgState 图片，使用 Next.js 图片优化 API
-    // 通过 /_next/image 端点进行压缩和优化
-    const params = new URLSearchParams({
-      url: originalUrl,
-      w: size.toString(),
-      q: '75' // 质量设置为 75%
-    });
-    return `/_next/image?${params.toString()}`;
+    // 直接返回原始/代理 URL，交由 next/image 优化，避免嵌套
+    return originalUrl;
   }
 
   // 检查是否是Cloudinary URL

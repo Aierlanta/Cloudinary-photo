@@ -40,7 +40,7 @@ async function getGroups(request: NextRequest): Promise<Response> {
 export const GET = withSecurity({
   rateLimit: 'admin',
   allowedMethods: ['GET'],
-  enableAccessLog: false
+  enableAccessLog: true
 })(withAdminAuth(getGroups));
 
 /**

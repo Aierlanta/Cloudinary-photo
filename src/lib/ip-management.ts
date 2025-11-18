@@ -33,8 +33,8 @@ export async function isIPBanned(ip: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('Failed to check if IP is banned:', error);
-    // 安全策略: 数据库异常时采取"默认拒绝"策略
-    throw new Error(`IP ban check failed for IP: ${ip}`);
+    // 可用性优先：数据库不可用时，视为未封禁，避免阻断主流程
+    return false;
   }
 }
 
@@ -101,7 +101,8 @@ export async function getBannedIPs() {
     return validBannedIPs;
   } catch (error) {
     console.error('Failed to get banned IPs:', error);
-    throw error;
+    // 可用性优先：返回空列表，避免管理界面崩溃
+    return [];
   }
 }
 
@@ -207,8 +208,8 @@ export async function checkIPTotalLimit(ip: string): Promise<{
     };
   } catch (error) {
     console.error('Failed to check IP total limit:', error);
-    // 安全策略: 检查失败时拒绝访问
-    throw new Error(`IP total limit check failed for IP: ${ip}`);
+    // 可用性优先：数据库不可用时不触发总量限制
+    return { exceeded: false, current: 0 };
   }
 }
 

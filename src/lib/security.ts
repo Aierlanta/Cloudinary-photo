@@ -207,7 +207,7 @@ export function setSecurityHeaders(response: Response): Response {
 
   response.headers.set(
     'Content-Security-Policy',
-    `default-src 'self'; img-src 'self' https://res.cloudinary.com${tgStateDomain ? ` ${tgStateDomain}` : ''} data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:;`
+    `default-src 'self'; img-src 'self' https://res.cloudinary.com https://api.telegram.org${tgStateDomain ? ` ${tgStateDomain}` : ''} data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:;`
   );
   
   // 严格传输安全

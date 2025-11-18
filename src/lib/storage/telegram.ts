@@ -197,11 +197,45 @@ export class TelegramService extends ImageStorageService {
         signal: AbortSignal.timeout(this.timeout)
       });
 
+      // HTTP 非 2xx 时，分类处理
+      if (!response.ok) {
+        const status = response.status;
+        const bodyText = await response.text().catch(() => '');
+        if (status === 401 || status === 403) {
+          throw new StorageError(
+            `Telegram 上传未授权/被禁止 (HTTP ${status})`,
+            StorageProvider.TELEGRAM,
+            status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
+            { status, body: bodyText }
+          );
+        }
+        throw new StorageError(
+          `Telegram 上传失败 (HTTP ${status})`,
+          StorageProvider.TELEGRAM,
+          'UPLOAD_FAILED_HTTP',
+          { status, body: bodyText }
+        );
+      }
+
       const result: TelegramUploadResponse = await response.json();
 
       if (!result.ok || !result.result) {
+        const desc = result.description || '未知错误';
+        const lower = desc.toLowerCase();
+        const isAuth =
+          lower.includes('unauthorized') ||
+          lower.includes('forbidden') ||
+          lower.includes('invalid token');
+        if (isAuth) {
+          throw new StorageError(
+            `Telegram 上传鉴权失败: ${desc}`,
+            StorageProvider.TELEGRAM,
+            'UNAUTHORIZED',
+            { description: desc }
+          );
+        }
         throw new StorageError(
-          `Telegram 上传失败: ${result.description || '未知错误'}`,
+          `Telegram 上传失败: ${desc}`,
           StorageProvider.TELEGRAM,
           'UPLOAD_FAILED',
           result
@@ -217,6 +251,8 @@ export class TelegramService extends ImageStorageService {
       this.stats.totalResponseTime += responseTime;
 
       const document = result.result.document;
+      // 获取当前 Bot 信息（用于下游访问时选择正确的 token）
+      const currentBotInfo = await this.getBotInfo(token);
 
       // 获取文件路径
       const filePath = await this.getFilePath(token, document.file_id);
@@ -228,7 +264,10 @@ export class TelegramService extends ImageStorageService {
       const storageResult: StorageResult = {
         id: document.file_id,
         publicId: document.file_id,
-        url: this.buildFileUrl(token, filePath),
+        // 使用内部代理 URL，并携带 bot_id，确保代理端选择正确的 Token
+        url: `/api/telegram/image?file_id=${encodeURIComponent(document.file_id)}&bot_id=${encodeURIComponent(
+          currentBotInfo.id.toString()
+        )}`,
         filename: file.name,
         format: this.extractFormat(file.name),
         bytes: file.size,
@@ -241,6 +280,7 @@ export class TelegramService extends ImageStorageService {
           telegramFilePath: filePath,
           telegramThumbnailFileId: document.thumbnail?.file_id,
           telegramThumbnailPath: thumbnailPath,
+          telegramBotId: currentBotInfo.id,
           originalResponse: result
         }
       };
@@ -250,8 +290,23 @@ export class TelegramService extends ImageStorageService {
 
     } catch (error) {
       this.stats.lastFailure = new Date();
-      this.tokenManager.markUnhealthy(token);
-      
+      // 仅在鉴权类错误时标记为不健康，提升可用性
+      let shouldMarkUnhealthy = false;
+      if (error instanceof StorageError) {
+        const status = error.details?.status;
+        if (
+          error.code === 'UNAUTHORIZED' ||
+          error.code === 'FORBIDDEN' ||
+          status === 401 ||
+          status === 403
+        ) {
+          shouldMarkUnhealthy = true;
+        }
+      }
+      if (shouldMarkUnhealthy) {
+        this.tokenManager.markUnhealthy(token);
+      }
+
       if (error instanceof StorageError) {
         throw error;
       }
@@ -272,12 +327,43 @@ export class TelegramService extends ImageStorageService {
     const response = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
       signal: AbortSignal.timeout(5000)
     });
-    const result = await response.json();
-    
-    if (!result.ok) {
-      throw new Error(`获取 Bot 信息失败: ${result.description}`);
+    if (!response.ok) {
+      const status = response.status;
+      const body = await response.text().catch(() => '');
+      if (status === 401 || status === 403) {
+        throw new StorageError(
+          `获取 Bot 信息未授权/被禁止 (HTTP ${status})`,
+          StorageProvider.TELEGRAM,
+          status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
+          { status, body }
+        );
+      }
+      throw new StorageError(
+        `获取 Bot 信息失败 (HTTP ${status})`,
+        StorageProvider.TELEGRAM,
+        'TELEGRAM_HTTP_ERROR',
+        { status, body }
+      );
     }
-    
+    const result = await response.json();
+    if (!result.ok) {
+      const desc: string = result.description || '';
+      const lower = desc.toLowerCase?.() || '';
+      if (lower.includes('unauthorized') || lower.includes('forbidden')) {
+        throw new StorageError(
+          `获取 Bot 信息鉴权失败: ${desc}`,
+          StorageProvider.TELEGRAM,
+          'UNAUTHORIZED',
+          { description: desc }
+        );
+      }
+      throw new StorageError(
+        `获取 Bot 信息失败: ${desc}`,
+        StorageProvider.TELEGRAM,
+        'TELEGRAM_API_ERROR',
+        { description: desc }
+      );
+    }
     return result.result;
   }
 
@@ -289,13 +375,43 @@ export class TelegramService extends ImageStorageService {
       `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
       { signal: AbortSignal.timeout(5000) }
     );
-    
-    const result: TelegramFileResponse = await response.json();
-    
-    if (!result.ok || !result.result) {
-      throw new Error(`获取文件路径失败: ${result.description}`);
+    if (!response.ok) {
+      const status = response.status;
+      const body = await response.text().catch(() => '');
+      if (status === 401 || status === 403) {
+        throw new StorageError(
+          `获取文件路径未授权/被禁止 (HTTP ${status})`,
+          StorageProvider.TELEGRAM,
+          status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
+          { status, body }
+        );
+      }
+      throw new StorageError(
+        `获取文件路径失败 (HTTP ${status})`,
+        StorageProvider.TELEGRAM,
+        'TELEGRAM_HTTP_ERROR',
+        { status, body }
+      );
     }
-    
+    const result: TelegramFileResponse = await response.json();
+    if (!result.ok || !result.result) {
+      const desc: string = result.description || '';
+      const lower = desc.toLowerCase?.() || '';
+      if (lower.includes('unauthorized') || lower.includes('forbidden')) {
+        throw new StorageError(
+          `获取文件路径鉴权失败: ${desc}`,
+          StorageProvider.TELEGRAM,
+          'UNAUTHORIZED',
+          { description: desc }
+        );
+      }
+      throw new StorageError(
+        `获取文件路径失败: ${desc}`,
+        StorageProvider.TELEGRAM,
+        'TELEGRAM_API_ERROR',
+        { description: desc }
+      );
+    }
     return result.result.file_path;
   }
 
