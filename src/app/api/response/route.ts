@@ -13,8 +13,31 @@ import { AppError, ErrorType } from '@/types/errors';
 import { adjustImageTransparency, parseTransparencyParams } from '@/lib/image-processor';
 import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 
+
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
+// Telegram 代理配置（仅在服务器端使用）
+const TELEGRAM_PROXY_ENABLED = process.env.TELEGRAM_PROXY_ENABLED === 'true';
+const TELEGRAM_PROXY_URL = process.env.TELEGRAM_PROXY_URL || '';
+
+function buildFetchInitFor(url: string, extra: RequestInit = {}): RequestInit {
+  // 仅对 Telegram 直连启用代理
+  if (TELEGRAM_PROXY_ENABLED && TELEGRAM_PROXY_URL && /^https?:\/\/api\.telegram\.org\//i.test(url)) {
+    try {
+      // 动态引入 undici，避免类型依赖
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const undici = require('undici');
+      if (undici?.ProxyAgent) {
+        const dispatcher = new undici.ProxyAgent(TELEGRAM_PROXY_URL);
+        return { dispatcher, ...extra } as RequestInit;
+      }
+    } catch (e) {
+      // 代理不可用时静默回退为直连
+    }
+  }
+  return { ...extra } as RequestInit;
+}
+
 
 const cloudinaryService = CloudinaryService.getInstance();
 
@@ -41,27 +64,27 @@ interface PrefetchedItem {
 function isCloudinaryUrl(urlStr: string): boolean {
   try {
     const { hostname } = new URL(urlStr);
-    
+
     // 标准 Cloudinary 域名
     if (hostname === 'res.cloudinary.com') {
       return true;
     }
-    
+
     // Cloudinary 分片域名（res-1 到 res-5）
     if (/^res-[1-5]\.cloudinary\.com$/i.test(hostname)) {
       return true;
     }
-    
+
     // 自定义域名白名单（可选）
     const customHosts = (process.env.CLOUDINARY_ALLOWED_HOSTS || '')
       .split(',')
       .map(h => h.trim().toLowerCase())
       .filter(Boolean);
-    
+
     if (customHosts.length > 0 && customHosts.includes(hostname.toLowerCase())) {
       return true;
     }
-    
+
     return false;
   } catch {
     return false;
@@ -111,13 +134,13 @@ async function prefetchNext(key: string, groupIds: string[]): Promise<void> {
           buffer = await cloudinaryService.downloadImage(img.publicId);
         } catch (err) {
           logger.warn('Cloudinary下载失败，使用URL回退获取', { type: 'api_prefetch_fallback', error: err instanceof Error ? err.message : 'unknown' });
-          const resp = await fetch(secureUrl, { cache: 'no-store' } as RequestInit);
+          const resp = await fetch(secureUrl, buildFetchInitFor(secureUrl, { cache: 'no-store' } as RequestInit));
           if (!resp.ok) throw err;
           const ab = await resp.arrayBuffer();
           buffer = Buffer.from(ab);
         }
       } else {
-        const resp = await fetch(secureUrl, { cache: 'no-store' } as RequestInit);
+        const resp = await fetch(secureUrl, buildFetchInitFor(secureUrl, { cache: 'no-store' } as RequestInit));
         if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
         const ab = await resp.arrayBuffer();
         buffer = Buffer.from(ab);
@@ -247,7 +270,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     // 验证 API Key（如果启用）
     if (apiConfig.apiKeyEnabled) {
       const providedKey = queryParams.key;
-      
+
       if (!providedKey) {
         logger.warn('API访问被拒绝 - 缺少API Key', {
           type: 'api_auth',
@@ -392,7 +415,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
 
     // 获取图片URL用于流式传输
     let imageUrl = randomImage.url.replace(/^http:/, 'https:');
-    
+
     // 应用代理URL转换（如果配置了 tgState 代理）
     imageUrl = convertTgStateToProxyUrl(imageUrl);
 
@@ -404,13 +427,13 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
           imageBuffer = await cloudinaryService.downloadImage(randomImage.publicId);
         } catch (err) {
           logger.warn('Cloudinary下载失败，使用URL回退获取', { type: 'api_response_fallback', error: err instanceof Error ? err.message : 'unknown' });
-          const resp = await fetch(imageUrl, { cache: 'no-store' } as RequestInit);
+          const resp = await fetch(imageUrl, buildFetchInitFor(imageUrl, { cache: 'no-store' } as RequestInit));
           if (!resp.ok) throw err;
           const ab = await resp.arrayBuffer();
           imageBuffer = Buffer.from(ab);
         }
       } else {
-        const resp = await fetch(imageUrl, { cache: 'no-store' } as RequestInit);
+        const resp = await fetch(imageUrl, buildFetchInitFor(imageUrl, { cache: 'no-store' } as RequestInit));
         if (!resp.ok) {
           throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
         }
@@ -516,7 +539,7 @@ async function validateAndParseParams(
 ): Promise<{ allowedGroupIds: string[]; hasInvalidParams: boolean }> {
   const allowedGroupIds: string[] = [];
   let hasInvalidParams = false;
-  
+
   // 保留查询参数（不参与业务参数校验）
   const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key']);
   const filteredEntries = Object.entries(queryParams).filter(([key]) => !RESERVED_PARAMS.has(key));

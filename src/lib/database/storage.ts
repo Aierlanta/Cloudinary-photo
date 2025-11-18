@@ -90,8 +90,9 @@ export class StorageDatabaseService {
           telegramThumbnailFileId: telegramMetadata?.telegramThumbnailFileId,
           telegramFilePath: telegramMetadata?.telegramFilePath,
           telegramThumbnailPath: telegramMetadata?.telegramThumbnailPath,
-          // 不存储 token,前端会使用环境变量中的 token
-          telegramBotToken: null
+          // 存储 bot token (明文) 用于后续访问
+          // 注意: 这个 token 只能通过 /api/response 访问,不会通过 /api/random 暴露
+          telegramBotToken: telegramMetadata?.telegramBotToken
         }
       });
 

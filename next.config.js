@@ -1,4 +1,26 @@
 /** @type {import('next').NextConfig} */
+// 在 Node 侧为 undici/fetch 配置全局代理，使 Next 内部的图片优化（/_next/image）等也走代理
+try {
+  // 仅在服务端环境生效
+  if (typeof process !== 'undefined') {
+    // 支持两种方式：
+    // 1) 显式的 Telegram 代理变量
+    // 2) 标准的 HTTP(S)_PROXY 变量
+    const enableTelegramProxy = process.env.TELEGRAM_PROXY_ENABLED === 'true' && !!process.env.TELEGRAM_PROXY_URL;
+    const stdProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+    const proxyToUse = enableTelegramProxy ? process.env.TELEGRAM_PROXY_URL : stdProxy;
+    if (proxyToUse) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { setGlobalDispatcher, ProxyAgent } = require('undici');
+      setGlobalDispatcher(new ProxyAgent(proxyToUse));
+      // 控制台提示一次，便于调试
+      // console.log('[next.config] Global undici proxy enabled ->', proxyToUse);
+    }
+  }
+} catch {
+  // 静默回退：如果 undici 不可用或运行环境不支持，不影响其他功能
+}
+
 const nextConfig = {
   images: {
     remotePatterns: [

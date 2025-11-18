@@ -601,6 +601,7 @@ export class DatabaseService {
 
   /**
    * 获取随机图片
+   * 注意: 此方法用于 /api/random 端点,会自动过滤掉 Telegram 直连图床的图片
    */
   async getRandomImages(count: number = 1, groupId?: string): Promise<Image[]> {
     try {
@@ -614,6 +615,12 @@ export class DatabaseService {
           where.groupId = groupId;
         }
       }
+
+      // 过滤掉 Telegram 直连图床的图片
+      // 因为 Telegram 图床的 URL 包含敏感的 bot token,只能通过 /api/response 访问
+      where.primaryProvider = {
+        not: 'telegram'
+      };
 
       // 获取总数
       const total = await prisma.image.count({ where });
@@ -630,21 +637,46 @@ export class DatabaseService {
             where,
             skip: offset,
             take: 1,
-            include: { group: true }
+            select: {
+              id: true,
+              url: true,
+              publicId: true,
+              title: true,
+              description: true,
+              tags: true,
+              groupId: true,
+              uploadedAt: true,
+              primaryProvider: true,
+              backupProvider: true,
+              telegramFileId: true,
+              telegramThumbnailFileId: true,
+              telegramFilePath: true,
+              telegramThumbnailPath: true,
+              telegramBotToken: true
+            }
           })
         )
       );
 
-      return images.flat().map(image => ({
-        id: image.id,
-        url: image.url,
-        publicId: image.publicId,
-        title: image.title || undefined,
-        description: image.description || undefined,
-        tags: image.tags ? JSON.parse(image.tags) : undefined,
-        groupId: image.groupId || undefined,
-        uploadedAt: image.uploadedAt
-      }));
+      return images
+        .flat()
+        .map(image => ({
+          id: image.id,
+          url: image.url,
+          publicId: image.publicId,
+          title: image.title || undefined,
+          description: image.description || undefined,
+          tags: image.tags ? JSON.parse(image.tags) : undefined,
+          groupId: image.groupId || undefined,
+          uploadedAt: image.uploadedAt,
+          primaryProvider: image.primaryProvider || 'cloudinary',
+          backupProvider: image.backupProvider || undefined,
+          telegramFileId: image.telegramFileId || undefined,
+          telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
+          telegramFilePath: image.telegramFilePath || undefined,
+          telegramThumbnailPath: image.telegramThumbnailPath || undefined,
+          telegramBotToken: image.telegramBotToken || undefined
+        }));
     } catch (error) {
       throw new DatabaseError('获取随机图片失败', error);
     }

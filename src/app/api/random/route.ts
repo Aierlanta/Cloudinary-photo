@@ -187,24 +187,38 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     // 应用代理URL转换（如果配置了 tgState 代理）
     secureImageUrl = convertTgStateToProxyUrl(secureImageUrl);
 
+    // 如果是 Telegram 代理 URL，且我们已持有 file_path，则附加上以提高成功率（跳过 getFile 调用）
+    try {
+      const urlObj = new URL(secureImageUrl, request.url); // 基于当前请求构建绝对URL
+      if (urlObj.pathname.startsWith('/api/telegram/image')) {
+        if (randomImage.telegramFilePath && !urlObj.searchParams.get('file_path')) {
+          urlObj.searchParams.set('file_path', randomImage.telegramFilePath);
+        }
+        secureImageUrl = urlObj.toString();
+      }
+    } catch {
+      // 忽略解析失败，保持原始URL
+    }
+
     // 记录成功响应
     logger.apiResponse('GET', '/api/random', 302, duration, {
       imageId: randomImage.id,
       redirectUrl: secureImageUrl
     });
 
-    // 重定向到图片URL
-    return NextResponse.redirect(secureImageUrl, {
-      status: 302,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate', // 禁用缓存保证随机性
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Image-Id': randomImage.id,
-        'X-Image-PublicId': randomImage.publicId,
-        'X-Response-Time': `${duration}ms`
-      }
-    });
+    // 重定向到图片URL（正确方式：第二个参数为状态码，额外头部手动设置）
+    // 如果是站内相对路径，转换为绝对URL
+    const finalRedirectUrl = secureImageUrl.startsWith('http')
+      ? secureImageUrl
+      : new URL(secureImageUrl, request.url).toString();
+    const redirectResponse = NextResponse.redirect(finalRedirectUrl, 302);
+    redirectResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    redirectResponse.headers.set('Pragma', 'no-cache');
+    redirectResponse.headers.set('Expires', '0');
+    redirectResponse.headers.set('X-Image-Id', randomImage.id);
+    redirectResponse.headers.set('X-Image-PublicId', randomImage.publicId);
+    redirectResponse.headers.set('X-Response-Time', `${duration}ms`);
+    return redirectResponse;
 
   } catch (error) {
     // 错误会被withErrorHandler中间件处理

@@ -307,8 +307,8 @@ async function bulkDeleteImages(request: NextRequest): Promise<Response> {
       }
 
       try {
-        // 从Cloudinary删除图片（仅在启用且配置完成时尝试）
-        if (isStorageEnabled(StorageProvider.CLOUDINARY)) {
+        // 仅当该图片的主要图床为 Cloudinary 且 Cloudinary 已启用时，才尝试删除远端资源
+        if (image.primaryProvider === 'cloudinary' && isStorageEnabled(StorageProvider.CLOUDINARY)) {
           const cloudinaryService = CloudinaryService.getInstance();
           await cloudinaryService.deleteImage(image.publicId);
         }

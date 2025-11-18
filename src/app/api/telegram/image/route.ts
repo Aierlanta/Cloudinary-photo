@@ -16,6 +16,25 @@ interface TelegramFileResponse {
   description?: string;
 }
 
+// 可选代理：当 TELEGRAM_PROXY_ENABLED=true 且 TELEGRAM_PROXY_URL 存在时，对 api.telegram.org 的请求走代理
+const TELEGRAM_PROXY_ENABLED = process.env.TELEGRAM_PROXY_ENABLED === 'true';
+const TELEGRAM_PROXY_URL = process.env.TELEGRAM_PROXY_URL || '';
+function buildFetchInitFor(url: string, extra: RequestInit = {}): RequestInit {
+  if (TELEGRAM_PROXY_ENABLED && TELEGRAM_PROXY_URL && /^https?:\/\/api\.telegram\.org\//i.test(url)) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const undici = require('undici');
+      if (undici?.ProxyAgent) {
+        const dispatcher = new undici.ProxyAgent(TELEGRAM_PROXY_URL);
+        return { dispatcher, ...extra } as RequestInit;
+      }
+    } catch {
+      // 忽略代理装配失败，回退为直连（也可能被 next.config.js 的全局代理接管）
+    }
+  }
+  return { ...extra } as RequestInit;
+}
+
 /**
  * 读取 Token 列表
  */
@@ -38,9 +57,8 @@ const fileIdToToken = new Map<string, string>();
 
 async function fetchBotIdForToken(token: string): Promise<string | null> {
   try {
-    const resp = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
-      signal: AbortSignal.timeout(5000)
-    });
+    const url = `https://api.telegram.org/bot${token}/getMe`;
+    const resp = await fetch(url, buildFetchInitFor(url, { signal: AbortSignal.timeout(5000) } as RequestInit));
     if (!resp.ok) return null;
     const data = await resp.json();
     if (!data?.ok || !data?.result?.id) return null;
@@ -89,6 +107,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const fileId = searchParams.get('file_id');
     const botId = searchParams.get('bot_id'); // 可选：用于精确选择 token
+    const filePathParam = searchParams.get('file_path'); // 可选：直接传入 file_path 以跳过 getFile
     
     if (!fileId) {
       return NextResponse.json(
@@ -105,22 +124,56 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 快速路径：如果提供了 file_path，则可直接尝试下载，减少对 getFile 的依赖
+    if (filePathParam) {
+      // 优先根据 bot_id 解析 token，否则走轮询
+      const candidateTokens: string[] = [];
+      if (botId) {
+        const token = await resolveTokenByBotId(botId);
+        if (token) candidateTokens.push(token);
+      }
+      // 追加所有可用 token 作为后备
+      candidateTokens.push(...tokens);
+
+      for (const token of candidateTokens) {
+        try {
+          const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePathParam}`;
+          const downloadResponse = await fetch(
+            downloadUrl,
+            buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit)
+          );
+          if (downloadResponse.ok) {
+            const imageBuffer = await downloadResponse.arrayBuffer();
+            const contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+            // 写入缓存映射，后续同一 file_id 直达该 token
+            fileIdToToken.set(fileId, token);
+            return new NextResponse(imageBuffer, {
+              status: 200,
+              headers: {
+                'Content-Type': contentType,
+                'Cache-Control': 'public, max-age=31536000, immutable',
+              }
+            });
+          }
+        } catch {
+          // 忽略，尝试下一个 token
+        }
+      }
+      // 快速路径失败则继续走下方常规流程
+    }
+
     // 优先：file_id 命中缓存的 token，直接试用
     const cachedToken = fileIdToToken.get(fileId);
     if (!botId && cachedToken) {
       try {
-        const getFileResponse = await fetch(
-          `https://api.telegram.org/bot${cachedToken}/getFile?file_id=${encodeURIComponent(fileId)}`,
-          { signal: AbortSignal.timeout(10000) }
-        );
+        const getFileUrl = `https://api.telegram.org/bot${cachedToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
+        const getFileResponse = await fetch(getFileUrl, buildFetchInitFor(getFileUrl, { signal: AbortSignal.timeout(10000) } as RequestInit));
         if (getFileResponse.ok) {
           const getFileResult: TelegramFileResponse = await getFileResponse.json();
           if (getFileResult.ok && getFileResult.result) {
             const filePath = getFileResult.result.file_path;
             const downloadUrl = `https://api.telegram.org/file/bot${cachedToken}/${filePath}`;
-            const downloadResponse = await fetch(downloadUrl, {
-              signal: AbortSignal.timeout(30000)
-            });
+            const downloadResponse = await fetch(downloadUrl, buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit));
             if (downloadResponse.ok) {
               const imageBuffer = await downloadResponse.arrayBuffer();
               const contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
@@ -148,19 +201,15 @@ export async function GET(request: NextRequest) {
       if (token) {
         try {
           // 1) 获取文件路径
-          const getFileResponse = await fetch(
-            `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`,
-            { signal: AbortSignal.timeout(10000) }
-          );
+          const getFileUrl = `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`;
+          const getFileResponse = await fetch(getFileUrl, buildFetchInitFor(getFileUrl, { signal: AbortSignal.timeout(10000) } as RequestInit));
           if (getFileResponse.ok) {
             const getFileResult: TelegramFileResponse = await getFileResponse.json();
             if (getFileResult.ok && getFileResult.result) {
               const filePath = getFileResult.result.file_path;
               // 2) 下载文件
               const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
-              const downloadResponse = await fetch(downloadUrl, {
-                signal: AbortSignal.timeout(30000)
-              });
+              const downloadResponse = await fetch(downloadUrl, buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit));
               if (downloadResponse.ok) {
                 const imageBuffer = await downloadResponse.arrayBuffer();
                 const contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
@@ -197,10 +246,8 @@ export async function GET(request: NextRequest) {
 
       try {
         // 1. 获取文件路径
-        const getFileResponse = await fetch(
-          `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`,
-          { signal: AbortSignal.timeout(10000) }
-        );
+        const getFileUrl = `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`;
+        const getFileResponse = await fetch(getFileUrl, buildFetchInitFor(getFileUrl, { signal: AbortSignal.timeout(10000) } as RequestInit));
 
         if (!getFileResponse.ok) {
           lastErrorStatus = getFileResponse.status;
@@ -223,9 +270,7 @@ export async function GET(request: NextRequest) {
 
         // 2. 下载文件
         const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
-        const downloadResponse = await fetch(downloadUrl, {
-          signal: AbortSignal.timeout(30000)
-        });
+        const downloadResponse = await fetch(downloadUrl, buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit));
 
         if (!downloadResponse.ok) {
           lastErrorStatus = downloadResponse.status;

@@ -15,6 +15,27 @@ import {
 } from './base';
 import { Readable } from 'stream';
 
+// Telegram 代理配置（上传/鉴权同样适用，可选）
+const TELEGRAM_PROXY_ENABLED = process.env.TELEGRAM_PROXY_ENABLED === 'true';
+const TELEGRAM_PROXY_URL = process.env.TELEGRAM_PROXY_URL || '';
+
+function buildFetchInitFor(url: string, extra: RequestInit = {}): RequestInit {
+  if (TELEGRAM_PROXY_ENABLED && TELEGRAM_PROXY_URL && /^https?:\/\/api\.telegram\.org\//i.test(url)) {
+    try {
+      // 动态引入，避免类型依赖
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const undici = require('undici');
+      if (undici?.ProxyAgent) {
+        const dispatcher = new undici.ProxyAgent(TELEGRAM_PROXY_URL);
+        return { dispatcher, ...extra } as RequestInit;
+      }
+    } catch {
+      // 代理不可用时静默回退
+    }
+  }
+  return { ...extra } as RequestInit;
+}
+
 export interface TelegramConfig {
   botTokens: string[]; // 支持多个 Bot Token
   timeout?: number;
@@ -80,27 +101,27 @@ class TelegramTokenManager {
    */
   getNextToken(): string {
     const startIndex = this.currentIndex;
-    
+
     // 尝试找到一个健康的 token
     do {
       const token = this.tokens[this.currentIndex];
       const status = this.healthStatus.get(token);
-      
+
       // 移动到下一个索引
       this.currentIndex = (this.currentIndex + 1) % this.tokens.length;
-      
+
       // 如果 token 健康,返回它
       if (status?.healthy) {
         return token;
       }
     } while (this.currentIndex !== startIndex);
-    
+
     // 如果所有 token 都不健康,返回第一个并重置健康状态
     console.warn('所有 Bot Token 都不健康,重置健康状态');
     this.tokens.forEach(token => {
       this.healthStatus.set(token, { healthy: true, lastCheck: new Date() });
     });
-    
+
     return this.tokens[0];
   }
 
@@ -191,11 +212,14 @@ export class TelegramService extends ImageStorageService {
       formData.append('chat_id', chatId);
 
       // 发送上传请求
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-        signal: AbortSignal.timeout(this.timeout)
-      });
+      const response = await fetch(
+        uploadUrl,
+        buildFetchInitFor(uploadUrl, {
+          method: 'POST',
+          body: formData,
+          signal: AbortSignal.timeout(this.timeout)
+        } as RequestInit)
+      );
 
       // HTTP 非 2xx 时，分类处理
       if (!response.ok) {
@@ -264,10 +288,9 @@ export class TelegramService extends ImageStorageService {
       const storageResult: StorageResult = {
         id: document.file_id,
         publicId: document.file_id,
-        // 使用内部代理 URL，并携带 bot_id，确保代理端选择正确的 Token
-        url: `/api/telegram/image?file_id=${encodeURIComponent(document.file_id)}&bot_id=${encodeURIComponent(
-          currentBotInfo.id.toString()
-        )}`,
+        // 使用 Telegram 原始 URL (包含 bot token)
+        // 这个 URL 只能通过 /api/response 访问,不会通过 /api/random 暴露
+        url: this.buildFileUrl(token, filePath),
         filename: file.name,
         format: this.extractFormat(file.name),
         bytes: file.size,
@@ -275,7 +298,8 @@ export class TelegramService extends ImageStorageService {
           provider: StorageProvider.TELEGRAM,
           uploadTime: new Date().toISOString(),
           responseTime,
-          // 不存储 token,前端会使用环境变量中的 token
+          // 存储 bot token 用于后续访问
+          telegramBotToken: token,
           telegramFileId: document.file_id,
           telegramFilePath: filePath,
           telegramThumbnailFileId: document.thumbnail?.file_id,
@@ -324,9 +348,12 @@ export class TelegramService extends ImageStorageService {
    * 获取 Bot 信息
    */
   private async getBotInfo(token: string): Promise<{ id: number; username: string }> {
-    const response = await fetch(`https://api.telegram.org/bot${token}/getMe`, {
-      signal: AbortSignal.timeout(5000)
-    });
+    const response = await fetch(
+      `https://api.telegram.org/bot${token}/getMe`,
+      buildFetchInitFor(`https://api.telegram.org/bot${token}/getMe`, {
+        signal: AbortSignal.timeout(5000)
+      } as RequestInit)
+    );
     if (!response.ok) {
       const status = response.status;
       const body = await response.text().catch(() => '');
@@ -373,7 +400,8 @@ export class TelegramService extends ImageStorageService {
   private async getFilePath(token: string, fileId: string): Promise<string> {
     const response = await fetch(
       `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
-      { signal: AbortSignal.timeout(5000) }
+      buildFetchInitFor(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
+        { signal: AbortSignal.timeout(5000) } as RequestInit)
     );
     if (!response.ok) {
       const status = response.status;
@@ -452,7 +480,7 @@ export class TelegramService extends ImageStorageService {
     if (transformations && transformations.length > 0) {
       console.warn('Telegram 不支持图片变换,将返回原始图片URL');
     }
-    
+
     // identifier 应该是完整的 URL
     return identifier;
   }
@@ -462,12 +490,12 @@ export class TelegramService extends ImageStorageService {
    */
   async healthCheck(): Promise<HealthStatus> {
     const startTime = Date.now();
-    
+
     try {
       const token = this.tokenManager.getNextToken();
       const response = await fetch(
         `https://api.telegram.org/bot${token}/getMe`,
-        { signal: AbortSignal.timeout(5000) }
+        buildFetchInitFor(`https://api.telegram.org/bot${token}/getMe`, { signal: AbortSignal.timeout(5000) } as RequestInit)
       );
 
       const result = await response.json();
@@ -503,8 +531,8 @@ export class TelegramService extends ImageStorageService {
   async getStats(): Promise<StorageStats> {
     return {
       totalUploads: this.stats.totalUploads,
-      successRate: this.stats.totalUploads > 0 
-        ? this.stats.successCount / this.stats.totalUploads 
+      successRate: this.stats.totalUploads > 0
+        ? this.stats.successCount / this.stats.totalUploads
         : 0,
       averageResponseTime: this.stats.successCount > 0
         ? this.stats.totalResponseTime / this.stats.successCount
@@ -521,7 +549,7 @@ export class TelegramService extends ImageStorageService {
       const token = this.tokenManager.getNextToken();
       const response = await fetch(
         `https://api.telegram.org/bot${token}/getMe`,
-        { signal: AbortSignal.timeout(5000) }
+        buildFetchInitFor(`https://api.telegram.org/bot${token}/getMe`, { signal: AbortSignal.timeout(5000) } as RequestInit)
       );
       const result = await response.json();
       return result.ok;

@@ -6,11 +6,14 @@
 /**
  * 图片接口 (扩展以支持 Telegram 字段)
  */
+const TELEGRAM_PROXY_CLIENT_ENABLED = process.env.NEXT_PUBLIC_TELEGRAM_PROXY_ENABLED === 'true';
+
 export interface ImageWithTelegram {
   url: string;
   telegramThumbnailFileId?: string | null;
   telegramThumbnailPath?: string | null;
   telegramBotToken?: string | null;
+  storageMetadata?: string | null; // 用于提取 telegramBotId
 }
 
 /**
@@ -33,12 +36,12 @@ export function isTgStateImage(url: string): boolean {
  * 将 tgState 图片 URL 转换为代理 URL（如果配置了代理）
  * @param originalUrl 原始 tgState 图片 URL
  * @returns 代理 URL 或原始 URL
- * 
+ *
  * @example
  * // 未配置代理时
  * convertTgStateToProxyUrl('https://tg.example.com/d/abc123')
  * // 返回: 'https://tg.example.com/d/abc123'
- * 
+ *
  * // 配置代理后 (TGSTATE_PROXY_URL=https://tg-proxy.example.com)
  * convertTgStateToProxyUrl('https://tg.example.com/d/abc123')
  * // 返回: 'https://tg-proxy.example.com/d/abc123'
@@ -115,13 +118,41 @@ export function isTelegramImage(url: string): boolean {
 }
 
 /**
+ * 从 Telegram 直链中提取 file_path
+ */
+function extractTelegramFilePathFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname !== 'api.telegram.org') return null;
+    const m = u.pathname.match(/^\/file\/bot[^/]+\/(.+)$/);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildTelegramImageApiByPath(filePath: string): string {
+  const sp = new URLSearchParams({ file_path: filePath });
+  return `/api/telegram/image?${sp.toString()}`;
+}
+
+function buildTelegramImageApiByFileId(fileId: string, botId?: string | null): string {
+  const sp = new URLSearchParams({ file_id: fileId });
+  if (botId) sp.set('bot_id', botId);
+  return `/api/telegram/image?${sp.toString()}`;
+}
+
+/**
  * 生成 Telegram thumbnail URL (使用 file_id)
  * @param fileId Telegram file_id
+ * @param botId 可选的 bot_id,用于精确选择 token
  * @returns 代理 API URL
  */
-export function getTelegramThumbnailUrl(fileId: string): string {
+export function getTelegramThumbnailUrl(fileId: string, botId?: string): string {
   // 使用我们的代理 API 来获取 Telegram 图片
-  return `/api/telegram/image?file_id=${encodeURIComponent(fileId)}`;
+  const url = `/api/telegram/image?file_id=${encodeURIComponent(fileId)}`;
+  // 如果提供了 bot_id,添加到 URL 中以避免轮询
+  return botId ? `${url}&bot_id=${encodeURIComponent(botId)}` : url;
 }
 
 /**
@@ -134,17 +165,36 @@ export function generateThumbnailUrlForImage(
   image: ImageWithTelegram,
   size: number = 300
 ): string {
-  // 优先使用 Telegram thumbnail (如果有 file_id)
-  if (image.telegramThumbnailFileId) {
-    return getTelegramThumbnailUrl(image.telegramThumbnailFileId);
+  // 如果启用了前端代理开关，则优先返回本地代理 API，避免前端直连 Telegram
+  if (TELEGRAM_PROXY_CLIENT_ENABLED && image.telegramThumbnailFileId) {
+    if (image.telegramThumbnailPath) {
+      return buildTelegramImageApiByPath(image.telegramThumbnailPath);
+    }
+    // 可选携带 botId（若存在）
+    let botId: string | undefined;
+    try {
+      if (image.storageMetadata) {
+        const meta = JSON.parse(image.storageMetadata);
+        botId = meta?.telegramBotId ? String(meta.telegramBotId) : undefined;
+      }
+    } catch {}
+    return buildTelegramImageApiByFileId(image.telegramThumbnailFileId, botId);
   }
 
-  // 否则使用原有逻辑
+  // 未启用代理时，如果有直链能力则使用直链
+  if (image.telegramThumbnailFileId) {
+    if (image.telegramThumbnailPath && image.telegramBotToken) {
+      return `https://api.telegram.org/file/bot${image.telegramBotToken}/${image.telegramThumbnailPath}`;
+    }
+    // 若缺少 file_path 或 token，退回通用逻辑
+  }
+
+  // 否则使用通用逻辑
   return generateThumbnailUrl(image.url, size);
 }
 
 export function generateThumbnailUrl(originalUrl: string, size: number = 300): string {
-  // 对于 Telegram 图片，直接返回原始/代理 URL，交给 next/image 处理，避免二次包裹
+  // 对于 Telegram 图片，直接返回原始 URL（按你的要求完全直连）
   if (isTelegramImage(originalUrl)) {
     return originalUrl;
   }
@@ -223,7 +273,7 @@ export function generateResizedUrl(
   try {
     const url = new URL(originalUrl);
     const pathParts = url.pathname.split('/');
-    
+
     const uploadIndex = pathParts.indexOf('upload');
     if (uploadIndex === -1) {
       return originalUrl;
@@ -232,7 +282,7 @@ export function generateResizedUrl(
     // 构建转换参数
     const h = height || width;
     const transformations = `w_${width},h_${h},c_${crop},q_auto,f_webp`;
-    
+
     const newPathParts = [
       ...pathParts.slice(0, uploadIndex + 1),
       transformations,
