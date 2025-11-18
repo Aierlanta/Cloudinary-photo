@@ -5,6 +5,7 @@ import {
   generateThumbnailUrl,
   generateThumbnailUrlForImage,
   getImageUrls,
+  isTgStateImage,
 } from "@/lib/image-utils";
 import SmartImage from "@/components/ui/SmartImage";
 import { useImageCachePrewarming } from "@/hooks/useImageCachePrewarming";
@@ -275,7 +276,7 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
             <div className="space-y-4">
               <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden aspect-square">
                 <SmartImage
-                  src={generateThumbnailUrl(image.url, 400)}
+                  src={isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrl(image.url, 400)}
                   alt={image.title || image.publicId}
                   fill
                   className="object-contain"
@@ -769,7 +770,7 @@ export default function ImageList({
             {/* 图片预览 */}
             <div className="aspect-square relative bg-gray-100 dark:bg-gray-800">
               <LazyImage
-                src={generateThumbnailUrlForImage(image, 300)}
+                src={isTgStateImage(image.url) ? getImageUrls(image.url).thumbnail : generateThumbnailUrlForImage(image, 300)}
                 alt={image.title || image.publicId}
                 className="w-full h-full"
                 onClick={() => {
@@ -788,18 +789,16 @@ export default function ImageList({
 
                   if (currentIndex > 0) {
                     preloadUrls.push(
-                      generateThumbnailUrlForImage(
-                        images[currentIndex - 1],
-                        300
-                      )
+                      isTgStateImage(images[currentIndex - 1].url)
+                        ? getImageUrls(images[currentIndex - 1].url).thumbnail
+                        : generateThumbnailUrlForImage(images[currentIndex - 1], 300)
                     );
                   }
                   if (currentIndex < images.length - 1) {
                     preloadUrls.push(
-                      generateThumbnailUrlForImage(
-                        images[currentIndex + 1],
-                        300
-                      )
+                      isTgStateImage(images[currentIndex + 1].url)
+                        ? getImageUrls(images[currentIndex + 1].url).thumbnail
+                        : generateThumbnailUrlForImage(images[currentIndex + 1], 300)
                     );
                   }
 

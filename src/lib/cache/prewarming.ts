@@ -1,7 +1,7 @@
 "use client";
 
 import { imageCacheManager } from './imageCache';
-import { generateThumbnailUrl, isTelegramImage } from '@/lib/image-utils';
+import { generateThumbnailUrl, isTelegramImage, getImageUrls } from '@/lib/image-utils';
 
 interface PrewarmConfig {
   /**
@@ -74,9 +74,37 @@ export class CachePrewarmingService {
       // 选择要预热的图片
       const imagesToPrewarm = this.selectImagesForPrewarming(images);
       
-      // 生成缩略图URL，并跳过 Telegram 直链（避免浏览器端 CORS 报错）
+      // 生成缩略图URL：
+      // - tgstate 走同源的 /_next/image（通过 getImageUrls().thumbnail），避免 CORS
+      // - 其他保持 generateThumbnailUrl 逻辑
+      // - 跳过 Telegram 直链（避免浏览器端直连 CORS）
       const thumbnailUrls = imagesToPrewarm
-        .map(image => generateThumbnailUrl(image.url, this.config.thumbnailSize))
+        .map(image => {
+          let url: string;
+          try {
+            url = getImageUrls(image.url).thumbnail;
+          } catch {
+            url = generateThumbnailUrl(image.url, this.config.thumbnailSize);
+          }
+          // 如果是跨域绝对地址，则改走本域的 Next.js 图片优化，以避免CORS
+          try {
+            if (typeof window !== 'undefined') {
+              const u = new URL(url, window.location.origin);
+              if (u.origin !== window.location.origin) {
+                const params = new URLSearchParams({
+                  url,
+                  w: String(this.config.thumbnailSize),
+                  q: '70'
+                });
+                url = `/_next/image?${params.toString()}`;
+              }
+            }
+          } catch {
+            // 忽略解析失败，保留原URL
+          }
+          return url;
+        })
+        // Telegram 直链仍跳过（但若已被转换为/_next/image，则此判断自然为false）
         .filter(url => !isTelegramImage(url));
 
       // 过滤已缓存的图片
