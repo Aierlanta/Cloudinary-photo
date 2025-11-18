@@ -40,6 +40,23 @@ A random image API service based on Next.js 14, supporting multiple image hostin
 
 <img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
 
+## v1.6.5 Update Log
+
+This update focuses on enhancing the **Telegram image host** integration, optimizing overall performance and data logging. Key updates are as follows:
+
+### Key Features and Optimizations
+
+1.  **Enhanced Telegram Support**:
+    *   **Proxy Support**: Added proxy support for the Telegram Bot API. Configure a proxy server via the `TELEGRAM_PROXY_URL` environment variable to resolve connection instability in certain regions.
+    *   **Metadata Support**: Images uploaded to Telegram now store richer metadata, such as `file_id` and `file_unique_id`, paving the way for advanced features like permanent links and cache optimization.
+    *   **Image Processing Optimization**: Improved the logic for fetching and displaying images from Telegram, leading to faster and more stable preview loading.
+
+2.  **API Access Logging**:
+    *   Enhanced API access logging to provide more detailed tracking of request origins and usage, facilitating auditing and analysis.
+
+3.  **Database Model Updates**:
+    *   Updated the Prisma schema to support the new Telegram metadata storage and logging features.
+
 ## Quick Start
 
 ### Requirements
@@ -565,6 +582,6 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 
 ---
 
-**Current Version**: v1.5.0 | **Last Updated**: 2025-11-17
+**Current Version**: v1.6.6 | **Last Updated**: 2025-11-18
 
 For issues or suggestions, feel free to submit an Issue or Pull Request!
