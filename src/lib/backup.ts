@@ -57,12 +57,14 @@ export class BackupService {
         where: { id: 'backup_status' }
       });
 
+      const hasBackupDb = !!process.env.BACKUP_DATABASE_URL;
+
       if (!config) {
         return {
           lastBackupTime: null,
           lastBackupSuccess: false,
           backupCount: 0,
-          isAutoBackupEnabled: true
+          isAutoBackupEnabled: false
         };
       }
 
@@ -72,7 +74,7 @@ export class BackupService {
         lastBackupSuccess: status.lastBackupSuccess || false,
         lastBackupError: status.lastBackupError,
         backupCount: status.backupCount || 0,
-        isAutoBackupEnabled: status.isAutoBackupEnabled !== false
+        isAutoBackupEnabled: hasBackupDb && (status.isAutoBackupEnabled === true)
       };
     } catch (error) {
       this.logger.error('获取备份状态失败', error instanceof Error ? error : undefined, {
@@ -721,6 +723,9 @@ export class BackupService {
    * 设置自动备份状态
    */
   async setAutoBackupEnabled(enabled: boolean): Promise<void> {
+    if (enabled && !process.env.BACKUP_DATABASE_URL) {
+      throw new Error('未配置备份数据库连接 (BACKUP_DATABASE_URL)，无法开启自动备份');
+    }
     await this.updateBackupStatus({ isAutoBackupEnabled: enabled });
   }
 

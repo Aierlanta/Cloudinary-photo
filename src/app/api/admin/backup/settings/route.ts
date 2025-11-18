@@ -64,6 +64,13 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
+    // 如果是已知的配置错误，直接返回错误信息
+    if (error instanceof Error && error.message.includes('BACKUP_DATABASE_URL')) {
+      return NextResponse.json({
+        success: false,
+        message: error.message
+      }, { status: 400 });
+    }
     return handleApiError(error, '更新备份设置失败');
   }
 }
