@@ -40,23 +40,6 @@
 
 <img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
 
-## v1.6.5 更新日志
-
-本次更新重点增强了 **Telegram 图床** 的集成，并优化了整体性能与数据记录，主要更新内容如下：
-
-### 主要特性与优化
-
-1.  **增强的 Telegram 支持**:
-    *   **代理支持**: 新增 Telegram Bot API 代理功能，通过环境变量 `TELEGRAM_PROXY_URL` 可配置代理服务器，解决部分地区访问不稳定的问题。
-    *   **元数据支持**: 现在上传至 Telegram 的图片会记录更丰富的元数据，例如 `file_id` 和 `file_unique_id`，为后续高级功能（如永久链接、缓存优化）提供支持。
-    *   **图片处理优化**: 优化了从 Telegram 获取和展示图片的逻辑，提高了预览图的加载速度和稳定性。
-
-2.  **API 访问日志**:
-    *   增强了 API 访问日志记录功能，现在可以更详细地追踪请求来源和使用情况，便于审计和分析。
-
-3.  **数据库模型更新**:
-    *   更新了 Prisma schema，以支持新的 Telegram 元数据存储和日志记录功能。
-
 ## 快速开始
 
 ### 环境要求
@@ -125,10 +108,10 @@ TELEGRAM_ENABLE=true
 
 **推荐使用 Telegram 直连模式**，优势如下：
 
-- ✅ **无需第三方服务**：直接使用 Telegram Bot API，无需部署 TgState
-- ✅ **多 Token 负载均衡**：支持多个 Bot Token 轮询，防止单个 token 被限速
-- ✅ **自动缩略图**：Telegram 自动生成 320x320 缩略图（~40KB），管理面板加载更快
-- ✅ **健康检查**：自动检测 token 健康状态，失败自动切换
+- **无需第三方服务**：直接使用 Telegram Bot API，无需部署 TgState
+- *多 Token 负载均衡**：支持多个 Bot Token 轮询，防止单个 token 被限速
+- **自动缩略图**：Telegram 自动生成 320x320 缩略图（~40KB），管理面板加载更快
+- **健康检查**：自动检测 token 健康状态，失败自动切换
 - ⚠️ **仅新图片**：只有新上传的图片才有缩略图优化，旧图片继续使用原有优化方案
 
 ### 安装和部署
@@ -605,8 +588,25 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 - [TgState](https://github.com/csznet/tgState) - 开源的 Telegram 图床服务
 - [Tailwind CSS](https://tailwindcss.com/) - 实用优先的 CSS 框架
 
+## 更新日志
+
+### v1.6.5
+
+本次更新重点增强了 **Telegram 图床** 的集成，并优化了整体性能与数据记录，主要更新内容如下：
+
+1. **增强的 Telegram 支持**:
+    - **代理支持**: 新增 Telegram Bot API 代理功能，通过环境变量 `TELEGRAM_PROXY_URL` 可配置代理服务器，解决部分地区访问不稳定的问题。
+    - **元数据支持**: 现在上传至 Telegram 的图片会记录更丰富的元数据，例如 `file_id` 和 `file_unique_id`，为后续高级功能（如永久链接、缓存优化）提供支持。
+    - **图片处理优化**: 优化了从 Telegram 获取和展示图片的逻辑，提高了预览图的加载速度和稳定性。
+
+2. **API 访问日志**:
+    - 增强了 API 访问日志记录功能，现在可以更详细地追踪请求来源和使用情况，便于审计和分析。
+
+3. **数据库模型更新**:
+    - 更新了 Prisma schema，以支持新的 Telegram 元数据存储和日志记录功能。
+
 ---
 
-**当前版本**: v1.6.6 | **最后更新**: 2025-11-18
+**当前版本**: v1.6.5 | **最后更新**: 2025-11-18
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request！
