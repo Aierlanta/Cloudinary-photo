@@ -36,6 +36,16 @@ const tokenToBotId = new Map<string, string>();
 const botIdToToken = new Map<string, string>();
 // 缓存：file_id -> token，命中后可避免轮询造成的 400 抖动
 const fileIdToToken = new Map<string, string>();
+const MAX_CACHE_SIZE = 1000;
+
+function cacheFileIdToken(fileId: string, token: string) {
+  if (fileIdToToken.size >= MAX_CACHE_SIZE) {
+    // 删除最早插入的一个 (Map 按插入顺序迭代)
+    const firstKey = fileIdToToken.keys().next().value;
+    if (firstKey) fileIdToToken.delete(firstKey);
+  }
+  fileIdToToken.set(fileId, token);
+}
 
 async function fetchBotIdForToken(token: string): Promise<string | null> {
   try {
@@ -84,14 +94,13 @@ function getNextTelegramToken(): string | null {
  * 尝试获取 Telegram 文件路径，包含重试逻辑
  * 针对 "temporarily unavailable" 或网络错误进行重试
  */
-async function fetchTelegramFilePath(token: string, fileId: string): Promise<{ 
+async function fetchTelegramFilePath(token: string, fileId: string, maxRetries = 3): Promise<{ 
   success: boolean; 
   filePath?: string; 
   error?: string; 
   status?: number; 
   description?: string;
 }> {
-  const maxRetries = 3;
   let lastError: any;
   let lastStatus: number | undefined;
   let lastDesc: string | undefined;
@@ -210,14 +219,22 @@ export async function GET(request: NextRequest) {
           );
           if (downloadResponse.ok) {
             const imageBuffer = await downloadResponse.arrayBuffer();
-            const contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+            let contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+            
+            // 安全检查：防止 XSS
+            // 如果不是图片且不是 octet-stream，强制设为 octet-stream 以避免浏览器渲染 HTML/JS
+            if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
+               contentType = 'application/octet-stream';
+            }
+
             // 写入缓存映射，后续同一 file_id 直达该 token
-            fileIdToToken.set(fileId, token);
+            cacheFileIdToken(fileId, token);
             return new NextResponse(imageBuffer, {
               status: 200,
               headers: {
                 'Content-Type': contentType,
                 'Cache-Control': 'public, max-age=31536000, immutable',
+                'X-Content-Type-Options': 'nosniff', // 防止 MIME Sniffing
               }
             });
           }
@@ -238,12 +255,19 @@ export async function GET(request: NextRequest) {
           const downloadResponse = await fetch(downloadUrl, buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit));
           if (downloadResponse.ok) {
             const imageBuffer = await downloadResponse.arrayBuffer();
-            const contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+            let contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+
+             // 安全检查
+            if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
+               contentType = 'application/octet-stream';
+            }
+
             return new NextResponse(imageBuffer, {
               status: 200,
               headers: {
                 'Content-Type': contentType,
                 'Cache-Control': 'public, max-age=31536000, immutable',
+                'X-Content-Type-Options': 'nosniff',
               }
             });
           }
@@ -269,14 +293,21 @@ export async function GET(request: NextRequest) {
             const downloadResponse = await fetch(downloadUrl, buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit));
             if (downloadResponse.ok) {
               const imageBuffer = await downloadResponse.arrayBuffer();
-              const contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+              let contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+
+              // 安全检查
+              if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
+                 contentType = 'application/octet-stream';
+              }
+
               // 写入缓存，后续相同 file_id 直达
-              fileIdToToken.set(fileId, token);
+              cacheFileIdToken(fileId, token);
               return new NextResponse(imageBuffer, {
                 status: 200,
                 headers: {
                   'Content-Type': contentType,
                   'Cache-Control': 'public, max-age=31536000, immutable',
+                  'X-Content-Type-Options': 'nosniff',
                 }
               });
             }
@@ -299,8 +330,8 @@ export async function GET(request: NextRequest) {
       const token = getNextTelegramToken();
       if (!token) break;
 
-      // 1. 获取文件路径 (带重试)
-      const result = await fetchTelegramFilePath(token, fileId);
+      // 1. 获取文件路径 (带重试，轮询模式下仅尝试1次以避免超时)
+      const result = await fetchTelegramFilePath(token, fileId, 1);
 
       if (!result.success) {
         lastErrorStatus = result.status;
@@ -327,15 +358,22 @@ export async function GET(request: NextRequest) {
 
         // 3. 返回图片
         const imageBuffer = await downloadResponse.arrayBuffer();
-        const contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+        let contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
+
+        // 安全检查
+        if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
+            contentType = 'application/octet-stream';
+        }
+
          // 写入缓存映射，便于后续直达
-         fileIdToToken.set(fileId, token);
+         cacheFileIdToken(fileId, token);
 
         return new NextResponse(imageBuffer, {
           status: 200,
           headers: {
             'Content-Type': contentType,
             'Cache-Control': 'public, max-age=31536000, immutable', // 缓存 1 年
+            'X-Content-Type-Options': 'nosniff',
           }
         });
       } catch (err) {
