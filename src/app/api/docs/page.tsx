@@ -1,13 +1,78 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import {
+  Copy,
+  CheckCircle2,
+  Terminal,
+  BookOpen,
+  AlertTriangle,
+  Info,
+  ShieldCheck,
+  Server,
+  FileJson,
+  ArrowLeft
+} from "lucide-react";
 import { useLocale, LocaleProvider } from "@/hooks/useLocale";
+import { cn } from "@/lib/utils";
+
+// --- Animation Variants ---
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
+  },
+};
+
+// --- Components ---
+const GlassCard = ({
+  children,
+  className,
+  hover = false, // Default false for docs usually
+}: {
+  children: React.ReactNode;
+  className?: string;
+  hover?: boolean;
+}) => {
+  return (
+    <motion.div
+      variants={itemVariants} // Ensure it participates in stagger
+      whileHover={hover ? { y: -5, scale: 1.01 } : undefined}
+      className={cn(
+        "relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md shadow-lg transition-colors",
+        "dark:border-white/10 dark:bg-slate-900/30",
+        className
+      )}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-50" />
+      <div className="relative z-10">{children}</div>
+    </motion.div>
+  );
+};
 
 function APIDocsContent() {
   const { t } = useLocale();
   const [baseUrl, setBaseUrl] = useState<string>("");
+  const [copied, setCopied] = useState<string | null>(null);
 
-  // 生成完整的基础URL
   const generateBaseUrl = () => {
     if (typeof window === "undefined") return "";
     return `${window.location.protocol}//${window.location.host}`;
@@ -16,555 +81,263 @@ function APIDocsContent() {
   useEffect(() => {
     setBaseUrl(generateBaseUrl());
   }, []);
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  // Helper for copy buttons
+  const CopyButton = ({ text, id }: { text: string; id: string }) => (
+     <button
+      onClick={() => copyToClipboard(text, id)}
+      className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-105 active:scale-95"
+      title={t.common.copy}
+    >
+      {copied === id ? (
+        <CheckCircle2 className="w-4 h-4 text-green-400" />
+      ) : (
+        <Copy className="w-4 h-4" />
+      )}
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 页面标题 */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            {t.apiDocs.title}
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            {t.apiDocs.subtitle}
-          </p>
-        </div>
+    <div className="min-h-screen relative overflow-x-hidden selection:bg-primary/30 pb-20">
+      {/* Background Elements */}
+       <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/10 to-transparent opacity-30" />
+       </div>
 
-        {/* API访问链接 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            {t.apiDocs.apiAccessLinks}
-          </h2>
+      {/* Nav */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-white/60 dark:bg-slate-950/60 backdrop-blur-xl h-16 flex items-center">
+         <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
+               <ArrowLeft className="w-4 h-4" />
+               {t.common.back}
+            </Link>
+            <span className="font-bold">{t.apiDocs.title}</span>
+            <div className="w-16" /> {/* Spacer for centering */}
+         </div>
+      </nav>
 
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.baseApiAddress}
-              </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                  {baseUrl}/api/random
-                </code>
-                {baseUrl && (
-                  <button
-                    onClick={() =>
-                      navigator.clipboard.writeText(`${baseUrl}/api/random`)
-                    }
-                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                    title={t.apiDocs.copyApiAddress}
-                  >
-                    {t.common.copy}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* API Key 鉴权说明 */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-4 flex items-center">
-            <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            {t.apiDocs.apiKeyAuth}
-          </h2>
-          <div className="space-y-3 text-gray-700 dark:text-gray-300">
-            <p>{t.apiDocs.apiKeyAuthDesc}</p>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
-              <p className="font-medium mb-2">{t.apiDocs.withApiKey}:</p>
-              <code className="text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                {baseUrl}/api/random?key=your-api-key
-              </code>
-            </div>
-            <p className="text-sm">{t.apiDocs.apiKeyConfigTip}</p>
-          </div>
-        </div>
-
-        {/* 使用示例 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            {t.apiDocs.usageExamples}
-          </h2>
-
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.redirectMode}
-              </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                  {baseUrl}/api/random
-                </code>
-                {baseUrl && (
-                  <button
-                    onClick={() =>
-                      navigator.clipboard.writeText(`${baseUrl}/api/random`)
-                    }
-                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                    title={t.apiDocs.copyLink}
-                  >
-                    {t.common.copy}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.directResponseMode}
-              </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                  {baseUrl}/api/response
-                </code>
-                {baseUrl && (
-                  <button
-                    onClick={() =>
-                      navigator.clipboard.writeText(`${baseUrl}/api/response`)
-                    }
-                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                    title={t.apiDocs.copyLink}
-                  >
-                    {t.common.copy}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.withParamsR18}
-              </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                  {baseUrl}/api/random?r18=r18
-                </code>
-                {baseUrl && (
-                  <button
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        `${baseUrl}/api/random?r18=r18`
-                      )
-                    }
-                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                    title={t.apiDocs.copyLink}
-                  >
-                    {t.common.copy}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.directResponseWithParamsR18}
-              </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                  {baseUrl}/api/response?r18=r18
-                </code>
-                {baseUrl && (
-                  <button
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        `${baseUrl}/api/response?r18=r18`
-                      )
-                    }
-                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                    title={t.apiDocs.copyLink}
-                  >
-                    {t.common.copy}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.withParamsSfw}
-              </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                  {baseUrl}/api/random?sfw=sfw
-                </code>
-                {baseUrl && (
-                  <button
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        `${baseUrl}/api/random?sfw=sfw`
-                      )
-                    }
-                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                    title={t.apiDocs.copyLink}
-                  >
-                    {t.common.copy}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.directResponseWithParamsSfw}
-              </h3>
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                  {baseUrl}/api/response?sfw=sfw
-                </code>
-                {baseUrl && (
-                  <button
-                    onClick={() =>
-                      navigator.clipboard.writeText(
-                        `${baseUrl}/api/response?sfw=sfw`
-                      )
-                    }
-                    className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                    title={t.apiDocs.copyLink}
-                  >
-                    {t.common.copy}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 透明度调整功能 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            {t.apiDocs.transparencyAdjustment}
-          </h2>
-
-          <div className="mb-6">
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm">
-                /api/response
-              </code>{" "}
-              {t.apiDocs.transparencyIntro}
+      <main className="pt-24 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-8"
+        >
+          {/* Header */}
+          <motion.div variants={itemVariants} className="text-center mb-12">
+            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-b from-foreground to-foreground/60">
+              {t.apiDocs.title}
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              {t.apiDocs.subtitle}
             </p>
-          </div>
+          </motion.div>
 
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.parameterDescription}
-              </h3>
-              <div className="space-y-3">
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <div className="flex items-start">
-                    <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm text-blue-600 dark:text-blue-400 mr-3">
-                      opacity
-                    </code>
-                    <div>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        {t.apiDocs.opacityDesc}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 whitespace-pre-line">
-                        {t.apiDocs.opacityDetails}
-                      </p>
-                    </div>
+          {/* Access Links */}
+          <GlassCard className="p-6 sm:p-8">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+               <Server className="w-6 h-6 text-primary" />
+               {t.apiDocs.apiAccessLinks}
+            </h2>
+            <div className="space-y-4">
+               <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wider">{t.apiDocs.baseApiAddress}</h3>
+                  <div className="flex items-center gap-2 bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10">
+                     <code className="flex-1 font-mono text-sm text-blue-300 truncate">{baseUrl}/api/random</code>
+                     {baseUrl && <CopyButton text={`${baseUrl}/api/random`} id="base-url" />}
                   </div>
-                </div>
-
-                <div className="border-l-4 border-green-500 pl-4">
-                  <div className="flex items-start">
-                    <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm text-green-600 dark:text-green-400 mr-3">
-                      bgColor
-                    </code>
-                    <div>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        {t.apiDocs.bgColorDesc}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        • <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">white</code> (default), {" "}
-                        <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">black</code>
-                        <br />• Hex: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">ffffff</code>, {" "}
-                        <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">#ff6b6b</code>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+               </div>
             </div>
+          </GlassCard>
 
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.examples}
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {t.apiDocs.opacity50White}
-                  </p>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                      {baseUrl}/api/response?opacity=0.5&bgColor=white
-                    </code>
-                    {baseUrl && (
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(
-                            `${baseUrl}/api/response?opacity=0.5&bgColor=white`
-                          )
-                        }
-                        className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                        title={t.apiDocs.copyLink}
-                      >
-                        {t.common.copy}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {t.apiDocs.opacity80Black}
-                  </p>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                      {baseUrl}/api/response?opacity=0.8&bgColor=black
-                    </code>
-                    {baseUrl && (
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(
-                            `${baseUrl}/api/response?opacity=0.8&bgColor=black`
-                          )
-                        }
-                        className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                        title={t.apiDocs.copyLink}
-                      >
-                        {t.common.copy}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {t.apiDocs.opacity30Custom}
-                  </p>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                      {baseUrl}/api/response?opacity=0.3&bgColor=ff6b6b
-                    </code>
-                    {baseUrl && (
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(
-                            `${baseUrl}/api/response?opacity=0.3&bgColor=ff6b6b`
-                          )
-                        }
-                        className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                        title={t.apiDocs.copyLink}
-                      >
-                        {t.common.copy}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {t.apiDocs.withGroupParams}
-                  </p>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 flex items-center justify-between">
-                    <code className="text-sm text-gray-800 dark:text-gray-200 flex-1">
-                      {baseUrl}/api/response?sfw=sfw&opacity=0.6&bgColor=white
-                    </code>
-                    {baseUrl && (
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(
-                            `${baseUrl}/api/response?sfw=sfw&opacity=0.6&bgColor=white`
-                          )
-                        }
-                        className="ml-2 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                        title={t.apiDocs.copyLink}
-                      >
-                        {t.common.copy}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+           {/* Auth */}
+          <GlassCard className="p-6 sm:p-8 border-blue-500/20 bg-blue-500/5">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-blue-500">
+               <ShieldCheck className="w-6 h-6" />
+               {t.apiDocs.apiKeyAuth}
+            </h2>
+            <div className="space-y-4 text-muted-foreground">
+               <p>{t.apiDocs.apiKeyAuthDesc}</p>
+               <div className="flex items-center gap-2 bg-slate-950/50 rounded-xl p-3 pl-4 border border-white/10">
+                  <code className="flex-1 font-mono text-sm text-slate-300">
+                     {baseUrl}/api/random<span className="text-blue-400">?key=your-api-key</span>
+                  </code>
+               </div>
+               <p className="text-sm opacity-80 flex items-center gap-2">
+                  <Info className="w-4 h-4" />
+                  {t.apiDocs.apiKeyConfigTip}
+               </p>
             </div>
+          </GlassCard>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4">
-              <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                {t.apiDocs.notes}
-              </h4>
-              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                <li>• {t.apiDocs.note1}</li>
-                <li>• {t.apiDocs.note2}</li>
-                <li>• {t.apiDocs.note3}</li>
-                <li>• {t.apiDocs.note4}</li>
-              </ul>
+          {/* Usage Examples */}
+          <GlassCard className="p-6 sm:p-8">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+               <Terminal className="w-6 h-6 text-secondary" />
+               {t.apiDocs.usageExamples}
+            </h2>
+            
+            <div className="space-y-8">
+               {/* Redirect */}
+               <div>
+                  <h3 className="font-semibold mb-3 text-lg">{t.apiDocs.redirectMode}</h3>
+                   <div className="flex items-center gap-2 bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10">
+                     <code className="flex-1 font-mono text-sm text-slate-300">{baseUrl}/api/random</code>
+                     {baseUrl && <CopyButton text={`${baseUrl}/api/random`} id="ex-redirect" />}
+                  </div>
+               </div>
+
+               {/* JSON */}
+               <div>
+                  <h3 className="font-semibold mb-3 text-lg">{t.apiDocs.directResponseMode}</h3>
+                   <div className="flex items-center gap-2 bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10">
+                     <code className="flex-1 font-mono text-sm text-slate-300">{baseUrl}/api/response</code>
+                     {baseUrl && <CopyButton text={`${baseUrl}/api/response`} id="ex-json" />}
+                  </div>
+               </div>
+
+               {/* Params */}
+               <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                     <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase">{t.apiDocs.withParamsR18}</h3>
+                     <div className="flex items-center gap-2 bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10">
+                        <code className="flex-1 font-mono text-xs sm:text-sm text-slate-300">.../random<span className="text-red-400">?r18=true</span></code>
+                        {baseUrl && <CopyButton text={`${baseUrl}/api/random?r18=true`} id="ex-r18" />}
+                     </div>
+                  </div>
+                  <div>
+                     <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase">{t.apiDocs.withParamsSfw}</h3>
+                     <div className="flex items-center gap-2 bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10">
+                        <code className="flex-1 font-mono text-xs sm:text-sm text-slate-300">.../random<span className="text-green-400">?sfw=true</span></code>
+                        {baseUrl && <CopyButton text={`${baseUrl}/api/random?sfw=true`} id="ex-sfw" />}
+                     </div>
+                  </div>
+               </div>
             </div>
-          </div>
-        </div>
+          </GlassCard>
 
-        {/* 响应格式 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            {t.apiDocs.responseFormat}
-          </h2>
+          {/* Transparency */}
+          <GlassCard className="p-6 sm:p-8">
+             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+               <BookOpen className="w-6 h-6 text-accent" />
+               {t.apiDocs.transparencyAdjustment}
+            </h2>
+            <p className="text-muted-foreground mb-6">
+               {t.apiDocs.transparencyIntro}
+            </p>
 
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.successResponse}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                {t.apiDocs.successResponseDesc}
-              </p>
-
-              <div className="space-y-3">
-                <div>
-                  <strong className="text-gray-900 dark:text-white">
-                    {t.apiDocs.statusCode}
-                  </strong>
-                  <span className="text-green-600 dark:text-green-400 ml-2">
-                    200 OK
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-gray-900 dark:text-white">
-                    {t.apiDocs.contentType}
-                  </strong>
-                  <span className="text-gray-600 dark:text-gray-300 ml-2">
-                    image/jpeg, image/png, image/webp
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-gray-900 dark:text-white">
-                    {t.apiDocs.responseHeaders}
-                  </strong>
-                  <ul className="list-disc list-inside ml-6 mt-2 text-gray-600 dark:text-gray-300">
-                    <li>
-                      <code>X-Image-Id</code> - {t.apiDocs.imageId}
-                    </li>
-                    <li>
-                      <code>X-Image-Filename</code> - {t.apiDocs.imageFilename}
-                    </li>
-                    <li>
-                      <code>X-Response-Time</code> - {t.apiDocs.responseTime}
-                    </li>
-                    <li>
-                      <code>Cache-Control</code> - {t.apiDocs.cacheControl}
-                    </li>
+            <div className="space-y-6">
+               <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <h3 className="font-bold mb-4">{t.apiDocs.parameterDescription}</h3>
+                  <ul className="space-y-4">
+                     <li className="flex gap-4">
+                        <code className="text-sm font-mono text-primary bg-primary/10 px-2 py-1 rounded h-fit">opacity</code>
+                        <div>
+                           <p className="text-sm">{t.apiDocs.opacityDesc}</p>
+                           <p className="text-xs text-muted-foreground mt-1">{t.apiDocs.opacityDetails}</p>
+                        </div>
+                     </li>
+                     <li className="flex gap-4">
+                        <code className="text-sm font-mono text-secondary bg-secondary/10 px-2 py-1 rounded h-fit">bgColor</code>
+                        <div>
+                           <p className="text-sm">{t.apiDocs.bgColorDesc}</p>
+                           <p className="text-xs text-muted-foreground mt-1 font-mono">white | black | #hex</p>
+                        </div>
+                     </li>
                   </ul>
-                </div>
-              </div>
-            </div>
+               </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                {t.apiDocs.errorResponse}
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <strong className="text-red-600 dark:text-red-400">
-                    {t.apiDocs.badRequest}
-                  </strong>
-                  <span className="text-gray-600 dark:text-gray-300 ml-2">
-                    - {t.apiDocs.badRequestDesc}
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-red-600 dark:text-red-400">
-                    {t.apiDocs.forbidden}
-                  </strong>
-                  <span className="text-gray-600 dark:text-gray-300 ml-2">
-                    - {t.apiDocs.forbiddenDesc}
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-red-600 dark:text-red-400">
-                    {t.apiDocs.notFound}
-                  </strong>
-                  <span className="text-gray-600 dark:text-gray-300 ml-2">
-                    - {t.apiDocs.notFoundDesc}
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-red-600 dark:text-red-400">
-                    {t.apiDocs.tooManyRequests}
-                  </strong>
-                  <span className="text-gray-600 dark:text-gray-300 ml-2">
-                    - {t.apiDocs.tooManyRequestsDesc}
-                  </span>
-                </div>
-                <div>
-                  <strong className="text-red-600 dark:text-red-400">
-                    {t.apiDocs.internalError}
-                  </strong>
-                  <span className="text-gray-600 dark:text-gray-300 ml-2">
-                    - {t.apiDocs.internalErrorDesc}
-                  </span>
-                </div>
-              </div>
+               <div>
+                  <h3 className="font-bold mb-4">{t.apiDocs.examples}</h3>
+                  <div className="space-y-3">
+                     {[
+                        { desc: t.apiDocs.opacity50White, url: "/api/response?opacity=0.5&bgColor=white", id: "op-1" },
+                        { desc: t.apiDocs.opacity80Black, url: "/api/response?opacity=0.8&bgColor=black", id: "op-2" },
+                        { desc: t.apiDocs.opacity30Custom, url: "/api/response?opacity=0.3&bgColor=ff6b6b", id: "op-3" },
+                     ].map((item) => (
+                        <div key={item.id}>
+                           <p className="text-xs text-muted-foreground mb-1">{item.desc}</p>
+                           <div className="flex items-center gap-2 bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10">
+                              <code className="flex-1 font-mono text-xs sm:text-sm text-slate-300 truncate">{baseUrl}{item.url}</code>
+                              {baseUrl && <CopyButton text={`${baseUrl}${item.url}`} id={item.id} />}
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
             </div>
-          </div>
-        </div>
+          </GlassCard>
 
-        {/* 注意事项 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            {t.apiDocs.notice}
-          </h2>
+          {/* Response Format */}
+          <GlassCard className="p-6 sm:p-8">
+             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+               <FileJson className="w-6 h-6 text-orange-500" />
+               {t.apiDocs.responseFormat}
+            </h2>
+            
+            <div className="space-y-6">
+               <div>
+                  <h3 className="font-bold text-green-500 mb-2">{t.apiDocs.successResponse} (200 OK)</h3>
+                  <div className="bg-slate-950/50 rounded-xl p-4 border border-white/10 font-mono text-sm text-slate-300">
+                     <p><span className="text-blue-400">Content-Type:</span> image/jpeg, image/png, image/webp</p>
+                     <div className="h-px bg-white/10 my-2" />
+                     <p className="text-muted-foreground mb-1">{"// Headers"}</p>
+                     <p><span className="text-purple-400">X-Image-Id:</span> ...</p>
+                     <p><span className="text-purple-400">X-Image-Filename:</span> ...</p>
+                     <p><span className="text-purple-400">X-Response-Time:</span> ...ms</p>
+                  </div>
+               </div>
 
-          <div className="space-y-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center">
-                  <span className="text-yellow-600 dark:text-yellow-400 text-sm">
-                    !
-                  </span>
-                </div>
-              </div>
-              <div className="ml-3">
-                <p className="text-gray-600 dark:text-gray-300">
-                  <strong>{t.apiDocs.rateLimit}</strong>{" "}
-                  {t.apiDocs.rateLimitDesc}
-                </p>
-              </div>
+               <div>
+                  <h3 className="font-bold text-red-500 mb-2">{t.apiDocs.errorResponse}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                     {[
+                        { code: 400, label: t.apiDocs.badRequest },
+                        { code: 403, label: t.apiDocs.forbidden },
+                        { code: 404, label: t.apiDocs.notFound },
+                        { code: 429, label: t.apiDocs.tooManyRequests },
+                        { code: 500, label: t.apiDocs.internalError },
+                     ].map(err => (
+                        <div key={err.code} className="flex items-center gap-2 bg-red-500/5 p-2 rounded-lg border border-red-500/10">
+                           <span className="font-mono font-bold text-red-500">{err.code}</span>
+                           <span className="text-muted-foreground">{err.label}</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
             </div>
+          </GlassCard>
 
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 dark:text-blue-400 text-sm">
-                    i
-                  </span>
-                </div>
-              </div>
-              <div className="ml-3">
-                <p className="text-gray-600 dark:text-gray-300">
-                  <strong>{t.apiDocs.cache}</strong>{" "}
-                  {t.apiDocs.cacheDesc}
-                </p>
-              </div>
-            </div>
+          {/* Notices */}
+           <GlassCard className="p-6 sm:p-8 border-yellow-500/20 bg-yellow-500/5">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-yellow-500">
+               <AlertTriangle className="w-6 h-6" />
+               {t.apiDocs.notice}
+            </h2>
+            <ul className="space-y-3 text-sm">
+               <li className="flex gap-3">
+                  <span className="font-bold text-yellow-500 min-w-fit">{t.apiDocs.rateLimit}</span>
+                  <span className="text-muted-foreground">{t.apiDocs.rateLimitDesc}</span>
+               </li>
+               <li className="flex gap-3">
+                   <span className="font-bold text-blue-500 min-w-fit">{t.apiDocs.cache}</span>
+                  <span className="text-muted-foreground">{t.apiDocs.cacheDesc}</span>
+               </li>
+               <li className="flex gap-3">
+                   <span className="font-bold text-green-500 min-w-fit">{t.apiDocs.https}</span>
+                  <span className="text-muted-foreground">{t.apiDocs.httpsDesc}</span>
+               </li>
+            </ul>
+          </GlassCard>
 
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 dark:text-green-400 text-sm">
-                    ✓
-                  </span>
-                </div>
-              </div>
-              <div className="ml-3">
-                <p className="text-gray-600 dark:text-gray-300">
-                  <strong>{t.apiDocs.https}</strong>{" "}
-                  {t.apiDocs.httpsDesc}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </motion.div>
+      </main>
     </div>
   );
 }

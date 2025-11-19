@@ -2,143 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 布鲁塔主义/瑞士设计风格 - 黑白色调 */
 :root {
-  /* 纯黑白色调 */
-  --background: #ffffff;
-  --foreground: #000000;
-  --border-color: #000000;
-  --border-width: 4px;
-  --border-width-thick: 8px;
-
-  /* 管理面板样式(保留兼容性) */
-  --panel-opacity: 0.9;
-  --panel-rgb: 255, 255, 255;
-  --panel-border-color: rgba(0, 0, 0, 0.2);
-  --panel-text-shadow: none;
+  /* Modern Glassmorphism Palette (Light) */
+  --background: #f0f2f5;
+  --foreground: #1a1a1a;
+  --primary: #6366f1; /* Indigo 500 */
+  --secondary: #a855f7; /* Purple 500 */
+  --accent: #ec4899; /* Pink 500 */
+  
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #000000;
-    --foreground: #ffffff;
-    --border-color: #ffffff;
-    --panel-rgb: 0, 0, 0;
-    --panel-border-color: rgba(255, 255, 255, 0.2);
+    /* Modern Glassmorphism Palette (Dark) */
+    --background: #0f172a; /* Slate 900 */
+    --foreground: #f8fafc;
+    --primary: #818cf8; /* Indigo 400 */
+    --secondary: #c084fc; /* Purple 400 */
+    --accent: #f472b6; /* Pink 400 */
+
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    
     color-scheme: dark;
   }
 }
 
 html[data-theme='light'] {
-  --background: #ffffff;
-  --foreground: #000000;
-  --border-color: #000000;
-  --panel-rgb: 255, 255, 255;
-  --panel-border-color: rgba(0, 0, 0, 0.2);
+  --background: #f0f2f5;
+  --foreground: #1a1a1a;
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
   color-scheme: light;
 }
 
 html[data-theme='dark'] {
-  --background: #000000;
-  --foreground: #ffffff;
-  --border-color: #ffffff;
-  --panel-rgb: 0, 0, 0;
-  --panel-border-color: rgba(255, 255, 255, 0.2);
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   color-scheme: dark;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Courier New', Courier, monospace, Arial, Helvetica, sans-serif;
-  font-weight: 700;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(var(--primary), 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(var(--secondary), 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(var(--accent), 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(var(--primary), 0.15) 0px, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Noise Texture */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.4;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+  
+  .glass-panel {
+    @apply backdrop-blur-xl border border-white/20 shadow-lg;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-card {
+    @apply backdrop-blur-md transition-all duration-300;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
 }
 
-/* 布鲁塔主义样式类 */
-.brutalist-border {
-  border: var(--border-width) solid var(--border-color);
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.brutalist-border-thick {
-  border: var(--border-width-thick) solid var(--border-color);
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.brutalist-box {
-  border: var(--border-width) solid var(--border-color);
-  background: var(--background);
-  color: var(--foreground);
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
 }
 
-.brutalist-button {
-  border: var(--border-width) solid var(--border-color);
-  background: var(--foreground);
-  color: var(--background);
-  font-weight: 900;
-  text-transform: uppercase;
-  padding: 1rem 2rem;
-  cursor: pointer;
-  transition: all 0.1s ease;
-}
-
-.brutalist-button:hover {
-  background: var(--background);
-  color: var(--foreground);
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--foreground);
-}
-
-.brutalist-button:active {
-  transform: translate(0, 0);
-  box-shadow: none;
-}
-
-.brutalist-grid {
-  display: grid;
-  gap: 0;
-  border: var(--border-width) solid var(--border-color);
-}
-
-.brutalist-grid > * {
-  border: var(--border-width) solid var(--border-color);
-  border-top: none;
-  border-left: none;
-}
-
-.brutalist-text-huge {
-  font-size: clamp(2rem, 8vw, 6rem);
-  font-weight: 900;
-  line-height: 0.9;
-  text-transform: uppercase;
-  letter-spacing: -0.02em;
-}
-
-.brutalist-text-large {
-  font-size: clamp(1.5rem, 4vw, 3rem);
-  font-weight: 900;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.brutalist-text-medium {
-  font-size: clamp(1rem, 2vw, 1.5rem);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-/* 透明面板样式(保留兼容性) */
-.transparent-panel {
-  background: rgba(var(--panel-rgb), var(--panel-opacity, 0.9));
-  backdrop-filter: none;
-  border: 1px solid var(--panel-border-color);
-}
-
-.panel-text {
-  text-shadow: var(--panel-text-shadow);
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
 }
