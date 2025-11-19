@@ -6,6 +6,22 @@ import { ToastContainer } from '@/components/ui/Toast'
 import { useLocale } from '@/hooks/useLocale'
 import Image from 'next/image'
 import { generateThumbnailUrlForImage } from '@/lib/image-utils'
+import { useAdminVersion } from '@/contexts/AdminVersionContext'
+import { GlassCard, GlassButton } from '@/components/ui/glass'
+import { 
+  Layers, 
+  Plus, 
+  FolderOpen, 
+  Edit2, 
+  Trash2, 
+  Image as ImageIcon,
+  X,
+  Save,
+  Grid,
+  Search,
+  Check,
+  Move
+} from 'lucide-react'
 
 interface Group {
   id: string
@@ -34,21 +50,19 @@ interface Image {
   groupId?: string
   uploadedAt: string
   tags: string[]
-  // 图床相关字段（与后台 Image 模型保持一致，便于复用工具方法）
   primaryProvider?: string
   backupProvider?: string
-  // Telegram 相关字段（用于生成缩略图和代理访问）
   telegramFileId?: string | null
   telegramThumbnailFileId?: string | null
   telegramFilePath?: string | null
   telegramThumbnailPath?: string | null
   telegramBotToken?: string | null
-  // 存储扩展元数据（例如 telegramBotId），用于前端解码
   storageMetadata?: string | null
 }
 
 export default function GroupsPage() {
   const { t } = useLocale();
+  const { version } = useAdminVersion();
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -345,6 +359,264 @@ export default function GroupsPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
+  }
+
+  if (version === 'v2') {
+    return (
+      <div className="space-y-8">
+        {/* Header & Stats */}
+        <div className="flex flex-col gap-8">
+           <div className="flex justify-between items-end">
+              <div>
+                 <h1 className="text-3xl font-bold mb-2">{t.adminGroups.title}</h1>
+                 <p className="text-muted-foreground">{t.adminGroups.description}</p>
+              </div>
+              <div className="flex gap-3">
+                 <GlassButton onClick={showUnassignedImagesModal} icon={FolderOpen} className="bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border-orange-500/20">
+                    {t.adminGroups.manageUnassigned}
+                 </GlassButton>
+                 <GlassButton onClick={startCreate} primary icon={Plus}>
+                    {t.adminGroups.createGroup}
+                 </GlassButton>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <GlassCard className="p-6" hover>
+                 <p className="text-sm font-medium text-muted-foreground mb-2">{t.adminGroups.totalImages}</p>
+                 <div className="text-3xl font-bold">{totalImages}</div>
+              </GlassCard>
+              <GlassCard className="p-6" hover>
+                 <p className="text-sm font-medium text-muted-foreground mb-2">{t.adminGroups.groupsCount}</p>
+                 <div className="text-3xl font-bold text-primary">{groups.length}</div>
+              </GlassCard>
+              <GlassCard className="p-6" hover>
+                 <p className="text-sm font-medium text-muted-foreground mb-2">{t.adminGroups.groupsWithImages}</p>
+                 <div className="text-3xl font-bold text-green-500">{groups.filter(g => g.imageCount > 0).length}</div>
+              </GlassCard>
+              <GlassCard className="p-6" hover>
+                 <p className="text-sm font-medium text-muted-foreground mb-2">{t.adminGroups.averageImages}</p>
+                 <div className="text-3xl font-bold">{groups.length > 0 ? Math.round(groups.reduce((sum, group) => sum + group.imageCount, 0) / groups.length) : 0}</div>
+              </GlassCard>
+           </div>
+        </div>
+
+        {/* Create / Edit Form */}
+        {(showCreateForm || editingGroup) && (
+           <GlassCard className="border-primary/50">
+              <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                 <h2 className="text-xl font-bold">{editingGroup ? t.adminGroups.editGroup : t.adminGroups.createGroup}</h2>
+                 <button onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-5 h-5" />
+                 </button>
+              </div>
+              <div className="space-y-6 max-w-2xl">
+                 <div>
+                    <label className="block text-sm font-medium mb-2">{t.adminGroups.groupName} *</label>
+                    <input 
+                       type="text" 
+                       value={formData.name}
+                       onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                       className="w-full p-3 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                       placeholder={t.adminGroups.groupNamePlaceholder}
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-sm font-medium mb-2">{t.adminGroups.groupDescription}</label>
+                    <textarea 
+                       value={formData.description}
+                       onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                       className="w-full p-3 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all min-h-[100px]"
+                       placeholder={t.adminGroups.groupDescriptionPlaceholder}
+                    />
+                 </div>
+                 <div className="flex gap-4 pt-4">
+                    <GlassButton primary onClick={editingGroup ? handleUpdateGroup : handleCreateGroup} disabled={submitting || !formData.name.trim()} icon={Save}>
+                       {editingGroup ? t.adminGroups.update : t.adminGroups.create}
+                    </GlassButton>
+                    <GlassButton onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}>
+                       {t.adminGroups.cancel}
+                    </GlassButton>
+                 </div>
+              </div>
+           </GlassCard>
+        )}
+
+        {/* Groups Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+           {groups.map(group => (
+              <GlassCard key={group.id} className="flex flex-col h-full group" hover>
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                       <Layers className="w-6 h-6" />
+                    </div>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <button onClick={() => startEdit(group)} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-blue-400">
+                          <Edit2 className="w-4 h-4" />
+                       </button>
+                       <button onClick={() => handleDeleteGroup(group.id, group.name)} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-red-400">
+                          <Trash2 className="w-4 h-4" />
+                       </button>
+                    </div>
+                 </div>
+                 
+                 <h3 className="text-xl font-bold mb-2">{group.name}</h3>
+                 <p className="text-sm text-muted-foreground mb-6 flex-1">{group.description || "No description"}</p>
+                 
+                 <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                    <div className="text-xs text-muted-foreground">
+                       {formatDate(group.createdAt)}
+                    </div>
+                    <GlassButton 
+                       onClick={() => viewGroupImages(group)} 
+                       className="px-4 py-2 text-xs h-auto bg-white/5 hover:bg-white/10"
+                       icon={ImageIcon}
+                    >
+                       {group.imageCount} images
+                    </GlassButton>
+                 </div>
+              </GlassCard>
+           ))}
+        </div>
+
+         {/* Viewing Group Images Modal (V2) */}
+         {viewingGroup && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={closeImageView}>
+               <GlassCard className="w-full max-w-6xl max-h-[90vh] flex flex-col" onClick={(e: any) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4 shrink-0">
+                     <div>
+                        <h2 className="text-xl font-bold flex items-center gap-3">
+                           <Layers className="w-5 h-5 text-primary" />
+                           {viewingGroup.name}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">{viewingGroup.imageCount} images</p>
+                     </div>
+                     <button onClick={closeImageView} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <X className="w-6 h-6" />
+                     </button>
+                  </div>
+
+                  <div className="overflow-y-auto min-h-0 p-1">
+                     {loadingImages ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                           {Array.from({ length: 12 }).map((_, i) => (
+                              <div key={i} className="aspect-square bg-white/5 animate-pulse rounded-xl" />
+                           ))}
+                        </div>
+                     ) : groupImages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                           <ImageIcon className="w-16 h-16 mb-4 opacity-20" />
+                           <p>{t.adminGroups.noImagesInGroup}</p>
+                        </div>
+                     ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                           {groupImages.map(image => (
+                              <div key={image.id} className="relative group aspect-square rounded-xl overflow-hidden bg-black/20">
+                                 <Image
+                                    src={generateThumbnailUrlForImage(image, 300)}
+                                    alt={image.filename}
+                                    fill
+                                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                 />
+                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                    <p className="text-xs text-white truncate w-full">{image.filename}</p>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+               </GlassCard>
+            </div>
+         )}
+
+         {/* Unassigned Images Modal (V2) */}
+         {showUnassignedImages && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={closeUnassignedImagesModal}>
+               <GlassCard className="w-full max-w-6xl max-h-[90vh] flex flex-col" onClick={(e: any) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4 shrink-0">
+                     <div>
+                        <h2 className="text-xl font-bold flex items-center gap-3">
+                           <FolderOpen className="w-5 h-5 text-orange-500" />
+                           {t.adminGroups.unassignedImagesManagement}
+                        </h2>
+                     </div>
+                     <button onClick={closeUnassignedImagesModal} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <X className="w-6 h-6" />
+                     </button>
+                  </div>
+
+                  {unassignedImages.length > 0 && (
+                     <div className="mb-4 p-4 rounded-xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between gap-4 shrink-0">
+                        <div className="flex items-center gap-4">
+                           <span className="text-sm font-medium">{selectedImages.size} selected</span>
+                           <div className="flex gap-2">
+                              <button onClick={selectAllImages} className="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">All</button>
+                              <button onClick={clearSelection} className="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">None</button>
+                           </div>
+                        </div>
+
+                        {selectedImages.size > 0 && (
+                           <div className="flex items-center gap-3">
+                              <select 
+                                 value={assigningToGroup}
+                                 onChange={e => setAssigningToGroup(e.target.value)}
+                                 className="bg-black/20 border border-white/10 rounded-lg text-sm p-2 outline-none focus:border-primary"
+                              >
+                                 <option value="" className="bg-gray-900">Select Group...</option>
+                                 {groups.map(g => <option key={g.id} value={g.id} className="bg-gray-900">{g.name}</option>)}
+                              </select>
+                              <GlassButton primary disabled={!assigningToGroup} onClick={assignImagesToGroup} className="px-4 py-2 h-auto text-xs" icon={Move}>
+                                 Assign
+                              </GlassButton>
+                           </div>
+                        )}
+                     </div>
+                  )}
+
+                  <div className="overflow-y-auto min-h-0 p-1">
+                     {loadingImages ? (
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                           {Array.from({ length: 12 }).map((_, i) => <div key={i} className="aspect-square bg-white/5 animate-pulse rounded-xl" />)}
+                        </div>
+                     ) : unassignedImages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                           <Check className="w-16 h-16 mb-4 text-green-500 opacity-50" />
+                           <p>{t.adminGroups.allImagesAssigned}</p>
+                        </div>
+                     ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                           {unassignedImages.map(image => (
+                              <div 
+                                 key={image.id} 
+                                 className={`relative group aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${selectedImages.has(image.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-black' : ''}`}
+                                 onClick={() => toggleImageSelection(image.id)}
+                              >
+                                 <Image
+                                    src={generateThumbnailUrlForImage(image, 300)}
+                                    alt={image.publicId}
+                                    fill
+                                    className="object-cover"
+                                 />
+                                 {selectedImages.has(image.id) && (
+                                    <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                       <div className="bg-primary text-white rounded-full p-1">
+                                          <Check className="w-4 h-4" />
+                                       </div>
+                                    </div>
+                                 )}
+                              </div>
+                           ))}
+                        </div>
+                     )}
+                  </div>
+               </GlassCard>
+            </div>
+         )}
+
+        <ToastContainer toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))} />
+      </div>
+    )
   }
 
   return (

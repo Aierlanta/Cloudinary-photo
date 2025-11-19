@@ -35,16 +35,27 @@ export default function SmartImage({
   height,
 }: SmartImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [useNativeImage, setUseNativeImage] = useState(false);
 
   const handleLoad = () => {
     setIsLoaded(true);
     onLoad?.();
   };
 
-  // 对于所有图片，都使用 Next.js Image 组件
-  // Next.js 会自动处理不同的图片源
+  const handleError = () => {
+    if (!useNativeImage) {
+      // 如果 Next.js Image 加载失败，回退到原生 img
+      setUseNativeImage(true);
+      setIsLoaded(false);
+    } else {
+      onError?.();
+    }
+  };
 
-  // 使用 Next.js Image 组件处理所有图片
+  const sharedClassName = `${className} transition-opacity duration-300 ${
+    isLoaded ? "opacity-100" : "opacity-0"
+  } ${onClick ? "cursor-pointer" : ""}`;
+
   return (
     <>
       {!isLoaded && (
@@ -64,22 +75,41 @@ export default function SmartImage({
           </svg>
         </div>
       )}
-      <Image
-        src={src}
-        alt={alt}
-        fill={fill}
-        width={!fill ? width : undefined}
-        height={!fill ? height : undefined}
-        className={`${className} transition-opacity duration-300 ${
-          isLoaded ? "opacity-100" : "opacity-0"
-        } ${onClick ? "cursor-pointer" : ""}`}
-        onClick={onClick}
-        onLoad={handleLoad}
-        onError={onError}
-        sizes={sizes}
-        // 现在 tgState 图片通过 /_next/image 优化，不需要 unoptimized
-        unoptimized={false}
-      />
+      {useNativeImage ? (
+        (() => {
+          const resolvedWidth = width ? `${width}px` : "100%";
+          const resolvedHeight = height ? `${height}px` : "100%";
+          return (
+        <img
+          src={src}
+          alt={alt}
+          className={sharedClassName}
+          onClick={onClick}
+          onLoad={handleLoad}
+          onError={onError}
+          style={
+            fill
+              ? { objectFit: "cover", width: "100%", height: "100%" }
+              : { width: resolvedWidth, height: resolvedHeight, objectFit: "cover" }
+          }
+        />
+          );
+        })()
+      ) : (
+        <Image
+          src={src}
+          alt={alt}
+          fill={fill}
+          width={!fill ? width : undefined}
+          height={!fill ? height : undefined}
+          className={sharedClassName}
+          onClick={onClick}
+          onLoad={handleLoad}
+          onError={handleError}
+          sizes={sizes || "100vw"}
+          unoptimized
+        />
+      )}
     </>
   );
 }

@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useLocale } from "@/hooks/useLocale";
+import { useAdminVersion } from "@/contexts/AdminVersionContext";
+import { Search, Calendar, X, RotateCcw, Filter } from "lucide-react";
+import { GlassButton } from "@/components/ui/glass";
+import { motion } from "framer-motion";
 
 interface Group {
   id: string;
@@ -35,6 +39,7 @@ export default function ImageFilters({
   onFilterChange,
 }: ImageFiltersProps) {
   const { t } = useLocale();
+  const { version } = useAdminVersion();
   const [searchInput, setSearchInput] = useState(filters.search);
 
   // 搜索防抖
@@ -73,6 +78,164 @@ export default function ImageFilters({
 
   const hasActiveFilters =
     filters.search || filters.groupId || filters.dateFrom || filters.dateTo;
+
+  // --- V2 Layout ---
+  if (version === 'v2') {
+    return (
+      <div className="space-y-5">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder={t.adminImages.searchPlaceholder}
+            className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm"
+          />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-white/10 rounded-full text-muted-foreground transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Filter Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Group Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground ml-1">
+               {t.adminImages.filterByGroup}
+            </label>
+            <select
+              value={filters.groupId}
+              onChange={(e) => onFilterChange({ groupId: e.target.value })}
+              className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
+            >
+              <option value="" className="bg-gray-900">{t.adminImages.allGroups}</option>
+              <option value="unassigned" className="bg-gray-900">Unassigned</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id} className="bg-gray-900">
+                  {group.name} ({group.imageCount})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Storage Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground ml-1">
+               {t.adminImages.filterByStorage}
+            </label>
+            <select
+              value={filters.provider}
+              onChange={(e) => onFilterChange({ provider: e.target.value })}
+              className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
+            >
+              <option value="" className="bg-gray-900">{t.adminImages.allStorages}</option>
+              <option value="cloudinary" className="bg-gray-900">Cloudinary</option>
+              <option value="tgstate" className="bg-gray-900">tgState</option>
+              <option value="telegram" className="bg-gray-900">Telegram</option>
+            </select>
+          </div>
+          
+          {/* Date Range */}
+          <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+               <label className="text-xs font-medium text-muted-foreground ml-1">
+                  {t.adminImages.startDate}
+               </label>
+               <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="date"
+                    value={formatDateForInput(filters.dateFrom)}
+                    onChange={(e) => onFilterChange({ dateFrom: e.target.value })}
+                    className="w-full pl-9 p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm dark-calendar-icon"
+                  />
+               </div>
+            </div>
+            <div className="space-y-1.5">
+               <label className="text-xs font-medium text-muted-foreground ml-1">
+                  {t.adminImages.endDate}
+               </label>
+               <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="date"
+                    value={formatDateForInput(filters.dateTo)}
+                    onChange={(e) => onFilterChange({ dateTo: e.target.value })}
+                    className="w-full pl-9 p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm dark-calendar-icon"
+                  />
+               </div>
+            </div>
+          </div>
+
+          {/* Sort */}
+          <div className="col-span-1 sm:col-span-2 space-y-1.5">
+             <label className="text-xs font-medium text-muted-foreground ml-1">
+                {t.adminImages.sortBy}
+             </label>
+             <select
+                value={`${filters.sortBy || "uploadedAt"}-${filters.sortOrder || "desc"}`}
+                onChange={(e) => {
+                  const [sortBy, sortOrder] = e.target.value.split("-");
+                  onFilterChange({
+                    sortBy,
+                    sortOrder: sortOrder as "asc" | "desc",
+                  });
+                }}
+                className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
+              >
+                <option value="uploadedAt-desc" className="bg-gray-900">{t.adminImages.latestUpload}</option>
+                <option value="uploadedAt-asc" className="bg-gray-900">{t.adminImages.oldestUpload}</option>
+                <option value="filename-asc" className="bg-gray-900">Filename A-Z</option>
+                <option value="filename-desc" className="bg-gray-900">Filename Z-A</option>
+                <option value="bytes-desc" className="bg-gray-900">Size Large-Small</option>
+                <option value="bytes-asc" className="bg-gray-900">Size Small-Large</option>
+              </select>
+          </div>
+        </div>
+
+        {/* Quick Filters */}
+        <div className="flex flex-wrap gap-2 pt-2">
+           {[
+              { label: t.adminImages.today, days: 1 },
+              { label: t.adminImages.last7Days, days: 7 },
+              { label: t.adminImages.last30Days, days: 30 },
+           ].map((item) => (
+              <button
+                key={item.days}
+                onClick={() =>
+                  onFilterChange({
+                    dateFrom: new Date(Date.now() - (item.days === 1 ? 1 : item.days) * 24 * 60 * 60 * 1000)
+                      .toISOString()
+                      .split("T")[0],
+                    dateTo: new Date().toISOString().split("T")[0],
+                  })
+                }
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {item.label}
+              </button>
+           ))}
+           
+           {hasActiveFilters && (
+             <GlassButton 
+                onClick={handleReset}
+                className="ml-auto px-3 py-1.5 text-xs h-auto"
+                icon={RotateCcw}
+             >
+                Reset
+             </GlassButton>
+           )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

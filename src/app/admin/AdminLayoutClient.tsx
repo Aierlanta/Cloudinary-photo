@@ -2,10 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import AdminNavigation from '@/components/admin/AdminNavigation'
 import LoginForm from '@/components/admin/LoginForm'
-import TransparencyControl from '@/components/admin/TransparencyControl'
-import { ComponentErrorBoundary } from '@/components/ErrorBoundary'
 import { LocaleProvider } from '@/hooks/useLocale'
 import {
   ADMIN_THEME_COOKIE,
@@ -15,6 +12,9 @@ import {
   resolveClientTheme,
   type Theme,
 } from '@/lib/adminTheme'
+import AdminLayoutV1 from './AdminLayoutV1'
+import AdminLayoutV2 from './AdminLayoutV2'
+import { AdminVersionContext, type AdminVersion } from '@/contexts/AdminVersionContext'
 
 type AdminLayoutClientProps = {
   children: ReactNode
@@ -43,9 +43,17 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [panelOpacity, setPanelOpacity] = useState(0.9)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const [isManualTheme, setIsManualTheme] = useState(initialIsManual)
+  const [adminVersion, setAdminVersion] = useState<AdminVersion>(() => {
+    if (typeof window === 'undefined') {
+      // 前端默认使用新版
+      return 'v2'
+    }
+    const saved = window.localStorage.getItem('admin-version') as AdminVersion | null
+    // 如果用户之前手动切到旧版或新版，则按保存的来，否则默认新版
+    return saved === 'v1' || saved === 'v2' ? saved : 'v2'
+  })
 
   useEffect(() => {
     const preference = resolveClientTheme()
@@ -74,7 +82,19 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
     if (savedOpacity) {
       setPanelOpacity(parseFloat(savedOpacity))
     }
+
+    const savedVersion = localStorage.getItem('admin-version') as AdminVersion | null
+    if (savedVersion === 'v1' || savedVersion === 'v2') {
+      setAdminVersion(savedVersion)
+    }
   }, [])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return
+    }
+    localStorage.setItem('admin-version', adminVersion)
+  }, [adminVersion])
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -159,11 +179,9 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
         return { success: true }
       } else {
         const error = await response.json()
-        // 返回服务器的错误消息，如果没有则返回 undefined 让 LoginForm 使用国际化默认消息
         return { success: false, error: error.message }
       }
     } catch (error) {
-      // 网络错误返回特殊标记，让 LoginForm 识别并使用国际化的网络错误消息
       return { success: false, error: '__NETWORK_ERROR__' }
     }
   }
@@ -199,29 +217,38 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
   }
 
   return (
-    <LocaleProvider>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <TransparencyControl
-          opacity={panelOpacity}
-          onChange={setPanelOpacity}
-          theme={theme}
-          isManualTheme={isManualTheme}
-          onThemeToggle={handleThemeToggle}
-          onThemeReset={handleThemeReset}
-        />
-
-        <div className="flex">
-          <AdminNavigation onLogout={handleLogout} onToggleCollapse={setSidebarCollapsed} />
-
-          <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
-            <div className="p-6">
-              <ComponentErrorBoundary componentName="AdminPage">
-                {children}
-              </ComponentErrorBoundary>
-            </div>
-          </main>
-        </div>
-      </div>
-    </LocaleProvider>
+    <AdminVersionContext.Provider value={{ version: adminVersion, setVersion: setAdminVersion }}>
+      <LocaleProvider>
+        {adminVersion === 'v2' ? (
+          <AdminLayoutV2
+            panelOpacity={panelOpacity}
+            setPanelOpacity={setPanelOpacity}
+            theme={theme}
+            isManualTheme={isManualTheme}
+            handleThemeToggle={handleThemeToggle}
+            handleThemeReset={handleThemeReset}
+            handleLogout={handleLogout}
+            adminVersion={adminVersion}
+            setAdminVersion={setAdminVersion}
+          >
+            {children}
+          </AdminLayoutV2>
+        ) : (
+          <AdminLayoutV1
+            panelOpacity={panelOpacity}
+            setPanelOpacity={setPanelOpacity}
+            theme={theme}
+            isManualTheme={isManualTheme}
+            handleThemeToggle={handleThemeToggle}
+            handleThemeReset={handleThemeReset}
+            handleLogout={handleLogout}
+            adminVersion={adminVersion}
+            setAdminVersion={setAdminVersion}
+          >
+            {children}
+          </AdminLayoutV1>
+        )}
+      </LocaleProvider>
+    </AdminVersionContext.Provider>
   )
 }

@@ -122,3 +122,125 @@ body::before {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(156, 163, 175, 0.8);
 }
+
+
+/* ==========================================
+   Admin V2 Style Overrides (Glassmorphism)
+   ========================================== */
+
+.admin-v2 .bg-white {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--foreground);
+}
+
+.dark .admin-v2 .bg-white {
+   background-color: rgba(0, 0, 0, 0.2) !important;
+   border-color: rgba(255, 255, 255, 0.1);
+}
+
+.admin-v2 .bg-gray-50, 
+.admin-v2 .bg-gray-100,
+.admin-v2 .bg-gray-200 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .admin-v2 .bg-gray-800,
+.dark .admin-v2 .bg-gray-900 {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Buttons */
+.admin-v2 button.bg-blue-600,
+.admin-v2 .btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.admin-v2 button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+/* Inputs & Selects */
+.admin-v2 input,
+.admin-v2 select,
+.admin-v2 textarea {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px);
+  color: inherit !important;
+  border-radius: 0.75rem !important; /* 12px */
+}
+
+.admin-v2 input:focus,
+.admin-v2 select:focus,
+.admin-v2 textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px rgba(var(--primary), 0.2) !important;
+  outline: none;
+}
+
+/* Text Overrides */
+.admin-v2 .text-gray-500,
+.admin-v2 .text-gray-600,
+.admin-v2 .text-gray-700 {
+  color: rgba(var(--foreground), 0.7) !important;
+}
+
+.dark .admin-v2 .text-gray-400 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Remove hard shadows in V2 for a softer look */
+.admin-v2 .shadow-sm,
+.admin-v2 .shadow-md,
+.admin-v2 .shadow-lg {
+  box-shadow: none !important;
+}
+
+/* Tables */
+.admin-v2 table {
+  border-collapse: separate;
+  border-spacing: 0 4px;
+}
+
+.admin-v2 th {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 1rem !important;
+}
+
+.admin-v2 td {
+  background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 1rem !important;
+}
+
+.admin-v2 tr:first-child td:first-child { border-top-left-radius: 12px; }
+.admin-v2 tr:first-child td:last-child { border-top-right-radius: 12px; }
+.admin-v2 tr:last-child td:first-child { border-bottom-left-radius: 12px; }
+.admin-v2 tr:last-child td:last-child { border-bottom-right-radius: 12px; }
+
+.admin-v2 tr:hover td {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Dialog/Modals inside V2 */
+.admin-v2 [role="dialog"], 
+.admin-v2 .fixed.inset-0.flex.items-center.justify-center > div {
+  background-color: rgba(20, 20, 25, 0.8) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}

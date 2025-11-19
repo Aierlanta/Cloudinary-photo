@@ -1,11 +1,21 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import LogViewer from '@/components/admin/LogViewer'
 import { useLocale } from '@/hooks/useLocale'
+import { useAdminVersion } from '@/contexts/AdminVersionContext'
+import { GlassCard, GlassButton } from '@/components/ui/glass'
+import { 
+  FileText, 
+  Download, 
+  Trash2, 
+  ChevronDown
+} from 'lucide-react'
 
 export default function SystemLogsPage() {
   const { t } = useLocale();
+  const { version } = useAdminVersion();
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   const handleExportLogs = async (format: 'json' | 'csv' | 'txt') => {
     try {
@@ -34,6 +44,7 @@ export default function SystemLogsPage() {
       console.error('导出日志失败:', error)
       alert('导出日志失败')
     }
+    setIsExportMenuOpen(false);
   }
 
   const handleClearLogs = async () => {
@@ -58,6 +69,80 @@ export default function SystemLogsPage() {
     }
   }
 
+  if (version === 'v2') {
+     return (
+        <div className="space-y-8 h-[calc(100vh-8rem)] flex flex-col">
+           <div className="flex justify-between items-start shrink-0">
+              <div>
+                 <h1 className="text-3xl font-bold mb-2">{t.adminLogs.title}</h1>
+                 <p className="text-muted-foreground">{t.adminLogs.description}</p>
+              </div>
+              <div className="flex gap-3 relative">
+                 <div className="relative">
+                    <GlassButton 
+                       primary 
+                       icon={Download} 
+                       onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                    >
+                       {t.adminLogs.exportLogs}
+                       <ChevronDown className="w-4 h-4 ml-2" />
+                    </GlassButton>
+                    {isExportMenuOpen && (
+                       <div className="absolute right-0 top-full mt-2 w-48 p-1 rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 shadow-xl z-50">
+                          <button 
+                             onClick={() => handleExportLogs('json')}
+                             className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm transition-colors"
+                          >
+                             {t.adminLogs.jsonFormat}
+                          </button>
+                          <button 
+                             onClick={() => handleExportLogs('csv')}
+                             className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm transition-colors"
+                          >
+                             {t.adminLogs.csvFormat}
+                          </button>
+                          <button 
+                             onClick={() => handleExportLogs('txt')}
+                             className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm transition-colors"
+                          >
+                             {t.adminLogs.textFormat}
+                          </button>
+                       </div>
+                    )}
+                 </div>
+                 
+                 {process.env.NODE_ENV === 'development' && (
+                    <GlassButton 
+                       icon={Trash2} 
+                       className="text-red-400 hover:bg-red-500/10 hover:text-red-300 border-red-500/20"
+                       onClick={handleClearLogs}
+                    >
+                       {t.adminLogs.clearLogs}
+                    </GlassButton>
+                 )}
+              </div>
+           </div>
+
+           <GlassCard className="flex-1 overflow-hidden flex flex-col" noPadding>
+              <div className="p-4 border-b border-white/10 bg-white/5 flex items-center gap-3">
+                 <div className="p-2 rounded-lg bg-blue-500/20 text-blue-500">
+                    <FileText className="w-5 h-5" />
+                 </div>
+                 <h3 className="font-semibold">System Logs Stream</h3>
+                 <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Live
+                 </div>
+              </div>
+              <div className="flex-1 overflow-hidden relative">
+                 <LogViewer maxEntries={200} autoRefresh={true} refreshInterval={5000} />
+              </div>
+           </GlassCard>
+        </div>
+     )
+  }
+
+  // V1 Layout
   return (
     <div className="space-y-6">
       {/* 页面标题 */}
@@ -118,8 +203,6 @@ export default function SystemLogsPage() {
           </div>
         </div>
       </div>
-
-
 
       {/* 日志查看器 */}
       <LogViewer maxEntries={100} autoRefresh={true} refreshInterval={10000} />

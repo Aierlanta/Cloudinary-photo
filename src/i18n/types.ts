@@ -89,6 +89,9 @@ export interface Translations {
     quickSettings: string;
     opacityDescription: string;
     toggleLanguage: string;
+    versionControl: string;
+    switchToNew: string;
+    switchToOld: string;
   };
 
   // 管理面板 - 导航

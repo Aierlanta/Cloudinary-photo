@@ -3,6 +3,20 @@
 import { useState, useEffect } from "react";
 import HealthMonitor from "@/components/admin/HealthMonitor";
 import { useLocale } from "@/hooks/useLocale";
+import { useAdminVersion } from "@/contexts/AdminVersionContext";
+import { GlassCard } from "@/components/ui/glass";
+import {
+  Image as ImageIcon,
+  Layers,
+  UploadCloud,
+  Activity,
+  Database,
+  Plus,
+  Settings,
+  ShieldAlert,
+  ExternalLink,
+} from "lucide-react";
+import Link from "next/link";
 
 interface Stats {
   totalImages: number;
@@ -24,6 +38,7 @@ interface Stats {
 
 export default function AdminDashboard() {
   const { t } = useLocale();
+  const { version } = useAdminVersion();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,6 +62,210 @@ export default function AdminDashboard() {
     loadStats();
   }, []);
 
+  if (version === 'v2') {
+    return (
+      <div className="space-y-8">
+        {/* 欢迎标题 (V2) */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">
+            {t.adminDashboard.title}
+          </h1>
+          <p className="text-muted-foreground">
+            {t.adminDashboard.welcome}
+          </p>
+        </div>
+
+        {/* Dashboard Grid (V2) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+           
+           {/* Left Column: Stats & Charts */}
+           <div className="lg:col-span-2 space-y-8">
+              {/* Quick Stats Row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <GlassCard className="relative overflow-hidden flex flex-col items-center justify-center p-4 text-center gap-2 group" hover>
+                  <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
+                    <ImageIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">{loading ? "..." : stats?.totalImages || 0}</h3>
+                    <p className="text-xs font-medium text-muted-foreground">{t.adminDashboard.totalImages}</p>
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="relative overflow-hidden flex flex-col items-center justify-center p-4 text-center gap-2 group" hover>
+                  <div className="p-3 rounded-2xl bg-green-500/10 text-green-500 group-hover:scale-110 transition-transform">
+                    <Layers className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">{loading ? "..." : stats?.totalGroups || 0}</h3>
+                    <p className="text-xs font-medium text-muted-foreground">{t.adminDashboard.groupCount}</p>
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="relative overflow-hidden flex flex-col items-center justify-center p-4 text-center gap-2 group" hover>
+                  <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-500 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">{loading ? "..." : stats?.recentUploads || 0}</h3>
+                    <p className="text-xs font-medium text-muted-foreground">{t.adminDashboard.recentUploads}</p>
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="relative overflow-hidden flex flex-col items-center justify-center p-4 text-center gap-2 group" hover>
+                  <div className="p-3 rounded-2xl bg-orange-500/10 text-orange-500 group-hover:scale-110 transition-transform">
+                    <Activity className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">{loading ? "..." : stats?.access?.last24Hours || 0}</h3>
+                    <p className="text-xs font-medium text-muted-foreground">24h Access</p>
+                  </div>
+                </GlassCard>
+              </div>
+
+              {/* Access Stats Large Card */}
+              <GlassCard className="min-h-[300px] flex flex-col">
+                <div className="flex items-center justify-between mb-8">
+                   <h2 className="text-lg font-semibold flex items-center gap-2">
+                     <Activity className="w-5 h-5 text-primary" />
+                     {t.adminDashboard.accessStats}
+                   </h2>
+                   <select className="bg-white/5 border border-white/10 rounded-lg text-xs px-2 py-1 outline-none focus:border-primary">
+                      <option className="bg-gray-900">Last 24 Hours</option>
+                      <option className="bg-gray-900">Last 7 Days</option>
+                   </select>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 flex flex-col justify-between">
+                    <div>
+                       <p className="text-sm text-muted-foreground mb-1">{t.adminDashboard.lastHourAccess}</p>
+                       <p className="text-4xl font-bold tracking-tight">{loading ? "..." : stats?.access?.lastHour || 0}</p>
+                    </div>
+                    <div className="mt-4 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                       <div className="h-full bg-blue-500 w-[40%]" />
+                    </div>
+                  </div>
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 flex flex-col justify-between">
+                    <div>
+                       <p className="text-sm text-muted-foreground mb-1">{t.adminDashboard.last24HoursAccess}</p>
+                       <p className="text-4xl font-bold tracking-tight">{loading ? "..." : stats?.access?.last24Hours || 0}</p>
+                    </div>
+                    <div className="mt-4 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                       <div className="h-full bg-green-500 w-[65%]" />
+                    </div>
+                  </div>
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/5 flex flex-col justify-between">
+                    <div>
+                       <p className="text-sm text-muted-foreground mb-1">{t.adminDashboard.totalAccess}</p>
+                       <p className="text-4xl font-bold tracking-tight">{loading ? "..." : stats?.access?.total || 0}</p>
+                    </div>
+                    <div className="mt-4 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                       <div className="h-full bg-purple-500 w-[80%]" />
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+
+              {/* Health Monitor Area */}
+              <HealthMonitor />
+           </div>
+
+           {/* Right Column: Actions & Status */}
+           <div className="space-y-8">
+              {/* Quick Actions */}
+              <GlassCard>
+                 <h2 className="text-lg font-semibold mb-6">{t.adminDashboard.quickActions}</h2>
+                 <div className="space-y-3">
+                    <Link href="/admin/images" className="block">
+                       <div className="group flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                          <div className="p-2.5 rounded-lg bg-blue-500/20 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                             <Plus className="w-5 h-5" />
+                          </div>
+                          <div>
+                             <p className="font-medium">{t.adminDashboard.uploadImage}</p>
+                             <p className="text-xs text-muted-foreground">Add new content</p>
+                          </div>
+                       </div>
+                    </Link>
+
+                    <Link href="/admin/groups" className="block">
+                       <div className="group flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                          <div className="p-2.5 rounded-lg bg-green-500/20 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-colors">
+                             <Layers className="w-5 h-5" />
+                          </div>
+                          <div>
+                             <p className="font-medium">{t.adminDashboard.manageGroups}</p>
+                             <p className="text-xs text-muted-foreground">Organize collections</p>
+                          </div>
+                       </div>
+                    </Link>
+
+                    <Link href="/admin/config" className="block">
+                       <div className="group flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                          <div className="p-2.5 rounded-lg bg-purple-500/20 text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                             <Settings className="w-5 h-5" />
+                          </div>
+                          <div>
+                             <p className="font-medium">{t.adminDashboard.apiConfig}</p>
+                             <p className="text-xs text-muted-foreground">System settings</p>
+                          </div>
+                       </div>
+                    </Link>
+                    
+                    <Link href="/admin/backup" className="block">
+                       <div className="group flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                          <div className="p-2.5 rounded-lg bg-emerald-500/20 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                             <Database className="w-5 h-5" />
+                          </div>
+                          <div>
+                             <p className="font-medium">{t.adminDashboard.backupManagement}</p>
+                             <p className="text-xs text-muted-foreground">Data safety</p>
+                          </div>
+                       </div>
+                    </Link>
+
+                    <a href="/api/random" target="_blank" className="block">
+                       <div className="group flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 hover:border-white/10">
+                          <div className="p-2.5 rounded-lg bg-orange-500/20 text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                             <ExternalLink className="w-5 h-5" />
+                          </div>
+                          <div>
+                             <p className="font-medium">{t.adminDashboard.testAPI}</p>
+                             <p className="text-xs text-muted-foreground">Live preview</p>
+                          </div>
+                       </div>
+                    </a>
+                 </div>
+              </GlassCard>
+
+              {/* System Health Status Tiny Card */}
+              <GlassCard className={loading ? "opacity-50" : ""}>
+                 <h2 className="text-lg font-semibold mb-4">System Status</h2>
+                 <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                       <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-sm font-medium text-emerald-500">Database</span>
+                       </div>
+                       <span className="text-xs text-emerald-400">Operational</span>
+                    </div>
+                     <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                       <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-sm font-medium text-emerald-500">API Service</span>
+                       </div>
+                       <span className="text-xs text-emerald-400">Operational</span>
+                    </div>
+                 </div>
+              </GlassCard>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- V1 Layout (Classic) ---
   return (
     <div className="space-y-6">
       {/* 欢迎标题 */}

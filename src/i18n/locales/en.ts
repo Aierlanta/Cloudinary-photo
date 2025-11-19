@@ -83,6 +83,9 @@ export const en: Translations = {
     quickSettings: 'Quick Settings',
     opacityDescription: 'Adjust the transparency of the admin panel. Lower opacity allows better visibility of background content.',
     toggleLanguage: 'Switch Language',
+    versionControl: 'Version Control',
+    switchToNew: 'Switch to New Version',
+    switchToOld: 'Back to Old Version',
   },
 
   adminNav: {

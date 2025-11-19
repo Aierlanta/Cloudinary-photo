@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
 import { useLocale } from "@/hooks/useLocale";
+import { useAdminVersion } from "@/contexts/AdminVersionContext";
+import { GlassButton } from "@/components/ui/glass";
+import { UploadCloud, X, RefreshCw, Trash2, Image as ImageIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Group {
   id: string;
@@ -59,6 +63,7 @@ export default function ImageUpload({
   onUploadSuccess,
 }: ImageUploadProps) {
   const { t } = useLocale();
+  const { version } = useAdminVersion();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileStates, setFileStates] = useState<FileUploadState[]>([]);
@@ -641,6 +646,266 @@ export default function ImageUpload({
       setUploadProgress(0);
     }
   };
+
+  // --- V2 Layout ---
+  if (version === 'v2') {
+    return (
+      <div className="space-y-6">
+        {/* Drag & Drop Zone */}
+        <div
+          className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 group ${
+            dragActive
+              ? "border-primary bg-primary/10 scale-[1.01]"
+              : "border-white/10 hover:border-white/30 hover:bg-white/5"
+          }`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <div className="space-y-4 relative z-10">
+            <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${dragActive ? "bg-primary text-white scale-110 shadow-lg shadow-primary/30" : "bg-white/5 text-muted-foreground group-hover:scale-110 group-hover:bg-white/10"}`}>
+              <UploadCloud className="w-8 h-8" />
+            </div>
+            <div>
+              <p className="text-lg font-medium mb-2">
+                {t.adminImages.dragDropHint}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t.adminImages.supportedFormats}
+              </p>
+            </div>
+            <GlassButton onClick={() => fileInputRef.current?.click()} className="mx-auto text-sm">
+               Select Files
+            </GlassButton>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+        </div>
+
+        {/* File List */}
+        <AnimatePresence mode="popLayout">
+          {fileStates.length > 0 && (
+            <motion.div 
+               initial={{ opacity: 0, height: 0 }}
+               animate={{ opacity: 1, height: "auto" }}
+               exit={{ opacity: 0, height: 0 }}
+               className="space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">
+                  Selected Files ({fileStates.length})
+                </h3>
+                <div className="flex gap-2">
+                  {fileStates.some((fs) => fs.status === "success") && (
+                    <button
+                      onClick={clearSuccessful}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Clear Success
+                    </button>
+                  )}
+                  <button
+                    onClick={clearAll}
+                    className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                {fileStates.map((fileState, index) => (
+                  <motion.div
+                    key={`${fileState.file.name}-${index}`}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
+                      fileState.status === "success"
+                        ? "bg-green-500/10 border-green-500/20"
+                        : fileState.status === "failed"
+                        ? "bg-red-500/10 border-red-500/20"
+                        : fileState.status === "uploading"
+                        ? "bg-blue-500/10 border-blue-500/20"
+                        : "bg-white/5 border-white/10"
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                           <p className="text-sm font-medium truncate text-foreground">
+                            {fileState.file.name}
+                          </p>
+                          {fileState.status === "uploading" && <span className="text-xs text-blue-400 animate-pulse">Uploading...</span>}
+                          {fileState.status === "success" && <span className="text-xs text-green-400">Success</span>}
+                          {fileState.status === "failed" && <span className="text-xs text-red-400">Failed</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {formatFileSize(fileState.file.size)}
+                          {fileState.retryCount > 0 && ` · Retry ${fileState.retryCount}`}
+                        </p>
+                         {fileState.error && (
+                          <p className="text-xs text-red-400 truncate max-w-[200px]" title={fileState.error}>
+                            {fileState.error}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {fileState.status === "failed" && (
+                        <button
+                          onClick={() => retryFile(index)}
+                          className="p-1.5 hover:bg-white/10 rounded-lg text-blue-400 transition-colors"
+                          title="Retry"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                      )}
+                      {fileState.status !== "uploading" && (
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="p-1.5 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Options & Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div className="space-y-4">
+              {/* Storage Provider */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                   {t.adminImages.storageService}
+                </label>
+                 {loadingProviders ? (
+                    <div className="h-10 w-full bg-white/5 rounded-xl animate-pulse" />
+                 ) : (
+                    <div className="relative">
+                       <select
+                          value={selectedProvider}
+                          onChange={(e) => setSelectedProvider(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
+                       >
+                          {providers.map((provider) => (
+                            <option key={provider.id} value={provider.id} disabled={!provider.isAvailable} className="bg-gray-900 text-white">
+                              {provider.name} {!provider.isAvailable && "(Unavailable)"}
+                            </option>
+                          ))}
+                       </select>
+                    </div>
+                 )}
+                 {/* Provider Desc */}
+                 {selectedProvider && providers.length > 0 && (() => {
+                    const provider = providers.find(p => p.id === selectedProvider);
+                    if (!provider) return null;
+                     const descMap: Record<string, string> = {
+                        cloudinary: t.adminImages.cloudinaryDesc,
+                        tgstate: t.adminImages.tgStateDesc,
+                        telegram: t.adminImages.telegramDesc,
+                      };
+                    const desc = descMap[provider.id] || provider.description;
+                    return (
+                       <div className="text-xs text-muted-foreground mt-1">
+                          {desc}
+                          {provider.id === "telegram" && (
+                             <div className="mt-2 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
+                                <p>⚠️ <strong>Security Note:</strong> Access via <code>/api/response</code> only. <code>/api/random</code> is not supported for this provider.</p>
+                             </div>
+                          )}
+                       </div>
+                    )
+                 })()}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                       {t.adminImages.selectGroup}
+                    </label>
+                    <select
+                      value={groupId}
+                      onChange={(e) => setGroupId(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
+                    >
+                      <option value="" className="bg-gray-900">Select Group...</option>
+                      {groups.map((group) => (
+                        <option key={group.id} value={group.id} className="bg-gray-900">
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
+                 </div>
+                 <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">
+                       {t.adminImages.tagsOptional}
+                    </label>
+                    <input
+                      type="text"
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
+                      placeholder="e.g. nature, sky"
+                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm"
+                    />
+                 </div>
+              </div>
+           </div>
+
+           <div className="flex flex-col justify-end gap-3">
+              <div className="flex gap-3">
+                 <GlassButton 
+                    primary
+                    onClick={handleUpload}
+                    disabled={fileStates.filter((fs) => fs.status === "pending").length === 0 || uploading}
+                    className="flex-1 justify-center"
+                    icon={uploading ? RefreshCw : UploadCloud}
+                 >
+                    {uploading ? `${Math.round(uploadProgress)}%` : `Upload ${fileStates.filter((fs) => fs.status === "pending").length || ''} Files`}
+                 </GlassButton>
+                 
+                 {fileStates.some((fs) => fs.status === "failed") && (
+                    <GlassButton 
+                       onClick={retryAllFailed}
+                       disabled={uploading}
+                       className="bg-orange-500/20 text-orange-500 border-orange-500/20 hover:bg-orange-500/30"
+                    >
+                       Retry Failed
+                    </GlassButton>
+                 )}
+              </div>
+              
+              {uploading && (
+                 <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                    <motion.div
+                       initial={{ width: 0 }}
+                       animate={{ width: `${uploadProgress}%` }}
+                       className="bg-primary h-full rounded-full"
+                    />
+                 </div>
+              )}
+           </div>
+        </div>
+        <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

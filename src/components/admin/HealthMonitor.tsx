@@ -2,6 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useLocale } from '@/hooks/useLocale';
+import { useAdminVersion } from '@/contexts/AdminVersionContext';
+import { GlassCard } from '@/components/ui/glass';
+import {
+  Activity,
+  RefreshCw,
+  Database,
+  CheckCircle,
+  AlertCircle,
+  Server,
+  HardDrive,
+  Clock
+} from 'lucide-react';
 
 interface HealthData {
   mainDatabase: {
@@ -25,6 +37,7 @@ interface HealthData {
 
 export default function HealthMonitor() {
   const { t } = useLocale();
+  const { version } = useAdminVersion();
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,8 +72,106 @@ export default function HealthMonitor() {
     return () => clearInterval(interval);
   }, []);
 
+  // --- V2 Layout (Glassmorphism) ---
+  if (version === 'v2') {
+    if (loading) {
+      return (
+        <GlassCard className="flex items-center justify-center h-48">
+           <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+        </GlassCard>
+      );
+    }
 
+    return (
+      <GlassCard>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+             <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-500">
+               <Activity className="w-6 h-6" />
+             </div>
+             <div>
+                <h2 className="text-lg font-semibold">{t.healthMonitor.title}</h2>
+                <p className="text-sm text-muted-foreground">{t.healthMonitor.description}</p>
+             </div>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
+            title={t.healthMonitor.refresh}
+          >
+            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+           {/* Overall Status */}
+           <div className={`p-4 rounded-xl border transition-all ${
+             healthData?.overall.healthy 
+               ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" 
+               : "bg-red-500/10 border-red-500/20 text-red-500"
+           }`}>
+              <div className="flex items-center gap-3 mb-2">
+                 {healthData?.overall.healthy ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                 <span className="font-semibold">{t.healthMonitor.overallStatus}</span>
+              </div>
+              <div className="text-sm opacity-80 pl-8">
+                 {healthData?.overall.status === 'healthy' ? t.healthMonitor.healthy : t.healthMonitor.unhealthy}
+              </div>
+           </div>
+
+           {/* Main Database */}
+           <div className={`p-4 rounded-xl border transition-all ${
+             healthData?.mainDatabase.healthy 
+               ? "bg-blue-500/10 border-blue-500/20 text-blue-500" 
+               : "bg-red-500/10 border-red-500/20 text-red-500"
+           }`}>
+              <div className="flex items-center gap-3 mb-2">
+                 <Database className="w-5 h-5" />
+                 <span className="font-semibold">{t.healthMonitor.mainDatabase}</span>
+              </div>
+              <div className="text-sm opacity-80 pl-8">
+                 {healthData?.mainDatabase.status === 'healthy' ? t.healthMonitor.healthy : t.healthMonitor.unhealthy}
+              </div>
+           </div>
+
+           {/* Backup Database */}
+           <div className={`p-4 rounded-xl border transition-all ${
+             healthData?.backupDatabase.healthy 
+               ? "bg-purple-500/10 border-purple-500/20 text-purple-500" 
+               : "bg-red-500/10 border-red-500/20 text-red-500"
+           }`}>
+              <div className="flex items-center gap-3 mb-2">
+                 <Server className="w-5 h-5" />
+                 <span className="font-semibold">{t.healthMonitor.backupDatabase}</span>
+              </div>
+              <div className="text-sm opacity-80 pl-8">
+                 {healthData?.backupDatabase.status === 'healthy' ? t.healthMonitor.healthy : t.healthMonitor.unhealthy}
+              </div>
+           </div>
+        </div>
+
+        {healthData?.stats && (
+          <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-muted-foreground">
+             <div className="flex items-center gap-2">
+                <HardDrive className="w-4 h-4" />
+                <span>{t.healthMonitor.totalImagesLabel}: <strong className="text-foreground">{healthData.stats.totalImages}</strong></span>
+             </div>
+             <div className="flex items-center gap-2">
+                <Server className="w-4 h-4" />
+                <span>{t.healthMonitor.totalGroupsLabel}: <strong className="text-foreground">{healthData.stats.totalGroups}</strong></span>
+             </div>
+             <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                <span>{t.healthMonitor.lastCheck}: <span className="text-foreground">{new Date(healthData.stats.lastCheck).toLocaleTimeString()}</span></span>
+             </div>
+          </div>
+        )}
+      </GlassCard>
+    );
+  }
+
+  // --- V1 Layout (Classic) ---
   if (loading) {
     return (
       <div className="transparent-panel rounded-lg p-6 shadow-lg">

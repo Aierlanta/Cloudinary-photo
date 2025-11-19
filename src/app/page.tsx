@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   Image as ImageIcon,
   Zap,
@@ -18,6 +18,9 @@ import {
   BookOpen,
   Languages,
   Terminal,
+  Code,
+  ShieldCheck,
+  Database,
 } from "lucide-react";
 import {
   type Theme,
@@ -28,6 +31,7 @@ import {
 import { useLocale, LocaleProvider } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import Magnetic from "@/components/ui/magnetic";
+import { GlassCard, GlassButton } from "@/components/ui/glass";
 
 // --- Types ---
 interface APIStatus {
@@ -65,79 +69,6 @@ const itemVariants = {
       ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
     },
   },
-};
-
-const cardHoverVariants = {
-  hover: {
-    y: -8,
-    scale: 1.02,
-    boxShadow: "0 20px 40px -10px rgba(0,0,0,0.2)",
-    transition: {
-      type: "spring" as const,
-      stiffness: 260,
-      damping: 20,
-    },
-  },
-};
-
-// --- Components ---
-
-const GlassCard = ({
-  children,
-  className,
-  hover = true,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  hover?: boolean;
-}) => {
-  return (
-    <motion.div
-      variants={hover ? cardHoverVariants : undefined}
-      whileHover={hover ? "hover" : undefined}
-      className={cn(
-        "relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-lg transition-colors",
-        "dark:border-white/10 dark:bg-slate-900/40",
-        "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500",
-        className
-      )}
-    >
-      {/* Noise texture overlay specifically for cards if needed, or rely on global */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-50 mix-blend-overlay" />
-      <div className="relative z-10">{children}</div>
-    </motion.div>
-  );
-};
-
-const GlassButton = ({
-  children,
-  onClick,
-  primary = false,
-  icon: Icon,
-  className,
-  ...props
-}: any) => {
-  return (
-    <Magnetic>
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onClick}
-        className={cn(
-          "group flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md backdrop-blur-md relative overflow-hidden",
-          primary
-            ? "bg-primary text-white hover:shadow-primary/40 border border-primary/50"
-            : "bg-white/10 hover:bg-white/20 text-foreground border border-white/20 dark:bg-white/5 dark:hover:bg-white/10",
-          className
-        )}
-        {...props}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-        {Icon && <Icon className="w-5 h-5 transition-transform group-hover:rotate-12 group-hover:scale-110" />}
-        {children}
-      </motion.button>
-    </Magnetic>
-  );
 };
 
 function HomeContent() {
@@ -230,7 +161,7 @@ function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden selection:bg-primary/30">
+    <div className="min-h-screen relative overflow-x-hidden selection:bg-primary/30 font-sans">
       
       {/* Moving Background Blobs */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
@@ -245,7 +176,7 @@ function HomeContent() {
             repeat: Infinity, 
             ease: "easeInOut" 
           }}
-          className="absolute -top-[20%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-primary/20 blur-[100px] mix-blend-multiply filter" 
+          className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-primary/10 blur-[120px] mix-blend-multiply filter" 
         />
         <motion.div 
           style={{ y: bgBlob2Y }}
@@ -259,9 +190,9 @@ function HomeContent() {
             ease: "easeInOut",
             delay: 1
           }}
-          className="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] rounded-full bg-secondary/20 blur-[100px] mix-blend-multiply filter" 
+          className="absolute top-[10%] -right-[10%] w-[50vw] h-[50vw] rounded-full bg-secondary/10 blur-[120px] mix-blend-multiply filter" 
         />
-        <div className="absolute bottom-0 left-[20%] w-[30vw] h-[30vw] rounded-full bg-accent/10 blur-[80px] mix-blend-multiply filter" />
+        <div className="absolute bottom-0 left-[20%] w-[40vw] h-[40vw] rounded-full bg-accent/10 blur-[100px] mix-blend-multiply filter" />
       </div>
 
       {/* Navigation */}
@@ -269,101 +200,115 @@ function HomeContent() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-white/60 dark:bg-slate-950/60 backdrop-blur-xl supports-[backdrop-filter]:bg-white/20"
+        className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-white/60 dark:bg-slate-950/60 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/10"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
-                R
+        <div className="w-full px-6 lg:px-12">
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
+                <ImageIcon className="w-6 h-6" />
               </div>
-              <span className="font-bold text-lg tracking-tight">
+              <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
                 {locale === "zh" ? "随机图片API" : "Random Image API"}
               </span>
             </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Link href="/admin" className="hidden sm:block">
-                <GlassButton className="px-4 py-2 text-sm" icon={LayoutDashboard}>
+            <div className="flex items-center gap-3">
+              <Link href="/admin" className="hidden md:block">
+                <GlassButton className="px-5 py-2 text-sm rounded-full" icon={LayoutDashboard}>
                   {t.home.managementPanel}
                 </GlassButton>
               </Link>
-              <div className="h-6 w-px bg-foreground/10 mx-1 hidden sm:block" />
-              <button
-                onClick={toggleLocale}
-                className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                title={t.home.toggleLanguage}
-              >
-                <Languages className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleThemeToggle}
-                className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                title={t.home.toggleTheme}
-              >
-                {theme === "dark" ? (
-                  <Sun className="w-5 h-5" />
-                ) : (
-                  <Moon className="w-5 h-5" />
-                )}
-              </button>
-              <Link
-                href="https://github.com/Aierlanta/Cloudinary-photo"
-                target="_blank"
-                className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-              >
-                <Github className="w-5 h-5" />
-              </Link>
+              <div className="h-6 w-px bg-foreground/10 mx-2 hidden md:block" />
+              
+              <Magnetic>
+                <button
+                  onClick={toggleLocale}
+                  className="p-2.5 rounded-full hover:bg-foreground/5 transition-colors border border-transparent hover:border-white/10"
+                  title={t.home.toggleLanguage}
+                >
+                  <Languages className="w-5 h-5" />
+                </button>
+              </Magnetic>
+              
+              <Magnetic>
+                <button
+                  onClick={handleThemeToggle}
+                  className="p-2.5 rounded-full hover:bg-foreground/5 transition-colors border border-transparent hover:border-white/10"
+                  title={t.home.toggleTheme}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="w-5 h-5" />
+                  ) : (
+                    <Moon className="w-5 h-5" />
+                  )}
+                </button>
+              </Magnetic>
+              
+              <Magnetic>
+                <Link
+                  href="https://github.com/Aierlanta/Cloudinary-photo"
+                  target="_blank"
+                  className="p-2.5 rounded-full hover:bg-foreground/5 transition-colors border border-transparent hover:border-white/10"
+                >
+                  <Github className="w-5 h-5" />
+                </Link>
+              </Magnetic>
             </div>
           </div>
         </div>
       </motion.nav>
 
       {/* Main Content */}
-      <main className="pt-28 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-12 w-full max-w-[1920px] mx-auto">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="space-y-20"
+          className="space-y-32"
         >
           {/* Hero Section */}
           <motion.section 
             style={{ y: heroY, opacity: heroOpacity }}
-            className="text-center space-y-8 relative z-10"
+            className="text-center space-y-10 relative z-10 pt-10"
           >
-            <motion.div variants={itemVariants} className="relative inline-block group">
-              <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary via-secondary to-accent opacity-30 blur-lg group-hover:opacity-50 transition-opacity duration-500" />
-              <span className="relative px-4 py-1.5 rounded-full border border-white/20 bg-white/40 dark:bg-black/40 backdrop-blur-md text-sm font-medium text-primary dark:text-white/90 flex items-center gap-2">
-                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                 v1.7.2
-              </span>
+            <motion.div variants={itemVariants} className="flex justify-center">
+              <div className="relative group cursor-default">
+                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary via-secondary to-accent opacity-40 blur-xl group-hover:opacity-60 transition-opacity duration-500" />
+                <div className="relative px-6 py-2 rounded-full border border-white/20 bg-white/40 dark:bg-black/40 backdrop-blur-xl text-sm font-semibold text-foreground flex items-center gap-3 shadow-xl">
+                   <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                   </span>
+                   v1.7.2 Stable
+                </div>
+              </div>
             </motion.div>
             
             <motion.h1
               variants={itemVariants}
-              className="text-5xl sm:text-7xl md:text-8xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-foreground via-foreground/90 to-foreground/50 leading-[1.1] drop-shadow-sm"
+              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-foreground via-foreground/90 to-foreground/40 leading-[0.9] drop-shadow-sm select-none"
             >
               {t.home.title}
             </motion.h1>
 
             <motion.p
               variants={itemVariants}
-              className="max-w-2xl mx-auto text-lg sm:text-2xl text-muted-foreground leading-relaxed font-light"
+              className="max-w-3xl mx-auto text-xl sm:text-2xl text-muted-foreground leading-relaxed font-light"
             >
               {t.home.subtitle}
             </motion.p>
 
             <motion.div
               variants={itemVariants}
-              className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6"
+              className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8"
             >
               <Link href="/api/docs">
-                <GlassButton primary icon={BookOpen} className="min-w-[160px] text-lg">
+                <GlassButton primary icon={BookOpen} className="h-14 px-8 text-lg rounded-2xl shadow-xl shadow-primary/20">
                   {t.home.apiDocs}
                 </GlassButton>
               </Link>
               <Link href="/admin">
-                <GlassButton icon={ArrowRight} className="min-w-[160px] text-lg">
+                <GlassButton icon={ArrowRight} className="h-14 px-8 text-lg rounded-2xl">
                   {t.home.managementPanel}
                 </GlassButton>
               </Link>
@@ -373,290 +318,255 @@ function HomeContent() {
             {!loading && apiStatus && (
               <motion.div
                 variants={itemVariants}
-                className="inline-flex items-center gap-2 px-4 py-2 mt-8 rounded-full bg-white/30 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-2.5 mt-12 rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-md border border-white/5 shadow-sm text-muted-foreground text-sm"
               >
-                <div className="relative flex h-3 w-3">
-                  {apiStatus.status === "healthy" && (
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  )}
-                  <span
-                    className={cn(
-                      "relative inline-flex rounded-full h-3 w-3",
-                      apiStatus.status === "healthy"
-                        ? "bg-green-500"
-                        : "bg-yellow-500"
-                    )}
-                  ></span>
-                </div>
-                <span className="text-sm font-medium">
-                  {t.home.apiStatus}:{" "}
-                  {apiStatus.status === "healthy"
-                    ? t.home.statusHealthy
-                    : t.home.statusPartial}
-                </span>
+                 <div className={cn(
+                    "w-2 h-2 rounded-full", 
+                    apiStatus.status === "healthy" ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" : "bg-yellow-500"
+                 )} />
+                 <span>
+                    System Status: <span className={cn("font-semibold", apiStatus.status === "healthy" ? "text-green-500" : "text-yellow-500")}>
+                       {apiStatus.status === "healthy" ? "Operational" : "Degraded"}
+                    </span>
+                 </span>
+                 <span className="w-px h-4 bg-white/10 mx-1" />
+                 <span>
+                    {apiStatus.stats.totalImages} Images Served
+                 </span>
               </motion.div>
             )}
           </motion.section>
 
-          {/* Interactive Preview Section */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 perspective-1000">
-            {/* Image Preview */}
-            <motion.div 
-              variants={itemVariants} 
-              className="h-full"
-              whileHover={{ rotateY: -2, rotateX: 2, scale: 1.01 }}
-              transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            >
-              <GlassCard className="h-full p-2 flex flex-col ring-1 ring-white/30 dark:ring-white/10">
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-black/5 dark:bg-white/5">
-                  {randomImageUrl ? (
-                    <>
-                      <img
-                        key={randomImageUrl}
-                        src={randomImageUrl}
-                        alt="Random Preview"
-                        className={cn(
-                          "w-full h-full object-cover transition-all duration-700 ease-out hover:scale-110",
-                          imageLoading ? "opacity-0 scale-95 blur-sm" : "opacity-100 scale-100 blur-0"
-                        )}
-                        onLoad={() => setImageLoading(false)}
-                        onError={() => setImageLoading(false)}
-                      />
-                      {imageLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center backdrop-blur-sm bg-white/10">
-                          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-lg" />
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 text-center">
-                      <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
-                      <p>{t.home.noImage}</p>
-                      <p className="text-sm opacity-70">{t.home.uploadFirst}</p>
-                    </div>
-                  )}
-                  
-                  {/* Overlay Actions */}
-                  <div className="absolute bottom-4 right-4 flex gap-2">
-                     <Magnetic>
-                       <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={refreshRandomImage}
-                          className="p-3 rounded-full bg-white/80 dark:bg-black/80 backdrop-blur-md shadow-lg text-foreground hover:text-primary transition-colors border border-white/20"
-                          title={t.home.refreshImage}
-                        >
-                          <RefreshCw className={cn("w-5 h-5", imageLoading && "animate-spin")} />
-                        </motion.button>
-                     </Magnetic>
-                  </div>
-                </div>
-                <div className="p-5 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-lg">{t.home.randomImagePreview}</h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">Cloudinary / Telegram Optimized</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="px-2 py-1 rounded-md bg-green-500/10 text-green-600 text-xs font-medium border border-green-500/20">Live</div>
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-
-            {/* Code Snippet */}
-            <motion.div 
-              variants={itemVariants} 
-              className="flex flex-col gap-6"
-              whileHover={{ rotateY: 2, rotateX: 2, scale: 1.01 }}
-              transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            >
-              <GlassCard className="p-6 sm:p-8 flex-1 flex flex-col justify-center relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-20">
-                  <Terminal className="w-32 h-32" />
-                </div>
+          {/* Bento Grid Layout for Features & Preview */}
+          <section className="w-full max-w-[1700px] mx-auto">
+             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)]">
                 
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="font-bold text-xl flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                        <Terminal className="w-5 h-5" />
+                {/* Large Preview Card (Col-span-8, Row-span-2) */}
+                <motion.div 
+                   variants={itemVariants}
+                   className="md:col-span-12 lg:col-span-8 row-span-2 h-full min-h-[500px]"
+                >
+                   <GlassCard className="h-full flex flex-col p-0 overflow-hidden group" hover={false}>
+                      <div className="absolute top-6 left-6 z-20 flex items-center gap-2">
+                         <div className="px-3 py-1 rounded-full bg-black/30 backdrop-blur-md text-white text-xs border border-white/10 flex items-center gap-2">
+                            <ImageIcon className="w-3 h-3" />
+                            Live Preview
+                         </div>
                       </div>
-                      {t.home.basicCall}
-                    </h3>
-                    <div className="flex gap-2">
-                       <div className="flex gap-1.5">
-                          <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-                          <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-                          <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="relative group mb-8">
-                    <div className="bg-slate-950/80 backdrop-blur-sm rounded-xl p-5 font-mono text-sm text-slate-300 overflow-x-auto border border-white/10 shadow-inner">
-                      <div className="flex items-center gap-2">
-                        <span className="text-purple-400 font-bold">GET</span>
-                        <span className="text-gray-500">→</span>
-                        <span className="text-green-400 break-all">{baseUrl}/api/random</span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(`${baseUrl}/api/random`)}
-                      className="absolute top-3 right-3 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md"
-                    >
-                      {copied ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
 
-                  <div className="pt-6 border-t border-white/10">
-                    <h3 className="font-bold text-xl flex items-center gap-3 mb-6">
-                      <div className="p-2 rounded-lg bg-secondary/10 text-secondary">
-                        <Settings className="w-5 h-5" />
+                      <div className="relative flex-1 w-full h-full bg-black/5 dark:bg-white/5 overflow-hidden">
+                         {randomImageUrl ? (
+                            <>
+                               <img
+                                  key={randomImageUrl}
+                                  src={randomImageUrl}
+                                  alt="Random Preview"
+                                  className={cn(
+                                     "w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-105",
+                                     imageLoading ? "opacity-0 scale-105 blur-xl" : "opacity-100 scale-100 blur-0"
+                                  )}
+                                  onLoad={() => setImageLoading(false)}
+                                  onError={() => setImageLoading(false)}
+                               />
+                               {imageLoading && (
+                                  <div className="absolute inset-0 flex items-center justify-center backdrop-blur-md bg-black/20 z-10">
+                                     <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                                  </div>
+                               )}
+                            </>
+                         ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                               <ImageIcon className="w-16 h-16 mb-4 opacity-20" />
+                               <p>{t.home.noImage}</p>
+                            </div>
+                         )}
+                         
+                         <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-32 flex items-end justify-between">
+                            <div className="text-white">
+                               <h3 className="text-2xl font-bold mb-2">{t.home.randomImagePreview}</h3>
+                               <p className="text-white/70 text-sm max-w-md">
+                                  High-performance random image delivery optimized for speed and reliability.
+                               </p>
+                            </div>
+                            <Magnetic>
+                               <button
+                                  onClick={refreshRandomImage}
+                                  className="p-4 rounded-full bg-white text-black hover:scale-110 transition-transform shadow-2xl"
+                               >
+                                  <RefreshCw className={cn("w-6 h-6", imageLoading && "animate-spin")} />
+                               </button>
+                            </Magnetic>
+                         </div>
                       </div>
-                      {t.home.htmlUsage}
-                    </h3>
-                    <div className="relative group">
-                      <div className="bg-slate-950/80 backdrop-blur-sm rounded-xl p-5 font-mono text-sm text-slate-300 overflow-x-auto border border-white/10 shadow-inner">
-                        <span className="text-blue-400">&lt;img</span>{" "}
-                        <span className="text-sky-300">src</span>=
-                        <span className="text-orange-300">"{baseUrl}/api/random"</span>{" "}
-                        <span className="text-blue-400">/&gt;</span>
-                      </div>
-                       <button
-                        onClick={() => copyToClipboard(`<img src="${baseUrl}/api/random" />`)}
-                        className="absolute top-3 right-3 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md"
-                      >
-                        {copied ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-          </section>
-
-          {/* Features Grid */}
-          <section>
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={containerVariants}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            >
-              {[
-                {
-                  icon: Zap,
-                  title: t.features.performance.title,
-                  desc: t.features.performance.description,
-                  color: "text-yellow-500",
-                  bg: "bg-yellow-500/10",
-                  border: "border-yellow-500/20"
-                },
-                {
-                  icon: CheckCircle2,
-                  title: t.features.easyToUse.title,
-                  desc: t.features.easyToUse.description,
-                  color: "text-green-500",
-                  bg: "bg-green-500/10",
-                  border: "border-green-500/20"
-                },
-                {
-                  icon: Settings,
-                  title: t.features.flexible.title,
-                  desc: t.features.flexible.description,
-                  color: "text-blue-500",
-                  bg: "bg-blue-500/10",
-                  border: "border-blue-500/20"
-                },
-              ].map((feature, index) => (
-                <motion.div key={index} variants={itemVariants}>
-                  <GlassCard className={cn("p-8 h-full hover:border-opacity-50 transition-colors", feature.border)}>
-                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-sm", feature.bg)}>
-                      <feature.icon className={cn("w-7 h-7", feature.color)} />
-                    </div>
-                    <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {feature.desc}
-                    </p>
-                  </GlassCard>
+                   </GlassCard>
                 </motion.div>
-              ))}
-            </motion.div>
+
+                {/* Code Snippet Card (Col-span-4, Row-span-2) */}
+                <motion.div 
+                   variants={itemVariants}
+                   className="md:col-span-12 lg:col-span-4 row-span-2"
+                >
+                   <GlassCard className="h-full flex flex-col p-0 overflow-hidden" hover={false}>
+                      <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-md flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
+                               <Code className="w-5 h-5" />
+                            </div>
+                            <span className="font-semibold">Quick Start</span>
+                         </div>
+                         <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
+                            <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
+                            <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
+                         </div>
+                      </div>
+                      
+                      <div className="p-6 flex-1 flex flex-col gap-6 font-mono text-sm bg-slate-950/50">
+                         <div className="space-y-3">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
+                               <span>Endpoint</span>
+                               <span className="text-green-500">GET</span>
+                            </div>
+                            <div className="relative group">
+                               <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-slate-300 break-all hover:border-primary/50 transition-colors cursor-text">
+                                  {baseUrl}/api/random
+                               </div>
+                               <button 
+                                  onClick={() => copyToClipboard(`${baseUrl}/api/random`)}
+                                  className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
+                               >
+                                  {copied ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                               </button>
+                            </div>
+                         </div>
+
+                         <div className="space-y-3">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
+                               <span>HTML</span>
+                            </div>
+                            <div className="relative group">
+                               <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-slate-300 break-all hover:border-primary/50 transition-colors">
+                                  <span className="text-blue-400">&lt;img</span> <span className="text-sky-300">src</span>=<span className="text-orange-300">"{baseUrl}/api/random"</span> <span className="text-blue-400">/&gt;</span>
+                               </div>
+                               <button 
+                                  onClick={() => copyToClipboard(`<img src="${baseUrl}/api/random" />`)}
+                                  className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
+                               >
+                                  {copied ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                               </button>
+                            </div>
+                         </div>
+                         
+                         <div className="mt-auto pt-6 border-t border-white/5">
+                            <Link href="/api/docs" className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group">
+                               <span className="text-muted-foreground group-hover:text-foreground transition-colors">Read Full Documentation</span>
+                               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                         </div>
+                      </div>
+                   </GlassCard>
+                </motion.div>
+
+                {/* Feature: Performance (Col-span-4) */}
+                <motion.div variants={itemVariants} className="md:col-span-6 lg:col-span-4">
+                   <GlassCard className="h-full p-8 flex flex-col justify-between hover:border-yellow-500/30 transition-colors group">
+                      <div>
+                         <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <Zap className="w-6 h-6" />
+                         </div>
+                         <h3 className="text-xl font-bold mb-3">{t.features.performance.title}</h3>
+                         <p className="text-muted-foreground text-sm leading-relaxed">{t.features.performance.description}</p>
+                      </div>
+                   </GlassCard>
+                </motion.div>
+
+                {/* Feature: Easy to Use (Col-span-4) */}
+                <motion.div variants={itemVariants} className="md:col-span-6 lg:col-span-4">
+                   <GlassCard className="h-full p-8 flex flex-col justify-between hover:border-green-500/30 transition-colors group">
+                      <div>
+                         <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <CheckCircle2 className="w-6 h-6" />
+                         </div>
+                         <h3 className="text-xl font-bold mb-3">{t.features.easyToUse.title}</h3>
+                         <p className="text-muted-foreground text-sm leading-relaxed">{t.features.easyToUse.description}</p>
+                      </div>
+                   </GlassCard>
+                </motion.div>
+
+                {/* Feature: Flexible (Col-span-4) */}
+                <motion.div variants={itemVariants} className="md:col-span-12 lg:col-span-4">
+                   <GlassCard className="h-full p-8 flex flex-col justify-between hover:border-blue-500/30 transition-colors group">
+                      <div>
+                         <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <Settings className="w-6 h-6" />
+                         </div>
+                         <h3 className="text-xl font-bold mb-3">{t.features.flexible.title}</h3>
+                         <p className="text-muted-foreground text-sm leading-relaxed">{t.features.flexible.description}</p>
+                      </div>
+                   </GlassCard>
+                </motion.div>
+
+             </div>
           </section>
 
-          {/* Stats Section */}
+          {/* Stats Banner */}
           {apiStatus && (
-            <section>
+             <section className="w-full max-w-[1700px] mx-auto">
                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 50 }}
-                  whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                  className="relative"
                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 blur-3xl opacity-30 rounded-3xl" />
-                  <GlassCard className="p-8 md:p-12 text-center border-primary/10 relative overflow-hidden" hover={false}>
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50" />
-                    
-                    <h2 className="text-3xl font-bold mb-12 relative inline-block">
-                      {t.stats.title}
-                      <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full" />
-                    </h2>
-                    
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                      <div className="space-y-2">
-                        <div className="text-4xl md:text-5xl font-black text-foreground tracking-tight tabular-nums">
-                           {apiStatus.stats.totalImages}
+                  <GlassCard className="relative overflow-hidden py-16 px-8" hover={false}>
+                     <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5" />
+                     <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
+                        <div className="space-y-2">
+                           <div className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                              {apiStatus.stats.totalImages}
+                           </div>
+                           <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">{t.stats.totalImages}</div>
                         </div>
-                        <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                           {t.stats.totalImages}
+                        <div className="space-y-2">
+                           <div className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                              {apiStatus.stats.totalGroups}
+                           </div>
+                           <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">{t.stats.imageGroups}</div>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-4xl md:text-5xl font-black text-foreground tracking-tight tabular-nums">
-                           {apiStatus.stats.totalGroups}
+                        <div className="space-y-2">
+                           <div className={cn("text-5xl lg:text-6xl font-black tracking-tighter", apiStatus.services.api.enabled ? "text-green-500" : "text-red-500")}>
+                              {apiStatus.services.api.enabled ? "100%" : "ERR"}
+                           </div>
+                           <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">{t.stats.apiStatus}</div>
                         </div>
-                        <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                           {t.stats.imageGroups}
+                        <div className="space-y-2">
+                           <div className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
+                              99.9%
+                           </div>
+                           <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">{t.stats.serviceTime}</div>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className={cn("text-4xl md:text-5xl font-black tracking-tight", 
-                           apiStatus.services.api.enabled ? "text-green-500" : "text-red-500"
-                        )}>
-                           {apiStatus.services.api.enabled ? "ON" : "OFF"}
-                        </div>
-                        <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                           {t.stats.apiStatus}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-4xl md:text-5xl font-black text-foreground tracking-tight">
-                           24/7
-                        </div>
-                        <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                           {t.stats.serviceTime}
-                        </div>
-                      </div>
-                    </div>
+                     </div>
                   </GlassCard>
                </motion.div>
-            </section>
+             </section>
           )}
         </motion.div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-xl mt-12 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <footer className="border-t border-white/5 bg-white/30 dark:bg-black/30 backdrop-blur-xl relative z-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} {t.footer.copyright}
+            <div className="flex items-center gap-3">
+               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-primary/20">
+                A
+              </div>
+              <div className="text-sm text-muted-foreground">
+                &copy; {new Date().getFullYear()} {t.footer.copyright}
+              </div>
             </div>
-            <div className="flex items-center gap-6 text-sm font-medium text-muted-foreground">
+            
+            <div className="flex items-center gap-8 text-sm font-medium text-muted-foreground">
               <span>{t.footer.author}</span>
-              <div className="h-4 w-px bg-foreground/10" />
               <Link
                 href="https://github.com/Aierlanta/Cloudinary-photo"
                 target="_blank"

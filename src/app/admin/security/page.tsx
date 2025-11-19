@@ -2,8 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { useLocale } from "@/hooks/useLocale";
+import { useAdminVersion } from "@/contexts/AdminVersionContext";
+import { GlassCard, GlassButton } from "@/components/ui/glass";
 import BannedIPManagement from "@/components/admin/BannedIPManagement";
 import RateLimitManagement from "@/components/admin/RateLimitManagement";
+import { 
+  Shield, 
+  Ban, 
+  Activity, 
+  Clock, 
+  Globe, 
+  BarChart2,
+  RefreshCw
+} from "lucide-react";
 
 interface AccessStats {
   totalAccess: number;
@@ -37,16 +48,13 @@ interface RateLimit {
 
 export default function SecurityManagement() {
   const { t } = useLocale();
-  const [activeTab, setActiveTab] = useState<"stats" | "banned" | "limits">(
-    "stats"
-  );
+  const { version } = useAdminVersion();
+  const [activeTab, setActiveTab] = useState<"stats" | "banned" | "limits">("stats");
   const [loading, setLoading] = useState(true);
 
   // 访问统计数据
   const [stats, setStats] = useState<AccessStats | null>(null);
-  const [realtimeStats, setRealtimeStats] = useState<RealtimeStats | null>(
-    null
-  );
+  const [realtimeStats, setRealtimeStats] = useState<RealtimeStats | null>(null);
 
   // 封禁IP数据
   const [bannedIPs, setBannedIPs] = useState<BannedIP[]>([]);
@@ -109,6 +117,185 @@ export default function SecurityManagement() {
     loadRateLimits();
   };
 
+  if (version === 'v2') {
+     return (
+        <div className="space-y-8">
+           {/* Header */}
+           <div className="flex justify-between items-start">
+              <div>
+                 <h1 className="text-3xl font-bold mb-2">{t.adminSecurity.title}</h1>
+                 <p className="text-muted-foreground">{t.adminSecurity.description}</p>
+              </div>
+              <GlassButton onClick={handleRefresh} icon={RefreshCw} className={loading ? "animate-spin" : ""}>
+                 {t.adminSecurity.refresh}
+              </GlassButton>
+           </div>
+
+           {/* Navigation Cards */}
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <GlassCard 
+                 className={`cursor-pointer transition-colors ${activeTab === 'stats' ? 'ring-2 ring-primary bg-primary/10' : 'opacity-80 hover:opacity-100 hover:ring-2 hover:ring-primary/40'}`}
+                 onClick={() => setActiveTab('stats')}
+                 hover={false}
+              >
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-blue-500/20 text-blue-500">
+                       <BarChart2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                       <h3 className="font-bold">{t.adminSecurity.accessStats}</h3>
+                       <p className="text-xs text-muted-foreground">{realtimeStats?.total || 0} requests</p>
+                    </div>
+                 </div>
+              </GlassCard>
+
+              <GlassCard 
+                 className={`cursor-pointer transition-colors ${activeTab === 'banned' ? 'ring-2 ring-primary bg-primary/10' : 'opacity-80 hover:opacity-100 hover:ring-2 hover:ring-primary/40'}`}
+                 onClick={() => setActiveTab('banned')}
+                 hover={false}
+              >
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-red-500/20 text-red-500">
+                       <Ban className="w-6 h-6" />
+                    </div>
+                    <div>
+                       <h3 className="font-bold">{t.adminSecurity.bannedIPs}</h3>
+                       <p className="text-xs text-muted-foreground">{bannedIPs.length} blocked</p>
+                    </div>
+                 </div>
+              </GlassCard>
+
+              <GlassCard 
+                 className={`cursor-pointer transition-colors ${activeTab === 'limits' ? 'ring-2 ring-primary bg-primary/10' : 'opacity-80 hover:opacity-100 hover:ring-2 hover:ring-primary/40'}`}
+                 onClick={() => setActiveTab('limits')}
+                 hover={false}
+              >
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-yellow-500/20 text-yellow-500">
+                       <Activity className="w-6 h-6" />
+                    </div>
+                    <div>
+                       <h3 className="font-bold">{t.adminSecurity.rateLimits}</h3>
+                       <p className="text-xs text-muted-foreground">{rateLimits.length} active limits</p>
+                    </div>
+                 </div>
+              </GlassCard>
+           </div>
+
+           {/* Content Area */}
+           <div className="min-h-[400px]">
+              {loading ? (
+                 <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+                 </div>
+              ) : (
+                 <>
+                    {activeTab === 'stats' && (
+                       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          {/* Realtime Stats */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                             <GlassCard className="p-6">
+                                <div className="flex justify-between items-start mb-2">
+                                   <p className="text-sm text-muted-foreground">{t.adminSecurity.lastHour}</p>
+                                   <Clock className="w-4 h-4 text-blue-500" />
+                                </div>
+                                <div className="text-3xl font-bold">{realtimeStats?.lastHour || 0}</div>
+                             </GlassCard>
+                             <GlassCard className="p-6">
+                                <div className="flex justify-between items-start mb-2">
+                                   <p className="text-sm text-muted-foreground">{t.adminSecurity.last24Hours}</p>
+                                   <Activity className="w-4 h-4 text-green-500" />
+                                </div>
+                                <div className="text-3xl font-bold">{realtimeStats?.last24Hours || 0}</div>
+                             </GlassCard>
+                             <GlassCard className="p-6">
+                                <div className="flex justify-between items-start mb-2">
+                                   <p className="text-sm text-muted-foreground">{t.adminSecurity.totalAccess}</p>
+                                   <Globe className="w-4 h-4 text-purple-500" />
+                                </div>
+                                <div className="text-3xl font-bold">{realtimeStats?.total || 0}</div>
+                             </GlassCard>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Top Paths */}
+                            <GlassCard className="p-6">
+                              <h3 className="font-bold mb-4 flex items-center gap-2">
+                                <BarChart2 className="w-4 h-4 text-primary" />
+                                {t.adminSecurity.topPaths}
+                              </h3>
+                              <div className="space-y-3">
+                                {(stats?.topPaths ?? []).slice(0, 8).map((item, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center justify-between text-sm"
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <span className="text-muted-foreground w-4">
+                                        {i + 1}
+                                      </span>
+                                      <span className="font-mono truncate bg-white/5 px-2 py-0.5 rounded text-xs">
+                                        {item.path}
+                                      </span>
+                                    </div>
+                                    <span className="font-medium">{item.count}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </GlassCard>
+
+                            {/* Top IPs */}
+                            <GlassCard className="p-6">
+                              <h3 className="font-bold mb-4 flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-primary" />
+                                {t.adminSecurity.topIPs}
+                              </h3>
+                              <div className="space-y-3">
+                                {(stats?.topIPs ?? []).slice(0, 8).map((item, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center justify-between text-sm"
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <span className="text-muted-foreground w-4">
+                                        {i + 1}
+                                      </span>
+                                      <span className="font-mono truncate bg-white/5 px-2 py-0.5 rounded text-xs">
+                                        {item.ip}
+                                      </span>
+                                    </div>
+                                    <span className="font-medium">{item.count}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </GlassCard>
+                          </div>
+                       </div>
+                    )}
+
+                    {activeTab === 'banned' && (
+                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          <GlassCard>
+                             <BannedIPManagement bannedIPs={bannedIPs} onRefresh={handleRefresh} />
+                          </GlassCard>
+                       </div>
+                    )}
+
+                    {activeTab === 'limits' && (
+                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          <GlassCard>
+                             <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
+                          </GlassCard>
+                       </div>
+                    )}
+                 </>
+              )}
+           </div>
+        </div>
+     )
+  }
+
+  // ... V1 Layout ...
   return (
     <div className="space-y-6">
       {/* 页面标题 */}

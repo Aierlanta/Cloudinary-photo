@@ -3,6 +3,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import ParameterModal from '@/components/admin/ParameterModal'
 import { useLocale } from '@/hooks/useLocale'
+import { useAdminVersion } from '@/contexts/AdminVersionContext'
+import { GlassCard, GlassButton } from '@/components/ui/glass'
+import { 
+  Settings, 
+  Shield, 
+  Globe, 
+  Key, 
+  Database, 
+  Plus, 
+  Trash2, 
+  Edit2, 
+  Check, 
+  X, 
+  Copy, 
+  ExternalLink, 
+  Play, 
+  Save 
+} from 'lucide-react'
 
 interface APIParameter {
   name: string
@@ -34,12 +52,14 @@ interface Group {
 
 export default function ConfigPage() {
   const { t } = useLocale();
+  const { version } = useAdminVersion();
   const [config, setConfig] = useState<APIConfig | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [editingParameter, setEditingParameter] = useState<APIParameter | null>(null)
   const [showAddParameter, setShowAddParameter] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [newParameter, setNewParameter] = useState<Partial<APIParameter>>({
     name: '',
     type: 'group',
@@ -64,17 +84,14 @@ export default function ConfigPage() {
   })
 
   const loadConfig = useCallback(async () => {
-    console.log('开始加载配置...')
     try {
       const response = await fetch('/api/admin/config', {
         headers: {
           'X-Admin-Password': 'admin123'
         }
       })
-      console.log('配置加载响应:', response.status, response.statusText)
       if (response.ok) {
         const data = await response.json()
-        console.log('配置加载成功:', data.data?.config)
         const loadedConfig = data.data?.config || getDefaultConfig()
         // 确保字段存在
         if (loadedConfig.enableDirectResponse === undefined) {
@@ -88,10 +105,6 @@ export default function ConfigPage() {
         }
         setConfig(loadedConfig)
       } else {
-        console.error('加载配置失败:', {
-          status: response.status,
-          statusText: response.statusText
-        })
         setConfig(getDefaultConfig())
       }
     } catch (error) {
@@ -126,7 +139,6 @@ export default function ConfigPage() {
 
   const saveConfig = async () => {
     if (!config) {
-      console.error('配置为空，无法保存')
       alert(t.adminConfig.saveFailed)
       return
     }
@@ -166,9 +178,7 @@ export default function ConfigPage() {
       apiKeyEnabled: config.apiKeyEnabled,
       apiKey: config.apiKey
     }
-    console.log('开始保存配置...', config)
-    console.log('发送的请求数据:', requestData)
-    console.log('allowedParameters详情:', JSON.stringify(requestData.allowedParameters, null, 2))
+
     setSaving(true)
     try {
       const response = await fetch('/api/admin/config', {
@@ -180,19 +190,12 @@ export default function ConfigPage() {
         body: JSON.stringify(requestData)
       })
 
-      console.log('请求发送完成，状态:', response.status, response.statusText)
-
       if (response.ok) {
         const data = await response.json()
         alert(data.message || t.adminConfig.saveSuccess)
         await loadConfig()
       } else {
         const errorData = await response.json()
-        console.error('API配置更新失败:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData
-        })
         alert(errorData.error?.message || `${t.adminConfig.saveFailed} (${response.status}: ${response.statusText})`)
       }
     } catch (error) {
@@ -299,6 +302,9 @@ export default function ConfigPage() {
   }
 
   if (loading) {
+    if (version === 'v2') {
+       return <div className="p-8 text-center text-muted-foreground">Loading configuration...</div>
+    }
     return (
       <div className="space-y-6">
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
@@ -312,6 +318,9 @@ export default function ConfigPage() {
   }
 
   if (!config) {
+     if (version === 'v2') {
+        return <div className="p-8 text-center text-red-500">Failed to load configuration.</div>
+     }
     return (
       <div className="space-y-6">
         <div className="transparent-panel rounded-lg p-6 shadow-lg">
@@ -324,8 +333,287 @@ export default function ConfigPage() {
     )
   }
 
+  // --- V2 Layout ---
+  if (version === 'v2') {
+     return (
+        <div className="space-y-8 pb-20">
+           {/* Header */}
+           <div className="flex justify-between items-start">
+              <div>
+                 <h1 className="text-3xl font-bold mb-2">{t.adminConfig.title}</h1>
+                 <p className="text-muted-foreground">{t.adminConfig.description}</p>
+              </div>
+              <GlassButton primary icon={Save} onClick={saveConfig} disabled={saving}>
+                 {saving ? t.adminConfig.saving : t.adminConfig.saveConfig}
+              </GlassButton>
+           </div>
+
+           {/* Status Cards */}
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <GlassCard className="p-6 flex items-center justify-between" hover>
+                 <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${config.isEnabled ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                       <Globe className="w-6 h-6" />
+                    </div>
+                    <div>
+                       <h3 className="font-semibold">{t.adminConfig.apiStatus}</h3>
+                       <p className="text-sm text-muted-foreground">{t.adminConfig.enablePublicAPI}</p>
+                    </div>
+                 </div>
+                 <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="toggle-api" checked={config.isEnabled} onChange={e => setConfig({...config, isEnabled: e.target.checked})} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-full checked:border-green-500"/>
+                    <label htmlFor="toggle-api" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${config.isEnabled ? 'bg-green-500/50' : 'bg-gray-300 dark:bg-gray-700'}`}></label>
+                 </div>
+              </GlassCard>
+              
+              <GlassCard className="p-6 flex items-center justify-between" hover>
+                 <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${config.apiKeyEnabled ? 'bg-blue-500/20 text-blue-500' : 'bg-gray-500/20 text-gray-500'}`}>
+                       <Key className="w-6 h-6" />
+                    </div>
+                    <div>
+                       <h3 className="font-semibold">{t.adminConfig.apiKeyAuth}</h3>
+                       <p className="text-sm text-muted-foreground">{t.adminConfig.enableApiKey}</p>
+                    </div>
+                 </div>
+                 <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="toggle-key" checked={config.apiKeyEnabled} onChange={e => setConfig({...config, apiKeyEnabled: e.target.checked})} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-full checked:border-blue-500"/>
+                    <label htmlFor="toggle-key" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${config.apiKeyEnabled ? 'bg-blue-500/50' : 'bg-gray-300 dark:bg-gray-700'}`}></label>
+                 </div>
+              </GlassCard>
+
+              <GlassCard className="p-6 flex items-center justify-between" hover>
+                 <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${config.enableDirectResponse ? 'bg-purple-500/20 text-purple-500' : 'bg-gray-500/20 text-gray-500'}`}>
+                       <ExternalLink className="w-6 h-6" />
+                    </div>
+                    <div>
+                       <h3 className="font-semibold">{t.adminConfig.enableDirectResponse}</h3>
+                       <p className="text-sm text-muted-foreground">Allow non-redirect</p>
+                    </div>
+                 </div>
+                 <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="toggle-direct" checked={config.enableDirectResponse} onChange={e => setConfig({...config, enableDirectResponse: e.target.checked})} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-full checked:border-purple-500"/>
+                    <label htmlFor="toggle-direct" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${config.enableDirectResponse ? 'bg-purple-500/50' : 'bg-gray-300 dark:bg-gray-700'}`}></label>
+                 </div>
+              </GlassCard>
+           </div>
+
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column: Settings */}
+              <div className="lg:col-span-2 space-y-8">
+                 {/* API Key Config */}
+                 {config.apiKeyEnabled && (
+                    <GlassCard className="p-6 space-y-4">
+                       <div className="flex items-center gap-3 mb-4">
+                          <Shield className="w-5 h-5 text-primary" />
+                          <h3 className="font-bold text-lg">{t.adminConfig.apiKeyValue}</h3>
+                       </div>
+                       <div className="flex gap-3">
+                          <input 
+                             type="text" 
+                             value={config.apiKey || ''}
+                             onChange={e => setConfig({...config, apiKey: e.target.value})}
+                             placeholder={t.adminConfig.apiKeyPlaceholder}
+                             className="flex-1 p-3 rounded-xl bg-white/5 border border-white/10 outline-none focus:border-primary font-mono"
+                          />
+                          <GlassButton onClick={() => {
+                             const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                             setConfig({ ...config, apiKey: randomKey });
+                          }}>
+                             {t.adminConfig.generateKey}
+                          </GlassButton>
+                       </div>
+                       <p className="text-sm text-muted-foreground">{t.adminConfig.apiKeyValueDesc}</p>
+                    </GlassCard>
+                 )}
+
+                 {/* Scope Config */}
+                 <GlassCard className="p-6 space-y-6">
+                    <div className="flex items-center gap-3 mb-4">
+                       <Database className="w-5 h-5 text-primary" />
+                       <h3 className="font-bold text-lg">{t.adminConfig.defaultScope}</h3>
+                    </div>
+                    
+                    <div>
+                       <label className="block text-sm font-medium mb-2">{t.adminConfig.defaultScopeDesc}</label>
+                       <select 
+                          value={config.defaultScope}
+                          onChange={e => setConfig({...config, defaultScope: e.target.value as 'all' | 'groups'})}
+                          className="w-full p-3 rounded-xl bg-white/5 border border-white/10 outline-none focus:border-primary"
+                       >
+                          <option value="all" className="bg-gray-900">{t.adminConfig.scopeAll}</option>
+                          <option value="groups" className="bg-gray-900">{t.adminConfig.scopeGroups}</option>
+                       </select>
+                    </div>
+
+                    {config.defaultScope === 'groups' && (
+                       <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                          <label className="block text-sm font-medium mb-3">{t.adminConfig.defaultGroups}</label>
+                          <div className="flex flex-wrap gap-3">
+                             {groups.map(group => (
+                                <label key={group.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+                                   <input 
+                                      type="checkbox"
+                                      checked={config.defaultGroups.includes(group.id)}
+                                      onChange={e => {
+                                         if (e.target.checked) setConfig({...config, defaultGroups: [...config.defaultGroups, group.id]})
+                                         else setConfig({...config, defaultGroups: config.defaultGroups.filter(id => id !== group.id)})
+                                      }}
+                                      className="rounded border-white/20 bg-white/10 text-primary focus:ring-primary"
+                                   />
+                                   <span className="text-sm">{group.name}</span>
+                                </label>
+                             ))}
+                          </div>
+                       </div>
+                    )}
+                 </GlassCard>
+
+                 {/* Parameter Management */}
+                 <GlassCard className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                       <div className="flex items-center gap-3">
+                          <Settings className="w-5 h-5 text-primary" />
+                          <h3 className="font-bold text-lg">{t.adminConfig.parameterManagement}</h3>
+                       </div>
+                       <GlassButton onClick={() => setShowAddParameter(true)} icon={Plus} className="text-sm px-3 py-1.5">
+                          {t.adminConfig.addParameter}
+                       </GlassButton>
+                    </div>
+
+                    <div className="space-y-4">
+                       {config.allowedParameters.length === 0 ? (
+                          <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-white/10 rounded-xl">
+                             <p>{t.adminConfig.noParameters}</p>
+                             <GlassButton onClick={() => setShowAddParameter(true)} className="mt-4">{t.adminConfig.addFirstParameter}</GlassButton>
+                          </div>
+                       ) : (
+                          config.allowedParameters.map((param, index) => (
+                             <div key={index} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between group hover:border-primary/50 transition-colors">
+                                <div>
+                                   <div className="flex items-center gap-3 mb-1">
+                                      <h4 className="font-bold">{param.name}</h4>
+                                      <span className={`text-xs px-2 py-0.5 rounded-full ${param.isEnabled ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                                         {param.isEnabled ? 'Enabled' : 'Disabled'}
+                                      </span>
+                                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-500 capitalize">
+                                         {param.type}
+                                      </span>
+                                   </div>
+                                   <div className="text-xs text-muted-foreground">
+                                      Values: {param.allowedValues.join(', ')}
+                                   </div>
+                                </div>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <button onClick={() => setEditingParameter(param)} className="p-2 rounded-lg hover:bg-white/10 text-blue-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                   <button onClick={() => deleteParameter(index)} className="p-2 rounded-lg hover:bg-white/10 text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                             </div>
+                          ))
+                       )}
+                    </div>
+                 </GlassCard>
+              </div>
+
+              {/* Right Column: API Test & Info */}
+              <div className="space-y-8">
+                 <GlassCard className="p-6 space-y-6 sticky top-24">
+                    <h3 className="font-bold text-lg mb-4">{t.adminConfig.apiLinks}</h3>
+                    
+                    <div className="space-y-4">
+                       <div>
+                          <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Base URL</label>
+                          <div className="flex gap-2">
+                             <div className="flex-1 p-2 rounded-lg bg-black/40 border border-white/10 font-mono text-xs truncate">
+                                {generateApiUrl()}
+                             </div>
+                             <button onClick={() => navigator.clipboard.writeText(generateApiUrl())} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+                                <Copy className="w-4 h-4" />
+                             </button>
+                          </div>
+                       </div>
+
+                       <div>
+                          <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Examples</label>
+                          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                             {generateExampleUrls().map((example, i) => (
+                                <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+                                   <div className="font-semibold mb-1 truncate" title={example.label}>{example.label}</div>
+                                   <div className="flex gap-2 items-center">
+                                      <div className="flex-1 font-mono text-muted-foreground truncate" title={example.url}>{example.url}</div>
+                                      <button onClick={() => navigator.clipboard.writeText(example.url)} className="hover:text-primary"><Copy className="w-3 h-3" /></button>
+                                      <button onClick={() => window.open(example.url, '_blank')} className="hover:text-primary"><ExternalLink className="w-3 h-3" /></button>
+                                   </div>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-white/10">
+                       <h3 className="font-bold text-lg mb-4">{t.adminConfig.apiTest}</h3>
+                       <div className="flex gap-2 mb-4">
+                          <input 
+                             type="text" 
+                             value={testUrl}
+                             onChange={e => setTestUrl(e.target.value)}
+                             placeholder="https://..."
+                             className="flex-1 p-2 rounded-lg bg-black/40 border border-white/10 outline-none focus:border-primary text-sm font-mono"
+                          />
+                          <GlassButton onClick={testApi} disabled={!testUrl || testing} className="px-3">
+                             <Play className="w-4 h-4" />
+                          </GlassButton>
+                       </div>
+                       
+                       {testResult && (
+                          <div className={`p-4 rounded-xl text-xs font-mono overflow-hidden ${testResult.success ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                             <div className="flex items-center gap-2 mb-2 font-bold">
+                                {testResult.success ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
+                                <span>{testResult.status} {testResult.statusText}</span>
+                             </div>
+                             {testResult.error && <div className="text-red-400">{testResult.error}</div>}
+                             {testResult.headers && (
+                                <div className="opacity-70">
+                                   <div className="uppercase text-[10px] mb-1">Response Headers:</div>
+                                   <pre className="overflow-x-auto whitespace-pre-wrap break-all">
+                                      {JSON.stringify(testResult.headers, null, 2)}
+                                   </pre>
+                                </div>
+                             )}
+                          </div>
+                       )}
+                    </div>
+                 </GlassCard>
+              </div>
+           </div>
+
+           <ParameterModal
+              parameter={editingParameter}
+              groups={groups}
+              isOpen={showAddParameter || editingParameter !== null}
+              onClose={() => {
+                 setShowAddParameter(false)
+                 setEditingParameter(null)
+              }}
+              onSave={(parameter) => {
+                 if (editingParameter) {
+                    const index = config.allowedParameters.findIndex(p => p.name === editingParameter.name)
+                    if (index !== -1) updateParameter(index, parameter)
+                 } else {
+                    addParameter(parameter)
+                 }
+              }}
+              isEditing={editingParameter !== null}
+           />
+        </div>
+     )
+  }
+
+  // ... V1 Layout (Classic) ...
   return (
     <div className="space-y-6">
+      {/* ... Existing V1 Content ... */}
       {/* 页面标题和API状态 */}
       <div className="transparent-panel rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between">

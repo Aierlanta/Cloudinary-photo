@@ -83,6 +83,9 @@ export const zh: Translations = {
     quickSettings: '快速设置',
     opacityDescription: '调整管理面板的透明度，较低的透明度可以更好地显示背景内容。',
     toggleLanguage: '切换语言',
+    versionControl: '版本控制',
+    switchToNew: '前往新版',
+    switchToOld: '回到旧版',
   },
 
   adminNav: {
