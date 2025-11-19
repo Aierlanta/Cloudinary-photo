@@ -876,6 +876,7 @@ export default function ImageUpload({
                     disabled={fileStates.filter((fs) => fs.status === "pending").length === 0 || uploading}
                     className="flex-1 justify-center"
                     icon={uploading ? RefreshCw : UploadCloud}
+                    iconClassName={uploading ? "animate-spin" : ""}
                  >
                     {uploading ? `${Math.round(uploadProgress)}%` : `Upload ${fileStates.filter((fs) => fs.status === "pending").length || ''} Files`}
                  </GlassButton>

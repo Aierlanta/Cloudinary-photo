@@ -45,21 +45,20 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
   const [panelOpacity, setPanelOpacity] = useState(0.9)
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const [isManualTheme, setIsManualTheme] = useState(initialIsManual)
-  const [adminVersion, setAdminVersion] = useState<AdminVersion>(() => {
-    if (typeof window === 'undefined') {
-      // 前端默认使用新版
-      return 'v2'
-    }
-    const saved = window.localStorage.getItem('admin-version') as AdminVersion | null
-    // 如果用户之前手动切到旧版或新版，则按保存的来，否则默认新版
-    return saved === 'v1' || saved === 'v2' ? saved : 'v2'
-  })
+  // 默认使用 v2 防止 hydration mismatch
+  const [adminVersion, setAdminVersion] = useState<AdminVersion>('v2')
 
   useEffect(() => {
     const preference = resolveClientTheme()
 
     setTheme(prev => (prev === preference.theme ? prev : preference.theme))
     setIsManualTheme(prev => (prev === preference.isManual ? prev : preference.isManual))
+
+    // 在客户端挂载后读取本地存储的版本设置
+    const savedVersion = window.localStorage.getItem('admin-version') as AdminVersion | null
+    if (savedVersion === 'v1' || savedVersion === 'v2') {
+      setAdminVersion(savedVersion)
+    }
   }, [])
 
   useEffect(() => {
@@ -81,11 +80,6 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
     const savedOpacity = localStorage.getItem('admin-panel-opacity')
     if (savedOpacity) {
       setPanelOpacity(parseFloat(savedOpacity))
-    }
-
-    const savedVersion = localStorage.getItem('admin-version') as AdminVersion | null
-    if (savedVersion === 'v1' || savedVersion === 'v2') {
-      setAdminVersion(savedVersion)
     }
   }, [])
 

@@ -36,9 +36,11 @@ export default function SmartImage({
 }: SmartImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [useNativeImage, setUseNativeImage] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const handleLoad = () => {
     setIsLoaded(true);
+    setHasError(false);
     onLoad?.();
   };
 
@@ -48,17 +50,19 @@ export default function SmartImage({
       setUseNativeImage(true);
       setIsLoaded(false);
     } else {
+      setHasError(true);
+      setIsLoaded(true); // 停止加载动画，显示错误或空白
       onError?.();
     }
   };
 
   const sharedClassName = `${className} transition-opacity duration-300 ${
-    isLoaded ? "opacity-100" : "opacity-0"
+    isLoaded && !hasError ? "opacity-100" : "opacity-0"
   } ${onClick ? "cursor-pointer" : ""}`;
 
   return (
     <>
-      {!isLoaded && (
+      {!isLoaded && !hasError && (
         <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center">
           <svg
             className="w-8 h-8 text-gray-400"

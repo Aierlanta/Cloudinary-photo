@@ -60,6 +60,7 @@ export const GlassButton = ({
   onClick,
   primary = false,
   icon: Icon,
+  iconClassName,
   className,
   magnetic = true,
   ...props
@@ -85,7 +86,7 @@ export const GlassButton = ({
     >
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
       {Icon && (
-        <Icon className="w-5 h-5 transition-transform group-hover:rotate-12 group-hover:scale-110" />
+        <Icon className={cn("w-5 h-5 transition-transform", iconClassName ? iconClassName : "group-hover:rotate-12 group-hover:scale-110")} />
       )}
       {children}
     </motion.button>

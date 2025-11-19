@@ -97,10 +97,10 @@ export default function HealthMonitor() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 group"
             title={t.healthMonitor.refresh}
           >
-            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
           </button>
         </div>
 
