@@ -129,7 +129,7 @@ export default function ImagesPage() {
     }));
   };
 
-  const handleUploadSuccess = (newImage: Image) => {
+  const handleUploadSuccess = (newImage?: Image) => {
     // 重新加载图片列表
     setFilters((prev) => ({ ...prev, page: 1 }));
   };

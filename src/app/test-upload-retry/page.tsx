@@ -22,7 +22,8 @@ interface Image {
 export default function TestUploadRetryPage() {
   const [uploadedImages, setUploadedImages] = useState<Image[]>([]);
 
-  const handleUploadSuccess = (image: Image) => {
+  const handleUploadSuccess = (image?: Image) => {
+    if (!image) return;
     setUploadedImages(prev => [...prev, image]);
     console.log('上传成功:', image);
   };

@@ -206,6 +206,32 @@ export interface Translations {
     today: string;
     last7Days: string;
     last30Days: string;
+    selectFiles: string;
+    customDesc: string;
+    urlImportTitle: string;
+    urlImportSubtitle: string;
+    urlImportModeLabel: string;
+    urlImportModeTxt: string;
+    urlImportModeJson: string;
+    urlImportSelectFile: string;
+    urlImportTxtPlaceholder: string;
+    urlImportJsonPlaceholder: string;
+    urlImportLastResult: string;
+    urlImportButton: string;
+    urlImporting: string;
+    urlImportEmptyErrorTitle: string;
+    urlImportEmptyErrorMessage: string;
+    urlImportFailedTitle: string;
+    urlImportFailedDefault: string;
+    urlImportReadErrorMessage: string;
+    urlImportStats: string;
+    urlImportPartialTitle: string;
+    urlImportSuccessTitle: string;
+    urlImportUnknownError: string;
+    urlImportTxtExampleTitle: string;
+    urlImportTxtExampleContent: string;
+    urlImportJsonExampleTitle: string;
+    urlImportJsonExampleContent: string;
   };
 
   // API 配置管理
