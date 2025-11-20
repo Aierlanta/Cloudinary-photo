@@ -214,7 +214,7 @@ export const ImageUrlImportRequestSchema = z.object({
   groupId: IdSchema.optional(),
   mode: z.enum(['txt', 'json', 'items']),
   content: z.string().optional(),
-  items: z.array(ImportUrlItemSchema).optional()
+  items: z.array(ImportUrlItemSchema).max(500, '单次导入数量不能超过 500 条').optional()
 }).superRefine((data, ctx) => {
   if (data.mode === 'items') {
     if (!data.items || data.items.length === 0) {

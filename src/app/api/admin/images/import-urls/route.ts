@@ -104,7 +104,16 @@ function deriveFilenameAndFormat(url: string): { filename: string; format: strin
 async function importUrls(request: NextRequest): Promise<Response> {
   const body = await request.json();
 
-  const parsedRequest = ImageUrlImportRequestSchema.parse(body);
+  const validation = ImageUrlImportRequestSchema.safeParse(body);
+  if (!validation.success) {
+    throw new AppError(
+      ErrorType.VALIDATION_ERROR,
+      validation.error.errors[0].message,
+      400,
+    );
+  }
+
+  const parsedRequest = validation.data;
 
   // 仅允许自定义图床
   if (parsedRequest.provider !== StorageProvider.CUSTOM) {
@@ -141,6 +150,16 @@ async function importUrls(request: NextRequest): Promise<Response> {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
       '未解析到任何有效的URL',
+      400,
+    );
+  }
+
+  // 限制单次导入数量，防止超时
+  const MAX_IMPORT_LIMIT = 500;
+  if (rawItems.length > MAX_IMPORT_LIMIT) {
+    throw new AppError(
+      ErrorType.VALIDATION_ERROR,
+      `单次导入数量不能超过 ${MAX_IMPORT_LIMIT} 条（当前: ${rawItems.length}）`,
       400,
     );
   }

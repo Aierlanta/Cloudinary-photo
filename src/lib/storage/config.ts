@@ -76,7 +76,8 @@ export function getEnabledProviders(): StorageProvider[] {
   return [
     StorageProvider.CLOUDINARY,
     StorageProvider.TGSTATE,
-    StorageProvider.TELEGRAM
+    StorageProvider.TELEGRAM,
+    StorageProvider.CUSTOM
   ].filter(isStorageEnabled);
 }
 

@@ -322,7 +322,7 @@ describe('/api/admin/images/import-urls API 集成测试', () => {
     expect(json.error.type).toBe('VALIDATION_ERROR');
   });
 
-  it('请求体结构不满足 Zod 模式时，目前会走统一错误处理返回 500（记录为潜在优化点）', async () => {
+  it('请求体结构不满足 Zod 模式时，返回 400 验证错误', async () => {
     const body = {
       provider: 'custom',
       // 缺少 mode 字段，会触发 ZodError
@@ -332,10 +332,10 @@ describe('/api/admin/images/import-urls API 集成测试', () => {
     const request = createMockRequest(body, { contentType: 'application/json' });
     const response = await POST(request);
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     const json = await response.json();
     expect(json.success).toBe(false);
-    expect(json.error.type).toBe('INTERNAL_ERROR');
+    expect(json.error.type).toBe('VALIDATION_ERROR');
   });
 
   it('JSON 解析失败时返回 400 验证错误', async () => {
@@ -437,6 +437,42 @@ describe('/api/admin/images/import-urls API 集成测试', () => {
     const json = await response.json();
     expect(json.success).toBe(false);
     expect(json.error.type).toBe('VALIDATION_ERROR');
+  });
+
+  it('超过单次导入数量限制（500条）时返回 400', async () => {
+    const manyItems = Array(501).fill({ url: 'https://example.com/img.jpg' });
+    const body = {
+      provider: 'custom',
+      mode: 'items',
+      items: manyItems
+    };
+
+    const request = createMockRequest(body, { contentType: 'application/json' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const json = await response.json();
+    expect(json.success).toBe(false);
+    expect(json.error.type).toBe('VALIDATION_ERROR');
+    expect(json.error.message).toContain('单次导入数量不能超过 500 条');
+  });
+
+  it('txt 模式超过数量限制时返回 400', async () => {
+    const lines = Array(501).fill('https://example.com/img.jpg').join('\n');
+    const body = {
+      provider: 'custom',
+      mode: 'txt',
+      content: lines
+    };
+
+    const request = createMockRequest(body, { contentType: 'application/json' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const json = await response.json();
+    expect(json.success).toBe(false);
+    expect(json.error.type).toBe('VALIDATION_ERROR');
+    expect(json.error.message).toContain('单次导入数量不能超过 500 条');
   });
 });
 
