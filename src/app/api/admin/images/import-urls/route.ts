@@ -23,6 +23,9 @@ import {
 
 const storageDatabaseService = new StorageDatabaseService();
 
+// 单次导入数量限制
+const MAX_IMPORT_LIMIT = 500;
+
 interface ParsedImportItem {
   url: string;
   title?: string;
@@ -31,11 +34,42 @@ interface ParsedImportItem {
 }
 
 function parseTxtContent(content: string): ParsedImportItem[] {
-  return content
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'))
-    .map((url) => ({ url }));
+  const items: ParsedImportItem[] = [];
+  const lines = content.split(/\r?\n/);
+
+  // 快速检查行数，避免处理过大的文件
+  if (lines.length > MAX_IMPORT_LIMIT + 100) { // 稍微放宽以容纳空行
+     // 进一步精确检查有效行
+     let validCount = 0;
+     for (const line of lines) {
+       if (line.trim() && !line.trim().startsWith('#')) {
+         validCount++;
+         if (validCount > MAX_IMPORT_LIMIT) {
+           throw new AppError(
+             ErrorType.VALIDATION_ERROR,
+             `单次导入数量不能超过 ${MAX_IMPORT_LIMIT} 条`,
+             400,
+           );
+         }
+       }
+     }
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      items.push({ url: trimmed });
+      // 双重检查
+      if (items.length > MAX_IMPORT_LIMIT) {
+         throw new AppError(
+           ErrorType.VALIDATION_ERROR,
+           `单次导入数量不能超过 ${MAX_IMPORT_LIMIT} 条`,
+           400,
+         );
+      }
+    }
+  }
+  return items;
 }
 
 function parseJsonContent(content: string): ParsedImportItem[] {
@@ -63,6 +97,15 @@ function parseJsonContent(content: string): ParsedImportItem[] {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
       'JSON内容必须是URL字符串数组或包含url字段的对象数组',
+      400,
+    );
+  }
+
+  // 立即检查数组长度
+  if (parsed.length > MAX_IMPORT_LIMIT) {
+    throw new AppError(
+      ErrorType.VALIDATION_ERROR,
+      `单次导入数量不能超过 ${MAX_IMPORT_LIMIT} 条（当前: ${parsed.length}）`,
       400,
     );
   }
@@ -155,7 +198,6 @@ async function importUrls(request: NextRequest): Promise<Response> {
   }
 
   // 限制单次导入数量，防止超时
-  const MAX_IMPORT_LIMIT = 500;
   if (rawItems.length > MAX_IMPORT_LIMIT) {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
@@ -167,71 +209,79 @@ async function importUrls(request: NextRequest): Promise<Response> {
   const errors: ImageUrlImportResponse['errors'] = [];
   let successCount = 0;
 
-  for (let index = 0; index < rawItems.length; index++) {
-    const rawItem = rawItems[index];
+  // 并发控制配置
+  const CONCURRENCY_LIMIT = 5;
 
-    const validationResult = ImportUrlItemSchema.safeParse(rawItem);
-    if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0];
-      errors.push({
-        index,
-        url: rawItem?.url || '',
-        reason: firstError?.message || '数据验证失败',
-      });
-      continue;
-    }
+  // 分块处理以控制并发
+  for (let i = 0; i < rawItems.length; i += CONCURRENCY_LIMIT) {
+    const chunk = rawItems.slice(i, i + CONCURRENCY_LIMIT);
+    
+    await Promise.all(chunk.map(async (rawItem, chunkIndex) => {
+      const index = i + chunkIndex;
 
-    const item = validationResult.data;
+      const validationResult = ImportUrlItemSchema.safeParse(rawItem);
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        errors.push({
+          index,
+          url: rawItem?.url || '',
+          reason: firstError?.message || '数据验证失败',
+        });
+        return;
+      }
 
-    try {
-      const { filename, format } = deriveFilenameAndFormat(item.url);
+      const item = validationResult.data;
 
-      const publicId = item.url;
+      try {
+        const { filename, format } = deriveFilenameAndFormat(item.url);
 
-      await storageDatabaseService.saveImageWithStorage({
-        publicId,
-        url: item.url,
-        title: item.title,
-        description: item.description,
-        groupId: parsedRequest.groupId || undefined,
-        tags: item.tags,
-        primaryProvider: StorageProvider.CUSTOM,
-        backupProvider: undefined,
-        storageResults: [
-          {
-            provider: StorageProvider.CUSTOM,
-            result: {
-              id: publicId,
-              publicId,
-              url: item.url,
-              secureUrl: item.url,
-              filename,
-              format,
-              width: undefined,
-              height: undefined,
-              bytes: 0,
-              metadata: {
-                source: 'external-url',
+        const publicId = item.url;
+
+        await storageDatabaseService.saveImageWithStorage({
+          publicId,
+          url: item.url,
+          title: item.title,
+          description: item.description,
+          groupId: parsedRequest.groupId || undefined,
+          tags: item.tags,
+          primaryProvider: StorageProvider.CUSTOM,
+          backupProvider: undefined,
+          storageResults: [
+            {
+              provider: StorageProvider.CUSTOM,
+              result: {
+                id: publicId,
+                publicId,
+                url: item.url,
+                secureUrl: item.url,
+                filename,
+                format,
+                width: undefined,
+                height: undefined,
+                bytes: 0,
+                metadata: {
+                  source: 'external-url',
+                },
               },
             },
-          },
-        ],
-      });
+          ],
+        });
 
-      successCount += 1;
-    } catch (error) {
-      logger.error(
-        '导入URL失败',
-        error instanceof Error ? error : new Error(String(error)),
-        { url: item.url },
-      );
+        successCount += 1;
+      } catch (error) {
+        logger.error(
+          '导入URL失败',
+          error instanceof Error ? error : new Error(String(error)),
+          { url: item.url },
+        );
 
-      errors.push({
-        index,
-        url: item.url,
-        reason: error instanceof Error ? error.message : '未知错误',
-      });
-    }
+        errors.push({
+          index,
+          url: item.url,
+          reason: error instanceof Error ? error.message : '未知错误',
+        });
+      }
+    }));
   }
 
   const response: APIResponse<ImageUrlImportResponse> = {
