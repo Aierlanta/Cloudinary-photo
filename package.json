@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/start-dev.js",
     "build": "next build",
     "build:replit": "npm install --include=dev && npx prisma generate && next build",
-    "start": "next start",
+    "start": "node scripts/start-prod.js",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "jest",

@@ -6,7 +6,7 @@ import { withSecurity } from '@/lib/security';
 import { logger } from '@/lib/logger';
 import { initializeServer } from '@/lib/server-init';
 import { APIResponse } from '@/types/api';
-import { readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import { join } from 'path';
 
 // 强制动态渲染
@@ -17,11 +17,11 @@ const cloudinaryService = CloudinaryService.getInstance();
 /**
  * 读取版本号
  */
-function getVersion(): string {
+async function getVersion(): Promise<string> {
   try {
     const versionPath = join(process.cwd(), '.version');
-    const version = readFileSync(versionPath, 'utf-8').trim();
-    return version || '1.0.0';
+    const version = await readFile(versionPath, 'utf-8');
+    return version.trim() || '1.0.0';
   } catch (error) {
     logger.warn('无法读取版本文件，使用默认版本', { error: error instanceof Error ? error.message : 'Unknown error' });
     return process.env.npm_package_version || '1.0.0';
@@ -95,7 +95,7 @@ async function getAPIStatus(request: NextRequest): Promise<Response> {
         status: overallStatus,
         timestamp: new Date(),
         uptime: process.uptime(),
-        version: getVersion(),
+        version: await getVersion(),
         environment: process.env.NODE_ENV || 'development',
         services: {
           database: dbStatus,
