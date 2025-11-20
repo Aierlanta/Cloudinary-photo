@@ -6,6 +6,7 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().min(1, '需要设置 CLOUDINARY_API_SECRET'),
   ADMIN_PASSWORD: z.string().min(6, '管理员密码至少需要6个字符'),
   DATABASE_URL: z.string().min(1, '需要设置 DATABASE_URL'),
+  PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })
 
