@@ -250,10 +250,11 @@ GET /api/health
 #### Image Management
 
 ```http
-GET    /api/admin/images           # Get image list (supports pagination, filtering)
-POST   /api/admin/images           # Upload images (supports batch upload)
-PUT    /api/admin/images/[id]      # Update image information
-DELETE /api/admin/images/[id]      # Delete image
+GET    /api/admin/images                  # Get image list (supports pagination, filtering)
+POST   /api/admin/images                  # Upload images (supports batch upload)
+POST   /api/admin/images/import-urls      # Batch import external image URLs for the custom provider
+PUT    /api/admin/images/[id]             # Update image information
+DELETE /api/admin/images/[id]             # Delete image
 ```
 
 #### Group Management
@@ -357,7 +358,7 @@ GET    /api/admin/security/ip-info         # Get IP information and statistics
 ### Core Features
 
 - **Random Image API**: Fast random image retrieval with group filtering support
-- **Multi-host Storage**: Support for Cloudinary and TgState with automatic failover
+- **Multi-host Storage**: Support for Cloudinary, TgState, Telegram, and a custom external URL provider, with automatic failover between enabled hosts
 - **Management Panel**: Complete web-based admin interface for image and group management
 - **API Key Authentication**: Optional API key authentication for public endpoints
 - **Image Processing**: Support for transparency adjustment and background color customization
@@ -449,7 +450,7 @@ GET    /api/admin/security/ip-info         # Get IP information and statistics
 
 #### Storage System (`src/lib/storage/`)
 
-- **Multi-host Architecture**: Supports Cloudinary and TgState
+- **Multi-host Architecture**: Supports Cloudinary, TgState, Telegram, and a custom external URL provider
 - **Failover**: Automatic service status detection and intelligent switching
 - **Unified Interface**: Abstract storage operations for easy extension of new image hosting services
 - **Dynamic Configuration** (v1.2.0): Enable/disable storage providers via environment variables
@@ -521,6 +522,12 @@ The project supports multi-host architecture, providing higher availability and 
 - **Project URL**: [TgState GitHub](https://github.com/csznet/tgState)
 - **Configuration**: Requires deploying TgState service and obtaining access token
 
+#### Custom External URL Provider
+
+- **Use Case**: Manage existing external image URLs (CDN, object storage, or third-party hosts) without uploading files again
+- **Configuration**: No additional credentials required; uses the original image URLs as-is
+- **Usage**: In the admin image management page, select the "custom external URL" provider and use the "Batch import image URLs" panel to import TXT/JSON content
+
 ## Monitoring and Maintenance
 
 ### Health Monitoring
@@ -563,25 +570,8 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 - [TgState](https://github.com/csznet/tgState) - Open-source Telegram image hosting service
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 
-## Update Log
-
-### v1.6.5
-
-This update focuses on enhancing the **Telegram image host** integration, optimizing overall performance and data logging. Key updates are as follows:
-
-1. **Enhanced Telegram Support**:
-    - **Proxy Support**: Added proxy support for the Telegram Bot API. Configure a proxy server via the `TELEGRAM_PROXY_URL` environment variable to resolve connection instability in certain regions.
-    - **Metadata Support**: Images uploaded to Telegram now store richer metadata, such as `file_id` and `file_unique_id`, paving the way for advanced features like permanent links and cache optimization.
-    - **Image Processing Optimization**: Improved the logic for fetching and displaying images from Telegram, leading to faster and more stable preview loading.
-
-2. **API Access Logging**:
-    - Enhanced API access logging to provide more detailed tracking of request origins and usage, facilitating auditing and analysis.
-
-3. **Database Model Updates**:
-    - Updated the Prisma schema to support the new Telegram metadata storage and logging features.
-
 ---
 
-**Current Version**: v1.6.5 | **Last Updated**: 2025-11-18
+**Current Version**: v1.9.1 | **Last Updated**: 2025-11-20
 
 For issues or suggestions, feel free to submit an Issue or Pull Request!

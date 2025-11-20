@@ -109,7 +109,7 @@ TELEGRAM_ENABLE=true
 **推荐使用 Telegram 直连模式**，优势如下：
 
 - **无需第三方服务**：直接使用 Telegram Bot API，无需部署 TgState
-- *多 Token 负载均衡**：支持多个 Bot Token 轮询，防止单个 token 被限速
+- \*多 Token 负载均衡\*\*：支持多个 Bot Token 轮询，防止单个 token 被限速
 - **自动缩略图**：Telegram 自动生成 320x320 缩略图（~40KB），管理面板加载更快
 - **健康检查**：自动检测 token 健康状态，失败自动切换
 - ⚠️ **仅新图片**：只有新上传的图片才有缩略图优化，旧图片继续使用原有优化方案
@@ -274,10 +274,11 @@ GET /api/health
 #### 图片管理
 
 ```http
-GET    /api/admin/images           # 获取图片列表（支持分页、筛选）
-POST   /api/admin/images           # 上传图片（支持批量上传）
-PUT    /api/admin/images/[id]      # 更新图片信息
-DELETE /api/admin/images/[id]      # 删除图片
+GET    /api/admin/images                  # 获取图片列表（支持分页、筛选）
+POST   /api/admin/images                  # 上传图片（支持批量上传）
+POST   /api/admin/images/import-urls      # 批量导入外部图片 URL（自定义图床）
+PUT    /api/admin/images/[id]             # 更新图片信息
+DELETE /api/admin/images/[id]             # 删除图片
 ```
 
 #### 分组管理
@@ -382,7 +383,7 @@ GET    /api/admin/security/ip-info         # 获取IP信息和统计
 ### 核心功能
 
 - **随机图片 API**: 快速的随机图片获取，支持分组过滤
-- **多图床存储**: 支持 Cloudinary 和 TgState，具备自动故障转移
+- **多图床存储**: 支持 Cloudinary、TgState、Telegram 直连以及自定义外链，具备自动故障转移
 - **管理面板**: 完整的 Web 管理界面，用于图片和分组管理
 - **API Key 认证**: 可选的 API Key 认证功能，保护公共端点
 - **图片处理**: 支持透明度调整和背景颜色自定义
@@ -474,7 +475,7 @@ GET    /api/admin/security/ip-info         # 获取IP信息和统计
 
 #### 存储系统 (`src/lib/storage/`)
 
-- **多图床架构**: 支持 Cloudinary 和 TgState
+- **多图床架构**: 支持 Cloudinary、TgState、Telegram 直连以及自定义外链
 - **故障转移**: 自动检测服务状态，智能切换
 - **统一接口**: 抽象存储操作，便于扩展新的图床服务
 - **动态配置** (v1.2.0): 通过环境变量启用/禁用存储提供商
@@ -546,6 +547,12 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 - **项目地址**: [TgState GitHub](https://github.com/csznet/tgState)
 - **配置**: 需要部署 TgState 服务并获取访问令牌
 
+#### 自定义外链（自定义图床）
+
+- **适用场景**: 已有图片托管在其他 CDN、对象存储或第三方图床，只希望在本系统中管理 URL 和元信息
+- **配置**: 无需额外凭据，直接使用原始图片外链地址
+- **使用**: 在管理后台「图片管理」中选择「自定义外链」图床，并通过「批量导入 URL」面板使用 TXT/JSON 内容导入
+
 ## 监控和维护
 
 ### 健康监控
@@ -588,25 +595,8 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 - [TgState](https://github.com/csznet/tgState) - 开源的 Telegram 图床服务
 - [Tailwind CSS](https://tailwindcss.com/) - 实用优先的 CSS 框架
 
-## 更新日志
-
-### v1.6.5
-
-本次更新重点增强了 **Telegram 图床** 的集成，并优化了整体性能与数据记录，主要更新内容如下：
-
-1. **增强的 Telegram 支持**:
-    - **代理支持**: 新增 Telegram Bot API 代理功能，通过环境变量 `TELEGRAM_PROXY_URL` 可配置代理服务器，解决部分地区访问不稳定的问题。
-    - **元数据支持**: 现在上传至 Telegram 的图片会记录更丰富的元数据，例如 `file_id` 和 `file_unique_id`，为后续高级功能（如永久链接、缓存优化）提供支持。
-    - **图片处理优化**: 优化了从 Telegram 获取和展示图片的逻辑，提高了预览图的加载速度和稳定性。
-
-2. **API 访问日志**:
-    - 增强了 API 访问日志记录功能，现在可以更详细地追踪请求来源和使用情况，便于审计和分析。
-
-3. **数据库模型更新**:
-    - 更新了 Prisma schema，以支持新的 Telegram 元数据存储和日志记录功能。
-
 ---
 
-**当前版本**: v1.6.5 | **最后更新**: 2025-11-18
+**当前版本**: v1.9.1 | **最后更新**: 2025-11-20
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request！
