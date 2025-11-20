@@ -54,8 +54,7 @@ export class StorageDatabaseService {
    */
   async saveImageWithStorage(data: CreateImageData): Promise<ImageWithStorage> {
     const imageId = this.generateImageId();
-    
-    // 构建存储元数据
+
     const storageMetadata = {
       uploadTime: new Date().toISOString(),
       providers: data.storageResults.map(sr => sr.provider),
@@ -65,88 +64,89 @@ export class StorageDatabaseService {
         .map(sr => sr.result.url)
     };
 
-    // 提取 Telegram 相关信息 (如果有)
     const telegramMetadata = data.storageResults.find(
       sr => sr.provider === StorageProvider.TELEGRAM
     )?.result.metadata;
 
-    // 增加事务超时时间，因为 tgState 上传可能需要较长时间
-    const result = await prisma.$transaction(async (tx) => {
-      // 创建图片记录
-      const image = await tx.image.create({
-        data: {
-          id: imageId,
-          url: data.url,
-          publicId: data.publicId,
-          title: data.title,
-          description: data.description,
-          groupId: data.groupId,
-          tags: data.tags ? JSON.stringify(data.tags) : null,
-          primaryProvider: data.primaryProvider,
-          backupProvider: data.backupProvider,
-          storageMetadata: JSON.stringify(storageMetadata),
-          // Telegram 相关字段
-          telegramFileId: telegramMetadata?.telegramFileId,
-          telegramThumbnailFileId: telegramMetadata?.telegramThumbnailFileId,
-          telegramFilePath: telegramMetadata?.telegramFilePath,
-          telegramThumbnailPath: telegramMetadata?.telegramThumbnailPath,
-          // 存储 bot token (明文) 用于后续访问
-          // 注意: 这个 token 只能通过 /api/response 访问,不会通过 /api/random 暴露
-          telegramBotToken: telegramMetadata?.telegramBotToken
-        }
-      });
+    // 1️⃣ 直接创建 image（不使用 $transaction）
+    const image = await prisma.image.create({
+      data: {
+        id: imageId,
+        url: data.url,
+        publicId: data.publicId,
+        title: data.title,
+        description: data.description,
+        groupId: data.groupId,
+        tags: data.tags ? JSON.stringify(data.tags) : null,
+        primaryProvider: data.primaryProvider,
+        backupProvider: data.backupProvider,
+        storageMetadata: JSON.stringify(storageMetadata),
 
-      // 创建存储记录
-      const storageRecords = await Promise.all(
-        data.storageResults.map(({ provider, result }) =>
-          tx.imageStorageRecord.create({
-            data: {
-              imageId: imageId,
-              provider: provider,
-              identifier: result.publicId,
-              url: result.url,
-              metadata: JSON.stringify({
-                originalResult: result,
-                uploadTime: new Date().toISOString()
-              }),
-              status: 'active'
-            }
-          })
-        )
-      );
-
-      // 更新分组图片计数
-      if (data.groupId) {
-        await tx.group.update({
-          where: { id: data.groupId },
-          data: {
-            imageCount: {
-              increment: 1
-            }
-          }
-        });
+        telegramFileId: telegramMetadata?.telegramFileId,
+        telegramThumbnailFileId: telegramMetadata?.telegramThumbnailFileId,
+        telegramFilePath: telegramMetadata?.telegramFilePath,
+        telegramThumbnailPath: telegramMetadata?.telegramThumbnailPath,
+        telegramBotToken: telegramMetadata?.telegramBotToken
       }
-
-      return {
-        ...image,
-        title: image.title || undefined,
-        description: image.description || undefined,
-        tags: image.tags || undefined,
-        groupId: image.groupId || undefined,
-        backupProvider: image.backupProvider || undefined,
-        storageMetadata: image.storageMetadata || undefined,
-        storageRecords: storageRecords.map(record => ({
-          ...record,
-          metadata: record.metadata || undefined
-        }))
-      };
-    }, {
-      maxWait: 15000, // 最多等待 15 秒获取事务锁
-      timeout: 30000  // 事务执行最多 30 秒
     });
 
-    console.log(`保存图片成功: ${imageId}, 存储提供商: ${data.storageResults.map(sr => sr.provider).join(', ')}`);
-    return result;
+    // 2️⃣ 创建 storage record（单条写入，不使用事务）
+    const storageRecords = await Promise.all(
+      data.storageResults.map(({ provider, result }) =>
+        prisma.imageStorageRecord.create({
+          data: {
+            imageId: imageId,
+            provider,
+            identifier: result.publicId,
+            url: result.url,
+            metadata: JSON.stringify({
+              originalResult: result,
+              uploadTime: new Date().toISOString()
+            }),
+            status: 'active'
+          }
+        })
+      )
+    );
+
+    // 3️⃣ group.update 独立执行 + 自动重试（彻底避免死锁）
+    if (data.groupId) {
+      await this.incrementGroupCountSafe(data.groupId);
+    }
+
+    return {
+      ...image,
+      title: image.title || undefined,
+      description: image.description || undefined,
+      tags: image.tags || undefined,
+      groupId: image.groupId || undefined,
+      backupProvider: image.backupProvider || undefined,
+      storageMetadata: image.storageMetadata || undefined,
+      storageRecords: storageRecords.map(r => ({
+        ...r,
+        metadata: r.metadata || undefined
+      }))
+    };
+  }
+
+  // ⭐ 加入安全自动重试（强烈推荐）
+  private async incrementGroupCountSafe(groupId: string) {
+    for (let i = 0; i < 5; i++) {
+      try {
+        await prisma.group.update({
+          where: { id: groupId },
+          data: { imageCount: { increment: 1 } }
+        });
+        return;
+      } catch (err: any) {
+        if (err.code === "P2034") {   // 死锁写冲突
+          await new Promise(r => setTimeout(r, 30 * (i + 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error("Group update failed after retry");
   }
 
   /**
