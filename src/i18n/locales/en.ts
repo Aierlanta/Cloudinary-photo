@@ -499,6 +499,38 @@ export const en: Translations = {
     today: 'Today',
     last7Days: 'Last 7 Days',
     last30Days: 'Last 30 Days',
+    selectFiles: 'Select Files',
+    customDesc: 'Use custom URLs as image source without any upload or hosting',
+    urlImportTitle: 'Batch import image URLs',
+    urlImportSubtitle:
+      'Support txt (one URL per line) or JSON format, write directly to database without hosting',
+    urlImportModeLabel: 'Format',
+    urlImportModeTxt: 'TXT (one URL per line)',
+    urlImportModeJson: 'JSON (array or object list)',
+    urlImportSelectFile: 'Choose txt/json file',
+    urlImportTxtPlaceholder:
+      'TXT mode: one image URL per line, lines starting with # are treated as comments',
+    urlImportJsonPlaceholder:
+      'JSON mode: can be ["https://...", ...] or [{ "url": "...", "title": "...", "description": "...", "tags": ["tag1"] }]',
+    urlImportLastResult: 'Last import: total {total}, success {success}, failed {failed}',
+    urlImportButton: 'Import URLs',
+    urlImporting: 'Importing...',
+    urlImportEmptyErrorTitle: 'Content is empty',
+    urlImportEmptyErrorMessage: 'Please enter URLs to import or select a txt/json file first',
+    urlImportFailedTitle: 'Import failed',
+    urlImportFailedDefault: 'Batch import failed, please try again later',
+    urlImportReadErrorMessage: 'Failed to read file content, please check file encoding or format',
+    urlImportStats: 'Total {total}, success {success}, failed {failed}',
+    urlImportPartialTitle: 'Partially succeeded',
+    urlImportSuccessTitle: 'Import completed',
+    urlImportUnknownError: 'An unknown error occurred during import, please try again later',
+    urlImportTxtExampleTitle: 'TXT example',
+    urlImportTxtExampleContent:
+      '# Example: one image URL per line, lines starting with # are comments\nhttps://example.com/image1.jpg\nhttps://example.com/image2.png',
+    urlImportJsonExampleTitle: 'JSON example',
+    urlImportJsonExampleContent:
+      '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "Home banner",\n    "description": "Desktop homepage banner",\n    "tags": ["banner", "pc"]\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "Mobile banner",\n    "tags": ["banner", "mobile"]\n  }\n]',
+
   },
 
   adminGroups: {

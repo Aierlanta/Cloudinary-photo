@@ -167,3 +167,30 @@ export interface BulkUpdateResponse {
   failedIds: string[];
   message: string;
 }
+
+// 批量URL导入
+export interface ImageUrlImportItem {
+  url: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+}
+
+export interface ImageUrlImportRequest {
+  provider: 'custom';
+  groupId?: string;
+  mode: 'txt' | 'json' | 'items';
+  content?: string;
+  items?: ImageUrlImportItem[];
+}
+
+export interface ImageUrlImportResponse {
+  total: number;
+  success: number;
+  failed: number;
+  errors: Array<{
+    index: number;
+    url: string;
+    reason: string;
+  }>;
+}

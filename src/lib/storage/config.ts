@@ -31,6 +31,9 @@ export function isStorageEnabled(provider: StorageProvider): boolean {
       return process.env.TGSTATE_ENABLE !== 'false';
     case StorageProvider.TELEGRAM:
       return process.env.TELEGRAM_ENABLE !== 'false';
+    case StorageProvider.CUSTOM:
+      // 自定义外链图床默认启用，除非显式设置为 false
+      return process.env.CUSTOM_ENABLE !== 'false';
     default:
       return false;
   }
@@ -39,9 +42,9 @@ export function isStorageEnabled(provider: StorageProvider): boolean {
 /**
  * 获取所有启用的图床服务（字符串形式）
  * 用于需要字符串表示的场景（如 API 响应、前端交互）
- * 
+ *
  * @returns 启用的服务列表（字符串数组）
- * 
+ *
  * @example
  * ```typescript
  * const providers = getEnabledProvidersAsStrings();
@@ -53,15 +56,16 @@ export function getEnabledProvidersAsStrings(): string[] {
     ...(isStorageEnabled(StorageProvider.CLOUDINARY) ? ['cloudinary'] : []),
     ...(isStorageEnabled(StorageProvider.TGSTATE) ? ['tgstate'] : []),
     ...(isStorageEnabled(StorageProvider.TELEGRAM) ? ['telegram'] : []),
+    ...(isStorageEnabled(StorageProvider.CUSTOM) ? ['custom'] : []),
   ];
 }
 
 /**
  * 获取所有启用的图床服务（枚举形式）
  * 用于需要强类型的场景（如服务注册、内部逻辑）
- * 
+ *
  * @returns 启用的服务列表（枚举数组）
- * 
+ *
  * @example
  * ```typescript
  * const providers = getEnabledProviders();
@@ -79,9 +83,9 @@ export function getEnabledProviders(): StorageProvider[] {
 /**
  * 验证是否至少有一个图床服务启用
  * 如果没有启用任何服务，抛出 StorageError
- * 
+ *
  * @throws {StorageError} 当所有服务都被禁用时
- * 
+ *
  * @example
  * ```typescript
  * try {
@@ -95,11 +99,11 @@ export function getEnabledProviders(): StorageProvider[] {
 export function validateAtLeastOneEnabled(): void {
   if (getEnabledProviders().length === 0) {
     throw new StorageError(
-      '未启用任何图床服务，请在环境变量中至少启用一个（CLOUDINARY_ENABLE 或 TGSTATE_ENABLE）',
+      '未启用任何图床服务，请在环境变量中至少启用一个（CLOUDINARY_ENABLE、TGSTATE_ENABLE 或 TELEGRAM_ENABLE）',
       StorageProvider.CLOUDINARY, // 占位符，因为没有明确的提供商上下文
       'NO_STORAGE_ENABLED',
       {
-        hint: '请检查环境变量：CLOUDINARY_ENABLE、TGSTATE_ENABLE',
+        hint: '请检查环境变量：CLOUDINARY_ENABLE、TGSTATE_ENABLE、TELEGRAM_ENABLE',
         defaultBehavior: '未设置时默认启用，设置为 "false" 时禁用'
       }
     );

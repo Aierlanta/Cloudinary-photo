@@ -4,6 +4,8 @@
  */
 
 import { z } from 'zod';
+import { StorageProvider } from '@/lib/storage/base';
+
 
 // 基础验证模式
 export const IdSchema = z.string().min(1, 'ID不能为空');
@@ -198,6 +200,42 @@ export const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development')
 });
 
+// URL 导入项验证模式
+export const ImportUrlItemSchema = z.object({
+  url: z.string().url('URL格式不正确'),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  tags: TagsSchema.optional()
+});
+
+// 批量URL导入请求验证模式
+export const ImageUrlImportRequestSchema = z.object({
+  provider: z.nativeEnum(StorageProvider).default(StorageProvider.CUSTOM),
+  groupId: IdSchema.optional(),
+  mode: z.enum(['txt', 'json', 'items']),
+  content: z.string().optional(),
+  items: z.array(ImportUrlItemSchema).optional()
+}).superRefine((data, ctx) => {
+  if (data.mode === 'items') {
+    if (!data.items || data.items.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['items'],
+        message: 'items模式下必须提供至少一个URL项'
+      });
+    }
+  } else {
+    if (!data.content || !data.content.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['content'],
+        message: 'txt/json模式下content不能为空'
+      });
+    }
+  }
+});
+
+
 // 类型推导
 export type ImageType = z.infer<typeof ImageSchema>;
 export type GroupType = z.infer<typeof GroupSchema>;
@@ -216,3 +254,6 @@ export type BulkUpdateRequestType = z.infer<typeof BulkUpdateRequestSchema>;
 export type RandomImageRequestType = z.infer<typeof RandomImageRequestSchema>;
 export type FileValidationType = z.infer<typeof FileValidationSchema>;
 export type EnvType = z.infer<typeof EnvSchema>;
+
+export type ImportUrlItemType = z.infer<typeof ImportUrlItemSchema>;
+export type ImageUrlImportRequestType = z.infer<typeof ImageUrlImportRequestSchema>;

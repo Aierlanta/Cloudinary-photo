@@ -499,6 +499,36 @@ export const zh: Translations = {
     today: '今天',
     last7Days: '最近7天',
     last30Days: '最近30天',
+    selectFiles: '选择文件',
+    customDesc: '使用自定义 URL 作为图片来源，不经过任何上传或托管',
+    urlImportTitle: '批量导入图片 URL',
+    urlImportSubtitle: '支持 txt（每行一个 URL）或 JSON 格式，直接写入数据库，不经过图床托管',
+    urlImportModeLabel: '导入格式',
+    urlImportModeTxt: 'TXT（每行一个 URL）',
+    urlImportModeJson: 'JSON（数组或对象列表）',
+    urlImportSelectFile: '选择 txt/json 文件',
+    urlImportTxtPlaceholder: 'TXT 模式：每行一个图片 URL，支持以 # 开头的注释行',
+    urlImportJsonPlaceholder:
+      'JSON 模式：可为 ["https://...", ...] 或 [{ "url": "...", "title": "...", "description": "...", "tags": ["tag1"] }]',
+    urlImportLastResult: '上次导入：共 {total} 条，成功 {success} 条，失败 {failed} 条',
+    urlImportButton: '开始导入 URL',
+    urlImporting: '正在导入...',
+    urlImportEmptyErrorTitle: '内容为空',
+    urlImportEmptyErrorMessage: '请输入要导入的 URL，或先选择 txt/json 文件',
+    urlImportFailedTitle: '导入失败',
+    urlImportFailedDefault: '批量导入失败，请稍后重试',
+    urlImportReadErrorMessage: '读取文件内容失败，请检查文件编码或格式',
+    urlImportStats: '共 {total} 条，成功 {success} 条，失败 {failed} 条',
+    urlImportPartialTitle: '部分导入成功',
+    urlImportSuccessTitle: '导入完成',
+    urlImportUnknownError: '导入过程中发生未知错误，请稍后重试',
+    urlImportTxtExampleTitle: 'TXT 示例',
+    urlImportTxtExampleContent:
+      '# 示例：每行一个图片 URL，# 开头为注释行\nhttps://example.com/image1.jpg\nhttps://example.com/image2.png',
+    urlImportJsonExampleTitle: 'JSON 示例',
+    urlImportJsonExampleContent:
+      '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "首页 Banner",\n    "description": "PC 端首页大图",\n    "tags": ["banner", "pc"]\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "移动端 Banner",\n    "tags": ["banner", "mobile"]\n  }\n]',
+
   },
 
   adminGroups: {

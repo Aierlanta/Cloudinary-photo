@@ -1,14 +1,23 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
 import { useLocale } from "@/hooks/useLocale";
 import { useAdminVersion } from "@/contexts/AdminVersionContext";
 import { GlassButton } from "@/components/ui/glass";
-import { UploadCloud, X, RefreshCw, Trash2, Image as ImageIcon } from "lucide-react";
+import {
+  UploadCloud,
+  X,
+  RefreshCw,
+  Trash2,
+  Image as ImageIcon,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import type {
+  ImageUrlImportRequest,
+  ImageUrlImportResponse,
+} from "@/types/api";
 
 interface Group {
   id: string;
@@ -47,7 +56,7 @@ interface FileUploadState {
 
 interface ImageUploadProps {
   groups: Group[];
-  onUploadSuccess: (image: Image) => void;
+  onUploadSuccess?: (image?: Image) => void;
 }
 
 interface StorageProvider {
@@ -74,6 +83,12 @@ export default function ImageUpload({
   const [providers, setProviders] = useState<StorageProvider[]>([]); // 新增：图床提供商列表
   const [loadingProviders, setLoadingProviders] = useState(true); // 新增：加载状态
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importMode, setImportMode] = useState<"txt" | "json">("txt");
+  const [importContent, setImportContent] = useState("");
+  const [importFileName, setImportFileName] = useState<string | null>(null);
+  const [lastImportResult, setLastImportResult] =
+    useState<ImageUrlImportResponse | null>(null);
+  const customFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Toast通知
   const { toasts, success, error: showError, removeToast } = useToast();
@@ -258,6 +273,27 @@ export default function ImageUpload({
     }));
 
     setFileStates((prev) => [...prev, ...newFileStates]);
+  };
+
+  const handleCustomFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = String(event.target?.result ?? "");
+      setImportContent(text);
+    };
+    reader.onerror = () => {
+      showError(
+        t.adminImages.urlImportFailedTitle,
+        t.adminImages.urlImportReadErrorMessage,
+        4000
+      );
+    };
+    reader.readAsText(file);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -580,6 +616,90 @@ export default function ImageUpload({
     }
   };
 
+  const handleCustomImport = async () => {
+    if (selectedProvider !== "custom") return;
+
+    const trimmedContent = importContent.trim();
+    if (!trimmedContent) {
+      showError(
+        t.adminImages.urlImportEmptyErrorTitle,
+        t.adminImages.urlImportEmptyErrorMessage,
+        4000
+      );
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+    setLastImportResult(null);
+
+    try {
+      const payload: ImageUrlImportRequest = {
+        provider: "custom",
+        groupId: groupId || undefined,
+        mode: importMode,
+        content: trimmedContent,
+      };
+
+      const response = await fetch("/api/admin/images/import-urls", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let message = t.adminImages.urlImportFailedDefault;
+        try {
+          const errorData = await response.json();
+          if (errorData?.error?.message) {
+            message = errorData.error.message;
+          }
+        } catch {
+          // ignore
+        }
+        showError(t.adminImages.urlImportFailedTitle, message, 6000);
+        return;
+      }
+
+      const json = await response.json();
+      const result: ImageUrlImportResponse = json.data;
+
+      setLastImportResult(result);
+      setUploadProgress(100);
+
+      const statsMessage = t.adminImages.urlImportStats
+        .replace("{total}", String(result.total))
+        .replace("{success}", String(result.success))
+        .replace("{failed}", String(result.failed));
+
+      if (result.failed > 0 && result.success > 0) {
+        showError(t.adminImages.urlImportPartialTitle, statsMessage, 6000);
+      } else if (result.failed > 0) {
+        showError(t.adminImages.urlImportFailedTitle, statsMessage, 6000);
+      } else {
+        success(t.adminImages.urlImportSuccessTitle, statsMessage, 4000);
+      }
+
+      setImportContent("");
+      setImportFileName(null);
+
+      // 通知父组件刷新列表（自定义导入没有具体 Image 对象，这里只发信号）
+      onUploadSuccess?.();
+    } catch (e) {
+      console.error("批量URL导入失败:", e);
+      showError(
+        t.adminImages.urlImportFailedTitle,
+        t.adminImages.urlImportUnknownError,
+        6000
+      );
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   const handleUpload = async () => {
     const pendingFiles = fileStates.filter((fs) => fs.status === "pending");
     if (pendingFiles.length === 0) return;
@@ -603,7 +723,7 @@ export default function ImageUpload({
       );
 
       // 通知父组件上传成功
-      uploadedImages.forEach((image: Image) => onUploadSuccess(image));
+      uploadedImages.forEach((image: Image) => onUploadSuccess?.(image));
 
       // 只清除成功的文件和标签
       setTags("");
@@ -648,7 +768,7 @@ export default function ImageUpload({
   };
 
   // --- V2 Layout ---
-  if (version === 'v2') {
+  if (version === "v2") {
     return (
       <div className="space-y-6">
         {/* Drag & Drop Zone */}
@@ -658,45 +778,178 @@ export default function ImageUpload({
               ? "border-primary bg-primary/10 scale-[1.01]"
               : "border-white/10 hover:border-white/30 hover:bg-white/5"
           }`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
+          onDragEnter={selectedProvider === "custom" ? undefined : handleDrag}
+          onDragLeave={selectedProvider === "custom" ? undefined : handleDrag}
+          onDragOver={selectedProvider === "custom" ? undefined : handleDrag}
+          onDrop={selectedProvider === "custom" ? undefined : handleDrop}
         >
           <div className="space-y-4 relative z-10">
-            <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${dragActive ? "bg-primary text-white scale-110 shadow-lg shadow-primary/30" : "bg-white/5 text-muted-foreground group-hover:scale-110 group-hover:bg-white/10"}`}>
-              <UploadCloud className="w-8 h-8" />
-            </div>
-            <div>
-              <p className="text-lg font-medium mb-2">
-                {t.adminImages.dragDropHint}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t.adminImages.supportedFormats}
-              </p>
-            </div>
-            <GlassButton onClick={() => fileInputRef.current?.click()} className="mx-auto text-sm">
-               Select Files
-            </GlassButton>
+            {selectedProvider === "custom" ? (
+              <>
+                <div
+                  className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    dragActive
+                      ? "bg-primary text-white scale-110 shadow-lg shadow-primary/30"
+                      : "bg-white/5 text-muted-foreground group-hover:scale-110 group-hover:bg-white/10"
+                  }`}
+                >
+                  <ImageIcon className="w-8 h-8" />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-lg font-medium mb-1">
+                    {t.adminImages.urlImportTitle}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.adminImages.urlImportSubtitle}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 border border-white/10">
+                    <span className="font-medium">
+                      {t.adminImages.urlImportModeLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImportMode("txt");
+                        setLastImportResult(null);
+                      }}
+                      className={`px-2 py-0.5 rounded-full transition-colors ${
+                        importMode === "txt"
+                          ? "bg-primary text-white"
+                          : "bg-transparent text-muted-foreground"
+                      }`}
+                    >
+                      {t.adminImages.urlImportModeTxt}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImportMode("json");
+                        setLastImportResult(null);
+                      }}
+                      className={`px-2 py-0.5 rounded-full transition-colors ${
+                        importMode === "json"
+                          ? "bg-primary text-white"
+                          : "bg-transparent text-muted-foreground"
+                      }`}
+                    >
+                      {t.adminImages.urlImportModeJson}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => customFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-full border border-dashed border-white/20 px-3 py-1 text-xs text-muted-foreground hover:border-white/40 hover:text-foreground transition-colors"
+                  >
+                    <UploadCloud className="w-4 h-4" />
+                    {t.adminImages.urlImportSelectFile}
+                  </button>
+                  {importFileName && (
+                    <span className="text-xs text-muted-foreground">
+                      {importFileName}
+                    </span>
+                  )}
+                </div>
+                <textarea
+                  value={importContent}
+                  onChange={(e) => setImportContent(e.target.value)}
+                  placeholder={
+                    importMode === "txt"
+                      ? t.adminImages.urlImportTxtPlaceholder
+                      : t.adminImages.urlImportJsonPlaceholder
+                  }
+                  className="w-full min-h-[120px] rounded-xl bg-black/20 border border-white/10 p-3 text-sm text-left resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <div className="w-full rounded-md border border-dashed border-white/10 bg-black/10 p-2 text-[11px] text-left text-muted-foreground font-mono whitespace-pre-wrap break-all">
+                  <div className="mb-1 font-medium">
+                    {importMode === "txt"
+                      ? t.adminImages.urlImportTxtExampleTitle
+                      : t.adminImages.urlImportJsonExampleTitle}
+                  </div>
+                  <pre className="text-[11px] leading-snug whitespace-pre-wrap break-all">
+                    {importMode === "txt"
+                      ? t.adminImages.urlImportTxtExampleContent
+                      : t.adminImages.urlImportJsonExampleContent}
+                  </pre>
+                </div>
+
+                {lastImportResult && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {t.adminImages.urlImportLastResult
+                      .replace("{total}", String(lastImportResult.total))
+                      .replace("{success}", String(lastImportResult.success))
+                      .replace("{failed}", String(lastImportResult.failed))}
+                  </p>
+                )}
+                <div className="flex justify-center pt-1">
+                  <GlassButton
+                    onClick={handleCustomImport}
+                    disabled={uploading}
+                    className="mx-auto text-sm"
+                  >
+                    {uploading
+                      ? t.adminImages.urlImporting
+                      : t.adminImages.urlImportButton}
+                  </GlassButton>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    dragActive
+                      ? "bg-primary text-white scale-110 shadow-lg shadow-primary/30"
+                      : "bg-white/5 text-muted-foreground group-hover:scale-110 group-hover:bg-white/10"
+                  }`}
+                >
+                  <UploadCloud className="w-8 h-8" />
+                </div>
+                <div>
+                  <p className="text-lg font-medium mb-2">
+                    {t.adminImages.dragDropHint}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.adminImages.supportedFormats}
+                  </p>
+                </div>
+                <GlassButton
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mx-auto text-sm"
+                >
+                  {t.adminImages.selectFiles}
+                </GlassButton>
+              </>
+            )}
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+          {selectedProvider === "custom" ? (
+            <input
+              ref={customFileInputRef}
+              type="file"
+              accept=".txt,.json"
+              onChange={handleCustomFileSelect}
+              className="hidden"
+            />
+          ) : (
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          )}
         </div>
 
         {/* File List */}
         <AnimatePresence mode="popLayout">
           {fileStates.length > 0 && (
-            <motion.div 
-               initial={{ opacity: 0, height: 0 }}
-               animate={{ opacity: 1, height: "auto" }}
-               exit={{ opacity: 0, height: 0 }}
-               className="space-y-3"
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium">
@@ -719,7 +972,7 @@ export default function ImageUpload({
                   </button>
                 </div>
               </div>
-              
+
               <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                 {fileStates.map((fileState, index) => (
                   <motion.div
@@ -743,19 +996,33 @@ export default function ImageUpload({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                           <p className="text-sm font-medium truncate text-foreground">
+                          <p className="text-sm font-medium truncate text-foreground">
                             {fileState.file.name}
                           </p>
-                          {fileState.status === "uploading" && <span className="text-xs text-blue-400 animate-pulse">Uploading...</span>}
-                          {fileState.status === "success" && <span className="text-xs text-green-400">Success</span>}
-                          {fileState.status === "failed" && <span className="text-xs text-red-400">Failed</span>}
+                          {fileState.status === "uploading" && (
+                            <span className="text-xs text-blue-400 animate-pulse">
+                              Uploading...
+                            </span>
+                          )}
+                          {fileState.status === "success" && (
+                            <span className="text-xs text-green-400">
+                              Success
+                            </span>
+                          )}
+                          {fileState.status === "failed" && (
+                            <span className="text-xs text-red-400">Failed</span>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {formatFileSize(fileState.file.size)}
-                          {fileState.retryCount > 0 && ` · Retry ${fileState.retryCount}`}
+                          {fileState.retryCount > 0 &&
+                            ` · Retry ${fileState.retryCount}`}
                         </p>
-                         {fileState.error && (
-                          <p className="text-xs text-red-400 truncate max-w-[200px]" title={fileState.error}>
+                        {fileState.error && (
+                          <p
+                            className="text-xs text-red-400 truncate max-w-[200px]"
+                            title={fileState.error}
+                          >
                             {fileState.error}
                           </p>
                         )}
@@ -789,121 +1056,157 @@ export default function ImageUpload({
 
         {/* Options & Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <div className="space-y-4">
-              {/* Storage Provider */}
+          <div className="space-y-4">
+            {/* Storage Provider */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                {t.adminImages.storageService}
+              </label>
+              {loadingProviders ? (
+                <div className="h-10 w-full bg-white/5 rounded-xl animate-pulse" />
+              ) : (
+                <div className="relative">
+                  <select
+                    value={selectedProvider}
+                    onChange={(e) => setSelectedProvider(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
+                  >
+                    {providers.map((provider) => (
+                      <option
+                        key={provider.id}
+                        value={provider.id}
+                        disabled={!provider.isAvailable}
+                        className="bg-gray-900 text-white"
+                      >
+                        {provider.name}{" "}
+                        {!provider.isAvailable && "(Unavailable)"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {/* Provider Desc */}
+              {selectedProvider &&
+                providers.length > 0 &&
+                (() => {
+                  const provider = providers.find(
+                    (p) => p.id === selectedProvider
+                  );
+                  if (!provider) return null;
+                  const descMap: Record<string, string> = {
+                    cloudinary: t.adminImages.cloudinaryDesc,
+                    tgstate: t.adminImages.tgStateDesc,
+                    telegram: t.adminImages.telegramDesc,
+                    custom: t.adminImages.customDesc,
+                  };
+                  const desc = descMap[provider.id] || provider.description;
+                  return (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {desc}
+                      {provider.id === "telegram" && (
+                        <div className="mt-2 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
+                          <p>
+                            ⚠️ <strong>Security Note:</strong> Access via{" "}
+                            <code>/api/response</code> only.{" "}
+                            <code>/api/random</code> is not supported for this
+                            provider.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
-                   {t.adminImages.storageService}
+                  {t.adminImages.selectGroup}
                 </label>
-                 {loadingProviders ? (
-                    <div className="h-10 w-full bg-white/5 rounded-xl animate-pulse" />
-                 ) : (
-                    <div className="relative">
-                       <select
-                          value={selectedProvider}
-                          onChange={(e) => setSelectedProvider(e.target.value)}
-                          className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
-                       >
-                          {providers.map((provider) => (
-                            <option key={provider.id} value={provider.id} disabled={!provider.isAvailable} className="bg-gray-900 text-white">
-                              {provider.name} {!provider.isAvailable && "(Unavailable)"}
-                            </option>
-                          ))}
-                       </select>
-                    </div>
-                 )}
-                 {/* Provider Desc */}
-                 {selectedProvider && providers.length > 0 && (() => {
-                    const provider = providers.find(p => p.id === selectedProvider);
-                    if (!provider) return null;
-                     const descMap: Record<string, string> = {
-                        cloudinary: t.adminImages.cloudinaryDesc,
-                        tgstate: t.adminImages.tgStateDesc,
-                        telegram: t.adminImages.telegramDesc,
-                      };
-                    const desc = descMap[provider.id] || provider.description;
-                    return (
-                       <div className="text-xs text-muted-foreground mt-1">
-                          {desc}
-                          {provider.id === "telegram" && (
-                             <div className="mt-2 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
-                                <p>⚠️ <strong>Security Note:</strong> Access via <code>/api/response</code> only. <code>/api/random</code> is not supported for this provider.</p>
-                             </div>
-                          )}
-                       </div>
-                    )
-                 })()}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">
-                       {t.adminImages.selectGroup}
-                    </label>
-                    <select
-                      value={groupId}
-                      onChange={(e) => setGroupId(e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
+                <select
+                  value={groupId}
+                  onChange={(e) => setGroupId(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
+                >
+                  <option value="" className="bg-gray-900">
+                    Select Group...
+                  </option>
+                  {groups.map((group) => (
+                    <option
+                      key={group.id}
+                      value={group.id}
+                      className="bg-gray-900"
                     >
-                      <option value="" className="bg-gray-900">Select Group...</option>
-                      {groups.map((group) => (
-                        <option key={group.id} value={group.id} className="bg-gray-900">
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                 </div>
-                 <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">
-                       {t.adminImages.tagsOptional}
-                    </label>
-                    <input
-                      type="text"
-                      value={tags}
-                      onChange={(e) => setTags(e.target.value)}
-                      placeholder="e.g. nature, sky"
-                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm"
-                    />
-                 </div>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-           </div>
-
-           <div className="flex flex-col justify-end gap-3">
-              <div className="flex gap-3">
-                 <GlassButton 
-                    primary
-                    onClick={handleUpload}
-                    disabled={fileStates.filter((fs) => fs.status === "pending").length === 0 || uploading}
-                    className="flex-1 justify-center"
-                    icon={uploading ? RefreshCw : UploadCloud}
-                    iconClassName={uploading ? "animate-spin" : ""}
-                 >
-                    {uploading ? `${Math.round(uploadProgress)}%` : `Upload ${fileStates.filter((fs) => fs.status === "pending").length || ''} Files`}
-                 </GlassButton>
-                 
-                 {fileStates.some((fs) => fs.status === "failed") && (
-                    <GlassButton 
-                       onClick={retryAllFailed}
-                       disabled={uploading}
-                       className="bg-orange-500/20 text-orange-500 border-orange-500/20 hover:bg-orange-500/30"
-                    >
-                       Retry Failed
-                    </GlassButton>
-                 )}
-              </div>
-              
-              {uploading && (
-                 <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                    <motion.div
-                       initial={{ width: 0 }}
-                       animate={{ width: `${uploadProgress}%` }}
-                       className="bg-primary h-full rounded-full"
-                    />
-                 </div>
+              {selectedProvider !== "custom" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    {t.adminImages.tagsOptional}
+                  </label>
+                  <input
+                    type="text"
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    placeholder="e.g. nature, sky"
+                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm"
+                  />
+                </div>
               )}
-           </div>
+            </div>
+          </div>
+
+          {selectedProvider !== "custom" && (
+            <div className="flex flex-col justify-end gap-3">
+              <div className="flex gap-3">
+                <GlassButton
+                  primary
+                  onClick={handleUpload}
+                  disabled={
+                    fileStates.filter((fs) => fs.status === "pending")
+                      .length === 0 || uploading
+                  }
+                  className="flex-1 justify-center"
+                  icon={uploading ? RefreshCw : UploadCloud}
+                  iconClassName={uploading ? "animate-spin" : ""}
+                >
+                  {uploading
+                    ? `${Math.round(uploadProgress)}%`
+                    : `Upload ${
+                        fileStates.filter((fs) => fs.status === "pending")
+                          .length || ""
+                      } Files`}
+                </GlassButton>
+
+                {fileStates.some((fs) => fs.status === "failed") && (
+                  <GlassButton
+                    onClick={retryAllFailed}
+                    disabled={uploading}
+                    className="bg-orange-500/20 text-orange-500 border-orange-500/20 hover:bg-orange-500/30"
+                  >
+                    Retry Failed
+                  </GlassButton>
+                )}
+              </div>
+
+              {uploading && (
+                <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${uploadProgress}%` }}
+                    className="bg-primary h-full rounded-full"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
+        <ToastContainer
+          toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))}
+        />
       </div>
     );
   }
@@ -917,48 +1220,166 @@ export default function ImageUpload({
             ? "border-blue-500 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
             : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
         }`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
+        onDragEnter={selectedProvider === "custom" ? undefined : handleDrag}
+        onDragLeave={selectedProvider === "custom" ? undefined : handleDrag}
+        onDragOver={selectedProvider === "custom" ? undefined : handleDrag}
+        onDrop={selectedProvider === "custom" ? undefined : handleDrop}
       >
         <div className="space-y-3">
-          <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+          {selectedProvider === "custom" ? (
+            <>
+              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                <ImageIcon className="w-6 h-6 text-gray-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium panel-text">
+                  {t.adminImages.urlImportTitle}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 panel-text mt-1">
+                  {t.adminImages.urlImportSubtitle}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 text-xs mt-2">
+                <div className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-1 border border-gray-200 dark:border-gray-700">
+                  <span className="font-medium panel-text">
+                    {t.adminImages.urlImportModeLabel}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportMode("txt");
+                      setLastImportResult(null);
+                    }}
+                    className={`px-2 py-0.5 rounded-full text-xs ${
+                      importMode === "txt"
+                        ? "bg-blue-600 text-white"
+                        : "bg-transparent text-gray-500 dark:text-gray-400"
+                    }`}
+                  >
+                    {t.adminImages.urlImportModeTxt}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportMode("json");
+                      setLastImportResult(null);
+                    }}
+                    className={`px-2 py-0.5 rounded-full text-xs ${
+                      importMode === "json"
+                        ? "bg-blue-600 text-white"
+                        : "bg-transparent text-gray-500 dark:text-gray-400"
+                    }`}
+                  >
+                    {t.adminImages.urlImportModeJson}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => customFileInputRef.current?.click()}
+                  className="inline-flex items-center gap-1 px-2 py-1 border border-dashed border-gray-300 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  {t.adminImages.urlImportSelectFile}
+                </button>
+                {importFileName && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {importFileName}
+                  </span>
+                )}
+              </div>
+              <textarea
+                value={importContent}
+                onChange={(e) => setImportContent(e.target.value)}
+                placeholder={
+                  importMode === "txt"
+                    ? t.adminImages.urlImportTxtPlaceholder
+                    : t.adminImages.urlImportJsonPlaceholder
+                }
+                className="mt-3 w-full min-h-[100px] text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 panel-text resize-y focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-medium panel-text">
-              {t.adminImages.dragDropHint}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 panel-text mt-1">
-              {t.adminImages.supportedFormats}
-            </p>
-          </div>
+              <div className="mt-2 px-2 py-1.5 rounded-md bg-gray-50 dark:bg-gray-900/60 border border-dashed border-gray-300 dark:border-gray-700">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+                  {importMode === "txt"
+                    ? t.adminImages.urlImportTxtExampleTitle
+                    : t.adminImages.urlImportJsonExampleTitle}
+                </p>
+                <pre className="text-[11px] text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-all font-mono">
+                  {importMode === "txt"
+                    ? t.adminImages.urlImportTxtExampleContent
+                    : t.adminImages.urlImportJsonExampleContent}
+                </pre>
+              </div>
+              {lastImportResult && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {t.adminImages.urlImportLastResult
+                    .replace("{total}", String(lastImportResult.total))
+                    .replace("{success}", String(lastImportResult.success))
+                    .replace("{failed}", String(lastImportResult.failed))}
+                </p>
+              )}
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleCustomImport}
+                  disabled={uploading}
+                  className="px-4 py-1.5 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {uploading
+                    ? t.adminImages.urlImporting
+                    : t.adminImages.urlImportButton}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium panel-text">
+                  {t.adminImages.dragDropHint}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 panel-text mt-1">
+                  {t.adminImages.supportedFormats}
+                </p>
+              </div>
+            </>
+          )}
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+        {selectedProvider === "custom" ? (
+          <input
+            ref={customFileInputRef}
+            type="file"
+            accept=".txt,.json"
+            onChange={handleCustomFileSelect}
+            className="hidden"
+          />
+        ) : (
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+        )}
       </div>
 
       {/* 已选择的文件列表 */}
-      {fileStates.length > 0 && (
+      {selectedProvider !== "custom" && fileStates.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium panel-text">
@@ -1117,6 +1538,7 @@ export default function ImageUpload({
                   cloudinary: t.adminImages.cloudinaryDesc,
                   tgstate: t.adminImages.tgStateDesc,
                   telegram: t.adminImages.telegramDesc,
+                  custom: t.adminImages.customDesc,
                 };
                 const desc = descMap[provider.id] || provider.description;
 
@@ -1176,106 +1598,110 @@ export default function ImageUpload({
             ))}
           </select>
         </div>
-        <div>
-          <label className="block text-xs font-medium panel-text mb-1">
-            {t.adminImages.tagsOptional}
-          </label>
-          <input
-            type="text"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder={t.adminImages.tagsPlaceholder}
-            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-          />
-        </div>
+        {selectedProvider !== "custom" && (
+          <div>
+            <label className="block text-xs font-medium panel-text mb-1">
+              {t.adminImages.tagsOptional}
+            </label>
+            <input
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder={t.adminImages.tagsPlaceholder}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
+            />
+          </div>
+        )}
       </div>
 
       {/* 上传按钮和进度 */}
-      <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={handleUpload}
-            disabled={
-              fileStates.filter((fs) => fs.status === "pending").length === 0 ||
-              uploading
-            }
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            {uploading ? (
-              <div className="flex items-center justify-center">
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                {Math.round(uploadProgress)}%
-              </div>
-            ) : (
-              `${t.adminImages.uploadCount.replace(
-                "{count}",
-                String(
-                  fileStates.filter((fs) => fs.status === "pending").length
-                )
-              )}`
-            )}
-          </button>
-
-          {fileStates.some((fs) => fs.status === "failed") && (
+      {selectedProvider !== "custom" && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={retryAllFailed}
-              disabled={uploading}
-              className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-orange-500"
+              onClick={handleUpload}
+              disabled={
+                fileStates.filter((fs) => fs.status === "pending").length ===
+                  0 || uploading
+              }
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              重试失败 (
-              {fileStates.filter((fs) => fs.status === "failed").length})
+              {uploading ? (
+                <div className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  {Math.round(uploadProgress)}%
+                </div>
+              ) : (
+                `${t.adminImages.uploadCount.replace(
+                  "{count}",
+                  String(
+                    fileStates.filter((fs) => fs.status === "pending").length
+                  )
+                )}`
+              )}
             </button>
+
+            {fileStates.some((fs) => fs.status === "failed") && (
+              <button
+                onClick={retryAllFailed}
+                disabled={uploading}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-orange-500"
+              >
+                重试失败 (
+                {fileStates.filter((fs) => fs.status === "failed").length})
+              </button>
+            )}
+          </div>
+
+          {uploading && (
+            <>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                <div
+                  className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+
+              {/* 上传中警告提示 */}
+              <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-300 dark:border-yellow-700 rounded text-sm text-yellow-800 dark:text-yellow-200">
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="font-medium">
+                  正在上传，请勿关闭或刷新页面，否则上传将被中断
+                </span>
+              </div>
+            </>
           )}
         </div>
-
-        {uploading && (
-          <>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-              <div
-                className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-
-            {/* 上传中警告提示 */}
-            <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-300 dark:border-yellow-700 rounded text-sm text-yellow-800 dark:text-yellow-200">
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span className="font-medium">
-                正在上传，请勿关闭或刷新页面，否则上传将被中断
-              </span>
-            </div>
-          </>
-        )}
-      </div>
+      )}
 
       {/* Toast通知容器 */}
       <ToastContainer

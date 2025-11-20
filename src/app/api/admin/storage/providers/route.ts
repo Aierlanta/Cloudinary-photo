@@ -62,6 +62,18 @@ export async function GET(request: NextRequest): Promise<Response> {
         '健康检查和故障切换',
         '免费无限存储'
       ]
+    },
+    {
+      id: 'custom',
+      name: '自定义外链',
+      description: '使用自定义URL作为图片来源，不经过任何上传或托管',
+      isAvailable: isStorageEnabled(StorageProvider.CUSTOM),
+      features: [
+        '批量导入URL（txt/json/items）',
+        '不依赖第三方存储',
+        '保留原始外链地址',
+        '与现有缩略图/预览逻辑完全兼容'
+      ]
     }
   ];
 

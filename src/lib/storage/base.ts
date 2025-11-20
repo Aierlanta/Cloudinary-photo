@@ -45,7 +45,8 @@ export interface StorageStats {
 export enum StorageProvider {
   CLOUDINARY = 'cloudinary',
   TGSTATE = 'tgstate',
-  TELEGRAM = 'telegram' // 直连 Telegram Bot API
+  TELEGRAM = 'telegram', // 直连 Telegram Bot API
+  CUSTOM = 'custom' // 自定义外链图床，仅记录URL不上传
 }
 
 /**
