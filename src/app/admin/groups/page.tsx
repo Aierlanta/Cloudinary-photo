@@ -5,23 +5,16 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
 import { useLocale } from '@/hooks/useLocale'
-import Image from 'next/image'
-import { generateThumbnailUrlForImage } from '@/lib/image-utils'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
 import { 
   Layers, 
   Plus, 
-  FolderOpen, 
   Edit2, 
   Trash2, 
   Image as ImageIcon,
   X,
-  Save,
-  Grid,
-  Search,
-  Check,
-  Move
+  Save
 } from 'lucide-react'
 
 interface Group {
@@ -37,30 +30,6 @@ interface GroupFormData {
   description: string
 }
 
-interface Image {
-  id: string
-  cloudinaryId: string
-  publicId: string
-  url: string
-  secureUrl: string
-  filename: string
-  format: string
-  width: number
-  height: number
-  bytes: number
-  groupId?: string
-  uploadedAt: string
-  tags: string[]
-  primaryProvider?: string
-  backupProvider?: string
-  telegramFileId?: string | null
-  telegramThumbnailFileId?: string | null
-  telegramFilePath?: string | null
-  telegramThumbnailPath?: string | null
-  telegramBotToken?: string | null
-  storageMetadata?: string | null
-}
-
 export default function GroupsPage() {
   const { t } = useLocale();
   const isLight = useTheme();
@@ -71,14 +40,9 @@ export default function GroupsPage() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
   const [formData, setFormData] = useState<GroupFormData>({ name: '', description: '' })
   const [submitting, setSubmitting] = useState(false)
-  const [showUnassignedImages, setShowUnassignedImages] = useState(false)
-  const [unassignedImages, setUnassignedImages] = useState<Image[]>([])
-  const [loadingUnassignedImages, setLoadingUnassignedImages] = useState(false)
-  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
 
   // Toast通知
   const { toasts, success, error: showError, removeToast } = useToast()
-  const [assigningToGroup, setAssigningToGroup] = useState('')
   const [totalImages, setTotalImages] = useState(0)
 
   // 加载分组列表和总图片数
@@ -90,11 +54,7 @@ export default function GroupsPage() {
   const loadGroups = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/groups', {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
+      const response = await fetch('/api/admin/groups')
       if (response.ok) {
         const data = await response.json()
         setGroups(data.data?.groups || [])
@@ -110,11 +70,7 @@ export default function GroupsPage() {
 
   const loadTotalImages = async () => {
     try {
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
+      const response = await fetch('/api/admin/stats')
       if (response.ok) {
         const data = await response.json()
         setTotalImages(data.data?.totalImages || 0)
@@ -126,28 +82,6 @@ export default function GroupsPage() {
     }
   }
 
-
-  const loadUnassignedImages = async () => {
-    setLoadingUnassignedImages(true)
-    try {
-      const response = await fetch('/api/admin/images?groupId=unassigned&limit=100', {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setUnassignedImages(data.data?.images?.data || [])
-      } else {
-        console.error('加载未分组图片失败:', response.statusText)
-      }
-    } catch (error) {
-      console.error('加载未分组图片失败:', error)
-    } finally {
-      setLoadingUnassignedImages(false)
-    }
-  }
-
   const handleCreateGroup = async () => {
     if (!formData.name.trim()) {
       showError(t.adminGroups.validationError, t.adminGroups.enterGroupName)
@@ -156,14 +90,7 @@ export default function GroupsPage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch('/api/admin/groups', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': 'admin123'
-        },
-        body: JSON.stringify(formData)
-      })
+      const response = await fetch('/api/admin/groups')
 
       if (response.ok) {
         await loadGroups()
@@ -193,8 +120,7 @@ export default function GroupsPage() {
       const response = await fetch(`/api/admin/groups/${editingGroup.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': 'admin123'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       })
@@ -232,10 +158,7 @@ export default function GroupsPage() {
 
     try {
       const response = await fetch(`/api/admin/groups/${groupId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
+        method: 'DELETE'
       })
 
       if (response.ok) {
@@ -274,73 +197,6 @@ export default function GroupsPage() {
     router.push(`/admin/gallery?groupId=${group.id}`)
   }
 
-  const showUnassignedImagesModal = async () => {
-    setShowUnassignedImages(true)
-    await loadUnassignedImages()
-  }
-
-  const closeUnassignedImagesModal = () => {
-    setShowUnassignedImages(false)
-    setUnassignedImages([])
-    setSelectedImages(new Set())
-    setAssigningToGroup('')
-  }
-
-  const toggleImageSelection = (imageId: string) => {
-    const newSelected = new Set(selectedImages)
-    if (newSelected.has(imageId)) {
-      newSelected.delete(imageId)
-    } else {
-      newSelected.add(imageId)
-    }
-    setSelectedImages(newSelected)
-  }
-
-  const selectAllImages = () => {
-    setSelectedImages(new Set(unassignedImages.map(img => img.id)))
-  }
-
-  const clearSelection = () => {
-    setSelectedImages(new Set())
-  }
-
-  const assignImagesToGroup = async () => {
-    if (selectedImages.size === 0 || !assigningToGroup) {
-      alert(t.adminGroups.selectImagesAndGroup)
-      return
-    }
-
-    try {
-      // 使用批量更新API
-      const response = await fetch('/api/admin/images', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': 'admin123'
-        },
-        body: JSON.stringify({
-          imageIds: Array.from(selectedImages),
-          updates: { groupId: assigningToGroup }
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        alert(`${t.adminGroups.assignSuccess} ${selectedImages.size} ${t.adminGroups.images}`)
-        await loadUnassignedImages()
-        await loadGroups()
-        await loadTotalImages()
-        clearSelection()
-        setAssigningToGroup('')
-      } else {
-        alert(t.adminGroups.assignFailed)
-      }
-    } catch (error) {
-      console.error('分配图片失败:', error)
-      alert(t.adminGroups.assignFailed)
-    }
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
   }
@@ -369,18 +225,6 @@ export default function GroupsPage() {
                 </p>
               </div>
               <div className="flex gap-3">
-                <button
-                  onClick={showUnassignedImagesModal}
-                  className={cn(
-                    "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
-                    isLight
-                      ? "bg-orange-500 text-white border-orange-600 hover:bg-orange-600"
-                      : "bg-orange-600 text-white border-orange-500 hover:bg-orange-700"
-                  )}
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  {t.adminGroups.manageUnassigned}
-                </button>
                 <button
                   onClick={startCreate}
                   className={cn(
@@ -682,180 +526,6 @@ export default function GroupsPage() {
             </div>
           )}
         </div>
-
-        {/* Unassigned Images Modal */}
-        {showUnassignedImages && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 rounded-lg">
-            <div
-              className={cn(
-                "w-full max-w-6xl h-[90vh] border flex flex-col rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-              )}
-            >
-              <div className={cn(
-                "p-4 border-b flex items-center justify-between shrink-0 rounded-lg",
-                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-              )}>
-                <h2 className={cn(
-                  "text-xl font-bold rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminGroups.totalUnassignedImages.replace('{count}', unassignedImages.length.toString()) || `共 ${unassignedImages.length} 张未分组图片`}
-                </h2>
-                <button
-                  onClick={() => setShowUnassignedImages(false)}
-                  className={cn(
-                    "p-2 transition-colors rounded-lg",
-                    isLight
-                      ? "text-gray-500 hover:bg-gray-100"
-                      : "text-gray-400 hover:bg-gray-700"
-                  )}
-                >
-                  <X className="w-5 h-5 rounded-lg" />
-                </button>
-              </div>
-              {selectedImages.size > 0 && (
-                <div className={cn(
-                  "mb-4 p-4 border flex flex-wrap items-center justify-between gap-4 shrink-0 rounded-lg",
-                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-                )}>
-                  <div className="flex items-center gap-4 rounded-lg">
-                    <span className={cn(
-                      "text-sm font-medium rounded-lg",
-                      isLight ? "text-gray-900" : "text-gray-100"
-                    )}>
-                      {selectedImages.size} selected
-                    </span>
-                    <div className="flex gap-2 rounded-lg">
-                      <button
-                        onClick={selectAllImages}
-                        className={cn(
-                          "text-xs px-3 py-1.5 border transition-colors rounded-lg",
-                          isLight
-                            ? "bg-white border-gray-300 hover:bg-gray-50"
-                            : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-                        )}
-                      >
-                        All
-                      </button>
-                      <button
-                        onClick={clearSelection}
-                        className={cn(
-                          "text-xs px-3 py-1.5 border transition-colors rounded-lg",
-                          isLight
-                            ? "bg-white border-gray-300 hover:bg-gray-50"
-                            : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-                        )}
-                      >
-                        None
-                      </button>
-                    </div>
-                  </div>
-
-                  {selectedImages.size > 0 && (
-                    <div className="flex items-center gap-3 rounded-lg">
-                      <select
-                        value={assigningToGroup}
-                        onChange={(e) => setAssigningToGroup(e.target.value)}
-                        className={cn(
-                          "border text-sm p-2 outline-none focus:border-blue-500 rounded-lg",
-                          isLight
-                            ? "bg-white border-gray-300"
-                            : "bg-gray-800 border-gray-600"
-                        )}
-                      >
-                        <option value="">Select Group...</option>
-                        {groups.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={assignImagesToGroup}
-                        disabled={!assigningToGroup}
-                        className={cn(
-                          "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
-                          isLight
-                            ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                            : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-                        )}
-                      >
-                        <Move className="w-4 h-4" />
-                        Assign
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="flex-1 overflow-y-auto p-4 rounded-lg">
-                {loadingUnassignedImages ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 rounded-lg">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "aspect-square animate-pulse rounded-lg",
-                          isLight ? "bg-gray-200" : "bg-gray-700"
-                        )}
-                      />
-                    ))}
-                  </div>
-                ) : unassignedImages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 rounded-lg">
-                    <Check className={cn(
-                      "w-16 h-16 mb-4 rounded-lg",
-                      isLight ? "text-green-500" : "text-green-400"
-                    )} />
-                    <p className={isLight ? "text-gray-600" : "text-gray-400"}>
-                      {t.adminGroups.allImagesAssigned}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 rounded-lg">
-                    {unassignedImages.map((image) => (
-                      <div
-                        key={image.id}
-                        className={cn(
-                          "relative group aspect-square overflow-hidden cursor-pointer transition-colors border rounded-lg",
-                          selectedImages.has(image.id)
-                            ? isLight
-                              ? "border-blue-500"
-                              : "border-blue-400"
-                            : isLight
-                            ? "border-gray-300"
-                            : "border-gray-600"
-                        )}
-                        onClick={() => toggleImageSelection(image.id)}
-                      >
-                        <Image
-                          src={generateThumbnailUrlForImage(image, 300)}
-                          alt={image.publicId}
-                          fill
-                          className="object-cover"
-                        />
-                        {selectedImages.has(image.id) && (
-                          <div className={cn(
-                            "absolute inset-0 flex items-center justify-center rounded-lg",
-                            isLight ? "bg-blue-500/20" : "bg-blue-600/20"
-                          )}>
-                            <div className={cn(
-                              "p-1 rounded-lg",
-                              isLight ? "bg-blue-500" : "bg-blue-600"
-                            )}>
-                              <Check className="w-4 h-4 text-white" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
       </div>

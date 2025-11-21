@@ -225,8 +225,7 @@ export default function GalleryPage() {
       const response = await fetch("/api/admin/images", {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          "X-Admin-Password": "admin123",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           imageIds,

@@ -85,11 +85,7 @@ export default function ConfigPage() {
 
   const loadConfig = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/config', {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
+      const response = await fetch('/api/admin/config')
       if (response.ok) {
         const data = await response.json()
         const loadedConfig = data.data?.config || getDefaultConfig()
@@ -117,11 +113,7 @@ export default function ConfigPage() {
 
   const loadGroups = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/groups', {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
+      const response = await fetch('/api/admin/groups')
       if (response.ok) {
         const data = await response.json()
         setGroups(data.data?.groups || [])
@@ -184,8 +176,7 @@ export default function ConfigPage() {
       const response = await fetch('/api/admin/config', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': 'admin123'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestData)
       })
