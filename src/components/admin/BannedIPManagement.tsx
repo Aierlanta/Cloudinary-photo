@@ -54,10 +54,10 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
         onRefresh();
       } else {
         const data = await response.json();
-        showError('封禁失败', data.error?.message || '未知错误');
+        showError(t.adminSecurity.banFailed, data.error?.message || t.adminSecurity.unknownError);
       }
     } catch (error) {
-      showError('封禁失败', String(error));
+      showError(t.adminSecurity.banFailed, String(error));
     } finally {
       setBanning(false);
     }
@@ -80,10 +80,10 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
         onRefresh();
       } else {
         const data = await response.json();
-        showError('解封失败', data.error?.message || '未知错误');
+        showError(t.adminSecurity.unbanFailed, data.error?.message || t.adminSecurity.unknownError);
       }
     } catch (error) {
-      showError('解封失败', String(error));
+      showError(t.adminSecurity.unbanFailed, String(error));
     }
   };
 

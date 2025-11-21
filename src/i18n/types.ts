@@ -264,6 +264,25 @@ export interface Translations {
     noImagesFound: string;
     deleteImagesConfirm: string;
     moveImagesConfirm: string;
+    updateFailed: string;
+    bulkDeleteFailed: string;
+    bulkUpdateFailed: string;
+    copySuccess: string;
+    copySuccessMessage: string;
+    copyFailed: string;
+    copyFailedMessage: string;
+    downloadFailed: string;
+    downloadFailedMessage: string;
+    getProvidersFailed: string;
+    getProvidersFailedMessage: string;
+    retrySuccess: string;
+    retrySuccessMessage: string;
+    retryAllSuccess: string;
+    retryAllSuccessMessage: string;
+    uploadPartialFailed: string;
+    uploadPartialFailedMessage: string;
+    uploadComplete: string;
+    uploadCompleteMessage: string;
   };
 
   // API 配置管理
@@ -734,7 +753,9 @@ export interface Translations {
     reasonPlaceholder: string;
     expiresAtLabel: string;
     banSuccess: string;
+    banFailed: string;
     unbanSuccess: string;
+    unbanFailed: string;
     confirmUnban: string;
     batchBan: string;
     batchBanPlaceholder: string;
@@ -779,5 +800,43 @@ export interface Translations {
     blocked: string;
     activeLimits: string;
     noAccessData: string;
+    incompleteForm: string;
+    incompleteFormMessage: string;
+    setFailed: string;
+    removeFailed: string;
+    unknownError: string;
+  };
+
+  adminCache: {
+    title: string;
+    refresh: string;
+    cacheItems: string;
+    cacheSize: string;
+    hitRate: string;
+    totalRequests: string;
+    prewarmingStatus: string;
+    prewarmingState: string;
+    queueLength: string;
+    prewarmed: string;
+    stopPrewarming: string;
+    cleanupExpired: string;
+    clearAll: string;
+    cleaning: string;
+    clearing: string;
+    cacheDescription: string;
+    descriptionLine1: string;
+    descriptionLine2: string;
+    descriptionLine3: string;
+    descriptionLine4: string;
+    confirmClearAll: string;
+    cleanupSuccess: string;
+    cleanupSuccessMessage: string;
+    cleanupFailed: string;
+    clearAllSuccess: string;
+    clearAllSuccessMessage: string;
+    clearAllFailed: string;
+    statusIdle: string;
+    statusInProgress: string;
+    unknownError: string;
   };
 }

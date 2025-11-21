@@ -208,13 +208,13 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
     try {
       await navigator.clipboard.writeText(text);
       onSuccess(
-        locale === "zh" ? "复制成功" : "Copied",
-        locale === "zh" ? "链接已复制到剪贴板" : "Link copied to clipboard"
+        t.adminImages.copySuccess,
+        t.adminImages.copySuccessMessage
       );
     } catch (error) {
       onError(
-        locale === "zh" ? "复制失败" : "Copy failed",
-        locale === "zh" ? "无法复制链接，请重试" : "Unable to copy link, please try again"
+        t.adminImages.copyFailed,
+        t.adminImages.copyFailedMessage
       );
     }
   };
@@ -234,8 +234,8 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
     } catch (error) {
       console.error("Download failed:", error);
       onError(
-        locale === "zh" ? "下载失败" : "Download failed",
-        locale === "zh" ? "请稍后重试" : "Please try again later"
+        t.adminImages.downloadFailed,
+        t.adminImages.downloadFailedMessage
       );
     }
   };

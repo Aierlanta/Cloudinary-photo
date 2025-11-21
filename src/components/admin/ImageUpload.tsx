@@ -113,7 +113,7 @@ export default function ImageUpload({
         }
       } catch (error) {
         console.error("获取图床提供商列表失败", error);
-        showError("获取图床服务列表失败", "请刷新页面重试");
+        showError(t.adminImages.getProvidersFailed, t.adminImages.getProvidersFailedMessage);
       } finally {
         setLoadingProviders(false);
       }
@@ -554,7 +554,7 @@ export default function ImageUpload({
 
     try {
       await uploadWithConcurrencyLimit([fileState], index, 1);
-      success("重试成功", `${fileState.file.name} 已上传`, 3000);
+      success(t.adminImages.retrySuccess, t.adminImages.retrySuccessMessage.replace('{name}', fileState.file.name), 3000);
     } catch (error) {
       showError(
         "重试失败",
@@ -608,7 +608,7 @@ export default function ImageUpload({
           6000
         );
       } else {
-        success("全部重试成功", `成功上传 ${retrySuccessCount} 张图片`, 4000);
+        success(t.adminImages.retryAllSuccess, t.adminImages.retryAllSuccessMessage.replace('{count}', String(retrySuccessCount)), 4000);
       }
     } catch (error) {
       console.error("重试失败:", error);
@@ -756,12 +756,12 @@ export default function ImageUpload({
 
       if (failedCount > 0) {
         showError(
-          "部分上传失败",
-          `成功: ${successCount} 张，失败: ${failedCount} 张`,
+          t.adminImages.uploadPartialFailed,
+          t.adminImages.uploadPartialFailedMessage.replace('{success}', String(successCount)).replace('{failed}', String(failedCount)),
           6000
         );
       } else {
-        success("上传完成", `成功上传 ${successCount} 张图片`, 4000);
+        success(t.adminImages.uploadComplete, t.adminImages.uploadCompleteMessage.replace('{count}', String(successCount)), 4000);
       }
     } catch (error) {
       console.error("上传失败:", error);
@@ -770,8 +770,8 @@ export default function ImageUpload({
 
       if (successCount > 0) {
         showError(
-          "部分上传失败",
-          `成功: ${successCount} 张，失败: ${failedCount} 张`,
+          t.adminImages.uploadPartialFailed,
+          t.adminImages.uploadPartialFailedMessage.replace('{success}', String(successCount)).replace('{failed}', String(failedCount)),
           6000
         );
       } else {

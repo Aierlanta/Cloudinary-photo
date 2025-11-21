@@ -30,7 +30,7 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
 
   const handleSetRateLimit = async () => {
     if (!ip.trim() || !maxRequests || !windowMs) {
-      warning('表单未完成', '请填写必填字段');
+      warning(t.adminSecurity.incompleteForm, t.adminSecurity.incompleteFormMessage);
       return;
     }
 
@@ -57,10 +57,10 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
         onRefresh();
       } else {
         const data = await response.json();
-        showError(`设置失败`, data.error?.message || '未知错误');
+        showError(t.adminSecurity.setFailed, data.error?.message || t.adminSecurity.unknownError);
       }
     } catch (error) {
-      showError('设置失败', String(error));
+      showError(t.adminSecurity.setFailed, String(error));
     } finally {
       setSetting(false);
     }
@@ -83,10 +83,10 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
         onRefresh();
       } else {
         const data = await response.json();
-        showError('删除失败', data.error?.message || '未知错误');
+        showError(t.adminSecurity.removeFailed, data.error?.message || t.adminSecurity.unknownError);
       }
     } catch (error) {
-      showError('删除失败', String(error));
+      showError(t.adminSecurity.removeFailed, String(error));
     }
   };
 

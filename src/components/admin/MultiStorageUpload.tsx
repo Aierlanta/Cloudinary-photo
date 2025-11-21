@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
+import { useLocale } from '@/hooks/useLocale';
 import { 
   Upload, 
   CheckCircle, 
@@ -53,6 +54,7 @@ export default function MultiStorageUpload({
   onUploadComplete, 
   onUploadError 
 }: MultiStorageUploadProps) {
+  const { t } = useLocale();
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -318,9 +320,9 @@ export default function MultiStorageUpload({
                       onClick={async () => {
                         try {
                           await navigator.clipboard.writeText(uploadResult.image!.url);
-                          success('复制成功', 'URL 已复制到剪贴板');
+                          success(t.adminImages.copySuccess, t.adminImages.copySuccessMessage);
                         } catch (err) {
-                          showError('复制失败', err instanceof Error ? err.message : '无法复制 URL');
+                          showError(t.adminImages.copyFailed, err instanceof Error ? err.message : t.adminImages.copyFailedMessage);
                         }
                       }}
                     >

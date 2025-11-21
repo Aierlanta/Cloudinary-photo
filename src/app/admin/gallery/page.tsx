@@ -193,11 +193,11 @@ export default function GalleryPage() {
         success(t.adminGroups.deleteSuccess, data.data.message);
         setFilters((prev) => ({ ...prev }));
       } else {
-        showError(t.adminGroups.deleteFailed, "批量删除图片失败");
+        showError(t.adminGroups.deleteFailed, t.adminImages.bulkDeleteFailed);
       }
     } catch (error) {
       console.error("批量删除图片失败:", error);
-      showError(t.adminGroups.deleteFailed, "批量删除图片失败");
+      showError(t.adminGroups.deleteFailed, t.adminImages.bulkDeleteFailed);
     }
   };
 
@@ -217,11 +217,11 @@ export default function GalleryPage() {
       if (response.ok) {
         setFilters((prev) => ({ ...prev }));
       } else {
-        showError("更新图片失败");
+        showError(t.adminImages.updateFailed);
       }
     } catch (error) {
       console.error("更新图片失败:", error);
-      showError("更新图片失败");
+      showError(t.adminImages.updateFailed);
     }
   };
 
@@ -246,11 +246,11 @@ export default function GalleryPage() {
         success(t.adminGroups.updateSuccess, data.data.message);
         setFilters((prev) => ({ ...prev }));
       } else {
-        showError(t.adminGroups.updateFailed, "批量更新图片失败");
+        showError(t.adminGroups.updateFailed, t.adminImages.bulkUpdateFailed);
       }
     } catch (error) {
       console.error("批量更新图片失败:", error);
-      showError(t.adminGroups.updateFailed, "批量更新图片失败");
+      showError(t.adminGroups.updateFailed, t.adminImages.bulkUpdateFailed);
     }
   };
 
