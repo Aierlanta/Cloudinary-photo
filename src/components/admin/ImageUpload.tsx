@@ -1309,17 +1309,17 @@ export default function ImageUpload({
                     <button
                       type="button"
                       onClick={() => retryFile(index)}
-                      disabled={fileState.status === "uploading"}
+                      disabled={uploading}
                       className={cn(
                         "p-1.5 rounded-lg transition-colors",
                         isLight
                           ? "text-blue-600 hover:bg-blue-50"
                           : "text-blue-400 hover:bg-blue-900/20",
-                        fileState.status === "uploading" && "opacity-50 cursor-not-allowed"
+                        uploading && "opacity-50 cursor-not-allowed"
                       )}
                       title={t.adminImages.retry}
                     >
-                      <RefreshCw className={cn("w-4 h-4", fileState.status === "uploading" && "animate-spin")} />
+                      <RefreshCw className={cn("w-4 h-4", uploading && "animate-spin")} />
                     </button>
                   )}
                   <button
