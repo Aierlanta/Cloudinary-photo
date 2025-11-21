@@ -321,7 +321,8 @@ export function withSecurity(options: {
       const startTime = Date.now();
       const request = args[0] as NextRequest;
       const clientIP = getClientIP(request);
-      const path = request.nextUrl.pathname;
+      // 记录访问日志时包含查询参数，便于在风控热门路径中区分不同参数组合
+      const pathWithQuery = request.nextUrl.pathname + request.nextUrl.search;
       const method = request.method;
       const userAgent = request.headers.get('user-agent');
 
@@ -353,7 +354,7 @@ export function withSecurity(options: {
             // 记录被限流的访问
             if (options.enableAccessLog !== false) {
               const responseTime = Date.now() - startTime;
-              logAccess(clientIP, path, method, userAgent, 429, responseTime).catch(console.error);
+              logAccess(clientIP, pathWithQuery, method, userAgent, 429, responseTime).catch(console.error);
             }
 
             const message = rateLimitResult.reason || config.message || '请求过于频繁';
@@ -373,7 +374,7 @@ export function withSecurity(options: {
           // 记录成功的访问
           if (options.enableAccessLog !== false) {
             const responseTime = Date.now() - startTime;
-            logAccess(clientIP, path, method, userAgent, response.status, responseTime).catch(console.error);
+            logAccess(clientIP, pathWithQuery, method, userAgent, response.status, responseTime).catch(console.error);
           }
 
           // 直接返回响应，不尝试解析为JSON
@@ -386,7 +387,7 @@ export function withSecurity(options: {
         // 记录成功的访问
         if (options.enableAccessLog !== false) {
           const responseTime = Date.now() - startTime;
-          logAccess(clientIP, path, method, userAgent, response.status, responseTime).catch(console.error);
+          logAccess(clientIP, pathWithQuery, method, userAgent, response.status, responseTime).catch(console.error);
         }
 
         // 如果响应已经是NextResponse，直接设置安全头
@@ -417,7 +418,7 @@ export function withSecurity(options: {
         // 记录错误的访问(使用正确的状态码)
         if (options.enableAccessLog !== false) {
           const responseTime = Date.now() - startTime;
-          logAccess(clientIP, path, method, userAgent, statusCode, responseTime).catch(console.error);
+          logAccess(clientIP, pathWithQuery, method, userAgent, statusCode, responseTime).catch(console.error);
         }
 
         // 检查是否是AppError

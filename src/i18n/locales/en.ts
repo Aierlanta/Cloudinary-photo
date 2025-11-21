@@ -147,6 +147,7 @@ export const en: Translations = {
     overallStatus: 'Overall Status',
     healthy: 'Healthy',
     unhealthy: 'Unhealthy',
+    disabled: 'Disabled',
     lastCheck: 'Last Check',
     dataStats: 'Data Statistics',
     totalImagesLabel: 'Total Images',

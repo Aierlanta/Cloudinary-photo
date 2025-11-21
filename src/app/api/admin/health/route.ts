@@ -28,8 +28,15 @@ export async function GET(request: NextRequest) {
     // 检查主数据库健康状态
     const mainDbHealthy = await backupService.checkDatabaseHealth();
 
-    // 检查备份数据库健康状态
-    const backupDbHealthy = await backupService.checkBackupDatabaseHealth();
+    // 获取备份状态，检查是否启用了自动备份
+    const backupStatus = await backupService.getBackupStatus();
+    const isAutoBackupEnabled = backupStatus.isAutoBackupEnabled;
+
+    // 检查备份数据库健康状态（仅在启用时检查）
+    let backupDbHealthy: boolean | null = null;
+    if (isAutoBackupEnabled) {
+      backupDbHealthy = await backupService.checkBackupDatabaseHealth();
+    }
 
     // 获取数据库统计信息
     let stats = null;
@@ -46,12 +53,18 @@ export async function GET(request: NextRequest) {
       },
       backupDatabase: {
         healthy: backupDbHealthy,
-        status: backupDbHealthy ? 'healthy' : 'unhealthy'
+        status: isAutoBackupEnabled
+          ? (backupDbHealthy ? 'healthy' : 'unhealthy')
+          : 'disabled',
+        enabled: isAutoBackupEnabled
       },
       overall: {
-        healthy: mainDbHealthy && backupDbHealthy,
-        status: mainDbHealthy && backupDbHealthy ? 'healthy' : 
-                mainDbHealthy ? 'degraded' : 'unhealthy'
+        healthy: mainDbHealthy && (!isAutoBackupEnabled || backupDbHealthy),
+        status: mainDbHealthy && (!isAutoBackupEnabled || backupDbHealthy)
+          ? 'healthy'
+          : mainDbHealthy
+            ? 'degraded'
+            : 'unhealthy'
       },
       stats: stats ? {
         totalImages: stats.totalImages,

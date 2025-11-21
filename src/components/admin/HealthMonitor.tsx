@@ -21,8 +21,9 @@ interface HealthData {
     status: string;
   };
   backupDatabase: {
-    healthy: boolean;
+    healthy: boolean | null;
     status: string;
+    enabled?: boolean;
   };
   overall: {
     healthy: boolean;
@@ -217,7 +218,11 @@ export default function HealthMonitor() {
           {/* Backup Database */}
           <div className={cn(
             "border p-4 rounded-lg",
-            healthData?.backupDatabase.healthy
+            healthData?.backupDatabase.status === 'disabled'
+              ? isLight
+                ? "bg-gray-50 border-gray-300"
+                : "bg-gray-800/20 border-gray-600"
+              : healthData?.backupDatabase.healthy
               ? isLight
                 ? "bg-purple-50 border-purple-300"
                 : "bg-purple-900/20 border-purple-600"
@@ -228,13 +233,17 @@ export default function HealthMonitor() {
             <div className="flex items-center gap-3 mb-2">
               <Server className={cn(
                 "w-5 h-5",
-                healthData?.backupDatabase.healthy
+                healthData?.backupDatabase.status === 'disabled'
+                  ? isLight ? "text-gray-500" : "text-gray-400"
+                  : healthData?.backupDatabase.healthy
                   ? isLight ? "text-purple-600" : "text-purple-400"
                   : isLight ? "text-red-600" : "text-red-400"
               )} />
               <span className={cn(
                 "font-semibold rounded-lg",
-                healthData?.backupDatabase.healthy
+                healthData?.backupDatabase.status === 'disabled'
+                  ? isLight ? "text-gray-700" : "text-gray-300"
+                  : healthData?.backupDatabase.healthy
                   ? isLight ? "text-purple-900" : "text-purple-200"
                   : isLight ? "text-red-900" : "text-red-200"
               )}>
@@ -243,11 +252,17 @@ export default function HealthMonitor() {
             </div>
             <div className={cn(
               "text-sm pl-8 rounded-lg",
-              healthData?.backupDatabase.healthy
+              healthData?.backupDatabase.status === 'disabled'
+                ? isLight ? "text-gray-600" : "text-gray-400"
+                : healthData?.backupDatabase.healthy
                 ? isLight ? "text-purple-700" : "text-purple-300"
                 : isLight ? "text-red-700" : "text-red-300"
             )}>
-              {healthData?.backupDatabase.status === 'healthy' ? t.healthMonitor.healthy : t.healthMonitor.unhealthy}
+              {healthData?.backupDatabase.status === 'healthy' 
+                ? t.healthMonitor.healthy 
+                : healthData?.backupDatabase.status === 'disabled'
+                ? t.healthMonitor.disabled
+                : t.healthMonitor.unhealthy}
             </div>
           </div>
         </div>

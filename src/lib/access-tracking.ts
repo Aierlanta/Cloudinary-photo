@@ -90,8 +90,8 @@ export async function getAccessStats(days: number = 7) {
       _count: true,
     });
 
-    // 按路径统计
-    const pathStats = await prisma.accessLog.groupBy({
+    // 按路径统计 - 只统计 /api/random 和 /api/response 路径，保留参数
+    const allPathStats = await prisma.accessLog.groupBy({
       by: ['path'],
       where: {
         timestamp: {
@@ -104,8 +104,15 @@ export async function getAccessStats(days: number = 7) {
           path: 'desc',
         },
       },
-      take: 10,
     });
+
+    // 过滤出只包含 /api/random 和 /api/response 的路径（保留参数）
+    const filteredPathStats = allPathStats
+      .filter(stat => {
+        const path = stat.path;
+        return path.startsWith('/api/random') || path.startsWith('/api/response');
+      })
+      .slice(0, 10); // 只取前10个
 
     // 按日期统计
     const dailyStats = await prisma.$queryRaw<Array<{ date: string; count: number }>>`
@@ -136,7 +143,7 @@ export async function getAccessStats(days: number = 7) {
     return {
       totalAccess,
       uniqueIPCount: uniqueIPs.length,
-      pathStats: pathStats.map(stat => ({
+      pathStats: filteredPathStats.map(stat => ({
         path: stat.path,
         count: stat._count,
       })),

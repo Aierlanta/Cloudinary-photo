@@ -156,6 +156,7 @@ export interface Translations {
     overallStatus: string;
     healthy: string;
     unhealthy: string;
+    disabled: string;
     lastCheck: string;
     dataStats: string;
     totalImagesLabel: string;

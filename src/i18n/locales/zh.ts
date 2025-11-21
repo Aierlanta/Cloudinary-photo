@@ -147,6 +147,7 @@ export const zh: Translations = {
     overallStatus: '整体状态',
     healthy: '健康',
     unhealthy: '异常',
+    disabled: '未启用',
     lastCheck: '最后检查',
     dataStats: '数据统计',
     totalImagesLabel: '图片总数',
