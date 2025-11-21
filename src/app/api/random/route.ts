@@ -280,7 +280,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['key', 'response', 'format', 'quality']);
+  const RESERVED_PARAMS = new Set(['key', 'response', 'format', 'quality', 't']);
 
   // 如果没有配置允许的参数，则允许所有请求
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {
