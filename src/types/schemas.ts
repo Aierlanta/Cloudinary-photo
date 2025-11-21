@@ -156,12 +156,12 @@ export const AdminLoginRequestSchema = z.object({
 
 // 批量删除请求
 export const BulkDeleteRequestSchema = z.object({
-  imageIds: z.array(IdSchema).min(1, '至少需要选择一张图片').max(50, '一次最多删除50张图片')
+  imageIds: z.array(IdSchema).min(1, '至少需要选择一张图片').max(100, '一次最多删除100张图片')
 });
 
 // 批量更新请求
 export const BulkUpdateRequestSchema = z.object({
-  imageIds: z.array(IdSchema).min(1, '至少需要选择一张图片').max(50, '一次最多更新50张图片'),
+  imageIds: z.array(IdSchema).min(1, '至少需要选择一张图片').max(100, '一次最多更新100张图片'),
   updates: z.object({
     groupId: IdSchema.optional(),
     tags: TagsSchema.optional()
