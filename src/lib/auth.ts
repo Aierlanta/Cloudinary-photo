@@ -99,13 +99,7 @@ export function extractAuthFromRequest(request: NextRequest): string | null {
     return authHeader.substring(7);
   }
 
-  // 3. X-Admin-Password 头
-  const passwordHeader = request.headers.get('x-admin-password');
-  if (passwordHeader) {
-    return passwordHeader;
-  }
-
-  // 4. 查询参数 (不推荐，仅用于测试)
+  // 3. 查询参数 (不推荐，仅用于测试)
   const url = new URL(request.url);
   const passwordParam = url.searchParams.get('admin_password');
   if (passwordParam) {

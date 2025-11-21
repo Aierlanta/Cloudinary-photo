@@ -3,8 +3,8 @@
 import React, { useState } from 'react'
 import LogViewer from '@/components/admin/LogViewer'
 import { useLocale } from '@/hooks/useLocale'
-import { useAdminVersion } from '@/contexts/AdminVersionContext'
-import { GlassCard, GlassButton } from '@/components/ui/glass'
+import { cn } from '@/lib/utils'
+import { useTheme } from '@/hooks/useTheme'
 import { 
   FileText, 
   Download, 
@@ -14,7 +14,7 @@ import {
 
 export default function SystemLogsPage() {
   const { t } = useLocale();
-  const { version } = useAdminVersion();
+  const isLight = useTheme();
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   const handleExportLogs = async (format: 'json' | 'csv' | 'txt') => {
@@ -42,7 +42,7 @@ export default function SystemLogsPage() {
       }
     } catch (error) {
       console.error('导出日志失败:', error)
-      alert('导出日志失败')
+      alert(t.adminLogs.exportFailed)
     }
     setIsExportMenuOpen(false);
   }
@@ -65,147 +65,144 @@ export default function SystemLogsPage() {
       }
     } catch (error) {
       console.error('清空日志失败:', error)
-      alert('清空日志失败')
+      alert(t.adminLogs.clearFailed)
     }
   }
 
-  if (version === 'v2') {
-     return (
-        <div className="space-y-8 h-[calc(100vh-8rem)] flex flex-col">
-           <div className="flex justify-between items-start shrink-0">
-              <div>
-                 <h1 className="text-3xl font-bold mb-2">{t.adminLogs.title}</h1>
-                 <p className="text-muted-foreground">{t.adminLogs.description}</p>
-              </div>
-              <div className="flex gap-3 relative">
-                 <div className="relative">
-                    <GlassButton 
-                       primary 
-                       icon={Download} 
-                       onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                    >
-                       {t.adminLogs.exportLogs}
-                       <ChevronDown className="w-4 h-4 ml-2" />
-                    </GlassButton>
-                    {isExportMenuOpen && (
-                       <div className="absolute right-0 top-full mt-2 w-48 p-1 rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 shadow-xl z-50">
-                          <button 
-                             onClick={() => handleExportLogs('json')}
-                             className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm transition-colors"
-                          >
-                             {t.adminLogs.jsonFormat}
-                          </button>
-                          <button 
-                             onClick={() => handleExportLogs('csv')}
-                             className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm transition-colors"
-                          >
-                             {t.adminLogs.csvFormat}
-                          </button>
-                          <button 
-                             onClick={() => handleExportLogs('txt')}
-                             className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm transition-colors"
-                          >
-                             {t.adminLogs.textFormat}
-                          </button>
-                       </div>
-                    )}
-                 </div>
-                 
-                 {process.env.NODE_ENV === 'development' && (
-                    <GlassButton 
-                       icon={Trash2} 
-                       className="text-red-400 hover:bg-red-500/10 hover:text-red-300 border-red-500/20"
-                       onClick={handleClearLogs}
-                    >
-                       {t.adminLogs.clearLogs}
-                    </GlassButton>
-                 )}
-              </div>
-           </div>
-
-           <GlassCard className="flex-1 overflow-hidden flex flex-col" noPadding>
-              <div className="p-4 border-b border-white/10 bg-white/5 flex items-center gap-3">
-                 <div className="p-2 rounded-lg bg-blue-500/20 text-blue-500">
-                    <FileText className="w-5 h-5" />
-                 </div>
-                 <h3 className="font-semibold">System Logs Stream</h3>
-                 <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    Live
-                 </div>
-              </div>
-              <div className="flex-1 overflow-hidden relative">
-                 <LogViewer maxEntries={200} autoRefresh={true} refreshInterval={5000} />
-              </div>
-           </GlassCard>
-        </div>
-     )
-  }
-
-  // V1 Layout
+  // --- V3 Layout (Flat Design) ---
   return (
-    <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col rounded-lg">
+        {/* Header */}
+        <div className={cn(
+          "border p-6 flex justify-between items-start shrink-0 rounded-lg",
+          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        )}>
           <div>
-            <h1 className="text-2xl font-bold panel-text mb-2">{t.adminLogs.title}</h1>
-            <p className="text-gray-600 dark:text-gray-300 panel-text">
+            <h1 className={cn(
+              "text-3xl font-bold mb-2 rounded-lg",
+              isLight ? "text-gray-900" : "text-gray-100"
+            )}>
+              {t.adminLogs.title}
+            </h1>
+            <p className={cn(
+              "text-sm rounded-lg",
+              isLight ? "text-gray-600" : "text-gray-400"
+            )}>
               {t.adminLogs.description}
             </p>
           </div>
-          <div className="flex space-x-3">
+          <div className="flex gap-3 relative">
             <div className="relative">
               <button
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-                onClick={() => {
-                  const dropdown = document.getElementById('export-dropdown')
-                  dropdown?.classList.toggle('hidden')
-                }}
+                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                className={cn(
+                  "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
+                  isLight
+                    ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                    : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                )}
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <Download className="w-4 h-4" />
                 {t.adminLogs.exportLogs}
+                <ChevronDown className="w-4 h-4" />
               </button>
-              <div id="export-dropdown" className="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
-                <button
-                  onClick={() => handleExportLogs('json')}
-                  className="block w-full text-left px-4 py-2 text-sm panel-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg"
-                >
-                  {t.adminLogs.jsonFormat}
-                </button>
-                <button
-                  onClick={() => handleExportLogs('csv')}
-                  className="block w-full text-left px-4 py-2 text-sm panel-text hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  {t.adminLogs.csvFormat}
-                </button>
-                <button
-                  onClick={() => handleExportLogs('txt')}
-                  className="block w-full text-left px-4 py-2 text-sm panel-text hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg"
-                >
-                  {t.adminLogs.textFormat}
-                </button>
-              </div>
+              {isExportMenuOpen && (
+                <div className={cn(
+                  "absolute right-0 top-full mt-2 w-48 border z-50 rounded-lg",
+                  isLight
+                    ? "bg-white border-gray-300"
+                    : "bg-gray-800 border-gray-600"
+                )}>
+                  <button
+                    onClick={() => handleExportLogs('json')}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm transition-colors border-b rounded-lg",
+                      isLight
+                        ? "bg-white hover:bg-gray-50 border-gray-300 text-gray-900"
+                        : "bg-gray-800 hover:bg-gray-700 border-gray-600 text-gray-100"
+                    )}
+                  >
+                    {t.adminLogs.jsonFormat}
+                  </button>
+                  <button
+                    onClick={() => handleExportLogs('csv')}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm transition-colors border-b rounded-lg",
+                      isLight
+                        ? "bg-white hover:bg-gray-50 border-gray-300 text-gray-900"
+                        : "bg-gray-800 hover:bg-gray-700 border-gray-600 text-gray-100"
+                    )}
+                  >
+                    {t.adminLogs.csvFormat}
+                  </button>
+                  <button
+                    onClick={() => handleExportLogs('txt')}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm transition-colors rounded-lg",
+                      isLight
+                        ? "bg-white hover:bg-gray-50 text-gray-900"
+                        : "bg-gray-800 hover:bg-gray-700 text-gray-100"
+                    )}
+                  >
+                    {t.adminLogs.textFormat}
+                  </button>
+                </div>
+              )}
             </div>
+
             {process.env.NODE_ENV === 'development' && (
               <button
                 onClick={handleClearLogs}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                className={cn(
+                  "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
+                  isLight
+                    ? "bg-red-500 text-white border-red-600 hover:bg-red-600"
+                    : "bg-red-600 text-white border-red-500 hover:bg-red-700"
+                )}
               >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+                <Trash2 className="w-4 h-4" />
                 {t.adminLogs.clearLogs}
               </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* 日志查看器 */}
-      <LogViewer maxEntries={100} autoRefresh={true} refreshInterval={10000} />
-    </div>
-  )
+        {/* Log Viewer */}
+        <div className={cn(
+          "border flex-1 overflow-hidden flex flex-col rounded-lg",
+          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        )}>
+          <div className={cn(
+            "p-4 border-b flex items-center gap-3 shrink-0 rounded-lg",
+            isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+          )}>
+            <div className={cn(
+              "w-10 h-10 flex items-center justify-center rounded-lg",
+              isLight ? "bg-blue-500" : "bg-blue-600"
+            )}>
+              <FileText className="w-5 h-5 text-white" />
+            </div>
+            <h3 className={cn(
+              "font-semibold rounded-lg",
+              isLight ? "text-gray-900" : "text-gray-100"
+            )}>
+              {t.adminLogs.systemLogsStream}
+            </h3>
+            <div className={cn(
+              "ml-auto flex items-center gap-2 text-xs rounded-lg",
+              isLight ? "text-gray-600" : "text-gray-400"
+            )}>
+              <span className={cn(
+                "w-2 h-2 rounded-lg",
+                isLight ? "bg-green-500" : "bg-green-400"
+              )} style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></span>
+              {t.adminLogs.live}
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden relative rounded-lg">
+            <LogViewer maxEntries={25} autoRefresh={true} refreshInterval={5000} />
+          </div>
+        </div>
+      </div>
+    );
 }

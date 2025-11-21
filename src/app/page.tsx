@@ -82,6 +82,7 @@ function HomeContent() {
   const [theme, setTheme] = useState<Theme>("light");
   const [isManualTheme, setIsManualTheme] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Parallax Logic
   const { scrollY } = useScroll();
@@ -101,6 +102,8 @@ function HomeContent() {
   };
 
   useEffect(() => {
+    setMounted(true);
+    
     const pref = resolveSiteClientTheme();
     setTheme(pref.theme);
     setIsManualTheme(pref.isManual);
@@ -123,6 +126,21 @@ function HomeContent() {
       setRandomImageUrl(generateRandomImageUrl(currentBaseUrl));
     }
   }, []);
+
+  // 在客户端挂载后设置按钮的 title 属性
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const langButton = document.querySelector('[data-lang-button]') as HTMLButtonElement;
+    const themeButton = document.querySelector('[data-theme-button]') as HTMLButtonElement;
+    
+    if (langButton) {
+      langButton.title = t.home.toggleLanguage;
+    }
+    if (themeButton) {
+      themeButton.title = t.home.toggleTheme;
+    }
+  }, [mounted, t.home.toggleLanguage, t.home.toggleTheme]);
 
   useEffect(() => {
     if (typeof window === "undefined" || isManualTheme) return;
@@ -211,7 +229,7 @@ function HomeContent() {
                 <ImageIcon className="w-6 h-6" />
               </div>
               <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-                {locale === "zh" ? "随机图片API" : "Random Image API"}
+                {t.home.title}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -220,16 +238,16 @@ function HomeContent() {
                   className="px-5 py-2 text-sm rounded-full"
                   icon={LayoutDashboard}
                 >
-                  {t.home.managementPanel}
+                  <span>{t.home.managementPanel}</span>
                 </GlassButton>
               </Link>
               <div className="h-6 w-px bg-foreground/10 mx-2 hidden md:block" />
 
               <Magnetic>
                 <button
+                  data-lang-button
                   onClick={toggleLocale}
                   className="p-2.5 rounded-full hover:bg-foreground/5 transition-colors border border-transparent hover:border-white/10"
-                  title={t.home.toggleLanguage}
                 >
                   <Languages className="w-5 h-5" />
                 </button>
@@ -237,9 +255,9 @@ function HomeContent() {
 
               <Magnetic>
                 <button
+                  data-theme-button
                   onClick={handleThemeToggle}
                   className="p-2.5 rounded-full hover:bg-foreground/5 transition-colors border border-transparent hover:border-white/10"
-                  title={t.home.toggleTheme}
                 >
                   {theme === "dark" ? (
                     <Sun className="w-5 h-5" />
@@ -284,7 +302,7 @@ function HomeContent() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                   </span>
-                  {versionLabel ? `v${versionLabel} Stable` : "v... Stable"}
+                  <span>{versionLabel ? `v${versionLabel} Stable` : "v... Stable"}</span>
                 </div>
               </div>
             </motion.div>
@@ -292,6 +310,7 @@ function HomeContent() {
             <motion.h1
               variants={itemVariants}
               className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-foreground via-foreground/90 to-foreground/40 leading-[0.9] drop-shadow-sm select-none"
+             
             >
               {t.home.title}
             </motion.h1>
@@ -299,6 +318,7 @@ function HomeContent() {
             <motion.p
               variants={itemVariants}
               className="max-w-3xl mx-auto text-xl sm:text-2xl text-muted-foreground leading-relaxed font-light"
+             
             >
               {t.home.subtitle}
             </motion.p>
@@ -313,7 +333,7 @@ function HomeContent() {
                   icon={BookOpen}
                   className="h-14 px-8 text-lg rounded-2xl shadow-xl shadow-primary/20"
                 >
-                  {t.home.apiDocs}
+                  <span>{t.home.apiDocs}</span>
                 </GlassButton>
               </Link>
               <Link href="/admin">
@@ -321,7 +341,7 @@ function HomeContent() {
                   icon={ArrowRight}
                   className="h-14 px-8 text-lg rounded-2xl"
                 >
-                  {t.home.managementPanel}
+                  <span>{t.home.managementPanel}</span>
                 </GlassButton>
               </Link>
             </motion.div>
@@ -675,7 +695,7 @@ function HomeContent() {
                 className="flex items-center gap-2 hover:text-primary transition-colors"
               >
                 <Github className="w-4 h-4" />
-                {t.footer.github}
+                <span>{t.footer.github}</span>
               </Link>
             </div>
           </div>

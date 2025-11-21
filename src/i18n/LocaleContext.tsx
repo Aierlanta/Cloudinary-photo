@@ -13,14 +13,21 @@ interface LocaleContextType {
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  // 优化：使用单一 state 对象，只调用一次 getCurrentLocale，避免重复的 localStorage 读取
-  const [state, setState] = useState<{ locale: Locale; t: Translations }>(() => {
-    const currentLocale = getCurrentLocale();
-    return {
-      locale: currentLocale,
-      t: getTranslations(currentLocale),
-    };
+  // ❗ SSR 阶段固定英文，避免 hydration mismatch
+  const [state, setState] = useState<{ locale: Locale; t: Translations }>({
+    locale: 'en',
+    t: getTranslations('en'),
   });
+
+  // ❗ hydration 之后才切换到真实语言
+  useEffect(() => {
+    const realLocale = getCurrentLocale(); // localStorage + 浏览器语言
+
+    setState({
+      locale: realLocale,
+      t: getTranslations(realLocale),
+    });
+  }, []);
 
   const changeLocale = (newLocale: Locale) => {
     setState({

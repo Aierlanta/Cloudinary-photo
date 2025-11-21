@@ -89,14 +89,13 @@ export interface Translations {
     quickSettings: string;
     opacityDescription: string;
     toggleLanguage: string;
-    versionControl: string;
-    switchToNew: string;
-    switchToOld: string;
   };
 
   // 管理面板 - 导航
   adminNav: {
     dashboard: string;
+    upload: string;
+    gallery: string;
     images: string;
     groups: string;
     apiConfig: string;
@@ -135,10 +134,15 @@ export interface Translations {
     totalAccess: string;
     quickActions: string;
     uploadImage: string;
+    uploadImageDesc: string;
     manageGroups: string;
+    manageGroupsDesc: string;
     apiConfig: string;
+    apiConfigDesc: string;
     backupManagement: string;
+    backupManagementDesc: string;
     testAPI: string;
+    last24HoursAccessShort: string;
   };
 
   // 系统健康监控
@@ -156,6 +160,18 @@ export interface Translations {
     dataStats: string;
     totalImagesLabel: string;
     totalGroupsLabel: string;
+  };
+
+  // 图片上传
+  adminUpload: {
+    title: string;
+    description: string;
+  };
+
+  // 图库
+  adminGallery: {
+    title: string;
+    description: string;
   };
 
   // 图片管理
@@ -232,6 +248,21 @@ export interface Translations {
     urlImportTxtExampleContent: string;
     urlImportJsonExampleTitle: string;
     urlImportJsonExampleContent: string;
+    // ImageList 组件
+    unassigned: string;
+    reset: string;
+    group: string;
+    ungrouped: string;
+    tags: string;
+    open: string;
+    download: string;
+    copyLink: string;
+    editImage: string;
+    commaSeparatedTags: string;
+    moveToGroup: string;
+    noImagesFound: string;
+    deleteImagesConfirm: string;
+    moveImagesConfirm: string;
   };
 
   // API 配置管理
@@ -394,6 +425,9 @@ export interface Translations {
     recentErrors: string;
     environment: string;
     healthIssues: string;
+    live: string;
+    paused: string;
+    parameters: string;
   };
 
   // 系统日志
@@ -443,6 +477,8 @@ export interface Translations {
     noLogsFound: string;
     viewDetails: string;
     details: string;
+    systemLogsStream: string;
+    live: string;
     invalidTime: string;
     page: string;
     totalPages: string;
@@ -738,5 +774,9 @@ export interface Translations {
     export: string;
     noData: string;
     loadFailed: string;
+    requests: string;
+    blocked: string;
+    activeLimits: string;
+    noAccessData: string;
   };
 }

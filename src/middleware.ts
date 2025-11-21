@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/api/')) {
     secureResponse.headers.set('Access-Control-Allow-Origin', '*');
     secureResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    secureResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Password');
+    secureResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     secureResponse.headers.set('Access-Control-Max-Age', '86400');
     
     // 处理预检请求

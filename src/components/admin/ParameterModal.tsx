@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
 import { useLocale } from '@/hooks/useLocale'
+import { cn } from '@/lib/utils'
+import { useTheme } from '@/hooks/useTheme'
 
 interface APIParameter {
   name: string
@@ -39,6 +41,7 @@ export default function ParameterModal({
   isEditing 
 }: ParameterModalProps) {
   const { t } = useLocale();
+  const isLight = useTheme();
   const [formData, setFormData] = useState<APIParameter>({
     name: '',
     type: 'group',
@@ -118,161 +121,250 @@ export default function ParameterModal({
 
   if (!isOpen) return null
 
+  // --- V3 Layout (Flat Design) ---
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="transparent-panel rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {/* 头部 */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold panel-text">
-              {isEditing ? t.adminConfig.editApiParameter : t.adminConfig.addApiParameter}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* 表单 */}
-          <div className="space-y-6">
-            {/* 基本信息 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium panel-text mb-2">
-                  {t.adminConfig.parameterNameLabel} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder={t.adminConfig.parameterNamePlaceholder}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium panel-text mb-2">
-                  {t.adminConfig.parameterTypeLabel}
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as 'group' | 'custom' })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-                >
-                  <option value="group">{t.adminConfig.groupParameterOption}</option>
-                  <option value="custom">{t.adminConfig.customParameterOption}</option>
-                </select>
-              </div>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0 rounded-lg">
+        <div className={cn(
+          "border max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-lg",
+          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        )}>
+          <div className="p-6 rounded-lg">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6 rounded-lg">
+              <h3 className={cn(
+                "text-lg font-semibold",
+                isLight ? "text-gray-900" : "text-gray-100"
+              )}>
+                {isEditing ? t.adminConfig.editApiParameter : t.adminConfig.addApiParameter}
+              </h3>
+              <button
+                onClick={onClose}
+                className={cn(
+                  "p-2 transition-colors rounded-lg",
+                  isLight
+                    ? "text-gray-500 hover:bg-gray-100"
+                    : "text-gray-400 hover:bg-gray-700"
+                )}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            {/* 启用状态 */}
-            <div>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.isEnabled}
-                  onChange={(e) => setFormData({ ...formData, isEnabled: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                />
-                <span className="ml-2 text-sm font-medium panel-text">{t.adminConfig.enableParameter}</span>
-              </label>
-            </div>
+            {/* Form */}
+            <div className="space-y-6 rounded-lg">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
+                <div>
+                  <label className={cn(
+                    "block text-sm font-medium mb-2 rounded-lg",
+                    isLight ? "text-gray-700" : "text-gray-300"
+                  )}>
+                    {t.adminConfig.parameterNameLabel} *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder={t.adminConfig.parameterNamePlaceholder}
+                    className={cn(
+                      "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
+                      isLight
+                        ? "bg-white border-gray-300"
+                        : "bg-gray-800 border-gray-600"
+                    )}
+                  />
+                </div>
 
-            {/* 允许的值 */}
-            <div>
-              <label className="block text-sm font-medium panel-text mb-2">
-                {t.adminConfig.allowedValuesLabel} *
-              </label>
-              <div className="flex mb-3">
-                <input
-                  type="text"
-                  value={newValue}
-                  onChange={(e) => setNewValue(e.target.value)}
-                  placeholder={t.adminConfig.enterParameterValue}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-                  onKeyPress={(e) => e.key === 'Enter' && addValue()}
-                />
-                <button
-                  onClick={addValue}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition-colors"
-                >
-                  {t.adminConfig.add}
-                </button>
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                {formData.allowedValues.map((value, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
+                <div>
+                  <label className={cn(
+                    "block text-sm font-medium mb-2 rounded-lg",
+                    isLight ? "text-gray-700" : "text-gray-300"
+                  )}>
+                    {t.adminConfig.parameterTypeLabel}
+                  </label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as 'group' | 'custom' })}
+                    className={cn(
+                      "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
+                      isLight
+                        ? "bg-white border-gray-300"
+                        : "bg-gray-800 border-gray-600"
+                    )}
                   >
-                    {value}
-                    <button
-                      onClick={() => removeValue(index)}
-                      className="ml-2 text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                ))}
+                    <option value="group">{t.adminConfig.groupParameterOption}</option>
+                    <option value="custom">{t.adminConfig.customParameterOption}</option>
+                  </select>
+                </div>
               </div>
-            </div>
 
-            {/* 分组映射 (仅分组参数) */}
-            {formData.type === 'group' && (
+              {/* Enable Status */}
               <div>
-                <label className="block text-sm font-medium panel-text mb-2">
-                  {t.adminConfig.mappedGroupsLabel}
+                <label className="flex items-center rounded-lg">
+                  <input
+                    type="checkbox"
+                    checked={formData.isEnabled}
+                    onChange={(e) => setFormData({ ...formData, isEnabled: e.target.checked })}
+                    className="w-4 h-4 border-gray-300 rounded-lg"
+                  />
+                  <span className={cn(
+                    "ml-2 text-sm font-medium",
+                    isLight ? "text-gray-700" : "text-gray-300"
+                  )}>
+                    {t.adminConfig.enableParameter}
+                  </span>
                 </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  {t.adminConfig.mappedGroupsDesc}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                  {groups.map(group => (
-                    <label key={group.id} className="flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-                      <input
-                        type="checkbox"
-                        checked={formData.mappedGroups.includes(group.id)}
-                        onChange={() => toggleGroupMapping(group.id)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                      <span className="ml-2 text-sm panel-text">{group.name}</span>
-                      <span className="ml-auto text-xs text-gray-500">({group.imageCount})</span>
-                    </label>
+              </div>
+
+              {/* Allowed Values */}
+              <div>
+                <label className={cn(
+                  "block text-sm font-medium mb-2 rounded-lg",
+                  isLight ? "text-gray-700" : "text-gray-300"
+                )}>
+                  {t.adminConfig.allowedValuesLabel} *
+                </label>
+                <div className="flex mb-3 rounded-lg">
+                  <input
+                    type="text"
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    placeholder={t.adminConfig.enterParameterValue}
+                    className={cn(
+                      "flex-1 px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
+                      isLight
+                        ? "bg-white border-gray-300"
+                        : "bg-gray-800 border-gray-600"
+                    )}
+                    onKeyPress={(e) => e.key === 'Enter' && addValue()}
+                  />
+                  <button
+                    onClick={addValue}
+                    className={cn(
+                      "px-4 py-2 border transition-colors rounded-lg",
+                      isLight
+                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                        : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                    )}
+                  >
+                    {t.adminConfig.add}
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 rounded-lg">
+                  {formData.allowedValues.map((value, index) => (
+                    <span
+                      key={index}
+                      className={cn(
+                        "inline-flex items-center px-3 py-1 border text-sm rounded-lg",
+                        isLight
+                          ? "bg-blue-50 border-blue-300 text-blue-800"
+                          : "bg-blue-900/20 border-blue-600 text-blue-200"
+                      )}
+                    >
+                      {value}
+                      <button
+                        onClick={() => removeValue(index)}
+                        className={cn(
+                          "ml-2 transition-colors rounded-lg",
+                          isLight
+                            ? "text-blue-600 hover:text-blue-800"
+                            : "text-blue-300 hover:text-blue-100"
+                        )}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* 操作按钮 */}
-          <div className="flex space-x-3 mt-8">
-            <button
-              onClick={handleSave}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
-            >
-              {isEditing ? t.adminConfig.updateParameter : t.adminConfig.addParameterButton}
-            </button>
-            <button
-              onClick={onClose}
-              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors"
-            >
-              {t.adminConfig.cancel}
-            </button>
+              {/* Group Mapping (only for group parameters) */}
+              {formData.type === 'group' && (
+                <div>
+                  <label className={cn(
+                    "block text-sm font-medium mb-2 rounded-lg",
+                    isLight ? "text-gray-700" : "text-gray-300"
+                  )}>
+                    {t.adminConfig.mappedGroupsLabel}
+                  </label>
+                  <p className={cn(
+                    "text-xs mb-3 rounded-lg",
+                    isLight ? "text-gray-500" : "text-gray-400"
+                  )}>
+                    {t.adminConfig.mappedGroupsDesc}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto rounded-lg">
+                    {groups.map(group => (
+                      <label
+                        key={group.id}
+                        className={cn(
+                          "flex items-center p-2 border transition-colors rounded-lg",
+                          isLight
+                            ? "bg-white border-gray-300 hover:bg-gray-50"
+                            : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.mappedGroups.includes(group.id)}
+                          onChange={() => toggleGroupMapping(group.id)}
+                          className="w-4 h-4 border-gray-300 rounded-lg"
+                        />
+                        <span className={cn(
+                          "ml-2 text-sm rounded-lg",
+                          isLight ? "text-gray-900" : "text-gray-100"
+                        )}>
+                          {group.name}
+                        </span>
+                        <span className={cn(
+                          "ml-auto text-xs rounded-lg",
+                          isLight ? "text-gray-500" : "text-gray-400"
+                        )}>
+                          ({group.imageCount})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 mt-8 rounded-lg">
+              <button
+                onClick={handleSave}
+                className={cn(
+                  "flex-1 py-2 px-4 border transition-colors rounded-lg",
+                  isLight
+                    ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                    : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                )}
+              >
+                {isEditing ? t.adminConfig.updateParameter : t.adminConfig.addParameterButton}
+              </button>
+              <button
+                onClick={onClose}
+                className={cn(
+                  "flex-1 py-2 px-4 border transition-colors rounded-lg",
+                  isLight
+                    ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
+                    : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
+                )}
+              >
+                {t.adminConfig.cancel}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Toast通知容器 */}
-      <ToastContainer
-        toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))}
-      />
-    </div>
-  )
+        <ToastContainer
+          toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))}
+        />
+      </div>
+    );
 }

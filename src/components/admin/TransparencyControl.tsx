@@ -10,8 +10,6 @@ interface TransparencyControlProps {
   onThemeToggle: () => void
   isManualTheme: boolean
   onThemeReset: () => void
-  adminVersion?: 'v1' | 'v2'
-  setAdminVersion?: (version: 'v1' | 'v2') => void
 }
 
 export default function TransparencyControl({ 
@@ -20,9 +18,7 @@ export default function TransparencyControl({
   theme, 
   onThemeToggle, 
   isManualTheme, 
-  onThemeReset,
-  adminVersion,
-  setAdminVersion
+  onThemeReset
 }: TransparencyControlProps) {
   const { locale, t, toggleLocale } = useLocale();
   const [isOpen, setIsOpen] = useState(false)
@@ -52,7 +48,7 @@ export default function TransparencyControl({
                   className="px-3 py-1 text-xs rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors font-semibold"
                   title={t.admin.toggleLanguage}
                 >
-                  {locale === 'zh' ? 'EN' : '中'}
+                  <span>{locale === 'zh' ? 'EN' : '中'}</span>
                 </button>
                 <button
                   onClick={onThemeToggle}
@@ -122,33 +118,6 @@ export default function TransparencyControl({
                 ))}
               </div>
             </div>
-
-            {/* Version Control */}
-            {setAdminVersion && (
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                 <label className="text-sm font-medium panel-text mb-2 block">{t.admin.versionControl}</label>
-                 <button
-                   onClick={() => setAdminVersion(adminVersion === 'v2' ? 'v1' : 'v2')}
-                   className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all shadow-md flex items-center justify-center gap-2"
-                 >
-                   {adminVersion === 'v2' ? (
-                     <>
-                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
-                       </svg>
-                       {t.admin.switchToOld}
-                     </>
-                   ) : (
-                     <>
-                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                       </svg>
-                       {t.admin.switchToNew}
-                     </>
-                   )}
-                 </button>
-              </div>
-            )}
 
             {/* 说明文字 */}
             <div className="text-xs text-gray-500 dark:text-gray-400 panel-text">

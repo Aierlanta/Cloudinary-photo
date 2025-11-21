@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useLocale } from "@/hooks/useLocale";
-import { useAdminVersion } from "@/contexts/AdminVersionContext";
-import { GlassCard, GlassButton } from "@/components/ui/glass";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 import BannedIPManagement from "@/components/admin/BannedIPManagement";
 import RateLimitManagement from "@/components/admin/RateLimitManagement";
 import { 
@@ -18,8 +18,8 @@ import {
 
 interface AccessStats {
   totalAccess: number;
-  uniqueIPs: number;
-  topPaths: Array<{ path: string; count: number }>;
+  uniqueIPCount: number;
+  pathStats: Array<{ path: string; count: number }>;
   topIPs: Array<{ ip: string; count: number }>;
   dailyStats: Array<{ date: string; count: number }>;
 }
@@ -48,7 +48,7 @@ interface RateLimit {
 
 export default function SecurityManagement() {
   const { t } = useLocale();
-  const { version } = useAdminVersion();
+  const isLight = useTheme();
   const [activeTab, setActiveTab] = useState<"stats" | "banned" | "limits">("stats");
   const [loading, setLoading] = useState(true);
 
@@ -117,368 +117,396 @@ export default function SecurityManagement() {
     loadRateLimits();
   };
 
-  if (version === 'v2') {
-     return (
-        <div className="space-y-8">
-           {/* Header */}
-           <div className="flex justify-between items-start">
-              <div>
-                 <h1 className="text-3xl font-bold mb-2">{t.adminSecurity.title}</h1>
-                 <p className="text-muted-foreground">{t.adminSecurity.description}</p>
-              </div>
-              <GlassButton onClick={handleRefresh} icon={RefreshCw} className={loading ? "animate-spin" : ""}>
-                 {t.adminSecurity.refresh}
-              </GlassButton>
-           </div>
-
-           {/* Navigation Cards */}
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <GlassCard 
-                 className={`cursor-pointer transition-colors ${activeTab === 'stats' ? 'ring-2 ring-primary bg-primary/10' : 'opacity-80 hover:opacity-100 hover:ring-2 hover:ring-primary/40'}`}
-                 onClick={() => setActiveTab('stats')}
-                 hover={false}
-              >
-                 <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-blue-500/20 text-blue-500">
-                       <BarChart2 className="w-6 h-6" />
-                    </div>
-                    <div>
-                       <h3 className="font-bold">{t.adminSecurity.accessStats}</h3>
-                       <p className="text-xs text-muted-foreground">{realtimeStats?.total || 0} requests</p>
-                    </div>
-                 </div>
-              </GlassCard>
-
-              <GlassCard 
-                 className={`cursor-pointer transition-colors ${activeTab === 'banned' ? 'ring-2 ring-primary bg-primary/10' : 'opacity-80 hover:opacity-100 hover:ring-2 hover:ring-primary/40'}`}
-                 onClick={() => setActiveTab('banned')}
-                 hover={false}
-              >
-                 <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-red-500/20 text-red-500">
-                       <Ban className="w-6 h-6" />
-                    </div>
-                    <div>
-                       <h3 className="font-bold">{t.adminSecurity.bannedIPs}</h3>
-                       <p className="text-xs text-muted-foreground">{bannedIPs.length} blocked</p>
-                    </div>
-                 </div>
-              </GlassCard>
-
-              <GlassCard 
-                 className={`cursor-pointer transition-colors ${activeTab === 'limits' ? 'ring-2 ring-primary bg-primary/10' : 'opacity-80 hover:opacity-100 hover:ring-2 hover:ring-primary/40'}`}
-                 onClick={() => setActiveTab('limits')}
-                 hover={false}
-              >
-                 <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-yellow-500/20 text-yellow-500">
-                       <Activity className="w-6 h-6" />
-                    </div>
-                    <div>
-                       <h3 className="font-bold">{t.adminSecurity.rateLimits}</h3>
-                       <p className="text-xs text-muted-foreground">{rateLimits.length} active limits</p>
-                    </div>
-                 </div>
-              </GlassCard>
-           </div>
-
-           {/* Content Area */}
-           <div className="min-h-[400px]">
-              {loading ? (
-                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-                 </div>
-              ) : (
-                 <>
-                    {activeTab === 'stats' && (
-                       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          {/* Realtime Stats */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                             <GlassCard className="p-6">
-                                <div className="flex justify-between items-start mb-2">
-                                   <p className="text-sm text-muted-foreground">{t.adminSecurity.lastHour}</p>
-                                   <Clock className="w-4 h-4 text-blue-500" />
-                                </div>
-                                <div className="text-3xl font-bold">{realtimeStats?.lastHour || 0}</div>
-                             </GlassCard>
-                             <GlassCard className="p-6">
-                                <div className="flex justify-between items-start mb-2">
-                                   <p className="text-sm text-muted-foreground">{t.adminSecurity.last24Hours}</p>
-                                   <Activity className="w-4 h-4 text-green-500" />
-                                </div>
-                                <div className="text-3xl font-bold">{realtimeStats?.last24Hours || 0}</div>
-                             </GlassCard>
-                             <GlassCard className="p-6">
-                                <div className="flex justify-between items-start mb-2">
-                                   <p className="text-sm text-muted-foreground">{t.adminSecurity.totalAccess}</p>
-                                   <Globe className="w-4 h-4 text-purple-500" />
-                                </div>
-                                <div className="text-3xl font-bold">{realtimeStats?.total || 0}</div>
-                             </GlassCard>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Top Paths */}
-                            <GlassCard className="p-6">
-                              <h3 className="font-bold mb-4 flex items-center gap-2">
-                                <BarChart2 className="w-4 h-4 text-primary" />
-                                {t.adminSecurity.topPaths}
-                              </h3>
-                              <div className="space-y-3">
-                                {(stats?.topPaths ?? []).slice(0, 8).map((item, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-center justify-between text-sm"
-                                  >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <span className="text-muted-foreground w-4">
-                                        {i + 1}
-                                      </span>
-                                      <span className="font-mono truncate bg-white/5 px-2 py-0.5 rounded text-xs">
-                                        {item.path}
-                                      </span>
-                                    </div>
-                                    <span className="font-medium">{item.count}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </GlassCard>
-
-                            {/* Top IPs */}
-                            <GlassCard className="p-6">
-                              <h3 className="font-bold mb-4 flex items-center gap-2">
-                                <Shield className="w-4 h-4 text-primary" />
-                                {t.adminSecurity.topIPs}
-                              </h3>
-                              <div className="space-y-3">
-                                {(stats?.topIPs ?? []).slice(0, 8).map((item, i) => (
-                                  <div
-                                    key={i}
-                                    className="flex items-center justify-between text-sm"
-                                  >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <span className="text-muted-foreground w-4">
-                                        {i + 1}
-                                      </span>
-                                      <span className="font-mono truncate bg-white/5 px-2 py-0.5 rounded text-xs">
-                                        {item.ip}
-                                      </span>
-                                    </div>
-                                    <span className="font-medium">{item.count}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </GlassCard>
-                          </div>
-                       </div>
-                    )}
-
-                    {activeTab === 'banned' && (
-                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          <GlassCard>
-                             <BannedIPManagement bannedIPs={bannedIPs} onRefresh={handleRefresh} />
-                          </GlassCard>
-                       </div>
-                    )}
-
-                    {activeTab === 'limits' && (
-                       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                          <GlassCard>
-                             <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
-                          </GlassCard>
-                       </div>
-                    )}
-                 </>
-              )}
-           </div>
-        </div>
-     )
-  }
-
-  // ... V1 Layout ...
+  // --- V3 Layout (Flat Design) ---
   return (
-    <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold panel-text mb-2">
-              {t.adminSecurity.title}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 panel-text">
-              {t.adminSecurity.description}
-            </p>
+    <div className="space-y-6 rounded-lg">
+      {/* Header */}
+      <div className={cn(
+        "border p-6 flex justify-between items-start rounded-lg",
+        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+      )}>
+        <div>
+          <h1 className={cn(
+            "text-3xl font-bold mb-2 rounded-lg",
+            isLight ? "text-gray-900" : "text-gray-100"
+          )}>
+            {t.adminSecurity.title}
+          </h1>
+          <p className={cn(
+            "text-sm rounded-lg",
+            isLight ? "text-gray-600" : "text-gray-400"
+          )}>
+            {t.adminSecurity.description}
+          </p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          className={cn(
+            "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
+            isLight
+              ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+              : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+          )}
+        >
+          <RefreshCw className={cn("w-4 h-4", loading ? "animate-spin" : "")} />
+          {t.adminSecurity.refresh}
+        </button>
+      </div>
+
+      {/* Navigation Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
+        <div
+          className={cn(
+            "border p-4 cursor-pointer transition-colors rounded-lg",
+            activeTab === 'stats'
+              ? isLight
+                ? "bg-blue-500 border-blue-600"
+                : "bg-blue-600 border-blue-500"
+              : isLight
+              ? "bg-white border-gray-300 hover:bg-gray-50"
+              : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+          )}
+          onClick={() => setActiveTab('stats')}
+        >
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-12 h-12 flex items-center justify-center rounded-lg",
+              activeTab === 'stats'
+                ? "bg-white/20"
+                : isLight
+                ? "bg-blue-500"
+                : "bg-blue-600"
+            )}>
+              <BarChart2 className={cn(
+                "w-6 h-6",
+                activeTab === 'stats' ? "text-white" : "text-white"
+              )} />
+            </div>
+            <div>
+              <h3 className={cn(
+                "font-bold rounded-lg",
+                activeTab === 'stats' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
+              )}>
+                {t.adminSecurity.accessStats}
+              </h3>
+              <p className={cn(
+                "text-xs rounded-lg",
+                activeTab === 'stats' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
+              )}>
+                {realtimeStats?.total || 0} {t.adminSecurity.requests}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            {t.adminSecurity.refresh}
-          </button>
+        </div>
+
+        <div
+          className={cn(
+            "border p-4 cursor-pointer transition-colors rounded-lg",
+            activeTab === 'banned'
+              ? isLight
+                ? "bg-red-500 border-red-600"
+                : "bg-red-600 border-red-500"
+              : isLight
+              ? "bg-white border-gray-300 hover:bg-gray-50"
+              : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+          )}
+          onClick={() => setActiveTab('banned')}
+        >
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-12 h-12 flex items-center justify-center rounded-lg",
+              activeTab === 'banned'
+                ? "bg-white/20"
+                : isLight
+                ? "bg-red-500"
+                : "bg-red-600"
+            )}>
+              <Ban className={cn(
+                "w-6 h-6",
+                activeTab === 'banned' ? "text-white" : "text-white"
+              )} />
+            </div>
+            <div>
+              <h3 className={cn(
+                "font-bold rounded-lg",
+                activeTab === 'banned' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
+              )}>
+                {t.adminSecurity.bannedIPs}
+              </h3>
+              <p className={cn(
+                "text-xs rounded-lg",
+                activeTab === 'banned' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
+              )}>
+                {bannedIPs.length} {t.adminSecurity.blocked}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "border p-4 cursor-pointer transition-colors rounded-lg",
+            activeTab === 'limits'
+              ? isLight
+                ? "bg-yellow-500 border-yellow-600"
+                : "bg-yellow-600 border-yellow-500"
+              : isLight
+              ? "bg-white border-gray-300 hover:bg-gray-50"
+              : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+          )}
+          onClick={() => setActiveTab('limits')}
+        >
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-12 h-12 flex items-center justify-center rounded-lg",
+              activeTab === 'limits'
+                ? "bg-white/20"
+                : isLight
+                ? "bg-yellow-500"
+                : "bg-yellow-600"
+            )}>
+              <Activity className={cn(
+                "w-6 h-6",
+                activeTab === 'limits' ? "text-white" : "text-white"
+              )} />
+            </div>
+            <div>
+              <h3 className={cn(
+                "font-bold rounded-lg",
+                activeTab === 'limits' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
+              )}>
+                {t.adminSecurity.rateLimits}
+              </h3>
+              <p className={cn(
+                "text-xs rounded-lg",
+                activeTab === 'limits' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
+              )}>
+                {rateLimits.length} {t.adminSecurity.activeLimits}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 标签页 */}
-      <div className="transparent-panel rounded-lg shadow-lg">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex -mb-px">
-            <button
-              onClick={() => setActiveTab("stats")}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "stats"
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
-              {t.adminSecurity.accessStats}
-            </button>
-            <button
-              onClick={() => setActiveTab("banned")}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "banned"
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
-              {t.adminSecurity.bannedIPs}
-            </button>
-            <button
-              onClick={() => setActiveTab("limits")}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "limits"
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-              }`}
-            >
-              {t.adminSecurity.rateLimits}
-            </button>
-          </nav>
-        </div>
-
-        <div className="p-6">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="mt-4 text-gray-600 dark:text-gray-400">
-                {t.adminSecurity.loading}
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* 访问统计标签页 */}
-              {activeTab === "stats" && (
-                <div className="space-y-6">
-                  {/* 实时统计 */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+      {/* Content Area */}
+      <div className="min-h-[400px]">
+        {loading ? (
+          <div className={cn(
+            "border p-6 flex items-center justify-center rounded-lg",
+            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+          )}>
+            <div className={cn(
+              "w-8 h-8 border-2 border-t-transparent animate-spin",
+              isLight ? "border-blue-500" : "border-blue-600"
+            )}></div>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'stats' && (
+              <div className="space-y-6 rounded-lg">
+                {/* Realtime Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
+                  <div className={cn(
+                    "border p-6 rounded-lg",
+                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                  )}>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className={cn(
+                        "text-sm rounded-lg",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
                         {t.adminSecurity.lastHour}
                       </p>
-                      <p className="text-2xl font-bold panel-text mt-2">
-                        {realtimeStats?.lastHour || 0}
-                      </p>
+                      <Clock className={cn(
+                        "w-4 h-4",
+                        isLight ? "text-blue-500" : "text-blue-400"
+                      )} />
                     </div>
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className={cn(
+                      "text-3xl font-bold rounded-lg",
+                      isLight ? "text-gray-900" : "text-gray-100"
+                    )}>
+                      {realtimeStats?.lastHour || 0}
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "border p-6 rounded-lg",
+                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                  )}>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className={cn(
+                        "text-sm rounded-lg",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
                         {t.adminSecurity.last24Hours}
                       </p>
-                      <p className="text-2xl font-bold panel-text mt-2">
-                        {realtimeStats?.last24Hours || 0}
-                      </p>
+                      <Activity className={cn(
+                        "w-4 h-4",
+                        isLight ? "text-green-500" : "text-green-400"
+                      )} />
                     </div>
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <div className={cn(
+                      "text-3xl font-bold rounded-lg",
+                      isLight ? "text-gray-900" : "text-gray-100"
+                    )}>
+                      {realtimeStats?.last24Hours || 0}
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "border p-6 rounded-lg",
+                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                  )}>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className={cn(
+                        "text-sm rounded-lg",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
                         {t.adminSecurity.totalAccess}
                       </p>
-                      <p className="text-2xl font-bold panel-text mt-2">
-                        {realtimeStats?.total || 0}
-                      </p>
+                      <Globe className={cn(
+                        "w-4 h-4",
+                        isLight ? "text-purple-500" : "text-purple-400"
+                      )} />
+                    </div>
+                    <div className={cn(
+                      "text-3xl font-bold rounded-lg",
+                      isLight ? "text-gray-900" : "text-gray-100"
+                    )}>
+                      {realtimeStats?.total || 0}
                     </div>
                   </div>
+                </div>
 
-                  {/* 7天统计 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {t.adminSecurity.last7Days}
-                      </p>
-                      <p className="text-lg font-semibold panel-text">
-                        {t.adminSecurity.totalAccess}: {stats?.totalAccess || 0}
-                      </p>
-                      <p className="text-lg font-semibold panel-text">
-                        {t.adminSecurity.uniqueIPs}: {stats?.uniqueIPs || 0}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 热门路径 */}
-                  {stats?.topPaths && stats.topPaths.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold panel-text mb-4">
-                        {t.adminSecurity.topPaths}
-                      </h3>
-                      <div className="space-y-2">
-                        {stats.topPaths.slice(0, 10).map((item, index) => (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Top Paths */}
+                  <div className={cn(
+                    "border p-6 rounded-lg",
+                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                  )}>
+                    <h3 className={cn(
+                      "font-bold mb-4 flex items-center gap-2 rounded-lg",
+                      isLight ? "text-gray-900" : "text-gray-100"
+                    )}>
+                      <BarChart2 className={cn(
+                        "w-4 h-4",
+                        isLight ? "text-blue-500" : "text-blue-400"
+                      )} />
+                      {t.adminSecurity.topPaths}
+                    </h3>
+                    <div className="space-y-2 rounded-lg">
+                      {stats?.pathStats && stats.pathStats.length > 0 ? (
+                        stats.pathStats.slice(0, 8).map((item, i) => (
                           <div
-                            key={index}
-                            className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+                            key={i}
+                            className={cn(
+                              "flex items-center justify-between text-sm p-2 border rounded-lg",
+                              isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
+                            )}
                           >
-                            <span className="panel-text font-mono text-sm">
-                              {item.path}
-                            </span>
-                            <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className={cn(
+                                "w-4 rounded-lg",
+                                isLight ? "text-gray-600" : "text-gray-400"
+                              )}>
+                                {i + 1}
+                              </span>
+                              <span className={cn(
+                                "font-mono truncate px-2 py-0.5 text-xs border rounded-lg",
+                                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                              )}>
+                                {item.path}
+                              </span>
+                            </div>
+                            <span className={cn(
+                              "font-medium rounded-lg",
+                              isLight ? "text-gray-900" : "text-gray-100"
+                            )}>
                               {item.count}
                             </span>
                           </div>
-                        ))}
-                      </div>
+                        ))
+                      ) : (
+                        <div className={cn(
+                          "text-center py-8 text-sm rounded-lg",
+                          isLight ? "text-gray-500" : "text-gray-400"
+                        )}>
+                          {t.adminSecurity.noAccessData}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
 
-                  {/* 访问最多的IP */}
-                  {stats?.topIPs && stats.topIPs.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold panel-text mb-4">
-                        {t.adminSecurity.topIPs}
-                      </h3>
-                      <div className="space-y-2">
-                        {stats.topIPs.slice(0, 10).map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
-                          >
-                            <span className="panel-text font-mono text-sm">
+                  {/* Top IPs */}
+                  <div className={cn(
+                    "border p-6 rounded-lg",
+                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                  )}>
+                    <h3 className={cn(
+                      "font-bold mb-4 flex items-center gap-2 rounded-lg",
+                      isLight ? "text-gray-900" : "text-gray-100"
+                    )}>
+                      <Shield className={cn(
+                        "w-4 h-4",
+                        isLight ? "text-blue-500" : "text-blue-400"
+                      )} />
+                      {t.adminSecurity.topIPs}
+                    </h3>
+                    <div className="space-y-2 rounded-lg">
+                      {(stats?.topIPs ?? []).slice(0, 8).map((item, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "flex items-center justify-between text-sm p-2 border rounded-lg",
+                            isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className={cn(
+                              "w-4 rounded-lg",
+                              isLight ? "text-gray-600" : "text-gray-400"
+                            )}>
+                              {i + 1}
+                            </span>
+                            <span className={cn(
+                              "font-mono truncate px-2 py-0.5 text-xs border rounded-lg",
+                              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                            )}>
                               {item.ip}
                             </span>
-                            <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                              {item.count}
-                            </span>
                           </div>
-                        ))}
-                      </div>
+                          <span className={cn(
+                            "font-medium rounded-lg",
+                            isLight ? "text-gray-900" : "text-gray-100"
+                          )}>
+                            {item.count}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* 封禁IP标签页 */}
-              {activeTab === "banned" && (
-                <BannedIPManagement
-                  bannedIPs={bannedIPs}
-                  onRefresh={handleRefresh}
-                />
-              )}
+            {activeTab === 'banned' && (
+              <div className={cn(
+                "border p-6 rounded-lg",
+                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              )}>
+                <BannedIPManagement bannedIPs={bannedIPs} onRefresh={handleRefresh} />
+              </div>
+            )}
 
-              {/* 速率限制标签页 */}
-              {activeTab === "limits" && (
-                <RateLimitManagement
-                  rateLimits={rateLimits}
-                  onRefresh={handleRefresh}
-                />
-              )}
-            </>
-          )}
-        </div>
+            {activeTab === 'limits' && (
+              <div className={cn(
+                "border p-6 rounded-lg",
+                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              )}>
+                <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

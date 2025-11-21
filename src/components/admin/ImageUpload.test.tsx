@@ -36,14 +36,6 @@ jest.mock("@/hooks/useLocale", () => {
   };
 });
 
-// 固定使用 V2 布局，方便选择 DOM 元素
-jest.mock("@/contexts/AdminVersionContext", () => ({
-  useAdminVersion: () => ({
-    version: "v2",
-    setVersion: jest.fn(),
-  }),
-}));
-
 // 延迟加载组件，确保上面的 mock 已生效
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ImageUpload = require("@/components/admin/ImageUpload")

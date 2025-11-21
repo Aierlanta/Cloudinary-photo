@@ -79,57 +79,6 @@ async function getLogs(request: NextRequest): Promise<Response> {
   }
 }
 
-// 模拟数据生成函数已移除，现在使用真实的数据库日志
-
-/**
- * POST /api/admin/logs/clear
- * 清空日志（仅开发环境）
- */
-async function clearLogs(request: NextRequest): Promise<Response> {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json(
-      { success: false, error: { message: '此操作仅在开发环境中可用' } },
-      { status: 403 }
-    );
-  }
-
-  try {
-    // 清理旧日志（保留最近1天的日志）
-    const deletedCount = await databaseService.cleanupOldLogs(1);
-
-    logger.info('日志已清空', {
-      type: 'admin_action',
-      action: 'clear_logs',
-      deletedCount
-    });
-
-    const response: APIResponse = {
-      success: true,
-      data: {
-        message: `已清空 ${deletedCount} 条日志记录`,
-        deletedCount
-      },
-      timestamp: new Date()
-    };
-
-    return NextResponse.json(response);
-  } catch (error) {
-    logger.error('清空日志失败', error as Error, {
-      type: 'api_error',
-      endpoint: '/api/admin/logs/clear'
-    });
-
-    return NextResponse.json({
-      success: false,
-      error: {
-        type: 'INTERNAL_ERROR',
-        message: '清空日志失败',
-        timestamp: new Date()
-      }
-    }, { status: 500 });
-  }
-}
-
 /**
  * GET /api/admin/logs/stats
  * 获取日志统计信息
@@ -266,9 +215,7 @@ export const POST = withErrorHandler(
   })(withAdminAuth(async (request: NextRequest) => {
     const { pathname } = new URL(request.url);
 
-    if (pathname.endsWith('/clear')) {
-      return clearLogs(request);
-    } else if (pathname.endsWith('/export')) {
+    if (pathname.endsWith('/export')) {
       return exportLogs(request);
     } else if (pathname.endsWith('/stats')) {
       return getLogStats(request);

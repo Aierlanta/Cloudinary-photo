@@ -1,26 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
 import { useLocale } from '@/hooks/useLocale'
-import Image from 'next/image'
-import { generateThumbnailUrlForImage } from '@/lib/image-utils'
-import { useAdminVersion } from '@/contexts/AdminVersionContext'
-import { GlassCard, GlassButton } from '@/components/ui/glass'
+import { cn } from '@/lib/utils'
+import { useTheme } from '@/hooks/useTheme'
 import { 
   Layers, 
   Plus, 
-  FolderOpen, 
   Edit2, 
   Trash2, 
   Image as ImageIcon,
   X,
-  Save,
-  Grid,
-  Search,
-  Check,
-  Move
+  Save
 } from 'lucide-react'
 
 interface Group {
@@ -36,49 +30,19 @@ interface GroupFormData {
   description: string
 }
 
-interface Image {
-  id: string
-  cloudinaryId: string
-  publicId: string
-  url: string
-  secureUrl: string
-  filename: string
-  format: string
-  width: number
-  height: number
-  bytes: number
-  groupId?: string
-  uploadedAt: string
-  tags: string[]
-  primaryProvider?: string
-  backupProvider?: string
-  telegramFileId?: string | null
-  telegramThumbnailFileId?: string | null
-  telegramFilePath?: string | null
-  telegramThumbnailPath?: string | null
-  telegramBotToken?: string | null
-  storageMetadata?: string | null
-}
-
 export default function GroupsPage() {
   const { t } = useLocale();
-  const { version } = useAdminVersion();
+  const isLight = useTheme();
+  const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
   const [formData, setFormData] = useState<GroupFormData>({ name: '', description: '' })
   const [submitting, setSubmitting] = useState(false)
-  const [viewingGroup, setViewingGroup] = useState<Group | null>(null)
-  const [groupImages, setGroupImages] = useState<Image[]>([])
-  const [loadingImages, setLoadingImages] = useState(false)
-  const [showUnassignedImages, setShowUnassignedImages] = useState(false)
-  const [unassignedImages, setUnassignedImages] = useState<Image[]>([])
-  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
 
   // Toast通知
   const { toasts, success, error: showError, removeToast } = useToast()
-  const [assigningToGroup, setAssigningToGroup] = useState('')
   const [totalImages, setTotalImages] = useState(0)
 
   // 加载分组列表和总图片数
@@ -90,11 +54,7 @@ export default function GroupsPage() {
   const loadGroups = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/groups', {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
+      const response = await fetch('/api/admin/groups')
       if (response.ok) {
         const data = await response.json()
         setGroups(data.data?.groups || [])
@@ -110,11 +70,7 @@ export default function GroupsPage() {
 
   const loadTotalImages = async () => {
     try {
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
+      const response = await fetch('/api/admin/stats')
       if (response.ok) {
         const data = await response.json()
         setTotalImages(data.data?.totalImages || 0)
@@ -126,48 +82,6 @@ export default function GroupsPage() {
     }
   }
 
-  const loadGroupImages = async (groupId: string) => {
-    setLoadingImages(true)
-    try {
-      const response = await fetch(`/api/admin/images?groupId=${groupId}&limit=12&sortBy=uploadedAt&sortOrder=desc`, {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setGroupImages(data.data?.images?.data || [])
-      } else {
-        console.error('加载分组图片失败:', response.statusText)
-      }
-    } catch (error) {
-      console.error('加载分组图片失败:', error)
-    } finally {
-      setLoadingImages(false)
-    }
-  }
-
-  const loadUnassignedImages = async () => {
-    setLoadingImages(true)
-    try {
-      const response = await fetch('/api/admin/images?groupId=unassigned&limit=100', {
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setUnassignedImages(data.data?.images?.data || [])
-      } else {
-        console.error('加载未分组图片失败:', response.statusText)
-      }
-    } catch (error) {
-      console.error('加载未分组图片失败:', error)
-    } finally {
-      setLoadingImages(false)
-    }
-  }
-
   const handleCreateGroup = async () => {
     if (!formData.name.trim()) {
       showError(t.adminGroups.validationError, t.adminGroups.enterGroupName)
@@ -176,14 +90,7 @@ export default function GroupsPage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch('/api/admin/groups', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': 'admin123'
-        },
-        body: JSON.stringify(formData)
-      })
+      const response = await fetch('/api/admin/groups')
 
       if (response.ok) {
         await loadGroups()
@@ -213,8 +120,7 @@ export default function GroupsPage() {
       const response = await fetch(`/api/admin/groups/${editingGroup.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': 'admin123'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       })
@@ -236,6 +142,15 @@ export default function GroupsPage() {
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (editingGroup) {
+      await handleUpdateGroup()
+    } else {
+      await handleCreateGroup()
+    }
+  }
+
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
     if (!confirm(`${t.adminGroups.confirmDelete} "${groupName}"？此操作将会影响该分组下的所有图片。`)) {
       return
@@ -243,10 +158,7 @@ export default function GroupsPage() {
 
     try {
       const response = await fetch(`/api/admin/groups/${groupId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-Admin-Password': 'admin123'
-        }
+        method: 'DELETE'
       })
 
       if (response.ok) {
@@ -280,871 +192,342 @@ export default function GroupsPage() {
     setFormData({ name: '', description: '' })
   }
 
-  const viewGroupImages = async (group: Group) => {
-    setViewingGroup(group)
-    await loadGroupImages(group.id)
-  }
-
-  const closeImageView = () => {
-    setViewingGroup(null)
-    setGroupImages([])
-  }
-
-  const showUnassignedImagesModal = async () => {
-    setShowUnassignedImages(true)
-    await loadUnassignedImages()
-  }
-
-  const closeUnassignedImagesModal = () => {
-    setShowUnassignedImages(false)
-    setUnassignedImages([])
-    setSelectedImages(new Set())
-    setAssigningToGroup('')
-  }
-
-  const toggleImageSelection = (imageId: string) => {
-    const newSelected = new Set(selectedImages)
-    if (newSelected.has(imageId)) {
-      newSelected.delete(imageId)
-    } else {
-      newSelected.add(imageId)
-    }
-    setSelectedImages(newSelected)
-  }
-
-  const selectAllImages = () => {
-    setSelectedImages(new Set(unassignedImages.map(img => img.id)))
-  }
-
-  const clearSelection = () => {
-    setSelectedImages(new Set())
-  }
-
-  const assignImagesToGroup = async () => {
-    if (selectedImages.size === 0 || !assigningToGroup) {
-      alert(t.adminGroups.selectImagesAndGroup)
-      return
-    }
-
-    try {
-      // 使用批量更新API
-      const response = await fetch('/api/admin/images', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Admin-Password': 'admin123'
-        },
-        body: JSON.stringify({
-          imageIds: Array.from(selectedImages),
-          updates: { groupId: assigningToGroup }
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        alert(`${t.adminGroups.assignSuccess} ${selectedImages.size} ${t.adminGroups.images}`)
-        await loadUnassignedImages()
-        await loadGroups()
-        await loadTotalImages()
-        clearSelection()
-        setAssigningToGroup('')
-      } else {
-        alert(t.adminGroups.assignFailed)
-      }
-    } catch (error) {
-      console.error('分配图片失败:', error)
-      alert(t.adminGroups.assignFailed)
-    }
+  const viewGroupImages = (group: Group) => {
+    // 跳转到图库页面并传递分组ID
+    router.push(`/admin/gallery?groupId=${group.id}`)
   }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('zh-CN')
   }
 
-  if (version === 'v2') {
-    return (
-      <div className="space-y-8">
+  return (
+      <div className="space-y-6 rounded-lg">
         {/* Header & Stats */}
-        <div className="flex flex-col gap-8">
-           <div className="flex justify-between items-end">
+        <div className={cn(
+          "border p-6 rounded-lg",
+          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        )}>
+          <div className="flex flex-col gap-8 rounded-lg">
+            <div className="flex justify-between items-end rounded-lg">
               <div>
-                 <h1 className="text-3xl font-bold mb-2">{t.adminGroups.title}</h1>
-                 <p className="text-muted-foreground">{t.adminGroups.description}</p>
+                <h1 className={cn(
+                  "text-3xl font-bold mb-2 rounded-lg",
+                  isLight ? "text-gray-900" : "text-gray-100"
+                )}>
+                  {t.adminGroups.title}
+                </h1>
+                <p className={cn(
+                  "text-sm rounded-lg",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  {t.adminGroups.description}
+                </p>
               </div>
               <div className="flex gap-3">
-                 <GlassButton onClick={showUnassignedImagesModal} icon={FolderOpen} className="bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border-orange-500/20">
-                    {t.adminGroups.manageUnassigned}
-                 </GlassButton>
-                 <GlassButton onClick={startCreate} primary icon={Plus}>
-                    {t.adminGroups.createGroup}
-                 </GlassButton>
+                <button
+                  onClick={startCreate}
+                  className={cn(
+                    "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
+                    isLight
+                      ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                      : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                  )}
+                >
+                  <Plus className="w-4 h-4" />
+                  {t.adminGroups.createGroup}
+                </button>
               </div>
-           </div>
+            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <GlassCard className="p-6" hover>
-                 <p className="text-sm font-medium text-muted-foreground mb-2">{t.adminGroups.totalImages}</p>
-                 <div className="text-3xl font-bold">{totalImages}</div>
-              </GlassCard>
-              <GlassCard className="p-6" hover>
-                 <p className="text-sm font-medium text-muted-foreground mb-2">{t.adminGroups.groupsCount}</p>
-                 <div className="text-3xl font-bold text-primary">{groups.length}</div>
-              </GlassCard>
-              <GlassCard className="p-6" hover>
-                 <p className="text-sm font-medium text-muted-foreground mb-2">{t.adminGroups.groupsWithImages}</p>
-                 <div className="text-3xl font-bold text-green-500">{groups.filter(g => g.imageCount > 0).length}</div>
-              </GlassCard>
-              <GlassCard className="p-6" hover>
-                 <p className="text-sm font-medium text-muted-foreground mb-2">{t.adminGroups.averageImages}</p>
-                 <div className="text-3xl font-bold">{groups.length > 0 ? Math.round(groups.reduce((sum, group) => sum + group.imageCount, 0) / groups.length) : 0}</div>
-              </GlassCard>
-           </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 rounded-lg">
+              <div className={cn(
+                "border p-6 rounded-lg",
+                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+              )}>
+                <p className={cn(
+                  "text-sm font-medium mb-2 rounded-lg",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  {t.adminGroups.totalImages}
+                </p>
+                <div className={cn(
+                  "text-3xl font-bold rounded-lg",
+                  isLight ? "text-gray-900" : "text-gray-100"
+                )}>
+                  {totalImages}
+                </div>
+              </div>
+              <div className={cn(
+                "border p-6 rounded-lg",
+                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+              )}>
+                <p className={cn(
+                  "text-sm font-medium mb-2 rounded-lg",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  {t.adminGroups.groupsCount}
+                </p>
+                <div className={cn(
+                  "text-3xl font-bold rounded-lg",
+                  isLight ? "text-blue-600" : "text-blue-400"
+                )}>
+                  {groups.length}
+                </div>
+              </div>
+              <div className={cn(
+                "border p-6 rounded-lg",
+                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+              )}>
+                <p className={cn(
+                  "text-sm font-medium mb-2 rounded-lg",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  {t.adminGroups.groupsWithImages}
+                </p>
+                <div className={cn(
+                  "text-3xl font-bold rounded-lg",
+                  isLight ? "text-green-600" : "text-green-400"
+                )}>
+                  {groups.filter(g => g.imageCount > 0).length}
+                </div>
+              </div>
+              <div className={cn(
+                "border p-6 rounded-lg",
+                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+              )}>
+                <p className={cn(
+                  "text-sm font-medium mb-2 rounded-lg",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  {t.adminGroups.averageImages}
+                </p>
+                <div className={cn(
+                  "text-3xl font-bold rounded-lg",
+                  isLight ? "text-gray-900" : "text-gray-100"
+                )}>
+                  {groups.length > 0 ? Math.round(groups.reduce((sum, group) => sum + group.imageCount, 0) / groups.length) : 0}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Create / Edit Form */}
+        {/* Create / Edit Modal */}
         {(showCreateForm || editingGroup) && (
-           <GlassCard className="border-primary/50">
-              <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                 <h2 className="text-xl font-bold">{editingGroup ? t.adminGroups.editGroup : t.adminGroups.createGroup}</h2>
-                 <button onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)} className="text-muted-foreground hover:text-foreground">
-                    <X className="w-5 h-5" />
-                 </button>
-              </div>
-              <div className="space-y-6 max-w-2xl">
-                 <div>
-                    <label className="block text-sm font-medium mb-2">{t.adminGroups.groupName} *</label>
-                    <input 
-                       type="text" 
-                       value={formData.name}
-                       onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                       className="w-full p-3 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                       placeholder={t.adminGroups.groupNamePlaceholder}
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0 rounded-lg">
+            <div className={cn(
+              "border max-w-lg w-full rounded-lg",
+              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            )}>
+              <div className="p-6 rounded-lg">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6 rounded-lg">
+                  <h3 className={cn(
+                    "text-lg font-semibold",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {editingGroup ? t.adminGroups.editGroup : t.adminGroups.createGroup}
+                  </h3>
+                  <button
+                    onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
+                    className={cn(
+                      "p-2 transition-colors rounded-lg",
+                      isLight
+                        ? "text-gray-500 hover:bg-gray-100"
+                        : "text-gray-400 hover:bg-gray-700"
+                    )}
+                  >
+                    <X className="w-5 h-5 rounded-lg" />
+                  </button>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className={cn(
+                      "block text-sm font-medium mb-2 rounded-lg",
+                      isLight ? "text-gray-700" : "text-gray-300"
+                    )}>
+                      {t.adminGroups.groupName}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      className={cn(
+                        "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
+                        isLight
+                          ? "bg-white border-gray-300"
+                          : "bg-gray-800 border-gray-600"
+                      )}
                     />
-                 </div>
-                 <div>
-                    <label className="block text-sm font-medium mb-2">{t.adminGroups.groupDescription}</label>
-                    <textarea 
-                       value={formData.description}
-                       onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                       className="w-full p-3 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all min-h-[100px]"
-                       placeholder={t.adminGroups.groupDescriptionPlaceholder}
+                  </div>
+                  <div>
+                    <label className={cn(
+                      "block text-sm font-medium mb-2 rounded-lg",
+                      isLight ? "text-gray-700" : "text-gray-300"
+                    )}>
+                      {t.adminGroups.description}
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={3}
+                      className={cn(
+                        "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
+                        isLight
+                          ? "bg-white border-gray-300"
+                          : "bg-gray-800 border-gray-600"
+                      )}
                     />
-                 </div>
-                 <div className="flex gap-4 pt-4">
-                    <GlassButton primary onClick={editingGroup ? handleUpdateGroup : handleCreateGroup} disabled={submitting || !formData.name.trim()} icon={Save}>
-                       {editingGroup ? t.adminGroups.update : t.adminGroups.create}
-                    </GlassButton>
-                    <GlassButton onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}>
-                       {t.adminGroups.cancel}
-                    </GlassButton>
-                 </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 mt-6 rounded-lg">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className={cn(
+                        "flex-1 py-2 px-4 border flex items-center justify-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
+                        isLight
+                          ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                          : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                      )}
+                    >
+                      <Save className="w-4 h-4" />
+                      {submitting ? '保存中...' : t.common.save}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
+                      className={cn(
+                        "flex-1 py-2 px-4 border transition-colors rounded-lg",
+                        isLight
+                          ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
+                          : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
+                      )}
+                    >
+                      {t.adminGroups.cancel}
+                    </button>
+                  </div>
+                </form>
               </div>
-           </GlassCard>
+            </div>
+          </div>
         )}
 
-        {/* Groups Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {groups.map(group => (
-              <GlassCard key={group.id} className="flex flex-col h-full group" hover>
-                 <div className="flex justify-between items-start mb-4">
-                    <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                       <Layers className="w-6 h-6" />
-                    </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={() => startEdit(group)} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-blue-400">
-                          <Edit2 className="w-4 h-4" />
-                       </button>
-                       <button onClick={() => handleDeleteGroup(group.id, group.name)} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-red-400">
-                          <Trash2 className="w-4 h-4" />
-                       </button>
-                    </div>
-                 </div>
-                 
-                 <h3 className="text-xl font-bold mb-2">{group.name}</h3>
-                 <p className="text-sm text-muted-foreground mb-6 flex-1">{group.description || "No description"}</p>
-                 
-                 <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <div className="text-xs text-muted-foreground">
-                       {formatDate(group.createdAt)}
-                    </div>
-                    <GlassButton 
-                       onClick={() => viewGroupImages(group)} 
-                       className="px-4 py-2 text-xs h-auto bg-white/5 hover:bg-white/10"
-                       icon={ImageIcon}
-                    >
-                       {group.imageCount} images
-                    </GlassButton>
-                 </div>
-              </GlassCard>
-           ))}
-        </div>
-
-         {/* Viewing Group Images Modal (V2) */}
-         {viewingGroup && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={closeImageView}>
-               <GlassCard className="w-full max-w-6xl max-h-[90vh] flex flex-col" onClick={(e: any) => e.stopPropagation()}>
-                  <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4 shrink-0">
-                     <div>
-                        <h2 className="text-xl font-bold flex items-center gap-3">
-                           <Layers className="w-5 h-5 text-primary" />
-                           {viewingGroup.name}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">{viewingGroup.imageCount} images</p>
-                     </div>
-                     <button onClick={closeImageView} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                        <X className="w-6 h-6" />
-                     </button>
-                  </div>
-
-                  <div className="overflow-y-auto min-h-0 p-1">
-                     {loadingImages ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                           {Array.from({ length: 12 }).map((_, i) => (
-                              <div key={i} className="aspect-square bg-white/5 animate-pulse rounded-xl" />
-                           ))}
-                        </div>
-                     ) : groupImages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                           <ImageIcon className="w-16 h-16 mb-4 opacity-20" />
-                           <p>{t.adminGroups.noImagesInGroup}</p>
-                        </div>
-                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                           {groupImages.map(image => (
-                              <div key={image.id} className="relative group aspect-square rounded-xl overflow-hidden bg-black/20">
-                                 <Image
-                                    src={generateThumbnailUrlForImage(image, 300)}
-                                    alt={image.filename}
-                                    fill
-                                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                 />
-                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                                    <p className="text-xs text-white truncate w-full">{image.filename}</p>
-                                 </div>
-                              </div>
-                           ))}
-                        </div>
-                     )}
-                  </div>
-               </GlassCard>
-            </div>
-         )}
-
-         {/* Unassigned Images Modal (V2) */}
-         {showUnassignedImages && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={closeUnassignedImagesModal}>
-               <GlassCard className="w-full max-w-6xl max-h-[90vh] flex flex-col" onClick={(e: any) => e.stopPropagation()}>
-                  <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4 shrink-0">
-                     <div>
-                        <h2 className="text-xl font-bold flex items-center gap-3">
-                           <FolderOpen className="w-5 h-5 text-orange-500" />
-                           {t.adminGroups.unassignedImagesManagement}
-                        </h2>
-                     </div>
-                     <button onClick={closeUnassignedImagesModal} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                        <X className="w-6 h-6" />
-                     </button>
-                  </div>
-
-                  {unassignedImages.length > 0 && (
-                     <div className="mb-4 p-4 rounded-xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between gap-4 shrink-0">
-                        <div className="flex items-center gap-4">
-                           <span className="text-sm font-medium">{selectedImages.size} selected</span>
-                           <div className="flex gap-2">
-                              <button onClick={selectAllImages} className="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">All</button>
-                              <button onClick={clearSelection} className="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">None</button>
-                           </div>
-                        </div>
-
-                        {selectedImages.size > 0 && (
-                           <div className="flex items-center gap-3">
-                              <select 
-                                 value={assigningToGroup}
-                                 onChange={e => setAssigningToGroup(e.target.value)}
-                                 className="bg-black/20 border border-white/10 rounded-lg text-sm p-2 outline-none focus:border-primary"
-                              >
-                                 <option value="" className="bg-gray-900">Select Group...</option>
-                                 {groups.map(g => <option key={g.id} value={g.id} className="bg-gray-900">{g.name}</option>)}
-                              </select>
-                              <GlassButton primary disabled={!assigningToGroup} onClick={assignImagesToGroup} className="px-4 py-2 h-auto text-xs" icon={Move}>
-                                 Assign
-                              </GlassButton>
-                           </div>
-                        )}
-                     </div>
-                  )}
-
-                  <div className="overflow-y-auto min-h-0 p-1">
-                     {loadingImages ? (
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                           {Array.from({ length: 12 }).map((_, i) => <div key={i} className="aspect-square bg-white/5 animate-pulse rounded-xl" />)}
-                        </div>
-                     ) : unassignedImages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                           <Check className="w-16 h-16 mb-4 text-green-500 opacity-50" />
-                           <p>{t.adminGroups.allImagesAssigned}</p>
-                        </div>
-                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                           {unassignedImages.map(image => (
-                              <div 
-                                 key={image.id} 
-                                 className={`relative group aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${selectedImages.has(image.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-black' : ''}`}
-                                 onClick={() => toggleImageSelection(image.id)}
-                              >
-                                 <Image
-                                    src={generateThumbnailUrlForImage(image, 300)}
-                                    alt={image.publicId}
-                                    fill
-                                    className="object-cover"
-                                 />
-                                 {selectedImages.has(image.id) && (
-                                    <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                       <div className="bg-primary text-white rounded-full p-1">
-                                          <Check className="w-4 h-4" />
-                                       </div>
-                                    </div>
-                                 )}
-                              </div>
-                           ))}
-                        </div>
-                     )}
-                  </div>
-               </GlassCard>
-            </div>
-         )}
-
-        <ToastContainer toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))} />
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* 页面标题和统计 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold panel-text mb-2">{t.adminGroups.title}</h1>
-            <p className="text-gray-600 dark:text-gray-300 panel-text">
-              {t.adminGroups.description}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-              {groups.length}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-              {t.adminGroups.groupsCount}
-            </div>
-          </div>
-        </div>
-
-        {/* 快速统计 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-center">
-            <div className="text-lg font-semibold panel-text">
-              {totalImages}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-300">{t.adminGroups.totalImages}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold panel-text">
-              {groups.filter(g => g.imageCount > 0).length}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-300">{t.adminGroups.groupsWithImages}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold panel-text">
-              {groups.filter(g => g.imageCount === 0).length}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-300">{t.adminGroups.emptyGroups}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-semibold panel-text">
-              {groups.length > 0 ? Math.round(groups.reduce((sum, group) => sum + group.imageCount, 0) / groups.length) : 0}
-            </div>
-            <div className="text-xs text-gray-600 dark:text-gray-300">{t.adminGroups.averageImages}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 创建/编辑分组表单 */}
-      {(showCreateForm || editingGroup) && (
-        <div className="transparent-panel rounded-lg p-6 shadow-lg">
-          <h2 className="text-lg font-semibold panel-text mb-4">
-            {editingGroup ? t.adminGroups.editGroup : t.adminGroups.createGroup}
+        {/* Groups List */}
+        <div className={cn(
+          "border p-6 rounded-lg",
+          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        )}>
+          <h2 className={cn(
+            "text-lg font-semibold mb-4 rounded-lg",
+            isLight ? "text-gray-900" : "text-gray-100"
+          )}>
+            {t.adminGroups.title || '分组管理'}
           </h2>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium panel-text mb-2">
-                {t.adminGroups.groupName} *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder={t.adminGroups.groupNamePlaceholder}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-                maxLength={50}
-              />
+          {loading ? (
+            <div className="text-center py-8 rounded-lg">
+              <div className={cn(
+                "w-8 h-8 border-2 border-t-transparent animate-spin mx-auto rounded-lg",
+                isLight ? "border-blue-500" : "border-blue-600"
+              )}></div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium panel-text mb-2">
-                {t.adminGroups.groupDescription}
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder={t.adminGroups.groupDescriptionPlaceholder}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text resize-none"
-                maxLength={200}
-              />
+          ) : groups.length === 0 ? (
+            <div className="text-center py-8 rounded-lg">
+              <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+                {t.adminGroups.noGroups}
+              </p>
             </div>
-
-            <div className="flex space-x-3">
-              <button
-                onClick={editingGroup ? handleUpdateGroup : handleCreateGroup}
-                disabled={submitting || !formData.name.trim()}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                {submitting ? (
-                  <div className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {editingGroup ? t.adminGroups.updating : t.adminGroups.creating}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 rounded-lg">
+              {groups.map((group) => (
+                <div
+                  key={group.id}
+                  className={cn(
+                    "border p-4 transition-colors rounded-lg",
+                    isLight
+                      ? "bg-gray-50 border-gray-300 hover:bg-gray-100"
+                      : "bg-gray-700 border-gray-600 hover:bg-gray-600"
+                  )}
+                >
+                  <div className="flex justify-between items-start mb-3 rounded-lg">
+                    <div className="flex-1">
+                      <h3 className={cn(
+                        "font-semibold mb-1 rounded-lg",
+                        isLight ? "text-gray-900" : "text-gray-100"
+                      )}>
+                        {group.name}
+                      </h3>
+                      {group.description && (
+                        <p className={cn(
+                          "text-sm rounded-lg",
+                          isLight ? "text-gray-600" : "text-gray-400"
+                        )}>
+                          {group.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEdit(group)}
+                        className={cn(
+                          "p-2 transition-colors rounded-lg",
+                          isLight
+                            ? "text-blue-600 hover:bg-blue-50"
+                            : "text-blue-400 hover:bg-blue-900/20"
+                        )}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGroup(group.id, group.name)}
+                        className={cn(
+                          "p-2 transition-colors rounded-lg",
+                          isLight
+                            ? "text-red-600 hover:bg-red-50"
+                            : "text-red-400 hover:bg-red-900/20"
+                        )}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  editingGroup ? t.adminGroups.update : t.adminGroups.create
-                )}
-              </button>
-              <button
-                onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                {t.adminGroups.cancel}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 分组列表 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold panel-text">{t.adminGroups.groups}</h2>
-          {!showCreateForm && !editingGroup && (
-            <div className="flex space-x-3">
-              <button
-                onClick={showUnassignedImagesModal}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {t.adminGroups.manageUnassigned}
-              </button>
-              <button
-                onClick={startCreate}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                {t.adminGroups.createGroup}
-              </button>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 rounded-lg">
+                      <ImageIcon className={cn(
+                        "w-4 h-4",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )} />
+                      <span className={cn(
+                        "text-sm rounded-lg",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
+                        {group.imageCount} {t.adminGroups.images}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => viewGroupImages(group)}
+                      className={cn(
+                        "px-3 py-1 text-sm border transition-colors rounded-lg",
+                        isLight
+                          ? "bg-white border-gray-300 hover:bg-gray-50"
+                          : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+                      )}
+                    >
+                      {t.adminGroups.viewImages}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {loading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="animate-pulse">
-                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
-                  <div className="flex justify-between">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/6"></div>
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : groups.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium panel-text mb-2">{t.adminGroups.noGroups}</h3>
-            <p className="text-gray-500 dark:text-gray-400 panel-text mb-4">
-              {t.adminGroups.noGroupsDescription}
-            </p>
-            <button
-              onClick={startCreate}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-            >
-              {t.adminGroups.createGroup}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {groups.map((group) => (
-              <div
-                key={group.id}
-                className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <h3 className="text-lg font-medium panel-text mr-3">{group.name}</h3>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        group.imageCount > 0
-                          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {group.imageCount} {t.adminGroups.images}
-                      </span>
-                    </div>
-
-                    {group.description && (
-                      <p className="text-gray-600 dark:text-gray-300 panel-text mb-2">
-                        {group.description}
-                      </p>
-                    )}
-
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {t.adminGroups.createdAt} {formatDate(group.createdAt)}
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2 ml-4">
-                    {group.imageCount > 0 && (
-                      <button
-                        onClick={() => viewGroupImages(group)}
-                        className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900 rounded-lg transition-colors"
-                        title={t.adminGroups.viewImages}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => startEdit(group)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-lg transition-colors"
-                      title={t.adminGroups.editGroup}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteGroup(group.id, group.name)}
-                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
-                      title={t.adminGroups.deleteGroup}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
       </div>
-
-      {/* 查看分组图片模态框 */}
-      {viewingGroup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="transparent-panel rounded-lg max-w-6xl max-h-[90vh] overflow-hidden w-full">
-            <div className="p-6">
-              {/* 头部 */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold panel-text">
-                    {t.adminGroups.imagesInGroup} - {viewingGroup.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                    {viewingGroup.imageCount} {t.adminGroups.images}
-                  </p>
-                </div>
-                <button
-                  onClick={closeImageView}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* 图片网格 */}
-              <div className="max-h-[70vh] overflow-y-auto">
-                {loadingImages ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {Array.from({ length: 12 }).map((_, index) => (
-                      <div key={index} className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
-                    ))}
-                  </div>
-                ) : groupImages.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <p className="text-gray-500 dark:text-gray-400 panel-text">
-                      {t.adminGroups.noImagesInGroup}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {groupImages.map((image) => (
-                      <div
-                        key={image.id}
-                        className="group relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                      >
-                        <img
-                          src={generateThumbnailUrlForImage(image, 300)}
-                          alt={image.filename}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // 如果缩略图加载失败，尝试使用原图
-                            const target = e.target as HTMLImageElement;
-                            if (target.src !== image.secureUrl) {
-                              target.src = image.secureUrl;
-                            }
-                          }}
-                        />
-
-                        {/* 悬停信息 */}
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-end opacity-0 group-hover:opacity-100">
-                          <div className="p-2 text-white text-xs w-full">
-                            <p className="truncate font-medium">{image.filename}</p>
-                            <p className="text-gray-300">
-                              {image.width} × {image.height}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* 操作按钮 */}
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => window.open(image.secureUrl, '_blank')}
-                            className="bg-white text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                            title="查看原图"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* 底部操作 */}
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                  显示 {groupImages.length} 张图片{viewingGroup && viewingGroup.imageCount > 12 ? ` (最新 ${Math.min(groupImages.length, 12)} 张)` : ''}
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => {
-                      closeImageView()
-                      // 可以跳转到图片管理页面并筛选该分组
-                      window.location.href = `/admin/images?groupId=${viewingGroup.id}`
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                  >
-                    在图片管理中查看
-                  </button>
-                  <button
-                    onClick={closeImageView}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                  >
-                    关闭
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 未分组图片管理模态框 */}
-      {showUnassignedImages && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="transparent-panel rounded-lg max-w-6xl max-h-[90vh] overflow-hidden w-full">
-            <div className="p-6">
-              {/* 头部 */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold panel-text">
-                    {t.adminGroups.unassignedImagesManagement}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                    {t.adminGroups.selectAndAssign}
-                  </p>
-                </div>
-                <button
-                  onClick={closeUnassignedImagesModal}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* 操作工具栏 */}
-              {unassignedImages.length > 0 && (
-                <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm text-gray-600 dark:text-gray-400 panel-text">
-                        {t.adminGroups.selectedCount} {selectedImages.size} {t.adminGroups.images}
-                      </span>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={selectAllImages}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
-                        >
-                          {t.adminGroups.selectAll}
-                        </button>
-                        <button
-                          onClick={clearSelection}
-                          className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded transition-colors"
-                        >
-                          {t.adminGroups.clearSelection}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedImages.size > 0 && (
-                    <div className="flex items-center space-x-3">
-                      <label className="text-sm font-medium panel-text">
-                        分配到分组:
-                      </label>
-                      <select
-                        value={assigningToGroup}
-                        onChange={(e) => setAssigningToGroup(e.target.value)}
-                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 panel-text"
-                      >
-                        <option value="">选择分组...</option>
-                        {groups.map(group => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={assignImagesToGroup}
-                        disabled={!assigningToGroup}
-                        className="px-4 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm rounded transition-colors"
-                      >
-                        分配图片
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 图片网格 */}
-              <div className="max-h-[60vh] overflow-y-auto">
-                {loadingImages ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {Array.from({ length: 12 }).map((_, index) => (
-                      <div key={index} className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
-                    ))}
-                  </div>
-                ) : unassignedImages.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h4 className="text-lg font-medium panel-text mb-2">{t.adminGroups.allImagesAssigned}</h4>
-                    <p className="text-gray-500 dark:text-gray-400 panel-text">
-                      {t.adminGroups.allImagesAssignedDesc}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {unassignedImages.map((image) => (
-                      <div
-                        key={image.id}
-                        className={`group relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all ${
-                          selectedImages.has(image.id)
-                            ? 'ring-2 ring-blue-500 ring-offset-2'
-                            : 'hover:shadow-lg'
-                        }`}
-                        onClick={() => toggleImageSelection(image.id)}
-                      >
-                        <Image
-                          src={generateThumbnailUrlForImage(image, 300)}
-                          alt={image.publicId}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 16vw"
-                        />
-
-                        {/* 选择指示器 */}
-                        <div className="absolute top-2 left-2">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            selectedImages.has(image.id)
-                              ? 'bg-blue-500 border-blue-500'
-                              : 'bg-white border-gray-300'
-                          }`}>
-                            {selectedImages.has(image.id) && (
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 悬停信息 */}
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-200 flex items-end opacity-0 group-hover:opacity-100">
-                          <div className="p-2 text-white text-xs w-full">
-                            <p className="truncate font-medium">{image.publicId}</p>
-                            <p className="text-gray-300">
-                              {image.width} × {image.height}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Toast通知容器 */}
-      <ToastContainer
-        toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))}
-      />
-    </div>
-  )
+    );
 }

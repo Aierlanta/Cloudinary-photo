@@ -83,13 +83,12 @@ export const en: Translations = {
     quickSettings: 'Quick Settings',
     opacityDescription: 'Adjust the transparency of the admin panel. Lower opacity allows better visibility of background content.',
     toggleLanguage: 'Switch Language',
-    versionControl: 'Version Control',
-    switchToNew: 'Switch to New Version',
-    switchToOld: 'Back to Old Version',
   },
 
   adminNav: {
     dashboard: 'Dashboard',
+    upload: 'Upload',
+    gallery: 'Gallery',
     images: 'Images',
     groups: 'Groups',
     apiConfig: 'API Config',
@@ -127,10 +126,15 @@ export const en: Translations = {
     totalAccess: 'Total Access',
     quickActions: 'Quick Actions',
     uploadImage: 'Upload Image',
+    uploadImageDesc: 'Add new content',
     manageGroups: 'Manage Groups',
+    manageGroupsDesc: 'Organize collections',
     apiConfig: 'API Config',
+    apiConfigDesc: 'System settings',
     backupManagement: 'Backup Management',
+    backupManagementDesc: 'Data safety',
     testAPI: 'Test API',
+    last24HoursAccessShort: '24h Access',
   },
 
   healthMonitor: {
@@ -307,6 +311,9 @@ export const en: Translations = {
     recentErrors: 'Recent Errors',
     environment: 'Environment',
     healthIssues: 'Health Issues',
+    live: 'Live',
+    paused: 'Paused',
+    parameters: 'parameters',
   },
 
   adminLogs: {
@@ -355,6 +362,8 @@ export const en: Translations = {
     noLogsFound: 'No logs found',
     viewDetails: 'View Details',
     details: 'Details',
+    systemLogsStream: 'System Logs Stream',
+    live: 'Live',
     invalidTime: 'Invalid Time',
     page: 'Page',
     totalPages: 'Total Pages',
@@ -454,6 +463,16 @@ export const en: Translations = {
     settingsUpdateFailed: 'Failed to update settings',
   },
 
+  adminUpload: {
+    title: 'Image Upload',
+    description: 'Upload and manage your images',
+  },
+
+  adminGallery: {
+    title: 'Gallery',
+    description: 'Browse and manage your image library',
+  },
+
   adminImages: {
     title: 'Image Management',
     description: 'Upload, manage and organize your image library',
@@ -530,6 +549,21 @@ export const en: Translations = {
     urlImportJsonExampleTitle: 'JSON example',
     urlImportJsonExampleContent:
       '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "Home banner",\n    "description": "Desktop homepage banner",\n    "tags": ["banner", "pc"]\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "Mobile banner",\n    "tags": ["banner", "mobile"]\n  }\n]',
+    // ImageList 组件
+    unassigned: 'Unassigned',
+    reset: 'Reset',
+    group: 'Group',
+    ungrouped: 'Ungrouped',
+    tags: 'Tags',
+    open: 'Open',
+    download: 'Download',
+    copyLink: 'Copy Link',
+    editImage: 'Edit Image',
+    commaSeparatedTags: 'Comma separated tags...',
+    moveToGroup: 'Move to Group...',
+    noImagesFound: 'No images found',
+    deleteImagesConfirm: 'Are you sure you want to delete {count} images?',
+    moveImagesConfirm: 'Are you sure you want to move {count} images?',
 
   },
 
@@ -735,5 +769,9 @@ export const en: Translations = {
     export: 'Export',
     noData: 'No Data',
     loadFailed: 'Load Failed',
+    requests: 'requests',
+    blocked: 'blocked',
+    activeLimits: 'active limits',
+    noAccessData: 'No access data',
   },
 };
