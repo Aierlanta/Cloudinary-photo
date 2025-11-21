@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
-import { serveRandomResponse } from '@/app/api/random/response/route';
+import { serveRandomResponse } from '@/app/api/random/response/service';
 import { AppError, ErrorType } from '@/types/errors';
 
 export const dynamic = 'force-dynamic';

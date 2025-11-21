@@ -71,6 +71,10 @@ export default function ImageUpload({
   onUploadSuccess,
 }: ImageUploadProps) {
   const { t } = useLocale();
+  const {
+    getProvidersFailed,
+    getProvidersFailedMessage,
+  } = t.adminImages;
   const isLight = useTheme();
 
   // 确保 groups 是数�?
@@ -113,14 +117,14 @@ export default function ImageUpload({
         }
       } catch (error) {
         console.error("获取图床提供商列表失败", error);
-        showError(t.adminImages.getProvidersFailed, t.adminImages.getProvidersFailedMessage);
+        showError(getProvidersFailed, getProvidersFailedMessage);
       } finally {
         setLoadingProviders(false);
       }
     };
 
     fetchProviders();
-  }, [showError]);
+  }, [showError, getProvidersFailed, getProvidersFailedMessage]);
 
   // 确保选中的图床服务是可用的
   useEffect(() => {

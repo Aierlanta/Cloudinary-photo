@@ -55,6 +55,10 @@ export class StorageDatabaseService {
   async saveImageWithStorage(data: CreateImageData): Promise<ImageWithStorage> {
     const imageId = this.generateImageId();
 
+    const telegramMetadata = data.storageResults.find(
+      sr => sr.provider === StorageProvider.TELEGRAM
+    )?.result.metadata;
+
     const storageMetadata: Record<string, any> = {
       uploadTime: new Date().toISOString(),
       providers: data.storageResults.map(sr => sr.provider),
@@ -67,10 +71,6 @@ export class StorageDatabaseService {
     if (telegramMetadata?.telegramBotId) {
       storageMetadata.telegramBotId = telegramMetadata.telegramBotId;
     }
-
-    const telegramMetadata = data.storageResults.find(
-      sr => sr.provider === StorageProvider.TELEGRAM
-    )?.result.metadata;
 
     // 事务化写入 image 及其 storage records，防止部分成功
     const { image, storageRecords } = await prisma.$transaction(async (tx) => {
