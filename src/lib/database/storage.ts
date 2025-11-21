@@ -55,7 +55,7 @@ export class StorageDatabaseService {
   async saveImageWithStorage(data: CreateImageData): Promise<ImageWithStorage> {
     const imageId = this.generateImageId();
 
-    const storageMetadata = {
+    const storageMetadata: Record<string, any> = {
       uploadTime: new Date().toISOString(),
       providers: data.storageResults.map(sr => sr.provider),
       primaryUrl: data.url,
@@ -63,6 +63,10 @@ export class StorageDatabaseService {
         .filter(sr => sr.provider !== data.primaryProvider)
         .map(sr => sr.result.url)
     };
+
+    if (telegramMetadata?.telegramBotId) {
+      storageMetadata.telegramBotId = telegramMetadata.telegramBotId;
+    }
 
     const telegramMetadata = data.storageResults.find(
       sr => sr.provider === StorageProvider.TELEGRAM

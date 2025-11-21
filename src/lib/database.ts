@@ -276,7 +276,8 @@ export class DatabaseService {
         description: image.description || undefined,
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         groupId: image.groupId || undefined,
-        uploadedAt: image.uploadedAt
+        uploadedAt: image.uploadedAt,
+        storageMetadata: image.storageMetadata || undefined
       };
     } catch (error) {
       console.error('保存图片失败:', error);
@@ -306,7 +307,8 @@ export class DatabaseService {
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         primaryProvider: (image as any).primaryProvider || 'cloudinary',
-        backupProvider: (image as any).backupProvider || undefined
+        backupProvider: (image as any).backupProvider || undefined,
+        storageMetadata: (image as any).storageMetadata || undefined
       };
     } catch (error) {
       throw new DatabaseError('获取图片失败', error);
@@ -384,7 +386,8 @@ export class DatabaseService {
             telegramThumbnailFileId: true,
             telegramFilePath: true,
             telegramThumbnailPath: true,
-            telegramBotToken: true
+            telegramBotToken: true,
+            storageMetadata: true
           }
         })
       ]);
@@ -406,7 +409,8 @@ export class DatabaseService {
         telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
         telegramFilePath: image.telegramFilePath || undefined,
         telegramThumbnailPath: image.telegramThumbnailPath || undefined,
-        telegramBotToken: image.telegramBotToken || undefined
+        telegramBotToken: image.telegramBotToken || undefined,
+        storageMetadata: image.storageMetadata || undefined
       }));
 
       const totalPages = Math.ceil(total / limit);

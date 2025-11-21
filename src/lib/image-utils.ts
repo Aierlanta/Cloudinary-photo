@@ -10,10 +10,33 @@ const TELEGRAM_PROXY_CLIENT_ENABLED = process.env.NEXT_PUBLIC_TELEGRAM_PROXY_ENA
 
 export interface ImageWithTelegram {
   url: string;
+  telegramFileId?: string | null;
   telegramThumbnailFileId?: string | null;
   telegramThumbnailPath?: string | null;
   telegramBotToken?: string | null;
   storageMetadata?: string | null; // 用于提取 telegramBotId
+}
+
+function resolveTelegramBotId(image: ImageWithTelegram): string | undefined {
+  if (image.storageMetadata) {
+    try {
+      const meta = JSON.parse(image.storageMetadata);
+      if (meta?.telegramBotId) {
+        return String(meta.telegramBotId);
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  if (image.telegramBotToken) {
+    const tokenPrefix = image.telegramBotToken.split(':')[0];
+    if (/^\d+$/.test(tokenPrefix)) {
+      return tokenPrefix;
+    }
+  }
+
+  return undefined;
 }
 
 /**
@@ -165,28 +188,24 @@ export function generateThumbnailUrlForImage(
   image: ImageWithTelegram,
   size: number = 300
 ): string {
-  // 如果启用了前端代理开关，则优先返回本地代理 API，避免前端直连 Telegram
-  if (TELEGRAM_PROXY_CLIENT_ENABLED && image.telegramThumbnailFileId) {
-    if (image.telegramThumbnailPath) {
-      return buildTelegramImageApiByPath(image.telegramThumbnailPath);
-    }
-    // 可选携带 botId（若存在）
-    let botId: string | undefined;
-    try {
-      if (image.storageMetadata) {
-        const meta = JSON.parse(image.storageMetadata);
-        botId = meta?.telegramBotId ? String(meta.telegramBotId) : undefined;
-      }
-    } catch {}
+  const botId = resolveTelegramBotId(image);
+
+  // 1. 优先策略：只要有缩略图 file_id，就始终使用后端代理 API (携带 file_id)
+  // 这样可以利用后端的动态获取路径能力，彻底解决直连 path 过期的问题
+  // 不再受 TELEGRAM_PROXY_CLIENT_ENABLED 限制
+  if (image.telegramThumbnailFileId) {
     return buildTelegramImageApiByFileId(image.telegramThumbnailFileId, botId);
   }
 
-  // 未启用代理时，如果有直链能力则使用直链
-  if (image.telegramThumbnailFileId) {
-    if (image.telegramThumbnailPath && image.telegramBotToken) {
-      return `https://api.telegram.org/file/bot${image.telegramBotToken}/${image.telegramThumbnailPath}`;
-    }
-    // 若缺少 file_path 或 token，退回通用逻辑
+  // 2. 降级策略：如果没有缩略图 ID，但有原图 file_id，尝试用原图 ID 走代理
+  // 虽然会加载大图，但能避免因 path 过期导致的 Error
+  if (image.telegramFileId) {
+    return buildTelegramImageApiByFileId(image.telegramFileId, botId);
+  }
+
+  // 3. 最后尝试使用直连路径（如果有）- 通常只有在极少数且未过期的情况下才有用
+  if (image.telegramThumbnailPath && image.telegramBotToken) {
+     return `https://api.telegram.org/file/bot${image.telegramBotToken}/${image.telegramThumbnailPath}`;
   }
 
   // 否则使用通用逻辑
