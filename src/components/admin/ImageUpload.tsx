@@ -1193,6 +1193,44 @@ export default function ImageUpload({
           </div>
         )}
 
+        {/* File List Actions */}
+        {fileStates.length > 0 && (
+          <div className="flex justify-end gap-2">
+            {fileStates.some((fs) => fs.status === "success") && (
+              <button
+                type="button"
+                onClick={clearSuccessful}
+                disabled={uploading}
+                className={cn(
+                  "text-xs px-2 py-1 border rounded-lg flex items-center gap-1 transition-colors",
+                  isLight
+                    ? "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                    : "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700",
+                  uploading && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <Trash2 className="w-3 h-3" />
+                {t.adminImages.clearSuccessful}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={clearAll}
+              disabled={uploading}
+              className={cn(
+                "text-xs px-2 py-1 border rounded-lg flex items-center gap-1 transition-colors",
+                isLight
+                  ? "bg-white border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-200"
+                  : "bg-gray-800 border-gray-600 text-red-400 hover:bg-red-900/20 hover:border-red-800",
+                uploading && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Trash2 className="w-3 h-3" />
+              {t.adminImages.clearAll}
+            </button>
+          </div>
+        )}
+
         {/* File List */}
         {fileStates.length > 0 && (
           <div className="space-y-1 max-h-96 overflow-y-auto rounded-lg">
@@ -1266,6 +1304,41 @@ export default function ImageUpload({
                       </p>
                     )}
                   </div>
+                </div>
+
+                <div className="flex items-center gap-1 ml-2">
+                  {fileState.status === "failed" && (
+                    <button
+                      type="button"
+                      onClick={() => retryFile(index)}
+                      disabled={fileState.status === "uploading"}
+                      className={cn(
+                        "p-1.5 rounded-lg transition-colors",
+                        isLight
+                          ? "text-blue-600 hover:bg-blue-50"
+                          : "text-blue-400 hover:bg-blue-900/20",
+                        fileState.status === "uploading" && "opacity-50 cursor-not-allowed"
+                      )}
+                      title={t.adminImages.retry}
+                    >
+                      <RefreshCw className={cn("w-4 h-4", fileState.status === "uploading" && "animate-spin")} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeFile(index)}
+                    disabled={fileState.status === "uploading"}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-colors",
+                      isLight
+                        ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
+                        : "text-gray-500 hover:text-red-400 hover:bg-red-900/20",
+                      fileState.status === "uploading" && "opacity-50 cursor-not-allowed"
+                    )}
+                    title={t.adminImages.remove}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}

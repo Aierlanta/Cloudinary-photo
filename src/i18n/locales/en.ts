@@ -584,7 +584,10 @@ export const en: Translations = {
     uploadPartialFailedMessage: 'Success: {success}, Failed: {failed}',
     uploadComplete: 'Upload Complete',
     uploadCompleteMessage: 'Successfully uploaded {count} images',
-
+    clearAll: 'Clear All',
+    clearSuccessful: 'Clear Successful',
+    retry: 'Retry',
+    remove: 'Remove',
   },
 
   adminGroups: {

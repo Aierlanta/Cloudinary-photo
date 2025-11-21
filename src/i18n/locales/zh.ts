@@ -582,7 +582,10 @@ export const zh: Translations = {
     uploadPartialFailedMessage: '成功: {success} 张，失败: {failed} 张',
     uploadComplete: '上传完成',
     uploadCompleteMessage: '成功上传 {count} 张图片',
-
+    clearAll: '清空全部',
+    clearSuccessful: '清空已成功',
+    retry: '重试',
+    remove: '移除',
   },
 
   adminGroups: {

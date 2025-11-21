@@ -283,6 +283,10 @@ export interface Translations {
     uploadPartialFailedMessage: string;
     uploadComplete: string;
     uploadCompleteMessage: string;
+    clearAll: string;
+    clearSuccessful: string;
+    retry: string;
+    remove: string;
   };
 
   // API 配置管理
