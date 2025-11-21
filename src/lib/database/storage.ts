@@ -68,48 +68,57 @@ export class StorageDatabaseService {
       sr => sr.provider === StorageProvider.TELEGRAM
     )?.result.metadata;
 
-    // 1️⃣ 直接创建 image（不使用 $transaction）
-    const image = await prisma.image.create({
-      data: {
-        id: imageId,
-        url: data.url,
-        publicId: data.publicId,
-        title: data.title,
-        description: data.description,
-        groupId: data.groupId,
-        tags: data.tags ? JSON.stringify(data.tags) : null,
-        primaryProvider: data.primaryProvider,
-        backupProvider: data.backupProvider,
-        storageMetadata: JSON.stringify(storageMetadata),
+    // 事务化写入 image 及其 storage records，防止部分成功
+    const { image, storageRecords } = await prisma.$transaction(async (tx) => {
+      const createdImage = await tx.image.create({
+        data: {
+          id: imageId,
+          url: data.url,
+          publicId: data.publicId,
+          title: data.title,
+          description: data.description,
+          groupId: data.groupId,
+          tags: data.tags ? JSON.stringify(data.tags) : null,
+          primaryProvider: data.primaryProvider,
+          backupProvider: data.backupProvider,
+          storageMetadata: JSON.stringify(storageMetadata),
 
-        telegramFileId: telegramMetadata?.telegramFileId,
-        telegramThumbnailFileId: telegramMetadata?.telegramThumbnailFileId,
-        telegramFilePath: telegramMetadata?.telegramFilePath,
-        telegramThumbnailPath: telegramMetadata?.telegramThumbnailPath,
-        telegramBotToken: telegramMetadata?.telegramBotToken
-      }
+          telegramFileId: telegramMetadata?.telegramFileId,
+          telegramThumbnailFileId: telegramMetadata?.telegramThumbnailFileId,
+          telegramFilePath: telegramMetadata?.telegramFilePath,
+          telegramThumbnailPath: telegramMetadata?.telegramThumbnailPath,
+          telegramBotToken: telegramMetadata?.telegramBotToken
+        }
+      });
+
+      const createdStorageRecords = await Promise.all(
+        data.storageResults.map(({ provider, result }) =>
+          tx.imageStorageRecord.create({
+            data: {
+              imageId: imageId,
+              provider,
+              identifier: result.publicId,
+              url: result.url,
+              metadata: JSON.stringify({
+                originalResult: result,
+                uploadTime: new Date().toISOString()
+              }),
+              status: 'active'
+            }
+          })
+        )
+      );
+
+      return {
+        image: createdImage,
+        storageRecords: createdStorageRecords
+      };
+    }, {
+      maxWait: 15000,
+      timeout: 30000
     });
 
-    // 2️⃣ 创建 storage record（单条写入，不使用事务）
-    const storageRecords = await Promise.all(
-      data.storageResults.map(({ provider, result }) =>
-        prisma.imageStorageRecord.create({
-          data: {
-            imageId: imageId,
-            provider,
-            identifier: result.publicId,
-            url: result.url,
-            metadata: JSON.stringify({
-              originalResult: result,
-              uploadTime: new Date().toISOString()
-            }),
-            status: 'active'
-          }
-        })
-      )
-    );
-
-    // 3️⃣ group.update 独立执行 + 自动重试（彻底避免死锁）
+    // group.update 独立执行 + 自动重试（彻底避免死锁）
     if (data.groupId) {
       await this.incrementGroupCountSafe(data.groupId);
     }
