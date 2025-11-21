@@ -10,8 +10,8 @@ import {
 import SmartImage from "@/components/ui/SmartImage";
 import { useImageCachePrewarming } from "@/hooks/useImageCachePrewarming";
 import { useLocale } from "@/hooks/useLocale";
-import { useAdminVersion } from "@/contexts/AdminVersionContext";
-import { GlassCard, GlassButton } from "@/components/ui/glass";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 import { 
   MoreVertical, 
   Edit2, 
@@ -98,6 +98,7 @@ function LazyImage({
   onClick?: () => void;
   preloadUrls?: string[];
 }) {
+  const isLight = useTheme();
   const [isInView, setIsInView] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -146,17 +147,29 @@ function LazyImage({
   return (
     <div ref={imgRef} className={`relative ${className}`}>
       {!isInView ? (
-        <div className="w-full h-full bg-gray-200 dark:bg-gray-800 animate-pulse flex items-center justify-center">
-          <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
+        <div className={cn(
+          "w-full h-full animate-pulse flex items-center justify-center",
+          isLight ? "bg-gray-200" : "bg-gray-800"
+        )}>
+          <div className={cn(
+            "w-8 h-8 rounded-full",
+            isLight ? "bg-gray-300" : "bg-gray-600"
+          )} />
         </div>
       ) : hasError ? (
-        <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+        <div className={cn(
+          "w-full h-full flex items-center justify-center",
+          isLight ? "bg-gray-100" : "bg-gray-800"
+        )}>
           <div className="text-center text-gray-500 text-xs">Error</div>
         </div>
       ) : (
         <>
           {!isLoaded && (
-            <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse" />
+            <div className={cn(
+              "absolute inset-0 animate-pulse",
+              isLight ? "bg-gray-200" : "bg-gray-700"
+            )} />
           )}
           <SmartImage
             src={src}
@@ -174,9 +187,9 @@ function LazyImage({
   );
 }
 
-// V2 Preview Modal
 function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
-  const { version } = useAdminVersion();
+  const { t } = useLocale();
+  const isLight = useTheme();
   
   if (!image) return null;
 
@@ -210,99 +223,132 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
     }
   };
 
-  if (version === 'v2') {
-     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
-           <GlassCard className="w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row" onClick={(e: any) => e.stopPropagation()} noPadding>
-              <div className="relative flex-1 bg-black/50 min-h-[300px] flex items-center justify-center p-4">
-                 <SmartImage
-                    src={isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrl(image.url, 800)}
-                    alt={image.title || image.publicId}
-                    fill
-                    className="object-contain"
-                 />
+  // --- V3 Layout (Flat Design) ---
+  return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0" onClick={onClose}>
+        <div className={cn(
+          "border max-w-4xl w-full max-h-[90vh] overflow-y-auto",
+          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        )} onClick={(e) => e.stopPropagation()}>
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className={cn(
+                "relative overflow-hidden aspect-square",
+                isLight ? "bg-gray-100 border border-gray-300" : "bg-gray-800 border border-gray-600"
+              )}>
+                <SmartImage
+                  src={isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrl(image.url, 400)}
+                  alt={image.title || image.publicId}
+                  fill
+                  className="object-contain"
+                />
               </div>
-              <div className="w-full md:w-96 p-6 flex flex-col gap-6 overflow-y-auto bg-white/5 border-l border-white/10">
-                 <div>
-                    <h3 className="text-xl font-bold mb-2 break-all">{image.title || image.publicId}</h3>
-                    <p className="text-sm text-muted-foreground">{formatDate(image.uploadedAt)}</p>
-                 </div>
-
-                 <div className="space-y-4">
-                    <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-                       <p className="text-xs text-muted-foreground mb-1">Group</p>
-                       <div className="flex items-center gap-2">
-                          <Layers className="w-4 h-4 text-primary" />
-                          <span>{group ? group.name : "Ungrouped"}</span>
-                       </div>
+              <div className="space-y-4">
+                <div>
+                  <h3 className={cn(
+                    "text-lg font-semibold mb-2 truncate",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {image.title || image.publicId}
+                  </h3>
+                  <p className={cn(
+                    "text-sm",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    {formatDate(image.uploadedAt)}
+                  </p>
+                </div>
+                <div className={cn(
+                  "p-3 border",
+                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                )}>
+                  <p className={cn(
+                    "text-xs mb-1",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    {t.adminImages.group}
+                  </p>
+                  <p className={cn(
+                    "text-sm",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {group ? group.name : t.adminImages.ungrouped}
+                  </p>
+                </div>
+                {image.tags && image.tags.length > 0 && (
+                  <div className={cn(
+                    "p-3 border",
+                    isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                  )}>
+                    <p className={cn(
+                      "text-xs mb-2",
+                      isLight ? "text-gray-600" : "text-gray-400"
+                    )}>
+                      {t.adminImages.tags}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {image.tags.map(tag => (
+                        <span
+                          key={tag}
+                          className={cn(
+                            "px-2 py-1 text-xs border",
+                            isLight
+                              ? "bg-blue-50 border-blue-300 text-blue-800"
+                              : "bg-blue-900/20 border-blue-600 text-blue-200"
+                          )}
+                        >
+                          #{tag}
+                        </span>
+                      ))}
                     </div>
-                    
-                    {image.tags && image.tags.length > 0 && (
-                       <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-                          <p className="text-xs text-muted-foreground mb-2">Tags</p>
-                          <div className="flex flex-wrap gap-2">
-                             {image.tags.map(tag => (
-                                <span key={tag} className="px-2 py-1 text-xs rounded-full bg-primary/20 text-primary border border-primary/20">
-                                   #{tag}
-                                </span>
-                             ))}
-                          </div>
-                       </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => window.open(image.url, "_blank")}
+                    className={cn(
+                      "px-4 py-2 border transition-colors",
+                      isLight
+                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                        : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
                     )}
-
-                     <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-                       <p className="text-xs text-muted-foreground mb-1">Format</p>
-                       <p className="font-mono text-xs break-all">{image.url}</p>
-                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-3 mt-auto">
-                    <GlassButton onClick={() => window.open(image.url, "_blank")} className="w-full text-xs">
-                       <ExternalLink className="w-4 h-4" /> Open
-                    </GlassButton>
-                    <GlassButton onClick={() => downloadImage(image.url, image.publicId)} className="w-full text-xs">
-                       <Download className="w-4 h-4" /> Save
-                    </GlassButton>
-                     <GlassButton onClick={() => copyToClipboard(image.url)} className="w-full text-xs">
-                       <Copy className="w-4 h-4" /> Link
-                    </GlassButton>
-                 </div>
+                  >
+                    {t.adminImages.open}
+                  </button>
+                  <button
+                    onClick={() => downloadImage(image.url, image.publicId)}
+                    className={cn(
+                      "px-4 py-2 border transition-colors",
+                      isLight
+                        ? "bg-purple-500 text-white border-purple-600 hover:bg-purple-600"
+                        : "bg-purple-600 text-white border-purple-500 hover:bg-purple-700"
+                    )}
+                  >
+                    {t.adminImages.download}
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(image.url)}
+                    className={cn(
+                      "px-4 py-2 border transition-colors col-span-2",
+                      isLight
+                        ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
+                        : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
+                    )}
+                  >
+                    {t.adminImages.copyLink}
+                  </button>
+                </div>
               </div>
-           </GlassCard>
+            </div>
+          </div>
         </div>
-     )
+      </div>
+    );
   }
 
-  // Classic V1 Modal (Simplified for brevity, keeping core structure)
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-       <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-          <div className="p-6">
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden aspect-square">
-                   <SmartImage
-                      src={isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrl(image.url, 400)}
-                      alt={image.title || image.publicId}
-                      fill
-                      className="object-contain"
-                   />
-                </div>
-                <div className="space-y-4">
-                   <h3 className="text-lg font-semibold">{image.title || image.publicId}</h3>
-                   <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => window.open(image.url, "_blank")} className="bg-blue-600 text-white py-2 rounded">Open</button>
-                      <button onClick={() => downloadImage(image.url, image.publicId)} className="bg-purple-600 text-white py-2 rounded">Download</button>
-                   </div>
-                </div>
-             </div>
-          </div>
-       </div>
-    </div>
-  );
-}
-
 function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps) {
-   const { version } = useAdminVersion();
+   const { t } = useLocale();
+   const isLight = useTheme();
    const [groupId, setGroupId] = useState(image?.groupId || "");
    const [tags, setTags] = useState(image?.tags?.join(", ") || "");
 
@@ -321,67 +367,100 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
       onClose();
    };
 
-   if (version === 'v2') {
-      return (
-         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
-            <GlassCard className="w-full max-w-md" onClick={(e: any) => e.stopPropagation()}>
-               <h3 className="text-xl font-bold mb-6">Edit Image</h3>
-               <div className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-medium mb-2">Group</label>
-                     <select 
-                        value={groupId} 
-                        onChange={e => setGroupId(e.target.value)}
-                        className="w-full p-3 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+   // --- V3 Layout (Flat Design) ---
+   return (
+         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0" onClick={onClose}>
+            <div className={cn(
+               "border max-w-md w-full",
+               isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            )} onClick={e => e.stopPropagation()}>
+               <div className="p-6">
+                  <h3 className={cn(
+                     "text-lg font-bold mb-4",
+                     isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                     {t.adminImages.editImage}
+                  </h3>
+                  <div className="space-y-4">
+                     <div>
+                        <label className={cn(
+                           "block text-sm font-medium mb-2",
+                           isLight ? "text-gray-700" : "text-gray-300"
+                        )}>
+                           {t.adminImages.group}
+                        </label>
+                        <select
+                           value={groupId}
+                           onChange={e => setGroupId(e.target.value)}
+                           className={cn(
+                              "w-full p-2 border outline-none focus:border-blue-500",
+                              isLight
+                                 ? "bg-white border-gray-300"
+                                 : "bg-gray-800 border-gray-600"
+                           )}
+                        >
+                           <option value="">{t.adminImages.unassigned}</option>
+                           {groups.map(g => (
+                              <option key={g.id} value={g.id}>
+                                 {g.name}
+                              </option>
+                           ))}
+                        </select>
+                     </div>
+                     <div>
+                        <label className={cn(
+                           "block text-sm font-medium mb-2",
+                           isLight ? "text-gray-700" : "text-gray-300"
+                        )}>
+                           {t.adminImages.tags}
+                        </label>
+                        <input
+                           type="text"
+                           value={tags}
+                           onChange={e => setTags(e.target.value)}
+                           placeholder={t.adminImages.commaSeparatedTags}
+                           className={cn(
+                              "w-full p-2 border outline-none focus:border-blue-500",
+                              isLight
+                                 ? "bg-white border-gray-300"
+                                 : "bg-gray-800 border-gray-600"
+                           )}
+                        />
+                     </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                     <button
+                        onClick={onClose}
+                        className={cn(
+                           "px-4 py-2 border transition-colors",
+                           isLight
+                              ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
+                              : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
+                        )}
                      >
-                        <option value="" className="bg-gray-900">Unassigned</option>
-                        {groups.map(g => <option key={g.id} value={g.id} className="bg-gray-900">{g.name}</option>)}
-                     </select>
-                  </div>
-                  <div>
-                     <label className="block text-sm font-medium mb-2">Tags</label>
-                     <input 
-                        type="text" 
-                        value={tags}
-                        onChange={e => setTags(e.target.value)}
-                        placeholder="Comma separated tags..."
-                        className="w-full p-3 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                     />
+                        {t.common.cancel}
+                     </button>
+                     <button
+                        onClick={handleSave}
+                        className={cn(
+                           "px-4 py-2 border transition-colors",
+                           isLight
+                              ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                              : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                        )}
+                     >
+                        {t.common.save}
+                     </button>
                   </div>
                </div>
-               <div className="flex justify-end gap-3 mt-8">
-                  <GlassButton onClick={onClose}>Cancel</GlassButton>
-                  <GlassButton primary onClick={handleSave}>Save Changes</GlassButton>
-               </div>
-            </GlassCard>
+            </div>
          </div>
       )
-   }
-
-   // V1 Edit Modal
-   return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-         <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold mb-4">Edit Image</h3>
-             <div className="space-y-4">
-               <select value={groupId} onChange={e => setGroupId(e.target.value)} className="w-full p-2 border rounded dark:bg-gray-800">
-                  <option value="">Unassigned</option>
-                  {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-               </select>
-               <input type="text" value={tags} onChange={e => setTags(e.target.value)} className="w-full p-2 border rounded dark:bg-gray-800" />
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-               <button onClick={onClose} className="px-4 py-2 text-gray-600">Cancel</button>
-               <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
-            </div>
-         </div>
-      </div>
-   )
 }
 
 export default function ImageList({ images, groups, loading, onDeleteImage, onBulkDelete, onUpdateImage, onBulkUpdate }: ImageListProps) {
   const { t } = useLocale();
-  const { version } = useAdminVersion();
+  const isLight = useTheme();
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [editingImage, setEditingImage] = useState<ImageItem | null>(null);
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
@@ -397,7 +476,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
   });
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("zh-CN");
-  const getGroupName = (groupId?: string) => groups.find((g) => g.id === groupId)?.name || "Unassigned";
+  const getGroupName = (groupId?: string) => groups.find((g) => g.id === groupId)?.name || t.adminImages.unassigned;
 
   const toggleImageSelection = (imageId: string) => {
     const newSelected = new Set(selectedImages);
@@ -408,7 +487,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
 
   const handleBulkDelete = () => {
     if (selectedImages.size === 0) return;
-    if (confirm(`Delete ${selectedImages.size} images?`)) {
+    if (confirm(t.adminImages.deleteImagesConfirm.replace('{count}', selectedImages.size.toString()))) {
       if (onBulkDelete) onBulkDelete(Array.from(selectedImages));
       setSelectedImages(new Set());
       setBulkMode(false);
@@ -417,7 +496,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
 
   const handleBulkUpdateGroup = () => {
     if (selectedImages.size === 0 || !bulkGroupId) return;
-    if (confirm(`Move ${selectedImages.size} images?`)) {
+    if (confirm(t.adminImages.moveImagesConfirm.replace('{count}', selectedImages.size.toString()))) {
       if (onBulkUpdate) onBulkUpdate(Array.from(selectedImages), { groupId: bulkGroupId });
       setSelectedImages(new Set());
       setBulkMode(false);
@@ -429,192 +508,176 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
      if (onUpdateImage) onUpdateImage(imageId, updates);
   };
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
-  if (!images?.length) return <div className="p-8 text-center text-muted-foreground">No images found</div>;
+  if (loading) return <div className="p-8 text-center">{t.common.loading}</div>;
+  if (!images?.length) return <div className="p-8 text-center text-muted-foreground">{t.adminImages.noImagesFound}</div>;
 
-  // --- V2 Layout ---
-  if (version === 'v2') {
-     return (
-        <div className="space-y-6">
-          <GlassCard className="flex flex-wrap items-center justify-between gap-4 p-4">
-             <div className="flex items-center gap-3 flex-wrap">
-                 <GlassButton 
-                    onClick={() => { setBulkMode(!bulkMode); setSelectedImages(new Set()); }}
-                    className={bulkMode ? "bg-primary text-white" : ""}
-                 >
-                    {bulkMode ? t.adminImages.exitBulkMode : t.adminImages.bulkActions}
-                 </GlassButton>
-                 {bulkMode && (
-                   <div className="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-left-4">
-                       <span className="text-sm font-medium">{selectedImages.size} selected</span>
-                       <div className="h-6 w-px bg-white/10" />
-                       <select 
-                          value={bulkGroupId} 
-                          onChange={e => setBulkGroupId(e.target.value)}
-                          className="bg-white/5 border border-white/10 rounded-lg text-sm p-2 outline-none focus:border-primary"
-                       >
-                          <option value="" className="bg-gray-900">Move to...</option>
-                          {groups.map(g => <option key={g.id} value={g.id} className="bg-gray-900">{g.name}</option>)}
-                       </select>
-                       <GlassButton primary disabled={!bulkGroupId} onClick={handleBulkUpdateGroup} className="px-3 py-1.5 text-xs">
-                          <Move className="w-3 h-3" /> Move
-                       </GlassButton>
-                       <GlassButton onClick={handleBulkDelete} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/20">
-                          <Trash2 className="w-3 h-3" /> Delete
-                       </GlassButton>
-                    </div>
-                 )}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                 {images.length} images
-              </div>
-           </GlassCard>
-
-           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4">
-              {images.map(image => (
-                <GlassCard
-                  key={image.id}
-                  noPadding
-                  hover={false}
-                  className={`group overflow-hidden transition-colors duration-200 ${
-                    bulkMode && selectedImages.has(image.id)
-                      ? "ring-2 ring-primary bg-primary/5"
-                      : "hover:ring-2 hover:ring-primary/40"
-                  }`}
-                >
-                  <div
-                    className="relative aspect-square w-full"
-                    onClick={() =>
-                      bulkMode ? toggleImageSelection(image.id) : setSelectedImage(image)
-                    }
-                  >
-                    <LazyImage
-                      src={
-                        isTgStateImage(image.url)
-                          ? getImageUrls(image.url).thumbnail
-                          : generateThumbnailUrlForImage(image, 400)
-                      }
-                      alt={image.title || "Image"}
-                      className="w-full h-full"
-                    />
-
-                    {/* Overlays */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-                      <p className="text-white text-sm font-medium truncate">
-                        {image.title || image.publicId}
-                      </p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-white/60">
-                          {formatDate(image.uploadedAt)}
-                        </span>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingImage(image);
-                            }}
-                            className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteImage(image.id);
-                            }}
-                            className="p-1.5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-200 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {bulkMode && (
-                      <div className="absolute top-2 left-2">
-                        <div
-                          className={`w-5 h-5 rounded-full border border-white/30 flex items-center justify-center transition-colors ${
-                            selectedImages.has(image.id)
-                              ? "bg-primary border-primary"
-                              : "bg-black/40"
-                          }`}
-                        >
-                          {selectedImages.has(image.id) && (
-                            <Check className="w-3 h-3 text-white" />
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </GlassCard>
-              ))}
-           </div>
-
-           <ImagePreviewModal image={selectedImage} groups={groups} onClose={() => setSelectedImage(null)} />
-           <ImageEditModal image={editingImage} groups={groups} onClose={() => setEditingImage(null)} onSave={handleUpdateImage} />
-        </div>
-     )
-  }
-
-  // --- Classic V1 Layout ---
+  // --- V3 Layout (Flat Design) ---
   return (
-     <>
-       <div className="flex justify-between items-center mb-4">
-         {/* ... Existing V1 Toolbar ... */}
-         <div className="flex items-center space-x-4">
-          <button
-            onClick={() => {
-              setBulkMode(!bulkMode);
-              setSelectedImages(new Set());
-            }}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              bulkMode
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-            }`}
-          >
-            {bulkMode ? t.adminImages.exitBulkMode : t.adminImages.bulkActions}
-          </button>
-          {/* ... rest of V1 toolbar */}
-         </div>
-       </div>
-       
-       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-         {images.map((image) => (
-           <div
-            key={image.id}
-            className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md ${
-              bulkMode && selectedImages.has(image.id)
-                ? "ring-2 ring-blue-500"
-                : ""
-            }`}
-          >
-            {/* ... Existing V1 Card Content ... */}
-             <div className="aspect-square relative bg-gray-100 dark:bg-gray-800">
-              <LazyImage
-                src={isTgStateImage(image.url) ? getImageUrls(image.url).thumbnail : generateThumbnailUrlForImage(image, 300)}
-                alt={image.title || image.publicId}
-                className="w-full h-full"
-                onClick={() => {
-                  if (bulkMode) {
-                    toggleImageSelection(image.id);
-                  } else {
-                    setSelectedImage(image);
-                  }
-                }}
-              />
-              {/* ... V1 hover actions ... */}
-            </div>
-            <div className="p-3">
-               <h3 className="font-medium panel-text truncate mb-1">{image.title || image.publicId}</h3>
-               {/* ... V1 details ... */}
-            </div>
+      <div className="space-y-4">
+        {/* Toolbar */}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setBulkMode(!bulkMode);
+                setSelectedImages(new Set());
+              }}
+              className={cn(
+                "px-4 py-2 border transition-colors",
+                bulkMode
+                  ? isLight
+                    ? "bg-blue-500 text-white border-blue-600"
+                    : "bg-blue-600 text-white border-blue-500"
+                  : isLight
+                  ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
+                  : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
+              )}
+            >
+              {bulkMode ? t.adminImages.exitBulkMode : t.adminImages.bulkActions}
+            </button>
+            {bulkMode && selectedImages.size > 0 && (
+              <>
+                <button
+                  onClick={() => onBulkDelete && onBulkDelete(Array.from(selectedImages))}
+                  className={cn(
+                    "px-4 py-2 border transition-colors",
+                    isLight
+                      ? "bg-red-500 text-white border-red-600 hover:bg-red-600"
+                      : "bg-red-600 text-white border-red-500 hover:bg-red-700"
+                  )}
+                >
+                  {t.common.delete} ({selectedImages.size})
+                </button>
+                <select
+                  value={bulkGroupId}
+                  onChange={(e) => setBulkGroupId(e.target.value)}
+                  className={cn(
+                    "px-3 py-2 border outline-none focus:border-blue-500",
+                    isLight
+                      ? "bg-white border-gray-300"
+                      : "bg-gray-800 border-gray-600"
+                  )}
+                >
+                  <option value="">{t.adminImages.moveToGroup}</option>
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+                {bulkGroupId && (
+                  <button
+                    onClick={() => {
+                      onBulkUpdate && onBulkUpdate(Array.from(selectedImages), { groupId: bulkGroupId });
+                      setBulkGroupId("");
+                      setSelectedImages(new Set());
+                    }}
+                    className={cn(
+                      "px-4 py-2 border transition-colors",
+                      isLight
+                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                        : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                    )}
+                  >
+                    {t.common.confirm}
+                  </button>
+                )}
+              </>
+            )}
           </div>
-         ))}
-       </div>
-       
-       <ImagePreviewModal image={selectedImage} groups={groups} onClose={() => setSelectedImage(null)} />
-       <ImageEditModal image={editingImage} groups={groups} onClose={() => setEditingImage(null)} onSave={handleUpdateImage} />
-     </>
-  );
+        </div>
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "aspect-square animate-pulse",
+                  isLight ? "bg-gray-200" : "bg-gray-700"
+                )}
+              />
+            ))}
+          </div>
+        ) : images.length === 0 ? (
+          <div className={cn(
+            "text-center py-12 border",
+            isLight
+              ? "bg-gray-50 border-gray-300 text-gray-600"
+              : "bg-gray-700 border-gray-600 text-gray-400"
+          )}>
+            <p>{t.adminGroups.noImagesInGroup || '暂无图片'}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {images.map((image) => (
+              <div
+                key={image.id}
+                className={cn(
+                  "border overflow-hidden transition-colors",
+                  bulkMode && selectedImages.has(image.id)
+                    ? isLight
+                      ? "border-blue-500"
+                      : "border-blue-400"
+                    : isLight
+                    ? "bg-white border-gray-300 hover:bg-gray-50"
+                    : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+                )}
+              >
+                <div className={cn(
+                  "aspect-square relative",
+                  isLight ? "bg-gray-100" : "bg-gray-800"
+                )}>
+                  <LazyImage
+                    src={isTgStateImage(image.url) ? getImageUrls(image.url).thumbnail : generateThumbnailUrlForImage(image, 300)}
+                    alt={image.title || image.publicId}
+                    className="w-full h-full"
+                    onClick={() => {
+                      if (bulkMode) {
+                        toggleImageSelection(image.id);
+                      } else {
+                        setSelectedImage(image);
+                      }
+                    }}
+                  />
+                  {bulkMode && selectedImages.has(image.id) && (
+                    <div className={cn(
+                      "absolute inset-0 flex items-center justify-center pointer-events-none",
+                      isLight ? "bg-blue-500/20" : "bg-blue-600/20"
+                    )}>
+                      <div className={cn(
+                        "w-8 h-8 flex items-center justify-center border-2",
+                        isLight
+                          ? "bg-blue-500 border-blue-600"
+                          : "bg-blue-600 border-blue-500"
+                      )}>
+                        <Check className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <h3 className={cn(
+                    "font-medium truncate mb-1",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {image.title || image.publicId}
+                  </h3>
+                  <div className={cn(
+                    "text-xs",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    {formatDate(image.uploadedAt)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <ImagePreviewModal image={selectedImage} groups={groups} onClose={() => setSelectedImage(null)} />
+        <ImageEditModal image={editingImage} groups={groups} onClose={() => setEditingImage(null)} onSave={handleUpdateImage} />
+      </div>
+    );
 }

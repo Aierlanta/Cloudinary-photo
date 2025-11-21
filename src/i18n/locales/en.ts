@@ -83,13 +83,12 @@ export const en: Translations = {
     quickSettings: 'Quick Settings',
     opacityDescription: 'Adjust the transparency of the admin panel. Lower opacity allows better visibility of background content.',
     toggleLanguage: 'Switch Language',
-    versionControl: 'Version Control',
-    switchToNew: 'Switch to New Version',
-    switchToOld: 'Back to Old Version',
   },
 
   adminNav: {
     dashboard: 'Dashboard',
+    upload: 'Upload',
+    gallery: 'Gallery',
     images: 'Images',
     groups: 'Groups',
     apiConfig: 'API Config',
@@ -454,6 +453,16 @@ export const en: Translations = {
     settingsUpdateFailed: 'Failed to update settings',
   },
 
+  adminUpload: {
+    title: 'Image Upload',
+    description: 'Upload and manage your images',
+  },
+
+  adminGallery: {
+    title: 'Gallery',
+    description: 'Browse and manage your image library',
+  },
+
   adminImages: {
     title: 'Image Management',
     description: 'Upload, manage and organize your image library',
@@ -530,6 +539,22 @@ export const en: Translations = {
     urlImportJsonExampleTitle: 'JSON example',
     urlImportJsonExampleContent:
       '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "Home banner",\n    "description": "Desktop homepage banner",\n    "tags": ["banner", "pc"]\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "Mobile banner",\n    "tags": ["banner", "mobile"]\n  }\n]',
+    // ImageList 组件
+    selectGroup: 'Select Group',
+    unassigned: 'Unassigned',
+    reset: 'Reset',
+    group: 'Group',
+    ungrouped: 'Ungrouped',
+    tags: 'Tags',
+    open: 'Open',
+    download: 'Download',
+    copyLink: 'Copy Link',
+    editImage: 'Edit Image',
+    commaSeparatedTags: 'Comma separated tags...',
+    moveToGroup: 'Move to Group...',
+    noImagesFound: 'No images found',
+    deleteImagesConfirm: 'Are you sure you want to delete {count} images?',
+    moveImagesConfirm: 'Are you sure you want to move {count} images?',
 
   },
 

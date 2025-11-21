@@ -89,14 +89,13 @@ export interface Translations {
     quickSettings: string;
     opacityDescription: string;
     toggleLanguage: string;
-    versionControl: string;
-    switchToNew: string;
-    switchToOld: string;
   };
 
   // 管理面板 - 导航
   adminNav: {
     dashboard: string;
+    upload: string;
+    gallery: string;
     images: string;
     groups: string;
     apiConfig: string;
@@ -156,6 +155,18 @@ export interface Translations {
     dataStats: string;
     totalImagesLabel: string;
     totalGroupsLabel: string;
+  };
+
+  // 图片上传
+  adminUpload: {
+    title: string;
+    description: string;
+  };
+
+  // 图库
+  adminGallery: {
+    title: string;
+    description: string;
   };
 
   // 图片管理
@@ -232,6 +243,22 @@ export interface Translations {
     urlImportTxtExampleContent: string;
     urlImportJsonExampleTitle: string;
     urlImportJsonExampleContent: string;
+    // ImageList 组件
+    selectGroup: string;
+    unassigned: string;
+    reset: string;
+    group: string;
+    ungrouped: string;
+    tags: string;
+    open: string;
+    download: string;
+    copyLink: string;
+    editImage: string;
+    commaSeparatedTags: string;
+    moveToGroup: string;
+    noImagesFound: string;
+    deleteImagesConfirm: string;
+    moveImagesConfirm: string;
   };
 
   // API 配置管理

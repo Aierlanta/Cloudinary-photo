@@ -83,13 +83,12 @@ export const zh: Translations = {
     quickSettings: '快速设置',
     opacityDescription: '调整管理面板的透明度，较低的透明度可以更好地显示背景内容。',
     toggleLanguage: '切换语言',
-    versionControl: '版本控制',
-    switchToNew: '前往新版',
-    switchToOld: '回到旧版',
   },
 
   adminNav: {
     dashboard: '仪表板',
+    upload: '图片上传',
+    gallery: '图库',
     images: '图片管理',
     groups: '分组管理',
     apiConfig: 'API配置',
@@ -454,6 +453,16 @@ export const zh: Translations = {
     settingsUpdateFailed: '设置更新失败',
   },
 
+  adminUpload: {
+    title: '图片上传',
+    description: '上传和管理您的图片',
+  },
+
+  adminGallery: {
+    title: '图库',
+    description: '浏览和管理您的图片库',
+  },
+
   adminImages: {
     title: '图片管理',
     description: '上传、管理和组织您的图片库',
@@ -528,6 +537,22 @@ export const zh: Translations = {
     urlImportJsonExampleTitle: 'JSON 示例',
     urlImportJsonExampleContent:
       '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "首页 Banner",\n    "description": "PC 端首页大图",\n    "tags": ["banner", "pc"]\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "移动端 Banner",\n    "tags": ["banner", "mobile"]\n  }\n]',
+    // ImageList 组件
+    selectGroup: '选择分组',
+    unassigned: '未分组',
+    reset: '重置',
+    group: '分组',
+    ungrouped: '未分组',
+    tags: '标签',
+    open: '打开',
+    download: '下载',
+    copyLink: '复制链接',
+    editImage: '编辑图片',
+    commaSeparatedTags: '用逗号分隔的标签...',
+    moveToGroup: '移动到分组...',
+    noImagesFound: '未找到图片',
+    deleteImagesConfirm: '确定要删除 {count} 张图片吗？',
+    moveImagesConfirm: '确定要移动 {count} 张图片吗？',
 
   },
 

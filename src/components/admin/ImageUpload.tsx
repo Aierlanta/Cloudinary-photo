@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
 import { useLocale } from "@/hooks/useLocale";
-import { useAdminVersion } from "@/contexts/AdminVersionContext";
-import { GlassButton } from "@/components/ui/glass";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/useTheme";
 import {
   UploadCloud,
   X,
@@ -13,7 +13,6 @@ import {
   Trash2,
   Image as ImageIcon,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import type {
   ImageUrlImportRequest,
   ImageUrlImportResponse,
@@ -68,11 +67,14 @@ interface StorageProvider {
 }
 
 export default function ImageUpload({
-  groups,
+  groups = [],
   onUploadSuccess,
 }: ImageUploadProps) {
   const { t } = useLocale();
-  const { version } = useAdminVersion();
+  const isLight = useTheme();
+
+  // 确保 groups 是数�?
+  const safeGroups = Array.isArray(groups) ? groups : [];
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileStates, setFileStates] = useState<FileUploadState[]>([]);
@@ -81,7 +83,7 @@ export default function ImageUpload({
   const [dragActive, setDragActive] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState("cloudinary"); // 新增：图床选择
   const [providers, setProviders] = useState<StorageProvider[]>([]); // 新增：图床提供商列表
-  const [loadingProviders, setLoadingProviders] = useState(true); // 新增：加载状态
+  const [loadingProviders, setLoadingProviders] = useState(true); // 新增：加载状�?
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<"txt" | "json">("txt");
   const [importContent, setImportContent] = useState("");
@@ -93,7 +95,7 @@ export default function ImageUpload({
   // Toast通知
   const { toasts, success, error: showError, removeToast } = useToast();
 
-  // 获取图床提供商列表
+  // 获取图床提供商列�?
   useEffect(() => {
     const fetchProviders = async () => {
       try {
@@ -101,7 +103,7 @@ export default function ImageUpload({
         if (response.ok) {
           const data = await response.json();
           setProviders(data.data.providers);
-          // 设置默认选择第一个可用的提供商
+          // 设置默认选择第一个可用的提供�?
           const availableProvider = data.data.providers.find(
             (p: StorageProvider) => p.isAvailable
           );
@@ -110,7 +112,7 @@ export default function ImageUpload({
           }
         }
       } catch (error) {
-        console.error("获取图床提供商列表失败:", error);
+        console.error("获取图床提供商列表失败", error);
         showError("获取图床服务列表失败", "请刷新页面重试");
       } finally {
         setLoadingProviders(false);
@@ -120,23 +122,41 @@ export default function ImageUpload({
     fetchProviders();
   }, [showError]);
 
+  // 确保选中的图床服务是可用的
+  useEffect(() => {
+    if (providers.length > 0) {
+      const currentProvider = providers.find(
+        (p) => p.id === selectedProvider
+      );
+      // 如果当前选中的图床不可用，切换到第一个可用的图床
+      if (currentProvider && !currentProvider.isAvailable) {
+        const availableProvider = providers.find(
+          (p) => p.isAvailable
+        );
+        if (availableProvider) {
+          setSelectedProvider(availableProvider.id);
+        }
+      }
+    }
+  }, [providers, selectedProvider]);
+
   // 防止上传过程中意外离开页面（刷新、关闭、后退等）
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // 检查是否有正在上传的文件
+      // 检查是否有正在上传的文�?
       const isUploading =
         uploading || fileStates.some((fs) => fs.status === "uploading");
 
       if (isUploading) {
-        // 标准的方式
+        // 标准的方�?
         e.preventDefault();
-        // Chrome 需要 returnValue
-        e.returnValue = "图片正在上传中，确定要离开吗？上传将被中断。";
+        // Chrome 需�?returnValue
+        e.returnValue = "图片正在上传中，确定要离开吗？上传将被中断";
         return e.returnValue;
       }
     };
 
-    // 添加事件监听器
+    // 添加事件监听�?
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     // 清理函数
@@ -145,16 +165,16 @@ export default function ImageUpload({
     };
   }, [uploading, fileStates]);
 
-  // 拦截浏览器后退/前进按钮（popstate 事件）
+  // 拦截浏览器后退/前进按钮（popstate 事件�?
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
       const isUploading =
         uploading || fileStates.some((fs) => fs.status === "uploading");
 
       if (isUploading) {
-        // 弹出确认对话框
+        // 弹出确认对话�?
         const confirmLeave = window.confirm(
-          "图片正在上传中，确定要离开吗？上传将被中断。"
+          "图片正在上传中，确定要离开吗？上传将被中断"
         );
 
         if (!confirmLeave) {
@@ -192,7 +212,7 @@ export default function ImageUpload({
       // button 3 = 后退, button 4 = 前进
       if (e.button === 3 || e.button === 4) {
         const confirmLeave = window.confirm(
-          "图片正在上传中，确定要离开吗？上传将被中断。"
+          "图片正在上传中，确定要离开吗？上传将被中断"
         );
 
         if (!confirmLeave) {
@@ -209,15 +229,15 @@ export default function ImageUpload({
       const link = target.closest("a");
 
       if (link && link.href) {
-        // 如果是外部链接，beforeunload 会处理
-        // 如果是内部链接，我们需要手动确认
+        // 如果是外部链接，beforeunload 会处�?
+        // 如果是内部链接，我们需要手动确�?
         const currentOrigin = window.location.origin;
         const linkUrl = new URL(link.href, currentOrigin);
 
         // 检查是否是跳转到其他页面（不是当前页面的锚点）
         if (linkUrl.pathname !== window.location.pathname) {
           const confirmLeave = window.confirm(
-            "图片正在上传中，确定要离开吗？上传将被中断。"
+            "图片正在上传中，确定要离开吗？上传将被中断"
           );
 
           if (!confirmLeave) {
@@ -403,7 +423,7 @@ export default function ImageUpload({
             console.warn(
               `上传 ${file.name} 失败 (状态码: ${
                 response.status
-              })，${retryDelay}ms后重试 (第${retryCount + 1}次重试)`
+              })，{retryDelay}ms后重试（第{retryCount + 1}次重试）`
             );
 
             await delay(retryDelay);
@@ -434,9 +454,9 @@ export default function ImageUpload({
         if (retryCount < RETRY_CONFIG.maxRetries) {
           const retryDelay = calculateRetryDelay(retryCount);
           console.warn(
-            `上传 ${file.name} 网络错误，${retryDelay}ms后重试 (第${
+            `上传 ${file.name} 网络错误，{retryDelay}ms后重试（第{
               retryCount + 1
-            }次重试):`,
+            }次重试）：`,
             error
           );
 
@@ -534,7 +554,7 @@ export default function ImageUpload({
 
     try {
       await uploadWithConcurrencyLimit([fileState], index, 1);
-      success("重试成功！", `${fileState.file.name} 已上传`, 3000);
+      success("重试成功", `${fileState.file.name} 已上传`, 3000);
     } catch (error) {
       showError(
         "重试失败",
@@ -588,7 +608,7 @@ export default function ImageUpload({
           6000
         );
       } else {
-        success("全部重试成功！", `成功上传 ${retrySuccessCount} 张图片`, 4000);
+        success("全部重试成功", `成功上传 ${retrySuccessCount} 张图片`, 4000);
       }
     } catch (error) {
       console.error("重试失败:", error);
@@ -685,7 +705,7 @@ export default function ImageUpload({
       setImportContent("");
       setImportFileName(null);
 
-      // 通知父组件刷新列表（自定义导入没有具体 Image 对象，这里只发信号）
+      // 通知父组件刷新列表（自定义导入没有具体的 Image 对象，这里只发信号）
       onUploadSuccess?.();
     } catch (e) {
       console.error("批量URL导入失败:", e);
@@ -710,7 +730,7 @@ export default function ImageUpload({
     let uploadedImages: Image[] = [];
 
     try {
-      // 降低并发数量，避免触发限流（从5降到3）
+      // 降低并发数量，避免触发限流（降到3）
       const pendingIndices = fileStates
         .map((fs, idx) => ({ fs, idx }))
         .filter(({ fs }) => fs.status === "pending");
@@ -741,7 +761,7 @@ export default function ImageUpload({
           6000
         );
       } else {
-        success("上传完成！", `成功上传 ${successCount} 张图片`, 4000);
+        success("上传完成", `成功上传 ${successCount} 张图片`, 4000);
       }
     } catch (error) {
       console.error("上传失败:", error);
@@ -767,45 +787,63 @@ export default function ImageUpload({
     }
   };
 
-  // --- V2 Layout ---
-  if (version === "v2") {
-    return (
-      <div className="space-y-6">
+  // --- V3 Layout (Flat Design) ---
+  return (
+      <div className="space-y-4">
         {/* Drag & Drop Zone */}
         <div
-          className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 group ${
+          className={cn(
+            "border-2 border-dashed p-4 text-center transition-colors",
             dragActive
-              ? "border-primary bg-primary/10 scale-[1.01]"
-              : "border-white/10 hover:border-white/30 hover:bg-white/5"
-          }`}
+              ? isLight
+                ? "border-blue-500 bg-blue-50"
+                : "border-blue-600 bg-blue-900/20"
+              : isLight
+              ? "border-gray-300 hover:border-gray-400"
+              : "border-gray-600 hover:border-gray-500"
+          )}
           onDragEnter={selectedProvider === "custom" ? undefined : handleDrag}
           onDragLeave={selectedProvider === "custom" ? undefined : handleDrag}
           onDragOver={selectedProvider === "custom" ? undefined : handleDrag}
           onDrop={selectedProvider === "custom" ? undefined : handleDrop}
         >
-          <div className="space-y-4 relative z-10">
+          <div className="space-y-3">
             {selectedProvider === "custom" ? (
               <>
-                <div
-                  className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    dragActive
-                      ? "bg-primary text-white scale-110 shadow-lg shadow-primary/30"
-                      : "bg-white/5 text-muted-foreground group-hover:scale-110 group-hover:bg-white/10"
-                  }`}
-                >
-                  <ImageIcon className="w-8 h-8" />
+                <div className={cn(
+                  "mx-auto w-12 h-12 flex items-center justify-center",
+                  isLight ? "bg-gray-100" : "bg-gray-800"
+                )}>
+                  <ImageIcon className={cn(
+                    "w-6 h-6",
+                    isLight ? "text-gray-400" : "text-gray-500"
+                  )} />
                 </div>
-                <div className="space-y-1.5">
-                  <p className="text-lg font-medium mb-1">
+                <div>
+                  <p className={cn(
+                    "text-sm font-medium",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
                     {t.adminImages.urlImportTitle}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={cn(
+                    "text-xs mt-1",
+                    isLight ? "text-gray-500" : "text-gray-400"
+                  )}>
                     {t.adminImages.urlImportSubtitle}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 border border-white/10">
-                    <span className="font-medium">
+                <div className="flex flex-wrap items-center justify-center gap-2 text-xs mt-2">
+                  <div className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 border",
+                    isLight
+                      ? "bg-gray-100 border-gray-200"
+                      : "bg-gray-800 border-gray-700"
+                  )}>
+                    <span className={cn(
+                      "font-medium",
+                      isLight ? "text-gray-900" : "text-gray-100"
+                    )}>
                       {t.adminImages.urlImportModeLabel}
                     </span>
                     <button
@@ -814,11 +852,14 @@ export default function ImageUpload({
                         setImportMode("txt");
                         setLastImportResult(null);
                       }}
-                      className={`px-2 py-0.5 rounded-full transition-colors ${
+                      className={cn(
+                        "px-2 py-0.5 text-xs",
                         importMode === "txt"
-                          ? "bg-primary text-white"
-                          : "bg-transparent text-muted-foreground"
-                      }`}
+                          ? "bg-blue-500 text-white"
+                          : isLight
+                          ? "bg-transparent text-gray-500"
+                          : "bg-transparent text-gray-400"
+                      )}
                     >
                       {t.adminImages.urlImportModeTxt}
                     </button>
@@ -828,11 +869,14 @@ export default function ImageUpload({
                         setImportMode("json");
                         setLastImportResult(null);
                       }}
-                      className={`px-2 py-0.5 rounded-full transition-colors ${
+                      className={cn(
+                        "px-2 py-0.5 text-xs",
                         importMode === "json"
-                          ? "bg-primary text-white"
-                          : "bg-transparent text-muted-foreground"
-                      }`}
+                          ? "bg-blue-500 text-white"
+                          : isLight
+                          ? "bg-transparent text-gray-500"
+                          : "bg-transparent text-gray-400"
+                      )}
                     >
                       {t.adminImages.urlImportModeJson}
                     </button>
@@ -840,13 +884,21 @@ export default function ImageUpload({
                   <button
                     type="button"
                     onClick={() => customFileInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 rounded-full border border-dashed border-white/20 px-3 py-1 text-xs text-muted-foreground hover:border-white/40 hover:text-foreground transition-colors"
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2 py-1 border border-dashed text-xs transition-colors",
+                      isLight
+                        ? "border-gray-300 text-gray-600 hover:border-gray-400"
+                        : "border-gray-600 text-gray-300 hover:border-gray-500"
+                    )}
                   >
                     <UploadCloud className="w-4 h-4" />
                     {t.adminImages.urlImportSelectFile}
                   </button>
                   {importFileName && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className={cn(
+                      "text-xs",
+                      isLight ? "text-gray-500" : "text-gray-400"
+                    )}>
                       {importFileName}
                     </span>
                   )}
@@ -859,659 +911,134 @@ export default function ImageUpload({
                       ? t.adminImages.urlImportTxtPlaceholder
                       : t.adminImages.urlImportJsonPlaceholder
                   }
-                  className="w-full min-h-[120px] rounded-xl bg-black/20 border border-white/10 p-3 text-sm text-left resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+                  className={cn(
+                    "mt-3 w-full min-h-[100px] text-sm border px-2 py-1.5 resize-y focus:outline-none focus:border-blue-500",
+                    isLight
+                      ? "bg-white border-gray-300"
+                      : "bg-gray-800 border-gray-600"
+                  )}
                 />
-                <div className="w-full rounded-md border border-dashed border-white/10 bg-black/10 p-2 text-[11px] text-left text-muted-foreground font-mono whitespace-pre-wrap break-all">
-                  <div className="mb-1 font-medium">
+                <div className={cn(
+                  "mt-2 px-2 py-1.5 border border-dashed",
+                  isLight
+                    ? "bg-gray-50 border-gray-300"
+                    : "bg-gray-900/60 border-gray-700"
+                )}>
+                  <p className={cn(
+                    "text-[11px] mb-1",
+                    isLight ? "text-gray-500" : "text-gray-400"
+                  )}>
                     {importMode === "txt"
                       ? t.adminImages.urlImportTxtExampleTitle
                       : t.adminImages.urlImportJsonExampleTitle}
-                  </div>
-                  <pre className="text-[11px] leading-snug whitespace-pre-wrap break-all">
+                  </p>
+                  <pre className={cn(
+                    "text-[11px] whitespace-pre-wrap break-all font-mono",
+                    isLight ? "text-gray-600" : "text-gray-300"
+                  )}>
                     {importMode === "txt"
-                      ? t.adminImages.urlImportTxtExampleContent
-                      : t.adminImages.urlImportJsonExampleContent}
+                      ? "https://example.com/image1.jpg\nhttps://example.com/image2.jpg"
+                      : '[\n  "https://example.com/image1.jpg",\n  "https://example.com/image2.jpg"\n]'}
                   </pre>
                 </div>
-
                 {lastImportResult && (
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className={cn(
+                    "mt-1 text-xs",
+                    isLight ? "text-gray-500" : "text-gray-400"
+                  )}>
                     {t.adminImages.urlImportLastResult
                       .replace("{total}", String(lastImportResult.total))
                       .replace("{success}", String(lastImportResult.success))
                       .replace("{failed}", String(lastImportResult.failed))}
                   </p>
                 )}
-                <div className="flex justify-center pt-1">
-                  <GlassButton
+                <div className="mt-3 flex justify-center">
+                  <button
+                    type="button"
                     onClick={handleCustomImport}
                     disabled={uploading}
-                    className="mx-auto text-sm"
+                    className={cn(
+                      "px-4 py-2 border transition-colors",
+                      uploading
+                        ? isLight
+                          ? "bg-gray-400 text-white border-gray-500 cursor-not-allowed"
+                          : "bg-gray-600 text-white border-gray-500 cursor-not-allowed"
+                        : isLight
+                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                        : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                    )}
                   >
                     {uploading
                       ? t.adminImages.urlImporting
                       : t.adminImages.urlImportButton}
-                  </GlassButton>
+                  </button>
                 </div>
               </>
             ) : (
               <>
-                <div
-                  className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    dragActive
-                      ? "bg-primary text-white scale-110 shadow-lg shadow-primary/30"
-                      : "bg-white/5 text-muted-foreground group-hover:scale-110 group-hover:bg-white/10"
-                  }`}
-                >
-                  <UploadCloud className="w-8 h-8" />
+                <div className={cn(
+                  "mx-auto w-12 h-12 flex items-center justify-center",
+                  isLight ? "bg-gray-100" : "bg-gray-800"
+                )}>
+                  <UploadCloud className={cn(
+                    "w-6 h-6",
+                    isLight ? "text-gray-400" : "text-gray-500"
+                  )} />
                 </div>
                 <div>
-                  <p className="text-lg font-medium mb-2">
+                  <p className={cn(
+                    "text-sm font-medium mb-1",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
                     {t.adminImages.dragDropHint}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className={cn(
+                    "text-xs",
+                    isLight ? "text-gray-500" : "text-gray-400"
+                  )}>
                     {t.adminImages.supportedFormats}
                   </p>
                 </div>
-                <GlassButton
+                <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="mx-auto text-sm"
+                  className={cn(
+                    "px-4 py-2 border transition-colors",
+                    isLight
+                      ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                      : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                  )}
                 >
                   {t.adminImages.selectFiles}
-                </GlassButton>
+                </button>
               </>
             )}
           </div>
-          {selectedProvider === "custom" ? (
-            <input
-              ref={customFileInputRef}
-              type="file"
-              accept=".txt,.json"
-              onChange={handleCustomFileSelect}
-              className="hidden"
-            />
-          ) : (
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          )}
         </div>
 
-        {/* File List */}
-        <AnimatePresence mode="popLayout">
-          {fileStates.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">
-                  Selected Files ({fileStates.length})
-                </h3>
-                <div className="flex gap-2">
-                  {fileStates.some((fs) => fs.status === "success") && (
-                    <button
-                      onClick={clearSuccessful}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Clear Success
-                    </button>
-                  )}
-                  <button
-                    onClick={clearAll}
-                    className="text-xs text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    Clear All
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                {fileStates.map((fileState, index) => (
-                  <motion.div
-                    key={`${fileState.file.name}-${index}`}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
-                      fileState.status === "success"
-                        ? "bg-green-500/10 border-green-500/20"
-                        : fileState.status === "failed"
-                        ? "bg-red-500/10 border-red-500/20"
-                        : fileState.status === "uploading"
-                        ? "bg-blue-500/10 border-blue-500/20"
-                        : "bg-white/5 border-white/10"
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                        <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate text-foreground">
-                            {fileState.file.name}
-                          </p>
-                          {fileState.status === "uploading" && (
-                            <span className="text-xs text-blue-400 animate-pulse">
-                              Uploading...
-                            </span>
-                          )}
-                          {fileState.status === "success" && (
-                            <span className="text-xs text-green-400">
-                              Success
-                            </span>
-                          )}
-                          {fileState.status === "failed" && (
-                            <span className="text-xs text-red-400">Failed</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {formatFileSize(fileState.file.size)}
-                          {fileState.retryCount > 0 &&
-                            ` · Retry ${fileState.retryCount}`}
-                        </p>
-                        {fileState.error && (
-                          <p
-                            className="text-xs text-red-400 truncate max-w-[200px]"
-                            title={fileState.error}
-                          >
-                            {fileState.error}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {fileState.status === "failed" && (
-                        <button
-                          onClick={() => retryFile(index)}
-                          className="p-1.5 hover:bg-white/10 rounded-lg text-blue-400 transition-colors"
-                          title="Retry"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
-                      )}
-                      {fileState.status !== "uploading" && (
-                        <button
-                          onClick={() => removeFile(index)}
-                          className="p-1.5 hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Options & Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-4">
-            {/* Storage Provider */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                {t.adminImages.storageService}
-              </label>
-              {loadingProviders ? (
-                <div className="h-10 w-full bg-white/5 rounded-xl animate-pulse" />
-              ) : (
-                <div className="relative">
-                  <select
-                    value={selectedProvider}
-                    onChange={(e) => setSelectedProvider(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
-                  >
-                    {providers.map((provider) => (
-                      <option
-                        key={provider.id}
-                        value={provider.id}
-                        disabled={!provider.isAvailable}
-                        className="bg-gray-900 text-white"
-                      >
-                        {provider.name}{" "}
-                        {!provider.isAvailable && "(Unavailable)"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {/* Provider Desc */}
-              {selectedProvider &&
-                providers.length > 0 &&
-                (() => {
-                  const provider = providers.find(
-                    (p) => p.id === selectedProvider
-                  );
-                  if (!provider) return null;
-                  const descMap: Record<string, string> = {
-                    cloudinary: t.adminImages.cloudinaryDesc,
-                    tgstate: t.adminImages.tgStateDesc,
-                    telegram: t.adminImages.telegramDesc,
-                    custom: t.adminImages.customDesc,
-                  };
-                  const desc = descMap[provider.id] || provider.description;
-                  return (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {desc}
-                      {provider.id === "telegram" && (
-                        <div className="mt-2 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
-                          <p>
-                            ⚠️ <strong>Security Note:</strong> Access via{" "}
-                            <code>/api/response</code> only.{" "}
-                            <code>/api/random</code> is not supported for this
-                            provider.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">
-                  {t.adminImages.selectGroup}
-                </label>
-                <select
-                  value={groupId}
-                  onChange={(e) => setGroupId(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all text-sm"
-                >
-                  <option value="" className="bg-gray-900">
-                    Select Group...
-                  </option>
-                  {groups.map((group) => (
-                    <option
-                      key={group.id}
-                      value={group.id}
-                      className="bg-gray-900"
-                    >
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {selectedProvider !== "custom" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    {t.adminImages.tagsOptional}
-                  </label>
-                  <input
-                    type="text"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    placeholder="e.g. nature, sky"
-                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {selectedProvider !== "custom" && (
-            <div className="flex flex-col justify-end gap-3">
-              <div className="flex gap-3">
-                <GlassButton
-                  primary
-                  onClick={handleUpload}
-                  disabled={
-                    fileStates.filter((fs) => fs.status === "pending")
-                      .length === 0 || uploading
-                  }
-                  className="flex-1 justify-center"
-                  icon={uploading ? RefreshCw : UploadCloud}
-                  iconClassName={uploading ? "animate-spin" : ""}
-                >
-                  {uploading
-                    ? `${Math.round(uploadProgress)}%`
-                    : `Upload ${
-                        fileStates.filter((fs) => fs.status === "pending")
-                          .length || ""
-                      } Files`}
-                </GlassButton>
-
-                {fileStates.some((fs) => fs.status === "failed") && (
-                  <GlassButton
-                    onClick={retryAllFailed}
-                    disabled={uploading}
-                    className="bg-orange-500/20 text-orange-500 border-orange-500/20 hover:bg-orange-500/30"
-                  >
-                    Retry Failed
-                  </GlassButton>
-                )}
-              </div>
-
-              {uploading && (
-                <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${uploadProgress}%` }}
-                    className="bg-primary h-full rounded-full"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <ToastContainer
-          toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* 拖拽上传区域 */}
-      <div
-        className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-          dragActive
-            ? "border-blue-500 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
-            : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-        }`}
-        onDragEnter={selectedProvider === "custom" ? undefined : handleDrag}
-        onDragLeave={selectedProvider === "custom" ? undefined : handleDrag}
-        onDragOver={selectedProvider === "custom" ? undefined : handleDrag}
-        onDrop={selectedProvider === "custom" ? undefined : handleDrop}
-      >
-        <div className="space-y-3">
-          {selectedProvider === "custom" ? (
-            <>
-              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                <ImageIcon className="w-6 h-6 text-gray-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium panel-text">
-                  {t.adminImages.urlImportTitle}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 panel-text mt-1">
-                  {t.adminImages.urlImportSubtitle}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2 text-xs mt-2">
-                <div className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-1 border border-gray-200 dark:border-gray-700">
-                  <span className="font-medium panel-text">
-                    {t.adminImages.urlImportModeLabel}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImportMode("txt");
-                      setLastImportResult(null);
-                    }}
-                    className={`px-2 py-0.5 rounded-full text-xs ${
-                      importMode === "txt"
-                        ? "bg-blue-600 text-white"
-                        : "bg-transparent text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    {t.adminImages.urlImportModeTxt}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImportMode("json");
-                      setLastImportResult(null);
-                    }}
-                    className={`px-2 py-0.5 rounded-full text-xs ${
-                      importMode === "json"
-                        ? "bg-blue-600 text-white"
-                        : "bg-transparent text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    {t.adminImages.urlImportModeJson}
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => customFileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1 px-2 py-1 border border-dashed border-gray-300 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500"
-                >
-                  <UploadCloud className="w-4 h-4" />
-                  {t.adminImages.urlImportSelectFile}
-                </button>
-                {importFileName && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {importFileName}
-                  </span>
-                )}
-              </div>
-              <textarea
-                value={importContent}
-                onChange={(e) => setImportContent(e.target.value)}
-                placeholder={
-                  importMode === "txt"
-                    ? t.adminImages.urlImportTxtPlaceholder
-                    : t.adminImages.urlImportJsonPlaceholder
-                }
-                className="mt-3 w-full min-h-[100px] text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1.5 panel-text resize-y focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <div className="mt-2 px-2 py-1.5 rounded-md bg-gray-50 dark:bg-gray-900/60 border border-dashed border-gray-300 dark:border-gray-700">
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1">
-                  {importMode === "txt"
-                    ? t.adminImages.urlImportTxtExampleTitle
-                    : t.adminImages.urlImportJsonExampleTitle}
-                </p>
-                <pre className="text-[11px] text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-all font-mono">
-                  {importMode === "txt"
-                    ? t.adminImages.urlImportTxtExampleContent
-                    : t.adminImages.urlImportJsonExampleContent}
-                </pre>
-              </div>
-              {lastImportResult && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {t.adminImages.urlImportLastResult
-                    .replace("{total}", String(lastImportResult.total))
-                    .replace("{success}", String(lastImportResult.success))
-                    .replace("{failed}", String(lastImportResult.failed))}
-                </p>
-              )}
-              <div className="mt-3 flex justify-center">
-                <button
-                  type="button"
-                  onClick={handleCustomImport}
-                  disabled={uploading}
-                  className="px-4 py-1.5 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  {uploading
-                    ? t.adminImages.urlImporting
-                    : t.adminImages.urlImportButton}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mx-auto w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-medium panel-text">
-                  {t.adminImages.dragDropHint}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 panel-text mt-1">
-                  {t.adminImages.supportedFormats}
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-        {selectedProvider === "custom" ? (
-          <input
-            ref={customFileInputRef}
-            type="file"
-            accept=".txt,.json"
-            onChange={handleCustomFileSelect}
-            className="hidden"
-          />
-        ) : (
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-        )}
-      </div>
-
-      {/* 已选择的文件列表 */}
-      {selectedProvider !== "custom" && fileStates.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium panel-text">
-              文件列表 ({fileStates.length} 个文件)
-            </h3>
-            <div className="flex gap-2">
-              {fileStates.some((fs) => fs.status === "success") && (
-                <button
-                  onClick={clearSuccessful}
-                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  清除成功
-                </button>
-              )}
-              <button
-                onClick={clearAll}
-                className="text-xs text-red-500 hover:text-red-700"
-              >
-                清除全部
-              </button>
-            </div>
-          </div>
-          <div className="space-y-1 max-h-96 overflow-y-auto">
-            {fileStates.map((fileState, index) => (
-              <div
-                key={index}
-                className={`flex items-center justify-between p-2 rounded ${
-                  fileState.status === "success"
-                    ? "bg-green-50 dark:bg-green-900 dark:bg-opacity-20"
-                    : fileState.status === "failed"
-                    ? "bg-red-50 dark:bg-red-900 dark:bg-opacity-20"
-                    : fileState.status === "uploading"
-                    ? "bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
-                    : "bg-gray-50 dark:bg-gray-800"
-                }`}
-              >
-                <div className="flex items-center space-x-2 min-w-0 flex-1">
-                  <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center flex-shrink-0">
-                    <svg
-                      className="w-4 h-4 text-gray-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs font-medium panel-text truncate">
-                        {fileState.file.name}
-                      </p>
-                      {fileState.status === "uploading" && (
-                        <span className="text-xs text-blue-600">上传中...</span>
-                      )}
-                      {fileState.status === "success" && (
-                        <span className="text-xs text-green-600">✓</span>
-                      )}
-                      {fileState.status === "failed" && (
-                        <span className="text-xs text-red-600">✗</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatFileSize(fileState.file.size)}
-                      {fileState.retryCount > 0 &&
-                        ` · 已重试 ${fileState.retryCount} 次`}
-                    </p>
-                    {fileState.error && (
-                      <p className="text-xs text-red-600 dark:text-red-400 truncate">
-                        {fileState.error}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {fileState.status === "failed" && (
-                    <button
-                      onClick={() => retryFile(index)}
-                      className="text-blue-500 hover:text-blue-700 px-2 py-1 text-xs rounded border border-blue-500 hover:bg-blue-50"
-                      title="重试"
-                    >
-                      重试
-                    </button>
-                  )}
-                  {fileState.status !== "uploading" && (
-                    <button
-                      onClick={() => removeFile(index)}
-                      className="text-red-500 hover:text-red-700 p-1 flex-shrink-0"
-                    >
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 上传选项 */}
-      <div className="space-y-3">
-        {/* 图床选择器 */}
-        <div>
-          <label className="block text-xs font-medium panel-text mb-1">
-            {t.adminImages.storageService}
-          </label>
-          {loadingProviders ? (
-            <div className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-700 panel-text">
-              加载中...
-            </div>
-          ) : (
+        {/* Provider Selection */}
+        {providers.length > 1 && (
+          <div className="space-y-2">
+            <label className={cn(
+              "block text-sm font-medium",
+              isLight ? "text-gray-700" : "text-gray-300"
+            )}>
+              {t.adminImages.storageService}
+            </label>
             <select
               value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
+              onChange={(e) => {
+                const provider = providers.find((p) => p.id === e.target.value);
+                if (provider && provider.isAvailable) {
+                  setSelectedProvider(e.target.value);
+                }
+              }}
+              className={cn(
+                "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                isLight
+                  ? "bg-white border-gray-300"
+                  : "bg-gray-800 border-gray-600"
+              )}
             >
               {providers.map((provider) => (
                 <option
@@ -1523,84 +1050,43 @@ export default function ImageUpload({
                 </option>
               ))}
             </select>
-          )}
-          {/* 显示选中图床的描述 */}
-          {selectedProvider && providers.length > 0 && (
-            <div className="mt-1">
-              {(() => {
-                const provider = providers.find(
-                  (p) => p.id === selectedProvider
-                );
-                if (!provider) return null;
+          </div>
+        )}
 
-                // 根据 provider.id 使用翻译
-                const descMap: Record<string, string> = {
-                  cloudinary: t.adminImages.cloudinaryDesc,
-                  tgstate: t.adminImages.tgStateDesc,
-                  telegram: t.adminImages.telegramDesc,
-                  custom: t.adminImages.customDesc,
-                };
-                const desc = descMap[provider.id] || provider.description;
-
-                return (
-                  <div className="space-y-1">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {desc}
-                    </p>
-                    {/* Telegram 直连警告提示 */}
-                    {provider.id === "telegram" && (
-                      <div className="flex items-start gap-1.5 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
-                        <svg
-                          className="w-4 h-4 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                          <strong>安全提示:</strong> 此图床仅支持通过{" "}
-                          <code className="px-1 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 rounded text-yellow-900 dark:text-yellow-100">
-                            /api/response
-                          </code>{" "}
-                          访问,不支持{" "}
-                          <code className="px-1 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 rounded text-yellow-900 dark:text-yellow-100">
-                            /api/random
-                          </code>{" "}
-                          端点,以保护 Bot Token 安全。
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium panel-text mb-1">
-            {t.adminImages.selectGroup} {t.adminImages.groupOptional}
-          </label>
-          <select
-            value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-          >
-            <option value="">{t.adminImages.selectGroupPlaceholder}</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {selectedProvider !== "custom" && (
-          <div>
-            <label className="block text-xs font-medium panel-text mb-1">
+        {/* Group and Tags */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className={cn(
+              "block text-sm font-medium",
+              isLight ? "text-gray-700" : "text-gray-300"
+            )}>
+              {t.adminImages.selectGroup} {t.adminImages.groupOptional}
+            </label>
+            <select
+              value={groupId}
+              onChange={(e) => setGroupId(e.target.value)}
+              className={cn(
+                "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                isLight
+                  ? "bg-white border-gray-300"
+                  : "bg-gray-800 border-gray-600"
+              )}
+            >
+              <option value="">选择分组</option>
+              {safeGroups.length > 0 ? (
+                safeGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))
+              ) : null}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className={cn(
+              "block text-sm font-medium",
+              isLight ? "text-gray-700" : "text-gray-300"
+            )}>
               {t.adminImages.tagsOptional}
             </label>
             <input
@@ -1608,28 +1094,42 @@ export default function ImageUpload({
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder={t.adminImages.tagsPlaceholder}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
+              className={cn(
+                "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                isLight
+                  ? "bg-white border-gray-300"
+                  : "bg-gray-800 border-gray-600"
+              )}
             />
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* 上传按钮和进度 */}
-      {selectedProvider !== "custom" && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+        {/* Upload Button */}
+        {selectedProvider !== "custom" && (
+          <div className="flex justify-center">
             <button
+              type="button"
               onClick={handleUpload}
               disabled={
                 fileStates.filter((fs) => fs.status === "pending").length ===
                   0 || uploading
               }
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={cn(
+                "px-6 py-2 border transition-colors",
+                fileStates.filter((fs) => fs.status === "pending").length ===
+                  0 || uploading
+                  ? isLight
+                    ? "bg-gray-400 text-white border-gray-500 cursor-not-allowed"
+                    : "bg-gray-600 text-white border-gray-500 cursor-not-allowed"
+                  : isLight
+                  ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                  : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+              )}
             >
               {uploading ? (
-                <div className="flex items-center justify-center">
+                <div className="flex items-center gap-2">
                   <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    className="animate-spin h-4 w-4"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -1648,65 +1148,143 @@ export default function ImageUpload({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  {Math.round(uploadProgress)}%
+                  {t.adminImages.uploadCount.replace(
+                    "{count}",
+                    String(Math.round(uploadProgress))
+                  )}
                 </div>
               ) : (
-                `${t.adminImages.uploadCount.replace(
+                t.adminImages.uploadCount.replace(
                   "{count}",
                   String(
                     fileStates.filter((fs) => fs.status === "pending").length
                   )
-                )}`
+                )
               )}
             </button>
-
-            {fileStates.some((fs) => fs.status === "failed") && (
-              <button
-                onClick={retryAllFailed}
-                disabled={uploading}
-                className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white font-medium py-2 px-3 rounded text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-orange-500"
-              >
-                重试失败 (
-                {fileStates.filter((fs) => fs.status === "failed").length})
-              </button>
-            )}
           </div>
+        )}
 
-          {uploading && (
-            <>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                <div
-                  className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                ></div>
+        {/* Upload Progress */}
+        {uploading && (
+          <div className="space-y-2">
+            <div className={cn(
+              "w-full h-1.5",
+              isLight ? "bg-gray-200" : "bg-gray-700"
+            )}>
+              <div
+                className={cn(
+                  "h-full transition-all",
+                  isLight ? "bg-blue-500" : "bg-blue-600"
+                )}
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <p className={cn(
+              "text-sm text-center",
+              isLight ? "text-gray-600" : "text-gray-400"
+            )}>
+              {uploadProgress}%
+            </p>
+          </div>
+        )}
+
+        {/* File List */}
+        {fileStates.length > 0 && (
+          <div className="space-y-1 max-h-96 overflow-y-auto">
+            {fileStates.map((fileState, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "flex items-center justify-between p-2 border",
+                  fileState.status === "success"
+                    ? isLight
+                      ? "bg-green-50 border-green-200"
+                      : "bg-green-900/20 border-green-800"
+                    : fileState.status === "failed"
+                    ? isLight
+                      ? "bg-red-50 border-red-200"
+                      : "bg-red-900/20 border-red-800"
+                    : fileState.status === "uploading"
+                    ? isLight
+                      ? "bg-blue-50 border-blue-200"
+                      : "bg-blue-900/20 border-blue-800"
+                    : isLight
+                    ? "bg-gray-50 border-gray-200"
+                    : "bg-gray-800 border-gray-700"
+                )}
+              >
+                <div className="flex items-center space-x-2 min-w-0 flex-1">
+                  <div className={cn(
+                    "w-8 h-8 flex items-center justify-center flex-shrink-0",
+                    isLight ? "bg-gray-200" : "bg-gray-700"
+                  )}>
+                    <ImageIcon className={cn(
+                      "w-4 h-4",
+                      isLight ? "text-gray-500" : "text-gray-400"
+                    )} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className={cn(
+                        "text-sm truncate",
+                        isLight ? "text-gray-900" : "text-gray-100"
+                      )}>
+                        {fileState.file.name}
+                      </p>
+                      {fileState.status === "success" && (
+                        <span className={cn(
+                          "text-xs px-2 py-0.5 border",
+                          isLight
+                            ? "bg-green-50 border-green-200 text-green-700"
+                            : "bg-green-900/20 border-green-800 text-green-400"
+                        )}>
+                          Success
+                        </span>
+                      )}
+                      {fileState.status === "failed" && (
+                        <span className={cn(
+                          "text-xs px-2 py-0.5 border",
+                          isLight
+                            ? "bg-red-50 border-red-200 text-red-700"
+                            : "bg-red-900/20 border-red-800 text-red-400"
+                        )}>
+                          Failed
+                        </span>
+                      )}
+                    </div>
+                    {fileState.error && (
+                      <p className={cn(
+                        "text-xs truncate",
+                        isLight ? "text-red-600" : "text-red-400"
+                      )}>
+                        {fileState.error}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
+            ))}
+          </div>
+        )}
 
-              {/* 上传中警告提示 */}
-              <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-20 border border-yellow-300 dark:border-yellow-700 rounded text-sm text-yellow-800 dark:text-yellow-200">
-                <svg
-                  className="w-4 h-4 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="font-medium">
-                  正在上传，请勿关闭或刷新页面，否则上传将被中断
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Toast通知容器 */}
-      <ToastContainer
-        toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))}
-      />
-    </div>
-  );
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <input
+          ref={customFileInputRef}
+          type="file"
+          accept=".txt,.json"
+          onChange={handleCustomFileSelect}
+          className="hidden"
+        />
+        <ToastContainer
+          toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))}
+        />
+      </div>
+    );
 }

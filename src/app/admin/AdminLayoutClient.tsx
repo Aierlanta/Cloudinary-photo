@@ -12,9 +12,7 @@ import {
   resolveClientTheme,
   type Theme,
 } from '@/lib/adminTheme'
-import AdminLayoutV1 from './AdminLayoutV1'
-import AdminLayoutV2 from './AdminLayoutV2'
-import { AdminVersionContext, type AdminVersion } from '@/contexts/AdminVersionContext'
+import AdminLayoutV3 from './AdminLayoutV3'
 
 type AdminLayoutClientProps = {
   children: ReactNode
@@ -45,20 +43,12 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
   const [panelOpacity, setPanelOpacity] = useState(0.9)
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const [isManualTheme, setIsManualTheme] = useState(initialIsManual)
-  // 默认使用 v2 防止 hydration mismatch
-  const [adminVersion, setAdminVersion] = useState<AdminVersion>('v2')
 
   useEffect(() => {
     const preference = resolveClientTheme()
 
     setTheme(prev => (prev === preference.theme ? prev : preference.theme))
     setIsManualTheme(prev => (prev === preference.isManual ? prev : preference.isManual))
-
-    // 在客户端挂载后读取本地存储的版本设置
-    const savedVersion = window.localStorage.getItem('admin-version') as AdminVersion | null
-    if (savedVersion === 'v1' || savedVersion === 'v2') {
-      setAdminVersion(savedVersion)
-    }
   }, [])
 
   useEffect(() => {
@@ -83,12 +73,6 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
     }
   }, [])
 
-  useEffect(() => {
-    if (typeof document === 'undefined') {
-      return
-    }
-    localStorage.setItem('admin-version', adminVersion)
-  }, [adminVersion])
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -211,38 +195,18 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
   }
 
   return (
-    <AdminVersionContext.Provider value={{ version: adminVersion, setVersion: setAdminVersion }}>
-      <LocaleProvider>
-        {adminVersion === 'v2' ? (
-          <AdminLayoutV2
-            panelOpacity={panelOpacity}
-            setPanelOpacity={setPanelOpacity}
-            theme={theme}
-            isManualTheme={isManualTheme}
-            handleThemeToggle={handleThemeToggle}
-            handleThemeReset={handleThemeReset}
-            handleLogout={handleLogout}
-            adminVersion={adminVersion}
-            setAdminVersion={setAdminVersion}
-          >
-            {children}
-          </AdminLayoutV2>
-        ) : (
-          <AdminLayoutV1
-            panelOpacity={panelOpacity}
-            setPanelOpacity={setPanelOpacity}
-            theme={theme}
-            isManualTheme={isManualTheme}
-            handleThemeToggle={handleThemeToggle}
-            handleThemeReset={handleThemeReset}
-            handleLogout={handleLogout}
-            adminVersion={adminVersion}
-            setAdminVersion={setAdminVersion}
-          >
-            {children}
-          </AdminLayoutV1>
-        )}
-      </LocaleProvider>
-    </AdminVersionContext.Provider>
+    <LocaleProvider>
+      <AdminLayoutV3
+        panelOpacity={panelOpacity}
+        setPanelOpacity={setPanelOpacity}
+        theme={theme}
+        isManualTheme={isManualTheme}
+        handleThemeToggle={handleThemeToggle}
+        handleThemeReset={handleThemeReset}
+        handleLogout={handleLogout}
+      >
+        {children}
+      </AdminLayoutV3>
+    </LocaleProvider>
   )
 }

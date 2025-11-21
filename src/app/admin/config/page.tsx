@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import ParameterModal from '@/components/admin/ParameterModal'
 import { useLocale } from '@/hooks/useLocale'
-import { useAdminVersion } from '@/contexts/AdminVersionContext'
-import { GlassCard, GlassButton } from '@/components/ui/glass'
+import { cn } from '@/lib/utils'
+import { useTheme } from '@/hooks/useTheme'
 import { 
   Settings, 
   Shield, 
@@ -52,7 +52,7 @@ interface Group {
 
 export default function ConfigPage() {
   const { t } = useLocale();
-  const { version } = useAdminVersion();
+  const isLight = useTheme();
   const [config, setConfig] = useState<APIConfig | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
@@ -302,739 +302,717 @@ export default function ConfigPage() {
   }
 
   if (loading) {
-    if (version === 'v2') {
-       return <div className="p-8 text-center text-muted-foreground">Loading configuration...</div>
-    }
     return (
-      <div className="space-y-6">
-        <div className="transparent-panel rounded-lg p-6 shadow-lg">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-          </div>
+      <div className={cn(
+        "border p-6",
+        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+      )}>
+        <div className="animate-pulse">
+          <div className={cn(
+            "h-8 mb-4",
+            isLight ? "bg-gray-200" : "bg-gray-700"
+          )} style={{ width: '25%' }}></div>
+          <div className={cn(
+            "h-4",
+            isLight ? "bg-gray-200" : "bg-gray-700"
+          )} style={{ width: '75%' }}></div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!config) {
-     if (version === 'v2') {
-        return <div className="p-8 text-center text-red-500">Failed to load configuration.</div>
-     }
     return (
-      <div className="space-y-6">
-        <div className="transparent-panel rounded-lg p-6 shadow-lg">
-          <h1 className="text-2xl font-bold panel-text mb-4">{t.adminConfig.title}</h1>
-          <p className="text-red-600 dark:text-red-400">
-            {t.adminConfig.loadFailed}
-          </p>
-        </div>
+      <div className={cn(
+        "border p-6",
+        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+      )}>
+        <h1 className={cn(
+          "text-2xl font-bold mb-4",
+          isLight ? "text-gray-900" : "text-gray-100"
+        )}>
+          {t.adminConfig.title}
+        </h1>
+        <p className={isLight ? "text-red-600" : "text-red-400"}>
+          {t.adminConfig.loadFailed}
+        </p>
       </div>
-    )
+    );
   }
 
-  // --- V2 Layout ---
-  if (version === 'v2') {
-     return (
-        <div className="space-y-8 pb-20">
-           {/* Header */}
-           <div className="flex justify-between items-start">
-              <div>
-                 <h1 className="text-3xl font-bold mb-2">{t.adminConfig.title}</h1>
-                 <p className="text-muted-foreground">{t.adminConfig.description}</p>
-              </div>
-              <GlassButton primary icon={Save} onClick={saveConfig} disabled={saving}>
-                 {saving ? t.adminConfig.saving : t.adminConfig.saveConfig}
-              </GlassButton>
-           </div>
-
-           {/* Status Cards */}
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <GlassCard className="p-6 flex items-center justify-between" hover>
-                 <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${config.isEnabled ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                       <Globe className="w-6 h-6" />
-                    </div>
-                    <div>
-                       <h3 className="font-semibold">{t.adminConfig.apiStatus}</h3>
-                       <p className="text-sm text-muted-foreground">{t.adminConfig.enablePublicAPI}</p>
-                    </div>
-                 </div>
-                 <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input type="checkbox" name="toggle" id="toggle-api" checked={config.isEnabled} onChange={e => setConfig({...config, isEnabled: e.target.checked})} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-full checked:border-green-500"/>
-                    <label htmlFor="toggle-api" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${config.isEnabled ? 'bg-green-500/50' : 'bg-gray-300 dark:bg-gray-700'}`}></label>
-                 </div>
-              </GlassCard>
-              
-              <GlassCard className="p-6 flex items-center justify-between" hover>
-                 <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${config.apiKeyEnabled ? 'bg-blue-500/20 text-blue-500' : 'bg-gray-500/20 text-gray-500'}`}>
-                       <Key className="w-6 h-6" />
-                    </div>
-                    <div>
-                       <h3 className="font-semibold">{t.adminConfig.apiKeyAuth}</h3>
-                       <p className="text-sm text-muted-foreground">{t.adminConfig.enableApiKey}</p>
-                    </div>
-                 </div>
-                 <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input type="checkbox" name="toggle" id="toggle-key" checked={config.apiKeyEnabled} onChange={e => setConfig({...config, apiKeyEnabled: e.target.checked})} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-full checked:border-blue-500"/>
-                    <label htmlFor="toggle-key" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${config.apiKeyEnabled ? 'bg-blue-500/50' : 'bg-gray-300 dark:bg-gray-700'}`}></label>
-                 </div>
-              </GlassCard>
-
-              <GlassCard className="p-6 flex items-center justify-between" hover>
-                 <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${config.enableDirectResponse ? 'bg-purple-500/20 text-purple-500' : 'bg-gray-500/20 text-gray-500'}`}>
-                       <ExternalLink className="w-6 h-6" />
-                    </div>
-                    <div>
-                       <h3 className="font-semibold">{t.adminConfig.enableDirectResponse}</h3>
-                       <p className="text-sm text-muted-foreground">Allow non-redirect</p>
-                    </div>
-                 </div>
-                 <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input type="checkbox" name="toggle" id="toggle-direct" checked={config.enableDirectResponse} onChange={e => setConfig({...config, enableDirectResponse: e.target.checked})} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out checked:translate-x-full checked:border-purple-500"/>
-                    <label htmlFor="toggle-direct" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${config.enableDirectResponse ? 'bg-purple-500/50' : 'bg-gray-300 dark:bg-gray-700'}`}></label>
-                 </div>
-              </GlassCard>
-           </div>
-
-           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column: Settings */}
-              <div className="lg:col-span-2 space-y-8">
-                 {/* API Key Config */}
-                 {config.apiKeyEnabled && (
-                    <GlassCard className="p-6 space-y-4">
-                       <div className="flex items-center gap-3 mb-4">
-                          <Shield className="w-5 h-5 text-primary" />
-                          <h3 className="font-bold text-lg">{t.adminConfig.apiKeyValue}</h3>
-                       </div>
-                       <div className="flex gap-3">
-                          <input 
-                             type="text" 
-                             value={config.apiKey || ''}
-                             onChange={e => setConfig({...config, apiKey: e.target.value})}
-                             placeholder={t.adminConfig.apiKeyPlaceholder}
-                             className="flex-1 p-3 rounded-xl bg-white/5 border border-white/10 outline-none focus:border-primary font-mono"
-                          />
-                          <GlassButton onClick={() => {
-                             const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                             setConfig({ ...config, apiKey: randomKey });
-                          }}>
-                             {t.adminConfig.generateKey}
-                          </GlassButton>
-                       </div>
-                       <p className="text-sm text-muted-foreground">{t.adminConfig.apiKeyValueDesc}</p>
-                    </GlassCard>
-                 )}
-
-                 {/* Scope Config */}
-                 <GlassCard className="p-6 space-y-6">
-                    <div className="flex items-center gap-3 mb-4">
-                       <Database className="w-5 h-5 text-primary" />
-                       <h3 className="font-bold text-lg">{t.adminConfig.defaultScope}</h3>
-                    </div>
-                    
-                    <div>
-                       <label className="block text-sm font-medium mb-2">{t.adminConfig.defaultScopeDesc}</label>
-                       <select 
-                          value={config.defaultScope}
-                          onChange={e => setConfig({...config, defaultScope: e.target.value as 'all' | 'groups'})}
-                          className="w-full p-3 rounded-xl bg-white/5 border border-white/10 outline-none focus:border-primary"
-                       >
-                          <option value="all" className="bg-gray-900">{t.adminConfig.scopeAll}</option>
-                          <option value="groups" className="bg-gray-900">{t.adminConfig.scopeGroups}</option>
-                       </select>
-                    </div>
-
-                    {config.defaultScope === 'groups' && (
-                       <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                          <label className="block text-sm font-medium mb-3">{t.adminConfig.defaultGroups}</label>
-                          <div className="flex flex-wrap gap-3">
-                             {groups.map(group => (
-                                <label key={group.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
-                                   <input 
-                                      type="checkbox"
-                                      checked={config.defaultGroups.includes(group.id)}
-                                      onChange={e => {
-                                         if (e.target.checked) setConfig({...config, defaultGroups: [...config.defaultGroups, group.id]})
-                                         else setConfig({...config, defaultGroups: config.defaultGroups.filter(id => id !== group.id)})
-                                      }}
-                                      className="rounded border-white/20 bg-white/10 text-primary focus:ring-primary"
-                                   />
-                                   <span className="text-sm">{group.name}</span>
-                                </label>
-                             ))}
-                          </div>
-                       </div>
-                    )}
-                 </GlassCard>
-
-                 {/* Parameter Management */}
-                 <GlassCard className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                       <div className="flex items-center gap-3">
-                          <Settings className="w-5 h-5 text-primary" />
-                          <h3 className="font-bold text-lg">{t.adminConfig.parameterManagement}</h3>
-                       </div>
-                       <GlassButton onClick={() => setShowAddParameter(true)} icon={Plus} className="text-sm px-3 py-1.5">
-                          {t.adminConfig.addParameter}
-                       </GlassButton>
-                    </div>
-
-                    <div className="space-y-4">
-                       {config.allowedParameters.length === 0 ? (
-                          <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-white/10 rounded-xl">
-                             <p>{t.adminConfig.noParameters}</p>
-                             <GlassButton onClick={() => setShowAddParameter(true)} className="mt-4">{t.adminConfig.addFirstParameter}</GlassButton>
-                          </div>
-                       ) : (
-                          config.allowedParameters.map((param, index) => (
-                             <div key={index} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between group hover:border-primary/50 transition-colors">
-                                <div>
-                                   <div className="flex items-center gap-3 mb-1">
-                                      <h4 className="font-bold">{param.name}</h4>
-                                      <span className={`text-xs px-2 py-0.5 rounded-full ${param.isEnabled ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                                         {param.isEnabled ? 'Enabled' : 'Disabled'}
-                                      </span>
-                                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-500 capitalize">
-                                         {param.type}
-                                      </span>
-                                   </div>
-                                   <div className="text-xs text-muted-foreground">
-                                      Values: {param.allowedValues.join(', ')}
-                                   </div>
-                                </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                   <button onClick={() => setEditingParameter(param)} className="p-2 rounded-lg hover:bg-white/10 text-blue-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                                   <button onClick={() => deleteParameter(index)} className="p-2 rounded-lg hover:bg-white/10 text-red-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                                </div>
-                             </div>
-                          ))
-                       )}
-                    </div>
-                 </GlassCard>
-              </div>
-
-              {/* Right Column: API Test & Info */}
-              <div className="space-y-8">
-                 <GlassCard className="p-6 space-y-6 sticky top-24">
-                    <h3 className="font-bold text-lg mb-4">{t.adminConfig.apiLinks}</h3>
-                    
-                    <div className="space-y-4">
-                       <div>
-                          <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">Base URL</label>
-                          <div className="flex gap-2">
-                             <div className="flex-1 p-2 rounded-lg bg-black/40 border border-white/10 font-mono text-xs truncate">
-                                {generateApiUrl()}
-                             </div>
-                             <button onClick={() => navigator.clipboard.writeText(generateApiUrl())} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
-                                <Copy className="w-4 h-4" />
-                             </button>
-                          </div>
-                       </div>
-
-                       <div>
-                          <label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">Examples</label>
-                          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                             {generateExampleUrls().map((example, i) => (
-                                <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
-                                   <div className="font-semibold mb-1 truncate" title={example.label}>{example.label}</div>
-                                   <div className="flex gap-2 items-center">
-                                      <div className="flex-1 font-mono text-muted-foreground truncate" title={example.url}>{example.url}</div>
-                                      <button onClick={() => navigator.clipboard.writeText(example.url)} className="hover:text-primary"><Copy className="w-3 h-3" /></button>
-                                      <button onClick={() => window.open(example.url, '_blank')} className="hover:text-primary"><ExternalLink className="w-3 h-3" /></button>
-                                   </div>
-                                </div>
-                             ))}
-                          </div>
-                       </div>
-                    </div>
-
-                    <div className="pt-6 border-t border-white/10">
-                       <h3 className="font-bold text-lg mb-4">{t.adminConfig.apiTest}</h3>
-                       <div className="flex gap-2 mb-4">
-                          <input 
-                             type="text" 
-                             value={testUrl}
-                             onChange={e => setTestUrl(e.target.value)}
-                             placeholder="https://..."
-                             className="flex-1 p-2 rounded-lg bg-black/40 border border-white/10 outline-none focus:border-primary text-sm font-mono"
-                          />
-                          <GlassButton onClick={testApi} disabled={!testUrl || testing} className="px-3">
-                             <Play className="w-4 h-4" />
-                          </GlassButton>
-                       </div>
-                       
-                       {testResult && (
-                          <div className={`p-4 rounded-xl text-xs font-mono overflow-hidden ${testResult.success ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
-                             <div className="flex items-center gap-2 mb-2 font-bold">
-                                {testResult.success ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
-                                <span>{testResult.status} {testResult.statusText}</span>
-                             </div>
-                             {testResult.error && <div className="text-red-400">{testResult.error}</div>}
-                             {testResult.headers && (
-                                <div className="opacity-70">
-                                   <div className="uppercase text-[10px] mb-1">Response Headers:</div>
-                                   <pre className="overflow-x-auto whitespace-pre-wrap break-all">
-                                      {JSON.stringify(testResult.headers, null, 2)}
-                                   </pre>
-                                </div>
-                             )}
-                          </div>
-                       )}
-                    </div>
-                 </GlassCard>
-              </div>
-           </div>
-
-           <ParameterModal
-              parameter={editingParameter}
-              groups={groups}
-              isOpen={showAddParameter || editingParameter !== null}
-              onClose={() => {
-                 setShowAddParameter(false)
-                 setEditingParameter(null)
-              }}
-              onSave={(parameter) => {
-                 if (editingParameter) {
-                    const index = config.allowedParameters.findIndex(p => p.name === editingParameter.name)
-                    if (index !== -1) updateParameter(index, parameter)
-                 } else {
-                    addParameter(parameter)
-                 }
-              }}
-              isEditing={editingParameter !== null}
-           />
-        </div>
-     )
-  }
-
-  // ... V1 Layout (Classic) ...
   return (
-    <div className="space-y-6">
-      {/* ... Existing V1 Content ... */}
-      {/* 页面标题和API状态 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6 pb-20">
+        {/* Header */}
+        <div className={cn(
+          "border p-6 flex justify-between items-start",
+          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        )}>
           <div>
-            <h1 className="text-2xl font-bold panel-text mb-2">{t.adminConfig.title}</h1>
-            <p className="text-gray-600 dark:text-gray-300 panel-text">
+            <h1 className={cn(
+              "text-3xl font-bold mb-2",
+              isLight ? "text-gray-900" : "text-gray-100"
+            )}>
+              {t.adminConfig.title}
+            </h1>
+            <p className={isLight ? "text-gray-600" : "text-gray-400"}>
               {t.adminConfig.description}
             </p>
           </div>
-          <div className="text-right">
-            <div className={`text-3xl font-bold ${config.isEnabled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              {config.isEnabled ? 'ON' : 'OFF'}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-              {t.adminConfig.apiStatus}
-            </div>
-          </div>
-        </div>
-
-        {/* API基本设置 */}
-        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={config.isEnabled}
-                  onChange={(e) => setConfig({ ...config, isEnabled: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                />
-                <span className="ml-2 text-sm font-medium panel-text">{t.adminConfig.enablePublicAPI}</span>
-              </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {t.adminConfig.enablePublicAPIDesc}
-              </p>
-            </div>
-
-            <div>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={config.enableDirectResponse}
-                  onChange={(e) => setConfig({ ...config, enableDirectResponse: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                />
-                <span className="ml-2 text-sm font-medium panel-text">{t.adminConfig.enableDirectResponse}</span>
-              </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {t.adminConfig.enableDirectResponseDesc}
-              </p>
-            </div>
-          </div>
-
-          {/* API Key 鉴权设置 */}
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="text-md font-semibold panel-text mb-4">{t.adminConfig.apiKeyAuth}</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={config.apiKeyEnabled}
-                    onChange={(e) => setConfig({ ...config, apiKeyEnabled: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                  />
-                  <span className="ml-2 text-sm font-medium panel-text">{t.adminConfig.enableApiKey}</span>
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t.adminConfig.enableApiKeyDesc}
-                </p>
-              </div>
-
-              {config.apiKeyEnabled && (
-                <div>
-                  <label className="block text-sm font-medium panel-text mb-2">
-                    {t.adminConfig.apiKeyValue}
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={config.apiKey || ''}
-                      onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
-                      placeholder={t.adminConfig.apiKeyPlaceholder}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-                    />
-                    <button
-                      onClick={() => {
-                        const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                        setConfig({ ...config, apiKey: randomKey });
-                      }}
-                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors whitespace-nowrap"
-                      title={t.adminConfig.generateRandomKey}
-                    >
-                      {t.adminConfig.generateKey}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {t.adminConfig.apiKeyValueDesc}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <div>
-              <label className="block text-sm font-medium panel-text mb-2">
-                {t.adminConfig.defaultScope}
-              </label>
-              <select
-                value={config.defaultScope}
-                onChange={(e) => setConfig({ ...config, defaultScope: e.target.value as 'all' | 'groups' })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-              >
-                <option value="all">{t.adminConfig.scopeAll}</option>
-                <option value="groups">{t.adminConfig.scopeGroups}</option>
-              </select>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {t.adminConfig.defaultScopeDesc}
-              </p>
-            </div>
-          </div>
-
-          {config.defaultScope === 'groups' && (
-            <div className="mt-4">
-              <label className="block text-sm font-medium panel-text mb-2">
-                {t.adminConfig.defaultGroups}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {groups.map(group => (
-                  <label key={group.id} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={config.defaultGroups.includes(group.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setConfig({
-                            ...config,
-                            defaultGroups: [...config.defaultGroups, group.id]
-                          })
-                        } else {
-                          setConfig({
-                            ...config,
-                            defaultGroups: config.defaultGroups.filter(id => id !== group.id)
-                          })
-                        }
-                      }}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    <span className="ml-2 text-sm panel-text">{group.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* API参数管理 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold panel-text">{t.adminConfig.parameterManagement}</h2>
           <button
-            onClick={() => setShowAddParameter(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+            onClick={saveConfig}
+            disabled={saving}
+            className={cn(
+              "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50",
+              isLight
+                ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+            )}
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            {t.adminConfig.addParameter}
+            <Save className="w-4 h-4" />
+            {saving ? t.adminConfig.saving : t.adminConfig.saveConfig}
           </button>
         </div>
 
-        {/* 参数列表 */}
-        {config.allowedParameters.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+        {/* Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={cn(
+            "border p-6 flex items-center justify-between",
+            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+          )}>
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "w-12 h-12 flex items-center justify-center",
+                config.isEnabled
+                  ? isLight ? "bg-green-500" : "bg-green-600"
+                  : isLight ? "bg-red-500" : "bg-red-600"
+              )}>
+                <Globe className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-semibold",
+                  isLight ? "text-gray-900" : "text-gray-100"
+                )}>
+                  {t.adminConfig.apiStatus}
+                </h3>
+                <p className={cn(
+                  "text-sm",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  {t.adminConfig.enablePublicAPI}
+                </p>
+              </div>
             </div>
-            <h3 className="text-lg font-medium panel-text mb-2">{t.adminConfig.noParameters}</h3>
-            <p className="text-gray-500 dark:text-gray-400 panel-text mb-4">
-              {t.adminConfig.addParameterDesc}
-            </p>
-            <button
-              onClick={() => setShowAddParameter(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-            >
-              {t.adminConfig.addFirstParameter}
-            </button>
+            <label className="relative inline-block w-12 h-6 cursor-pointer">
+              <input
+                type="checkbox"
+                name="toggle"
+                id="toggle-api"
+                checked={config.isEnabled}
+                onChange={(e) => setConfig({ ...config, isEnabled: e.target.checked })}
+                className="sr-only"
+              />
+              <span className={cn(
+                "absolute inset-0 transition-colors",
+                config.isEnabled
+                  ? isLight ? "bg-green-500" : "bg-green-600"
+                  : isLight ? "bg-gray-300" : "bg-gray-600"
+              )}></span>
+              <span className={cn(
+                "absolute left-0 top-0 h-6 w-6 border transition-transform",
+                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                config.isEnabled ? "translate-x-6" : "translate-x-0"
+              )}></span>
+            </label>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {config.allowedParameters.map((param, index) => (
-              <div
-                key={index}
-                className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <h3 className="text-lg font-medium panel-text mr-3">{param.name}</h3>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        param.isEnabled
-                          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {param.isEnabled ? t.adminConfig.enabled : t.adminConfig.disabled}
-                      </span>
-                      <span className={`ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        param.type === 'group'
-                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                          : 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
-                      }`}>
-                        {param.type === 'group' ? t.adminConfig.groupParameter : t.adminConfig.customParameter}
-                      </span>
-                    </div>
 
-                    <div className="text-sm text-gray-600 dark:text-gray-300 panel-text mb-2">
-                      <strong>{t.adminConfig.allowedValues}:</strong> {param.allowedValues.join(', ') || t.adminConfig.none}
-                    </div>
+          <div className={cn(
+            "border p-6 flex items-center justify-between",
+            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+          )}>
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "w-12 h-12 flex items-center justify-center",
+                config.apiKeyEnabled
+                  ? isLight ? "bg-blue-500" : "bg-blue-600"
+                  : isLight ? "bg-gray-400" : "bg-gray-600"
+              )}>
+                <Key className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-semibold",
+                  isLight ? "text-gray-900" : "text-gray-100"
+                )}>
+                  {t.adminConfig.apiKeyAuth}
+                </h3>
+                <p className={cn(
+                  "text-sm",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  {t.adminConfig.enableApiKey}
+                </p>
+              </div>
+            </div>
+            <label className="relative inline-block w-12 h-6 cursor-pointer">
+              <input
+                type="checkbox"
+                name="toggle"
+                id="toggle-key"
+                checked={config.apiKeyEnabled}
+                onChange={(e) => setConfig({ ...config, apiKeyEnabled: e.target.checked })}
+                className="sr-only"
+              />
+              <span className={cn(
+                "absolute inset-0 transition-colors",
+                config.apiKeyEnabled
+                  ? isLight ? "bg-blue-500" : "bg-blue-600"
+                  : isLight ? "bg-gray-300" : "bg-gray-600"
+              )}></span>
+              <span className={cn(
+                "absolute left-0 top-0 h-6 w-6 border transition-transform",
+                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                config.apiKeyEnabled ? "translate-x-6" : "translate-x-0"
+              )}></span>
+            </label>
+          </div>
 
-                    {param.type === 'group' && param.mappedGroups.length > 0 && (
-                      <div className="text-sm text-gray-600 dark:text-gray-300 panel-text">
-                        <strong>{t.adminConfig.mappedGroups}:</strong> {param.mappedGroups.map(groupId => {
-                          const group = groups.find(g => g.id === groupId)
-                          return group?.name || groupId
-                        }).join(', ')}
+          <div className={cn(
+            "border p-6 flex items-center justify-between",
+            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+          )}>
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "w-12 h-12 flex items-center justify-center",
+                config.enableDirectResponse
+                  ? isLight ? "bg-purple-500" : "bg-purple-600"
+                  : isLight ? "bg-gray-400" : "bg-gray-600"
+              )}>
+                <ExternalLink className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-semibold",
+                  isLight ? "text-gray-900" : "text-gray-100"
+                )}>
+                  {t.adminConfig.enableDirectResponse}
+                </h3>
+                <p className={cn(
+                  "text-sm",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  Allow non-redirect
+                </p>
+              </div>
+            </div>
+            <label className="relative inline-block w-12 h-6 cursor-pointer">
+              <input
+                type="checkbox"
+                name="toggle"
+                id="toggle-direct"
+                checked={config.enableDirectResponse}
+                onChange={(e) => setConfig({ ...config, enableDirectResponse: e.target.checked })}
+                className="sr-only"
+              />
+              <span className={cn(
+                "absolute inset-0 transition-colors",
+                config.enableDirectResponse
+                  ? isLight ? "bg-purple-500" : "bg-purple-600"
+                  : isLight ? "bg-gray-300" : "bg-gray-600"
+              )}></span>
+              <span className={cn(
+                "absolute left-0 top-0 h-6 w-6 border transition-transform",
+                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                config.enableDirectResponse ? "translate-x-6" : "translate-x-0"
+              )}></span>
+            </label>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Settings */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* API Key Config */}
+            {config.apiKeyEnabled && (
+              <div className={cn(
+                "border p-6 space-y-4",
+                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              )}>
+                <div className="flex items-center gap-3 mb-4">
+                  <Shield className={cn(
+                    "w-5 h-5",
+                    isLight ? "text-blue-500" : "text-blue-400"
+                  )} />
+                  <h3 className={cn(
+                    "font-bold text-lg",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {t.adminConfig.apiKeyValue}
+                  </h3>
+                </div>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={config.apiKey || ''}
+                    onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+                    placeholder={t.adminConfig.apiKeyPlaceholder}
+                    className={cn(
+                      "flex-1 p-3 border outline-none focus:border-blue-500 font-mono",
+                      isLight
+                        ? "bg-white border-gray-300"
+                        : "bg-gray-800 border-gray-600"
+                    )}
+                  />
+                  <button
+                    onClick={() => {
+                      const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                      setConfig({ ...config, apiKey: randomKey });
+                    }}
+                    className={cn(
+                      "px-4 py-2 border transition-colors",
+                      isLight
+                        ? "bg-gray-100 border-gray-300 hover:bg-gray-200"
+                        : "bg-gray-700 border-gray-600 hover:bg-gray-600"
+                    )}
+                  >
+                    {t.adminConfig.generateKey}
+                  </button>
+                </div>
+                <p className={cn(
+                  "text-sm",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
+                  {t.adminConfig.apiKeyValueDesc}
+                </p>
+              </div>
+            )}
+
+            {/* Scope Config */}
+            <div className={cn(
+              "border p-6 space-y-6",
+              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            )}>
+              <div className="flex items-center gap-3 mb-4">
+                <Database className={cn(
+                  "w-5 h-5",
+                  isLight ? "text-blue-500" : "text-blue-400"
+                )} />
+                <h3 className={cn(
+                  "font-bold text-lg",
+                  isLight ? "text-gray-900" : "text-gray-100"
+                )}>
+                  {t.adminConfig.defaultScope}
+                </h3>
+              </div>
+
+              <div>
+                <label className={cn(
+                  "block text-sm font-medium mb-2",
+                  isLight ? "text-gray-700" : "text-gray-300"
+                )}>
+                  {t.adminConfig.defaultScopeDesc}
+                </label>
+                <select
+                  value={config.defaultScope}
+                  onChange={(e) => setConfig({ ...config, defaultScope: e.target.value as 'all' | 'groups' })}
+                  className={cn(
+                    "w-full p-3 border outline-none focus:border-blue-500",
+                    isLight
+                      ? "bg-white border-gray-300"
+                      : "bg-gray-800 border-gray-600"
+                  )}
+                >
+                  <option value="all">{t.adminConfig.scopeAll}</option>
+                  <option value="groups">{t.adminConfig.scopeGroups}</option>
+                </select>
+              </div>
+
+              {config.defaultScope === 'groups' && (
+                <div className={cn(
+                  "p-4 border",
+                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                )}>
+                  <label className={cn(
+                    "block text-sm font-medium mb-3",
+                    isLight ? "text-gray-700" : "text-gray-300"
+                  )}>
+                    {t.adminConfig.defaultGroups}
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    {groups.map((group) => (
+                      <label
+                        key={group.id}
+                        className={cn(
+                          "flex items-center gap-2 p-2 border cursor-pointer transition-colors",
+                          isLight
+                            ? "bg-white border-gray-300 hover:bg-gray-50"
+                            : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={config.defaultGroups.includes(group.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setConfig({ ...config, defaultGroups: [...config.defaultGroups, group.id] });
+                            } else {
+                              setConfig({ ...config, defaultGroups: config.defaultGroups.filter((id) => id !== group.id) });
+                            }
+                          }}
+                          className={cn(
+                            "border",
+                            isLight
+                              ? "border-gray-300"
+                              : "border-gray-600"
+                          )}
+                        />
+                        <span className={cn(
+                          "text-sm",
+                          isLight ? "text-gray-900" : "text-gray-100"
+                        )}>
+                          {group.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Parameter Management */}
+            <div className={cn(
+              "border p-6",
+              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            )}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <Settings className={cn(
+                    "w-5 h-5",
+                    isLight ? "text-blue-500" : "text-blue-400"
+                  )} />
+                  <h3 className={cn(
+                    "font-bold text-lg",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {t.adminConfig.parameterManagement}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowAddParameter(true)}
+                  className={cn(
+                    "px-3 py-1.5 text-sm border flex items-center gap-2 transition-colors",
+                    isLight
+                      ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                      : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                  )}
+                >
+                  <Plus className="w-4 h-4" />
+                  {t.adminConfig.addParameter}
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {config.allowedParameters.length === 0 ? (
+                  <div className={cn(
+                    "text-center py-12 border-2 border-dashed",
+                    isLight
+                      ? "border-gray-300 text-gray-600"
+                      : "border-gray-600 text-gray-400"
+                  )}>
+                    <p>{t.adminConfig.noParameters}</p>
+                    <button
+                      onClick={() => setShowAddParameter(true)}
+                      className={cn(
+                        "mt-4 px-4 py-2 border transition-colors",
+                        isLight
+                          ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                          : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                      )}
+                    >
+                      {t.adminConfig.addFirstParameter}
+                    </button>
+                  </div>
+                ) : (
+                  config.allowedParameters.map((param, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "p-4 border flex items-center justify-between group transition-colors",
+                        isLight
+                          ? "bg-gray-50 border-gray-300 hover:bg-gray-100"
+                          : "bg-gray-700 border-gray-600 hover:bg-gray-600"
+                      )}
+                    >
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <h4 className={cn(
+                            "font-bold",
+                            isLight ? "text-gray-900" : "text-gray-100"
+                          )}>
+                            {param.name}
+                          </h4>
+                          <span className={cn(
+                            "text-xs px-2 py-0.5 border",
+                            param.isEnabled
+                              ? isLight
+                                ? "bg-green-50 border-green-300 text-green-700"
+                                : "bg-green-900/20 border-green-600 text-green-400"
+                              : isLight
+                              ? "bg-red-50 border-red-300 text-red-700"
+                              : "bg-red-900/20 border-red-600 text-red-400"
+                          )}>
+                            {param.isEnabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                          <span className={cn(
+                            "text-xs px-2 py-0.5 border capitalize",
+                            isLight
+                              ? "bg-blue-50 border-blue-300 text-blue-700"
+                              : "bg-blue-900/20 border-blue-600 text-blue-400"
+                          )}>
+                            {param.type}
+                          </span>
+                        </div>
+                        <div className={cn(
+                          "text-xs",
+                          isLight ? "text-gray-600" : "text-gray-400"
+                        )}>
+                          Values: {param.allowedValues.join(', ')}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setEditingParameter(param)}
+                          className={cn(
+                            "p-2 border transition-colors",
+                            isLight
+                              ? "text-blue-600 border-gray-300 hover:bg-blue-50"
+                              : "text-blue-400 border-gray-600 hover:bg-blue-900/20"
+                          )}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteParameter(index)}
+                          className={cn(
+                            "p-2 border transition-colors",
+                            isLight
+                              ? "text-red-600 border-gray-300 hover:bg-red-50"
+                              : "text-red-400 border-gray-600 hover:bg-red-900/20"
+                          )}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: API Test & Info */}
+          <div className="space-y-6">
+            <div className={cn(
+              "border p-6 space-y-6 sticky top-24",
+              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            )}>
+              <h3 className={cn(
+                "font-bold text-lg mb-4",
+                isLight ? "text-gray-900" : "text-gray-100"
+              )}>
+                {t.adminConfig.apiLinks}
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className={cn(
+                    "text-xs uppercase tracking-wider mb-1 block",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    Base URL
+                  </label>
+                  <div className="flex gap-2">
+                    <div className={cn(
+                      "flex-1 p-2 border font-mono text-xs truncate",
+                      isLight
+                        ? "bg-gray-50 border-gray-300"
+                        : "bg-gray-700 border-gray-600"
+                    )}>
+                      {generateApiUrl()}
+                    </div>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(generateApiUrl())}
+                      className={cn(
+                        "p-2 border transition-colors",
+                        isLight
+                          ? "bg-gray-100 border-gray-300 hover:bg-gray-200"
+                          : "bg-gray-700 border-gray-600 hover:bg-gray-600"
+                      )}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={cn(
+                    "text-xs uppercase tracking-wider mb-2 block",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    Examples
+                  </label>
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                    {generateExampleUrls().map((example, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "p-3 border text-xs",
+                          isLight
+                            ? "bg-gray-50 border-gray-300"
+                            : "bg-gray-700 border-gray-600"
+                        )}
+                      >
+                        <div className={cn(
+                          "font-semibold mb-1 truncate",
+                          isLight ? "text-gray-900" : "text-gray-100"
+                        )} title={example.label}>
+                          {example.label}
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <div className={cn(
+                            "flex-1 font-mono truncate",
+                            isLight ? "text-gray-600" : "text-gray-400"
+                          )} title={example.url}>
+                            {example.url}
+                          </div>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(example.url)}
+                            className={cn(
+                              "hover:opacity-70 transition-opacity",
+                              isLight ? "text-gray-700" : "text-gray-300"
+                            )}
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => window.open(example.url, '_blank')}
+                            className={cn(
+                              "hover:opacity-70 transition-opacity",
+                              isLight ? "text-gray-700" : "text-gray-300"
+                            )}
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className={cn(
+                "pt-6 border-t",
+                isLight ? "border-gray-300" : "border-gray-600"
+              )}>
+                <h3 className={cn(
+                  "font-bold text-lg mb-4",
+                  isLight ? "text-gray-900" : "text-gray-100"
+                )}>
+                  {t.adminConfig.apiTest}
+                </h3>
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={testUrl}
+                    onChange={(e) => setTestUrl(e.target.value)}
+                    placeholder="https://..."
+                    className={cn(
+                      "flex-1 p-2 border outline-none focus:border-blue-500 text-sm font-mono",
+                      isLight
+                        ? "bg-white border-gray-300"
+                        : "bg-gray-800 border-gray-600"
+                    )}
+                  />
+                  <button
+                    onClick={testApi}
+                    disabled={!testUrl || testing}
+                    className={cn(
+                      "px-3 py-2 border flex items-center transition-colors disabled:opacity-50",
+                      isLight
+                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
+                        : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
+                    )}
+                  >
+                    <Play className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {testResult && (
+                  <div className={cn(
+                    "p-4 border text-xs font-mono overflow-hidden",
+                    testResult.success
+                      ? isLight
+                        ? "bg-green-50 border-green-300"
+                        : "bg-green-900/20 border-green-600"
+                      : isLight
+                      ? "bg-red-50 border-red-300"
+                      : "bg-red-900/20 border-red-600"
+                  )}>
+                    <div className={cn(
+                      "flex items-center gap-2 mb-2 font-bold",
+                      testResult.success
+                        ? isLight ? "text-green-700" : "text-green-400"
+                        : isLight ? "text-red-700" : "text-red-400"
+                    )}>
+                      {testResult.success ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
+                      <span>{testResult.status} {testResult.statusText}</span>
+                    </div>
+                    {testResult.error && (
+                      <div className={isLight ? "text-red-600" : "text-red-400"}>
+                        {testResult.error}
+                      </div>
+                    )}
+                    {testResult.headers && (
+                      <div className={cn(
+                        "opacity-70 mt-2",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
+                        <div className="uppercase text-[10px] mb-1">Response Headers:</div>
+                        <pre className="overflow-x-auto whitespace-pre-wrap break-all">
+                          {JSON.stringify(testResult.headers, null, 2)}
+                        </pre>
                       </div>
                     )}
                   </div>
-
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={() => setEditingParameter(param)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-lg transition-colors"
-                      title={t.adminConfig.editParameter}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => deleteParameter(index)}
-                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
-                      title={t.adminConfig.deleteParameter}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* API链接和示例 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-lg font-semibold panel-text mb-4">{t.adminConfig.apiLinks}</h2>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium panel-text mb-2">
-              {t.adminConfig.baseApiUrl}
-            </label>
-            <div className="flex">
-              <input
-                type="text"
-                value={generateApiUrl()}
-                readOnly
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg bg-gray-50 dark:bg-gray-700 panel-text"
-              />
-              <button
-                onClick={() => navigator.clipboard.writeText(generateApiUrl())}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition-colors"
-                title={t.adminConfig.copyLink}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium panel-text mb-2">
-              {t.adminConfig.exampleUrls}
-            </label>
-            <div className="space-y-3">
-              {generateExampleUrls().map((example, index) => (
-                <div key={index} className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
-                    {example.label}
-                  </label>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={example.url}
-                      readOnly
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg bg-gray-50 dark:bg-gray-700 panel-text text-sm"
-                    />
-                    <button
-                      onClick={() => navigator.clipboard.writeText(example.url)}
-                      className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white transition-colors"
-                      title={t.adminConfig.copyLink}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => window.open(example.url, '_blank')}
-                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-r-lg transition-colors"
-                      title={t.adminConfig.openInNewTab}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* API测试 */}
-      <div className="transparent-panel rounded-lg p-6 shadow-lg">
-        <h2 className="text-lg font-semibold panel-text mb-4">{t.adminConfig.apiTest}</h2>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium panel-text mb-2">
-              {t.adminConfig.testUrl}
-            </label>
-            <div className="flex">
-              <input
-                type="text"
-                value={testUrl}
-                onChange={(e) => setTestUrl(e.target.value)}
-                placeholder={t.adminConfig.testUrlPlaceholder}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 panel-text"
-              />
-              <button
-                onClick={testApi}
-                disabled={!testUrl || testing}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-r-lg transition-colors"
-              >
-                {testing ? t.adminConfig.testing : t.adminConfig.test}
-              </button>
-            </div>
-          </div>
-
-          {testResult && (
-            <div className={`p-4 rounded-lg ${testResult.success ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
-              <h3 className={`font-medium mb-2 ${testResult.success ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
-                {t.adminConfig.testResult}
-              </h3>
-              <div className="text-sm space-y-1">
-                {testResult.status && (
-                  <div>
-                    <strong>{t.adminConfig.status}:</strong> {testResult.status} {testResult.statusText}
-                  </div>
-                )}
-                {testResult.error && (
-                  <div className="text-red-600 dark:text-red-400">
-                    <strong>{t.adminConfig.error}:</strong> {testResult.error}
-                  </div>
-                )}
-                {testResult.headers && (
-                  <div>
-                    <strong>{t.adminConfig.headers}:</strong>
-                    <pre className="mt-1 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto">
-                      {JSON.stringify(testResult.headers, null, 2)}
-                    </pre>
-                  </div>
                 )}
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
 
-      {/* 保存按钮 */}
-      <div className="flex justify-end">
-        <button
-          onClick={saveConfig}
-          disabled={saving}
-          className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-        >
-          {saving ? t.adminConfig.saving : t.adminConfig.saveConfig}
-        </button>
-      </div>
-
-      {/* 参数编辑/添加模态框 */}
-      <ParameterModal
-        parameter={editingParameter}
-        groups={groups}
-        isOpen={showAddParameter || editingParameter !== null}
-        onClose={() => {
-          setShowAddParameter(false)
-          setEditingParameter(null)
-        }}
-        onSave={(parameter) => {
-          if (editingParameter) {
-            const index = config.allowedParameters.findIndex(p => p.name === editingParameter.name)
-            if (index !== -1) {
-              updateParameter(index, parameter)
+        <ParameterModal
+          parameter={editingParameter}
+          groups={groups}
+          isOpen={showAddParameter || editingParameter !== null}
+          onClose={() => {
+            setShowAddParameter(false);
+            setEditingParameter(null);
+          }}
+          onSave={(parameter) => {
+            if (editingParameter) {
+              const index = config.allowedParameters.findIndex((p) => p.name === editingParameter.name);
+              if (index !== -1) updateParameter(index, parameter);
+            } else {
+              addParameter(parameter);
             }
-          } else {
-            addParameter(parameter)
-          }
-        }}
-        isEditing={editingParameter !== null}
-      />
-    </div>
-  )
+          }}
+          isEditing={editingParameter !== null}
+        />
+      </div>
+    );
 }
+          
