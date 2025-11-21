@@ -80,6 +80,7 @@ export default function ImageUpload({
   // 确保 groups 是数�?
   const safeGroups = Array.isArray(groups) ? groups : [];
   const [uploading, setUploading] = useState(false);
+  const [currentBatchTotal, setCurrentBatchTotal] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileStates, setFileStates] = useState<FileUploadState[]>([]);
   const [groupId, setGroupId] = useState("");
@@ -95,6 +96,7 @@ export default function ImageUpload({
   const [lastImportResult, setLastImportResult] =
     useState<ImageUrlImportResponse | null>(null);
   const customFileInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingFilesCount = fileStates.filter((fs) => fs.status === "pending").length;
 
   // Toast通知
   const { toasts, success, error: showError, removeToast } = useToast();
@@ -728,6 +730,7 @@ export default function ImageUpload({
     const pendingFiles = fileStates.filter((fs) => fs.status === "pending");
     if (pendingFiles.length === 0) return;
 
+    setCurrentBatchTotal(pendingFiles.length);
     setUploading(true);
     setUploadProgress(0);
 
@@ -788,6 +791,7 @@ export default function ImageUpload({
     } finally {
       setUploading(false);
       setUploadProgress(0);
+      setCurrentBatchTotal(0);
     }
   };
 
@@ -1114,14 +1118,10 @@ export default function ImageUpload({
             <button
               type="button"
               onClick={handleUpload}
-              disabled={
-                fileStates.filter((fs) => fs.status === "pending").length ===
-                  0 || uploading
-              }
+              disabled={pendingFilesCount === 0 || uploading}
               className={cn(
                 "px-6 py-2 border transition-colors rounded-lg",
-                fileStates.filter((fs) => fs.status === "pending").length ===
-                  0 || uploading
+                pendingFilesCount === 0 || uploading
                   ? isLight
                     ? "bg-gray-400 text-white border-gray-500 cursor-not-allowed"
                     : "bg-gray-600 text-white border-gray-500 cursor-not-allowed"
@@ -1154,15 +1154,13 @@ export default function ImageUpload({
                   </svg>
                   {t.adminImages.uploadCount.replace(
                     "{count}",
-                    String(Math.round(uploadProgress))
+                    String(currentBatchTotal || pendingFilesCount)
                   )}
                 </div>
               ) : (
                 t.adminImages.uploadCount.replace(
                   "{count}",
-                  String(
-                    fileStates.filter((fs) => fs.status === "pending").length
-                  )
+                  String(pendingFilesCount)
                 )
               )}
             </button>
