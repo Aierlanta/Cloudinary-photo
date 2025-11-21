@@ -13,7 +13,6 @@ import {
   StorageStats,
   StorageError
 } from './base';
-import { Readable } from 'stream';
 import { buildFetchInitFor } from '@/lib/telegram-proxy';
 
 export interface TelegramConfig {
@@ -138,6 +137,10 @@ export class TelegramService extends ImageStorageService {
   private tokenManager: TelegramTokenManager;
   private timeout: number;
   private chatId?: string;
+  private readonly botInfoCacheTtl = 5 * 60 * 1000;
+  private readonly filePathRetryLimit = 3;
+  private readonly retryDelayBase = 800;
+  private botInfoCache: Map<string, { expiresAt: number; info: { id: number; username: string } }> = new Map();
   private stats: {
     totalUploads: number;
     successCount: number;
@@ -165,14 +168,13 @@ export class TelegramService extends ImageStorageService {
     this.stats.totalUploads++;
 
     const token = this.tokenManager.getNextToken();
+    let botInfo: { id: number; username: string } | undefined;
 
     try {
       // 获取 chat_id
-      let chatId: string;
-      if (this.chatId) {
-        chatId = this.chatId;
-      } else {
-        const botInfo = await this.getBotInfo(token);
+      let chatId = this.chatId;
+      if (!chatId) {
+        botInfo = await this.getBotInfo(token);
         chatId = botInfo.id.toString();
       }
 
@@ -255,14 +257,11 @@ export class TelegramService extends ImageStorageService {
       this.stats.totalResponseTime += responseTime;
 
       const document = result.result.document;
-      // 获取当前 Bot 信息（用于下游访问时选择正确的 token）
-      const currentBotInfo = await this.getBotInfo(token);
-
-      // 获取文件路径
-      const filePath = await this.getFilePath(token, document.file_id);
-      const thumbnailPath = document.thumbnail
-        ? await this.getFilePath(token, document.thumbnail.file_id)
-        : undefined;
+      const { filePath, thumbnailPath } = await this.resolveFilePaths(token, document);
+      const guessedBotId = botInfo?.id ?? this.extractBotIdFromToken(token);
+      const finalUrl = filePath
+        ? this.buildFileUrl(token, filePath)
+        : this.buildProxyUrl(document.file_id, guessedBotId);
 
       // 构建返回结果
       const storageResult: StorageResult = {
@@ -270,7 +269,7 @@ export class TelegramService extends ImageStorageService {
         publicId: document.file_id,
         // 使用 Telegram 原始 URL (包含 bot token)
         // 这个 URL 只能通过 /api/response 访问,不会通过 /api/random 暴露
-        url: this.buildFileUrl(token, filePath),
+        url: finalUrl,
         filename: file.name,
         format: this.extractFormat(file.name),
         bytes: file.size,
@@ -284,7 +283,8 @@ export class TelegramService extends ImageStorageService {
           telegramFilePath: filePath,
           telegramThumbnailFileId: document.thumbnail?.file_id,
           telegramThumbnailPath: thumbnailPath,
-          telegramBotId: currentBotInfo.id,
+          telegramBotId: guessedBotId,
+          downloadStrategy: filePath ? 'direct' : 'proxy',
           originalResponse: result
         }
       };
@@ -328,10 +328,16 @@ export class TelegramService extends ImageStorageService {
    * 获取 Bot 信息
    */
   private async getBotInfo(token: string): Promise<{ id: number; username: string }> {
+    const cached = this.botInfoCache.get(token);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.info;
+    }
+
+    const url = `https://api.telegram.org/bot${token}/getMe`;
     const response = await fetch(
-      `https://api.telegram.org/bot${token}/getMe`,
-      buildFetchInitFor(`https://api.telegram.org/bot${token}/getMe`, {
-        signal: AbortSignal.timeout(5000)
+      url,
+      buildFetchInitFor(url, {
+        signal: AbortSignal.timeout(this.timeout)
       } as RequestInit)
     );
     if (!response.ok) {
@@ -371,56 +377,109 @@ export class TelegramService extends ImageStorageService {
         { description: desc }
       );
     }
-    return result.result;
+    const info = result.result;
+    this.botInfoCache.set(token, { expiresAt: Date.now() + this.botInfoCacheTtl, info });
+    return info;
   }
 
   /**
-   * 获取文件路径
+   * 获取文件路径（带重试）
    */
-  private async getFilePath(token: string, fileId: string): Promise<string> {
-    const response = await fetch(
-      `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
-      buildFetchInitFor(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`,
-        { signal: AbortSignal.timeout(5000) } as RequestInit)
-    );
-    if (!response.ok) {
-      const status = response.status;
-      const body = await response.text().catch(() => '');
-      if (status === 401 || status === 403) {
+  private async getFilePath(token: string, fileId: string, attempt = 0): Promise<string> {
+    const url = `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`;
+    try {
+      const response = await fetch(
+        url,
+        buildFetchInitFor(url, { signal: AbortSignal.timeout(this.timeout) } as RequestInit)
+      );
+      if (!response.ok) {
+        const status = response.status;
+        const body = await response.text().catch(() => '');
+        if (status === 401 || status === 403) {
+          throw new StorageError(
+            `获取文件路径未授权/被禁止 (HTTP ${status})`,
+            StorageProvider.TELEGRAM,
+            status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
+            { status, body }
+          );
+        }
         throw new StorageError(
-          `获取文件路径未授权/被禁止 (HTTP ${status})`,
+          `获取文件路径失败 (HTTP ${status})`,
           StorageProvider.TELEGRAM,
-          status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
+          'TELEGRAM_HTTP_ERROR',
           { status, body }
         );
       }
-      throw new StorageError(
-        `获取文件路径失败 (HTTP ${status})`,
-        StorageProvider.TELEGRAM,
-        'TELEGRAM_HTTP_ERROR',
-        { status, body }
-      );
-    }
-    const result: TelegramFileResponse = await response.json();
-    if (!result.ok || !result.result) {
-      const desc: string = result.description || '';
-      const lower = desc.toLowerCase?.() || '';
-      if (lower.includes('unauthorized') || lower.includes('forbidden')) {
+      const result: TelegramFileResponse = await response.json();
+      if (!result.ok || !result.result) {
+        const desc: string = result.description || '';
+        const lower = desc.toLowerCase?.() || '';
+        if (lower.includes('unauthorized') || lower.includes('forbidden')) {
+          throw new StorageError(
+            `获取文件路径鉴权失败: ${desc}`,
+            StorageProvider.TELEGRAM,
+            'UNAUTHORIZED',
+            { description: desc }
+          );
+        }
         throw new StorageError(
-          `获取文件路径鉴权失败: ${desc}`,
+          `获取文件路径失败: ${desc}`,
           StorageProvider.TELEGRAM,
-          'UNAUTHORIZED',
+          'TELEGRAM_API_ERROR',
           { description: desc }
         );
       }
-      throw new StorageError(
-        `获取文件路径失败: ${desc}`,
-        StorageProvider.TELEGRAM,
-        'TELEGRAM_API_ERROR',
-        { description: desc }
-      );
+      return result.result.file_path;
+    } catch (err) {
+      const error = err instanceof StorageError
+        ? err
+        : new StorageError(
+            `获取文件路径网络异常: ${err instanceof Error ? err.message : '未知错误'}`,
+            StorageProvider.TELEGRAM,
+            'TELEGRAM_NETWORK_ERROR',
+            { error: err }
+          );
+
+      if (this.shouldRetry(error) && attempt + 1 < this.filePathRetryLimit) {
+        await this.delay((attempt + 1) * this.retryDelayBase);
+        return this.getFilePath(token, fileId, attempt + 1);
+      }
+
+      throw error;
     }
-    return result.result.file_path;
+  }
+
+  private shouldRetry(error: StorageError): boolean {
+    const status = error.details?.status;
+    if (status === 429 || (typeof status === 'number' && status >= 500)) {
+      return true;
+    }
+    return error.code === 'TELEGRAM_NETWORK_ERROR' || error.message.includes('timeout');
+  }
+
+  private async resolveFilePaths(
+    token: string,
+    document: NonNullable<TelegramUploadResponse['result']>['document']
+  ): Promise<{ filePath?: string; thumbnailPath?: string }> {
+    const mainPromise = this.getFilePath(token, document.file_id);
+    const thumbPromise = document.thumbnail
+      ? this.getFilePath(token, document.thumbnail.file_id)
+          .catch(error => {
+            console.warn(`[Telegram 上传] 缩略图路径获取失败: ${document.thumbnail?.file_id}`, error);
+            return undefined;
+          })
+      : Promise.resolve<string | undefined>(undefined);
+
+    let filePath: string | undefined;
+    try {
+      filePath = await mainPromise;
+    } catch (error) {
+      console.warn(`[Telegram 上传] 主文件路径获取失败, 将使用代理 URL 回退: ${document.file_id}`, error);
+    }
+
+    const thumbnailPath = await thumbPromise;
+
+    return { filePath, thumbnailPath };
   }
 
   /**
@@ -428,6 +487,26 @@ export class TelegramService extends ImageStorageService {
    */
   private buildFileUrl(token: string, filePath: string): string {
     return `https://api.telegram.org/file/bot${token}/${filePath}`;
+  }
+
+  private buildProxyUrl(fileId: string, botId?: number): string {
+    const params = new URLSearchParams({ file_id: fileId });
+    if (botId) {
+      params.set('bot_id', botId.toString());
+    }
+    return `/api/telegram/image?${params.toString()}`;
+  }
+
+  private extractBotIdFromToken(token: string): number | undefined {
+    const prefix = token.split(':')[0];
+    if (/^\d+$/.test(prefix)) {
+      return Number(prefix);
+    }
+    return undefined;
+  }
+
+  private delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
@@ -473,9 +552,10 @@ export class TelegramService extends ImageStorageService {
 
     try {
       const token = this.tokenManager.getNextToken();
+      const url = `https://api.telegram.org/bot${token}/getMe`;
       const response = await fetch(
-        `https://api.telegram.org/bot${token}/getMe`,
-        buildFetchInitFor(`https://api.telegram.org/bot${token}/getMe`, { signal: AbortSignal.timeout(5000) } as RequestInit)
+        url,
+        buildFetchInitFor(url, { signal: AbortSignal.timeout(this.timeout) } as RequestInit)
       );
 
       const result = await response.json();
@@ -527,9 +607,10 @@ export class TelegramService extends ImageStorageService {
   async validateConfig(): Promise<boolean> {
     try {
       const token = this.tokenManager.getNextToken();
+      const url = `https://api.telegram.org/bot${token}/getMe`;
       const response = await fetch(
-        `https://api.telegram.org/bot${token}/getMe`,
-        buildFetchInitFor(`https://api.telegram.org/bot${token}/getMe`, { signal: AbortSignal.timeout(5000) } as RequestInit)
+        url,
+        buildFetchInitFor(url, { signal: AbortSignal.timeout(this.timeout) } as RequestInit)
       );
       const result = await response.json();
       return result.ok;
