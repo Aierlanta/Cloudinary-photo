@@ -111,7 +111,7 @@ export default function GroupsPage() {
 
   const handleUpdateGroup = async () => {
     if (!editingGroup || !formData.name.trim()) {
-      alert(t.adminGroups.enterGroupName)
+      showError(t.adminGroups.enterGroupName)
       return
     }
 
@@ -130,13 +130,13 @@ export default function GroupsPage() {
         await loadTotalImages()
         setEditingGroup(null)
         setFormData({ name: '', description: '' })
-        alert(t.adminGroups.updateSuccess)
+        success(t.adminGroups.updateSuccess)
       } else {
-        alert(t.adminGroups.updateFailed)
+        showError(t.adminGroups.updateFailed)
       }
     } catch (error) {
       console.error('更新分组失败:', error)
-      alert(t.adminGroups.updateFailed)
+      showError(t.adminGroups.updateFailed)
     } finally {
       setSubmitting(false)
     }

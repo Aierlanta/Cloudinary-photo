@@ -146,6 +146,19 @@ describe('/api/random API端点测试', () => {
       // 不再返回图片二进制内容
       expect(response.headers.get('Content-Type')).toBeNull();
     });
+
+    it('response=true 时应重定向到 image 路径', async () => {
+      const request = createMockRequest(
+        'http://localhost:3000/api/random?response=true&opacity=80&format=png&quality=70'
+      );
+      const response = await GET(request);
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toBe(
+        'http://localhost:3000/image/img_000001.jpg?opacity=80&format=png&quality=70'
+      );
+      expect(response.headers.get('X-Image-Mode')).toBe('direct-response');
+    });
   });
 
   describe('参数验证', () => {

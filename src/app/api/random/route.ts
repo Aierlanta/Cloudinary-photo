@@ -5,17 +5,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseService } from '@/lib/database';
-import { CloudinaryService } from '@/lib/cloudinary';
 import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
-import { convertTgStateToProxyUrl } from '@/lib/image-utils';
+import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-utils';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
-
-const cloudinaryService = CloudinaryService.getInstance();
 
 /**
  * 处理随机图片请求
@@ -33,6 +30,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     searchParams.forEach((value, key) => {
       queryParams[key] = value;
     });
+    const useResponseFlow = searchParams.get('response') === 'true';
 
     // 用于日志的参数脱敏（避免泄露API Key）
     const redactedParams = { ...queryParams };
@@ -200,6 +198,37 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       // 忽略解析失败，保持原始URL
     }
 
+    if (useResponseFlow) {
+      const extension = getFileExtensionFromUrl(randomImage.url) || 'jpg';
+      const fileName = `${randomImage.id}.${extension}`;
+      const forwardedParams = new URLSearchParams();
+      searchParams.forEach((value, key) => {
+        if (key === 'response') return;
+        forwardedParams.append(key, value);
+      });
+
+      const responseUrl = new URL(`/image/${fileName}`, request.url);
+      if (forwardedParams.toString()) {
+        responseUrl.search = forwardedParams.toString();
+      }
+
+      logger.apiResponse('GET', '/api/random', 302, duration, {
+        imageId: randomImage.id,
+        redirectUrl: responseUrl.toString(),
+        mode: 'response-proxy'
+      });
+
+      const redirectResponse = NextResponse.redirect(responseUrl.toString(), 302);
+      redirectResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      redirectResponse.headers.set('Pragma', 'no-cache');
+      redirectResponse.headers.set('Expires', '0');
+      redirectResponse.headers.set('X-Image-Id', randomImage.id);
+      redirectResponse.headers.set('X-Image-PublicId', randomImage.publicId);
+      redirectResponse.headers.set('X-Response-Time', `${duration}ms`);
+      redirectResponse.headers.set('X-Image-Mode', 'direct-response');
+      return redirectResponse;
+    }
+
     // 记录成功响应
     logger.apiResponse('GET', '/api/random', 302, duration, {
       imageId: randomImage.id,
@@ -251,7 +280,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['key']);
+  const RESERVED_PARAMS = new Set(['key', 'response', 'format', 'quality']);
 
   // 如果没有配置允许的参数，则允许所有请求
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {

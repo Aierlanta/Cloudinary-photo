@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { getCacheStats, cleanupCache, clearAllCache } from '@/hooks/useCachedImage';
 import { cachePrewarmingService } from '@/lib/cache/prewarming';
+import { useToast } from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/Toast';
 
 interface CacheStats {
   totalItems: number;
@@ -30,6 +32,7 @@ export default function CacheManager() {
     prewarmedCount: 0
   });
   const [isLoading, setIsLoading] = useState(false);
+  const { toasts, success, error: showError, removeToast } = useToast();
 
   // 更新统计信息
   const updateStats = () => {
@@ -52,10 +55,10 @@ export default function CacheManager() {
     try {
       await cleanupCache();
       updateStats();
-      alert('过期缓存清理完成');
+      success('清理完成', '过期缓存清理完成');
     } catch (error) {
       console.error('清理缓存失败:', error);
-      alert('清理缓存失败');
+      showError('清理缓存失败', error instanceof Error ? error.message : '未知错误');
     } finally {
       setIsLoading(false);
     }
@@ -72,10 +75,10 @@ export default function CacheManager() {
       await clearAllCache();
       cachePrewarmingService.clearPrewarmingHistory();
       updateStats();
-      alert('所有缓存已清空');
+      success('清空成功', '所有缓存已清空');
     } catch (error) {
       console.error('清空缓存失败:', error);
-      alert('清空缓存失败');
+      showError('清空缓存失败', error instanceof Error ? error.message : '未知错误');
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +99,7 @@ export default function CacheManager() {
   }, []);
 
   return (
+    <>
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -214,5 +218,7 @@ export default function CacheManager() {
         </ul>
       </div>
     </div>
+    <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
+    </>
   );
 }

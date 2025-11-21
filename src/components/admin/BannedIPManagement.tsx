@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
+import { useToast } from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/Toast';
 
 interface BannedIP {
   ip: string;
@@ -23,10 +25,11 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
   const [banReason, setBanReason] = useState('');
   const [banExpires, setBanExpires] = useState('');
   const [banning, setBanning] = useState(false);
+  const { toasts, success, error: showError, warning, removeToast } = useToast();
 
   const handleBanIP = async () => {
     if (!banIP.trim()) {
-      alert(t.adminSecurity.ipAddressPlaceholder);
+      warning(t.adminSecurity.ipAddressPlaceholder);
       return;
     }
 
@@ -43,7 +46,7 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
       });
 
       if (response.ok) {
-        alert(t.adminSecurity.banSuccess);
+        success(t.adminSecurity.banSuccess);
         setShowBanDialog(false);
         setBanIP('');
         setBanReason('');
@@ -51,10 +54,10 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
         onRefresh();
       } else {
         const data = await response.json();
-        alert(`封禁失败: ${data.error?.message || '未知错误'}`);
+        showError('封禁失败', data.error?.message || '未知错误');
       }
     } catch (error) {
-      alert(`封禁失败: ${error}`);
+      showError('封禁失败', String(error));
     } finally {
       setBanning(false);
     }
@@ -73,14 +76,14 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
       });
 
       if (response.ok) {
-        alert(t.adminSecurity.unbanSuccess);
+        success(t.adminSecurity.unbanSuccess);
         onRefresh();
       } else {
         const data = await response.json();
-        alert(`解封失败: ${data.error?.message || '未知错误'}`);
+        showError('解封失败', data.error?.message || '未知错误');
       }
     } catch (error) {
-      alert(`解封失败: ${error}`);
+      showError('解封失败', String(error));
     }
   };
 
@@ -95,6 +98,7 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
   };
 
   return (
+    <>
     <div className="space-y-4">
       {/* 操作按钮 */}
       <div className="flex justify-between items-center">
@@ -168,7 +172,7 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
 
       {/* 封禁IP对话框 */}
       {showBanDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 !mt-0">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold panel-text mb-4">
               {t.adminSecurity.banIPDialog}
@@ -234,6 +238,8 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
         </div>
       )}
     </div>
+    <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
+    </>
   );
 }
 

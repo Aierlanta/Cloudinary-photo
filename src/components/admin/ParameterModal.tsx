@@ -87,7 +87,7 @@ export default function ParameterModal({
     if (!newValue.trim()) return
     
     if (formData.allowedValues.includes(newValue.trim())) {
-      alert(t.adminConfig.valueAlreadyExists)
+      showError(t.adminConfig.valueAlreadyExists)
       return
     }
 

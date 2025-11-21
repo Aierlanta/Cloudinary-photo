@@ -16,6 +16,15 @@ export interface TransparencyOptions {
   bgColor: string;
 }
 
+export type OutputFormat = 'jpeg' | 'png' | 'webp' | 'gif';
+
+const OUTPUT_MIME_MAP: Record<OutputFormat, string> = {
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif'
+};
+
 /**
  * 颜色预设
  */
@@ -181,5 +190,63 @@ export function parseTransparencyParams(
   return {
     opacity,
     bgColor
+  };
+}
+
+function clampQuality(value?: number): number | undefined {
+  if (typeof value === 'undefined' || Number.isNaN(value)) {
+    return undefined;
+  }
+  return Math.max(1, Math.min(100, Math.round(value)));
+}
+
+/**
+ * 调整输出图片的格式与质量
+ */
+export async function convertImageOutput(
+  imageBuffer: Buffer,
+  options: { format: OutputFormat; quality?: number }
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  const { format } = options;
+  const quality = clampQuality(options.quality);
+
+  let sharpInstance = sharp(imageBuffer);
+
+  switch (format) {
+    case 'jpeg':
+      sharpInstance = sharpInstance.jpeg({
+        quality: quality ?? 90,
+        mozjpeg: true,
+        chromaSubsampling: '4:4:4'
+      });
+      break;
+    case 'png': {
+      const compressionLevel =
+        typeof quality === 'number' ? Math.max(0, Math.min(9, Math.round((100 - quality) / 11))) : 6;
+      sharpInstance = sharpInstance.png({
+        compressionLevel,
+        palette: true
+      });
+      break;
+    }
+    case 'webp':
+      sharpInstance = sharpInstance.webp({
+        quality: quality ?? 85,
+        smartSubsample: true
+      });
+      break;
+    case 'gif':
+      sharpInstance = sharpInstance.gif({
+        reoptimise: true
+      });
+      break;
+    default:
+      throw new Error(`Unsupported output format: ${format}`);
+  }
+
+  const buffer = await sharpInstance.toBuffer();
+  return {
+    buffer,
+    mimeType: OUTPUT_MIME_MAP[format]
   };
 }

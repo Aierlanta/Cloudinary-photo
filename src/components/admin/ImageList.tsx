@@ -8,6 +8,8 @@ import {
   isTgStateImage,
 } from "@/lib/image-utils";
 import SmartImage from "@/components/ui/SmartImage";
+import { useToast } from "@/hooks/useToast";
+import { ToastContainer } from "@/components/ui/Toast";
 import { useImageCachePrewarming } from "@/hooks/useImageCachePrewarming";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
@@ -72,6 +74,8 @@ interface ImagePreviewModalProps {
   image: ImageItem | null;
   groups: Group[];
   onClose: () => void;
+  onSuccess: (title: string, message?: string) => void;
+  onError: (title: string, message?: string) => void;
 }
 
 interface ImageEditModalProps {
@@ -187,8 +191,8 @@ function LazyImage({
   );
 }
 
-function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
-  const { t } = useLocale();
+function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: ImagePreviewModalProps) {
+  const { t, locale } = useLocale();
   const isLight = useTheme();
   
   if (!image) return null;
@@ -199,10 +203,19 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
     return new Date(dateString).toLocaleString("zh-CN");
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // Basic notification logic (can be improved with toast)
-    alert("Copied to clipboard");
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      onSuccess(
+        locale === "zh" ? "复制成功" : "Copied",
+        locale === "zh" ? "链接已复制到剪贴板" : "Link copied to clipboard"
+      );
+    } catch (error) {
+      onError(
+        locale === "zh" ? "复制失败" : "Copy failed",
+        locale === "zh" ? "无法复制链接，请重试" : "Unable to copy link, please try again"
+      );
+    }
   };
 
   const downloadImage = async (url: string, filename: string) => {
@@ -219,7 +232,10 @@ function ImagePreviewModal({ image, groups, onClose }: ImagePreviewModalProps) {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error("Download failed:", error);
-      alert("Download failed");
+      onError(
+        locale === "zh" ? "下载失败" : "Download failed",
+        locale === "zh" ? "请稍后重试" : "Please try again later"
+      );
     }
   };
 
@@ -466,6 +482,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkGroupId, setBulkGroupId] = useState<string>("");
+  const { toasts, success, error: showToastError, removeToast } = useToast();
 
   const { triggerPrewarming } = useImageCachePrewarming(images, {
     enabled: true,
@@ -676,8 +693,15 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
           </div>
         )}
 
-        <ImagePreviewModal image={selectedImage} groups={groups} onClose={() => setSelectedImage(null)} />
+        <ImagePreviewModal
+          image={selectedImage}
+          groups={groups}
+          onClose={() => setSelectedImage(null)}
+          onSuccess={success}
+          onError={showToastError}
+        />
         <ImageEditModal image={editingImage} groups={groups} onClose={() => setEditingImage(null)} onSave={handleUpdateImage} />
+        <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
       </div>
     );
 }

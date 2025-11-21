@@ -209,11 +209,11 @@ export default function GalleryPage() {
       if (response.ok) {
         setFilters((prev) => ({ ...prev }));
       } else {
-        alert("更新图片失败");
+        showError("更新图片失败");
       }
     } catch (error) {
       console.error("更新图片失败:", error);
-      alert("更新图片失败");
+      showError("更新图片失败");
     }
   };
 

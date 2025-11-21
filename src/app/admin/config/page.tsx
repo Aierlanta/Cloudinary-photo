@@ -5,6 +5,8 @@ import ParameterModal from '@/components/admin/ParameterModal'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
+import { useToast } from '@/hooks/useToast'
+import { ToastContainer } from '@/components/ui/Toast'
 import { 
   Settings, 
   Shield, 
@@ -70,6 +72,13 @@ export default function ConfigPage() {
   const [testUrl, setTestUrl] = useState('')
   const [testResult, setTestResult] = useState<any>(null)
   const [testing, setTesting] = useState(false)
+const {
+  toasts,
+  success: showSuccess,
+  error: showError,
+  warning: showWarning,
+  removeToast
+} = useToast()
 
   const getDefaultConfig = (): APIConfig => ({
     id: 'default',
@@ -131,32 +140,32 @@ export default function ConfigPage() {
 
   const saveConfig = async () => {
     if (!config) {
-      alert(t.adminConfig.saveFailed)
+      showError(t.adminConfig.saveFailed)
       return
     }
 
     // 验证配置数据
     if (!config.defaultScope || !['all', 'groups'].includes(config.defaultScope)) {
-      alert(t.adminConfig.invalidDefaultScope)
+      showWarning(t.adminConfig.invalidDefaultScope)
       return
     }
 
     // 验证参数配置
     for (const param of config.allowedParameters) {
       if (!param.name || param.name.trim() === '') {
-        alert(t.adminConfig.invalidParameterName)
+        showWarning(t.adminConfig.invalidParameterName)
         return
       }
       if (!param.type || !['group', 'custom'].includes(param.type)) {
-        alert(t.adminConfig.invalidParameterType)
+        showWarning(t.adminConfig.invalidParameterType)
         return
       }
       if (!param.allowedValues || param.allowedValues.length === 0) {
-        alert(t.adminConfig.invalidAllowedValues)
+        showWarning(t.adminConfig.invalidAllowedValues)
         return
       }
       if (!param.mappedGroups || !Array.isArray(param.mappedGroups)) {
-        alert(t.adminConfig.invalidMappedGroups)
+        showWarning(t.adminConfig.invalidMappedGroups)
         return
       }
     }
@@ -183,15 +192,15 @@ export default function ConfigPage() {
 
       if (response.ok) {
         const data = await response.json()
-        alert(data.message || t.adminConfig.saveSuccess)
+        showSuccess(data.message || t.adminConfig.saveSuccess)
         await loadConfig()
       } else {
         const errorData = await response.json()
-        alert(errorData.error?.message || `${t.adminConfig.saveFailed} (${response.status}: ${response.statusText})`)
+        showError(errorData.error?.message || `${t.adminConfig.saveFailed} (${response.status}: ${response.statusText})`)
       }
     } catch (error) {
       console.error('保存配置失败:', error)
-      alert(`${t.adminConfig.saveFailed}: ${error instanceof Error ? error.message : '网络错误'}`)
+      showError(`${t.adminConfig.saveFailed}: ${error instanceof Error ? error.message : '网络错误'}`)
     } finally {
       setSaving(false)
     }
@@ -1009,6 +1018,8 @@ export default function ConfigPage() {
           }}
           isEditing={editingParameter !== null}
         />
+
+        <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
       </div>
     );
 }

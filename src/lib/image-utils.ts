@@ -351,6 +351,24 @@ export function getImageUrls(originalUrl: string) {
 }
 
 /**
+ * 从图片 URL 中提取扩展名（不包含 .）
+ */
+export function getFileExtensionFromUrl(url: string): string | null {
+  const extractFromPath = (path: string): string | null => {
+    const filename = path.split('/').pop() || '';
+    const match = filename.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
+    return match ? match[1].toLowerCase() : null;
+  };
+
+  try {
+    const parsed = new URL(url);
+    return extractFromPath(parsed.pathname);
+  } catch {
+    return extractFromPath(url);
+  }
+}
+
+/**
  * 预定义的图片尺寸
  */
 export const IMAGE_SIZES = {

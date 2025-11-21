@@ -5,6 +5,8 @@ import LogViewer from '@/components/admin/LogViewer'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
+import { useToast } from '@/hooks/useToast'
+import { ToastContainer } from '@/components/ui/Toast'
 import { 
   FileText, 
   Download, 
@@ -16,6 +18,7 @@ export default function SystemLogsPage() {
   const { t } = useLocale();
   const isLight = useTheme();
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const { toasts, success, error: showError, removeToast } = useToast();
 
   const handleExportLogs = async (format: 'json' | 'csv' | 'txt') => {
     try {
@@ -38,11 +41,11 @@ export default function SystemLogsPage() {
         document.body.removeChild(a)
         window.URL.revokeObjectURL(url)
       } else {
-        alert(t.adminLogs.exportFailed)
+        showError(t.adminLogs.exportFailed)
       }
     } catch (error) {
       console.error('导出日志失败:', error)
-      alert(t.adminLogs.exportFailed)
+      showError(t.adminLogs.exportFailed)
     }
     setIsExportMenuOpen(false);
   }
@@ -58,14 +61,14 @@ export default function SystemLogsPage() {
       })
 
       if (response.ok) {
-        alert(t.adminLogs.cleared)
+        success(t.adminLogs.cleared)
         window.location.reload()
       } else {
-        alert(t.adminLogs.clearFailed)
+        showError(t.adminLogs.clearFailed)
       }
     } catch (error) {
       console.error('清空日志失败:', error)
-      alert(t.adminLogs.clearFailed)
+      showError(t.adminLogs.clearFailed)
     }
   }
 
@@ -203,6 +206,7 @@ export default function SystemLogsPage() {
             <LogViewer maxEntries={25} autoRefresh={true} refreshInterval={5000} />
           </div>
         </div>
+        <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
       </div>
     );
 }

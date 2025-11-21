@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
+import { useToast } from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/Toast';
 
 interface RateLimit {
   ip: string;
@@ -24,10 +26,11 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
   const [windowMs, setWindowMs] = useState('60000');
   const [maxTotal, setMaxTotal] = useState('');
   const [setting, setSetting] = useState(false);
+  const { toasts, success, error: showError, warning, removeToast } = useToast();
 
   const handleSetRateLimit = async () => {
     if (!ip.trim() || !maxRequests || !windowMs) {
-      alert('请填写必填字段');
+      warning('表单未完成', '请填写必填字段');
       return;
     }
 
@@ -45,7 +48,7 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
       });
 
       if (response.ok) {
-        alert(t.adminSecurity.setRateLimitSuccess);
+        success(t.adminSecurity.setRateLimitSuccess);
         setShowSetDialog(false);
         setIP('');
         setMaxRequests('60');
@@ -54,10 +57,10 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
         onRefresh();
       } else {
         const data = await response.json();
-        alert(`设置失败: ${data.error?.message || '未知错误'}`);
+        showError(`设置失败`, data.error?.message || '未知错误');
       }
     } catch (error) {
-      alert(`设置失败: ${error}`);
+      showError('设置失败', String(error));
     } finally {
       setSetting(false);
     }
@@ -76,14 +79,14 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
       });
 
       if (response.ok) {
-        alert(t.adminSecurity.removeRateLimitSuccess);
+        success(t.adminSecurity.removeRateLimitSuccess);
         onRefresh();
       } else {
         const data = await response.json();
-        alert(`删除失败: ${data.error?.message || '未知错误'}`);
+        showError('删除失败', data.error?.message || '未知错误');
       }
     } catch (error) {
-      alert(`删除失败: ${error}`);
+      showError('删除失败', String(error));
     }
   };
 
@@ -105,6 +108,7 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
   };
 
   return (
+    <>
     <div className="space-y-4">
       {/* 操作按钮 */}
       <div className="flex justify-between items-center">
@@ -184,7 +188,7 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
 
       {/* 设置速率限制对话框 */}
       {showSetDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 !mt-0">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold panel-text mb-4">
               {t.adminSecurity.setRateLimitDialog}
@@ -264,6 +268,8 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
         </div>
       )}
     </div>
+    <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
+    </>
   );
 }
 

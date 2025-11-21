@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/useToast';
+import { ToastContainer } from '@/components/ui/Toast';
 import { 
   Upload, 
   CheckCircle, 
@@ -56,6 +58,7 @@ export default function MultiStorageUpload({
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toasts, success, error: showError, removeToast } = useToast();
 
   // 处理文件选择
   const handleFileSelect = (files: FileList | null) => {
@@ -149,6 +152,7 @@ export default function MultiStorageUpload({
   };
 
   return (
+    <>
     <div className="space-y-4">
       {/* 上传区域 */}
       <Card>
@@ -311,9 +315,13 @@ export default function MultiStorageUpload({
                       variant="outline"
                       size="sm"
                       className="mt-2"
-                      onClick={() => {
-                        navigator.clipboard.writeText(uploadResult.image!.url);
-                        alert('URL 已复制到剪贴板');
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(uploadResult.image!.url);
+                          success('复制成功', 'URL 已复制到剪贴板');
+                        } catch (err) {
+                          showError('复制失败', err instanceof Error ? err.message : '无法复制 URL');
+                        }
                       }}
                     >
                       复制 URL
@@ -326,5 +334,7 @@ export default function MultiStorageUpload({
         </Card>
       )}
     </div>
+    <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
+    </>
   );
 }
