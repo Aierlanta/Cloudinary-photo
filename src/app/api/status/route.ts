@@ -6,13 +6,12 @@ import { withSecurity } from '@/lib/security';
 import { logger } from '@/lib/logger';
 import { initializeServer } from '@/lib/server-init';
 import { APIResponse } from '@/types/api';
+import { isStorageEnabled, StorageProvider } from '@/lib/storage';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
-
-const cloudinaryService = CloudinaryService.getInstance();
 
 /**
  * 读取版本号
@@ -209,11 +208,29 @@ async function checkCloudinaryStatus(): Promise<{
   error?: string;
   details?: {
     configured: boolean;
+    status?: 'disabled' | 'enabled';
     usageStats?: any;
     cloudName?: string;
   };
 }> {
   const startTime = performance.now();
+  const cloudinaryEnabled = isStorageEnabled(StorageProvider.CLOUDINARY);
+
+  if (!cloudinaryEnabled) {
+    const responseTime = Math.round(performance.now() - startTime);
+    logger.info('Cloudinary服务已禁用，跳过健康检查', {
+      type: 'cloudinary',
+      responseTime
+    });
+    return {
+      healthy: true,
+      responseTime,
+      details: {
+        configured: false,
+        status: 'disabled'
+      }
+    };
+  }
 
   try {
     // 检查配置
@@ -239,6 +256,8 @@ async function checkCloudinaryStatus(): Promise<{
         }
       };
     }
+
+    const cloudinaryService = CloudinaryService.getInstance();
 
     // 尝试检查Cloudinary连接
     const connectionResult = await cloudinaryService.checkConnection();
