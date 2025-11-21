@@ -20,6 +20,14 @@ interface Image {
   groupId?: string;
   uploadedAt: string;
   tags?: string[];
+  primaryProvider?: string;
+  backupProvider?: string;
+  telegramFileId?: string | null;
+  telegramThumbnailFileId?: string | null;
+  telegramFilePath?: string | null;
+  telegramThumbnailPath?: string | null;
+  telegramBotToken?: string | null;
+  storageMetadata?: string | null;
 }
 
 interface Group {

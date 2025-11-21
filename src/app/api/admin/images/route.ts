@@ -254,7 +254,8 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       description: savedImage.description,
       tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
       groupId: savedImage.groupId,
-      uploadedAt: savedImage.uploadedAt
+      uploadedAt: savedImage.uploadedAt,
+      storageMetadata: savedImage.storageMetadata
     };
     
     // 应用代理URL转换（如果配置了 tgState 代理）

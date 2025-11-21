@@ -21,6 +21,7 @@ export interface Image {
   telegramFilePath?: string;
   telegramThumbnailPath?: string;
   telegramBotToken?: string;
+  storageMetadata?: string;
 }
 
 // 分组模型

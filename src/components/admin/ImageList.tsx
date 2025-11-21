@@ -41,6 +41,7 @@ interface ImageItem {
   telegramFilePath?: string | null;
   telegramThumbnailPath?: string | null;
   telegramBotToken?: string | null;
+  storageMetadata?: string | null;
 }
 
 interface Group {
