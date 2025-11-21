@@ -76,7 +76,7 @@ export default function HealthMonitor() {
   if (loading) {
     return (
       <div className={cn(
-        "border p-6 flex items-center justify-center h-48",
+        "border p-6 flex items-center justify-center h-48 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <div className={cn(
@@ -89,26 +89,26 @@ export default function HealthMonitor() {
 
   return (
       <div className={cn(
-        "border p-6",
+        "border p-6 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className={cn(
-              "w-10 h-10 flex items-center justify-center",
+              "w-10 h-10 flex items-center justify-center rounded-lg",
               isLight ? "bg-emerald-500" : "bg-emerald-600"
             )}>
               <Activity className="w-6 h-6 text-white" />
             </div>
             <div>
               <h2 className={cn(
-                "text-lg font-semibold",
+                "text-lg font-semibold rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {t.healthMonitor.title}
               </h2>
               <p className={cn(
-                "text-sm",
+                "text-sm rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.healthMonitor.description}
@@ -119,7 +119,7 @@ export default function HealthMonitor() {
             onClick={handleRefresh}
             disabled={refreshing}
             className={cn(
-              "p-2 border transition-colors disabled:opacity-50",
+              "p-2 border transition-colors disabled:opacity-50 rounded-lg",
               isLight
                 ? "bg-white border-gray-300 hover:bg-gray-50"
                 : "bg-gray-800 border-gray-600 hover:bg-gray-700"
@@ -134,10 +134,10 @@ export default function HealthMonitor() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
           {/* Overall Status */}
           <div className={cn(
-            "border p-4",
+            "border p-4 rounded-lg",
             healthData?.overall.healthy
               ? isLight
                 ? "bg-emerald-50 border-emerald-300"
@@ -159,7 +159,7 @@ export default function HealthMonitor() {
                 )} />
               )}
               <span className={cn(
-                "font-semibold",
+                "font-semibold rounded-lg",
                 healthData?.overall.healthy
                   ? isLight ? "text-emerald-900" : "text-emerald-200"
                   : isLight ? "text-red-900" : "text-red-200"
@@ -168,7 +168,7 @@ export default function HealthMonitor() {
               </span>
             </div>
             <div className={cn(
-              "text-sm pl-8",
+              "text-sm pl-8 rounded-lg",
               healthData?.overall.healthy
                 ? isLight ? "text-emerald-700" : "text-emerald-300"
                 : isLight ? "text-red-700" : "text-red-300"
@@ -179,7 +179,7 @@ export default function HealthMonitor() {
 
           {/* Main Database */}
           <div className={cn(
-            "border p-4",
+            "border p-4 rounded-lg",
             healthData?.mainDatabase.healthy
               ? isLight
                 ? "bg-blue-50 border-blue-300"
@@ -196,7 +196,7 @@ export default function HealthMonitor() {
                   : isLight ? "text-red-600" : "text-red-400"
               )} />
               <span className={cn(
-                "font-semibold",
+                "font-semibold rounded-lg",
                 healthData?.mainDatabase.healthy
                   ? isLight ? "text-blue-900" : "text-blue-200"
                   : isLight ? "text-red-900" : "text-red-200"
@@ -205,7 +205,7 @@ export default function HealthMonitor() {
               </span>
             </div>
             <div className={cn(
-              "text-sm pl-8",
+              "text-sm pl-8 rounded-lg",
               healthData?.mainDatabase.healthy
                 ? isLight ? "text-blue-700" : "text-blue-300"
                 : isLight ? "text-red-700" : "text-red-300"
@@ -216,7 +216,7 @@ export default function HealthMonitor() {
 
           {/* Backup Database */}
           <div className={cn(
-            "border p-4",
+            "border p-4 rounded-lg",
             healthData?.backupDatabase.healthy
               ? isLight
                 ? "bg-purple-50 border-purple-300"
@@ -233,7 +233,7 @@ export default function HealthMonitor() {
                   : isLight ? "text-red-600" : "text-red-400"
               )} />
               <span className={cn(
-                "font-semibold",
+                "font-semibold rounded-lg",
                 healthData?.backupDatabase.healthy
                   ? isLight ? "text-purple-900" : "text-purple-200"
                   : isLight ? "text-red-900" : "text-red-200"
@@ -242,7 +242,7 @@ export default function HealthMonitor() {
               </span>
             </div>
             <div className={cn(
-              "text-sm pl-8",
+              "text-sm pl-8 rounded-lg",
               healthData?.backupDatabase.healthy
                 ? isLight ? "text-purple-700" : "text-purple-300"
                 : isLight ? "text-red-700" : "text-red-300"
@@ -258,7 +258,7 @@ export default function HealthMonitor() {
             isLight ? "border-gray-300 text-gray-600" : "border-gray-600 text-gray-400"
           )}>
             <div className="flex items-center gap-2">
-              <HardDrive className="w-4 h-4" />
+              <HardDrive className="w-4 h-4 rounded-lg" />
               <span>
                 {t.healthMonitor.totalImagesLabel}: <strong className={isLight ? "text-gray-900" : "text-gray-100"}>
                   {healthData.stats.totalImages}
@@ -266,7 +266,7 @@ export default function HealthMonitor() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Server className="w-4 h-4" />
+              <Server className="w-4 h-4 rounded-lg" />
               <span>
                 {t.healthMonitor.totalGroupsLabel}: <strong className={isLight ? "text-gray-900" : "text-gray-100"}>
                   {healthData.stats.totalGroups}
@@ -274,7 +274,7 @@ export default function HealthMonitor() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
+              <Clock className="w-4 h-4 rounded-lg" />
               <span>
                 {t.healthMonitor.lastCheck}: <span className={isLight ? "text-gray-900" : "text-gray-100"}>
                   {new Date(healthData.stats.lastCheck).toLocaleTimeString()}

@@ -329,7 +329,7 @@ export default function AdminLayoutV3({
           <div className="max-w-[1800px] mx-auto">
             <div
               className={cn(
-                "border p-6 lg:p-8",
+                "border p-6 lg:p-8 rounded-lg",
                 isLight
                   ? "bg-white border-gray-300"
                   : "bg-gray-800 border-gray-600"
@@ -347,18 +347,18 @@ export default function AdminLayoutV3({
       {isSettingsOpen && (
         <div
           className={cn(
-            "fixed top-4 right-4 z-50 w-80 border p-6",
+            "fixed top-4 right-4 z-50 w-80 border p-6  rounded-lg",
             isLight
           ? "bg-white border-gray-300"
           : "bg-gray-800 border-gray-600"
           )}
         >
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between mb-4 rounded-lg">
             <h3 className="text-lg font-semibold">设置</h3>
             <button
               onClick={() => setIsSettingsOpen(false)}
               className={cn(
-                "p-1",
+                "p-1 rounded-lg",
                 isLight
                   ? "text-gray-500 hover:bg-gray-100"
                   : "text-gray-400 hover:bg-gray-700"
@@ -375,7 +375,7 @@ export default function AdminLayoutV3({
               <button
                 onClick={toggleLocale}
                 className={cn(
-                  "w-full flex items-center gap-2 px-4 py-2 transition-colors",
+                  "w-full flex items-center gap-2 px-4 py-2 transition-colors rounded-lg",
                   isLight
                     ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                     : "bg-gray-700 hover:bg-gray-600 text-gray-300"
@@ -392,7 +392,7 @@ export default function AdminLayoutV3({
               <button
                 onClick={handleThemeToggle}
                 className={cn(
-                  "w-full flex items-center gap-2 px-4 py-2 transition-colors",
+                  "w-full flex items-center gap-2 px-4 py-2 transition-colors rounded-lg",
                   isLight
                     ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                     : "bg-gray-700 hover:bg-gray-600 text-gray-300"
@@ -413,7 +413,7 @@ export default function AdminLayoutV3({
               <button
                 onClick={handleThemeReset}
                 className={cn(
-                  "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm",
+                  "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm rounded-lg",
                   isLight
                     ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
                     : "bg-gray-700 hover:bg-gray-600 text-gray-300"

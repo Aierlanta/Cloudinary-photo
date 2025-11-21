@@ -789,11 +789,11 @@ export default function ImageUpload({
 
   // --- V3 Layout (Flat Design) ---
   return (
-      <div className="space-y-4">
+      <div className="space-y-4 rounded-lg">
         {/* Drag & Drop Zone */}
         <div
           className={cn(
-            "border-2 border-dashed p-4 text-center transition-colors",
+            "border-2 border-dashed p-4 text-center transition-colors rounded-lg",
             dragActive
               ? isLight
                 ? "border-blue-500 bg-blue-50"
@@ -811,37 +811,37 @@ export default function ImageUpload({
             {selectedProvider === "custom" ? (
               <>
                 <div className={cn(
-                  "mx-auto w-12 h-12 flex items-center justify-center",
+                  "mx-auto w-12 h-12 flex items-center justify-center rounded-lg",
                   isLight ? "bg-gray-100" : "bg-gray-800"
                 )}>
                   <ImageIcon className={cn(
-                    "w-6 h-6",
+                    "w-6 h-6 rounded-lg",
                     isLight ? "text-gray-400" : "text-gray-500"
                   )} />
                 </div>
                 <div>
                   <p className={cn(
-                    "text-sm font-medium",
+                    "text-sm font-medium rounded-lg",
                     isLight ? "text-gray-900" : "text-gray-100"
                   )}>
                     {t.adminImages.urlImportTitle}
                   </p>
                   <p className={cn(
-                    "text-xs mt-1",
+                    "text-xs mt-1 rounded-lg",
                     isLight ? "text-gray-500" : "text-gray-400"
                   )}>
                     {t.adminImages.urlImportSubtitle}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 text-xs mt-2">
+                <div className="flex flex-wrap items-center justify-center gap-2 text-xs mt-2 rounded-lg">
                   <div className={cn(
-                    "inline-flex items-center gap-1 px-2 py-1 border",
+                    "inline-flex items-center gap-1 px-2 py-1 border rounded-lg",
                     isLight
                       ? "bg-gray-100 border-gray-200"
                       : "bg-gray-800 border-gray-700"
                   )}>
                     <span className={cn(
-                      "font-medium",
+                      "font-medium rounded-lg",
                       isLight ? "text-gray-900" : "text-gray-100"
                     )}>
                       {t.adminImages.urlImportModeLabel}
@@ -853,7 +853,7 @@ export default function ImageUpload({
                         setLastImportResult(null);
                       }}
                       className={cn(
-                        "px-2 py-0.5 text-xs",
+                        "px-2 py-0.5 text-xs rounded-lg",
                         importMode === "txt"
                           ? "bg-blue-500 text-white"
                           : isLight
@@ -870,7 +870,7 @@ export default function ImageUpload({
                         setLastImportResult(null);
                       }}
                       className={cn(
-                        "px-2 py-0.5 text-xs",
+                        "px-2 py-0.5 text-xs rounded-lg",
                         importMode === "json"
                           ? "bg-blue-500 text-white"
                           : isLight
@@ -885,7 +885,7 @@ export default function ImageUpload({
                     type="button"
                     onClick={() => customFileInputRef.current?.click()}
                     className={cn(
-                      "inline-flex items-center gap-1 px-2 py-1 border border-dashed text-xs transition-colors",
+                      "inline-flex items-center gap-1 px-2 py-1 border border-dashed text-xs transition-colors rounded-lg",
                       isLight
                         ? "border-gray-300 text-gray-600 hover:border-gray-400"
                         : "border-gray-600 text-gray-300 hover:border-gray-500"
@@ -896,7 +896,7 @@ export default function ImageUpload({
                   </button>
                   {importFileName && (
                     <span className={cn(
-                      "text-xs",
+                      "text-xs rounded-lg",
                       isLight ? "text-gray-500" : "text-gray-400"
                     )}>
                       {importFileName}
@@ -912,20 +912,20 @@ export default function ImageUpload({
                       : t.adminImages.urlImportJsonPlaceholder
                   }
                   className={cn(
-                    "mt-3 w-full min-h-[100px] text-sm border px-2 py-1.5 resize-y focus:outline-none focus:border-blue-500",
+                    "mt-3 w-full min-h-[100px] text-sm border px-2 py-1.5 resize-y focus:outline-none focus:border-blue-500 rounded-lg",
                     isLight
                       ? "bg-white border-gray-300"
                       : "bg-gray-800 border-gray-600"
                   )}
                 />
                 <div className={cn(
-                  "mt-2 px-2 py-1.5 border border-dashed",
+                  "mt-2 px-2 py-1.5 border border-dashed rounded-lg",
                   isLight
                     ? "bg-gray-50 border-gray-300"
                     : "bg-gray-900/60 border-gray-700"
                 )}>
                   <p className={cn(
-                    "text-[11px] mb-1",
+                    "text-[11px] mb-1 rounded-lg",
                     isLight ? "text-gray-500" : "text-gray-400"
                   )}>
                     {importMode === "txt"
@@ -933,7 +933,7 @@ export default function ImageUpload({
                       : t.adminImages.urlImportJsonExampleTitle}
                   </p>
                   <pre className={cn(
-                    "text-[11px] whitespace-pre-wrap break-all font-mono",
+                    "text-[11px] whitespace-pre-wrap break-all font-mono rounded-lg",
                     isLight ? "text-gray-600" : "text-gray-300"
                   )}>
                     {importMode === "txt"
@@ -943,7 +943,7 @@ export default function ImageUpload({
                 </div>
                 {lastImportResult && (
                   <p className={cn(
-                    "mt-1 text-xs",
+                    "mt-1 text-xs rounded-lg",
                     isLight ? "text-gray-500" : "text-gray-400"
                   )}>
                     {t.adminImages.urlImportLastResult
@@ -952,13 +952,13 @@ export default function ImageUpload({
                       .replace("{failed}", String(lastImportResult.failed))}
                   </p>
                 )}
-                <div className="mt-3 flex justify-center">
+                <div className="mt-3 flex justify-center rounded-lg">
                   <button
                     type="button"
                     onClick={handleCustomImport}
                     disabled={uploading}
                     className={cn(
-                      "px-4 py-2 border transition-colors",
+                      "px-4 py-2 border transition-colors rounded-lg",
                       uploading
                         ? isLight
                           ? "bg-gray-400 text-white border-gray-500 cursor-not-allowed"
@@ -977,23 +977,23 @@ export default function ImageUpload({
             ) : (
               <>
                 <div className={cn(
-                  "mx-auto w-12 h-12 flex items-center justify-center",
+                  "mx-auto w-12 h-12 flex items-center justify-center rounded-lg",
                   isLight ? "bg-gray-100" : "bg-gray-800"
                 )}>
                   <UploadCloud className={cn(
-                    "w-6 h-6",
+                    "w-6 h-6 rounded-lg",
                     isLight ? "text-gray-400" : "text-gray-500"
                   )} />
                 </div>
                 <div>
                   <p className={cn(
-                    "text-sm font-medium mb-1",
+                    "text-sm font-medium mb-1 rounded-lg",
                     isLight ? "text-gray-900" : "text-gray-100"
                   )}>
                     {t.adminImages.dragDropHint}
                   </p>
                   <p className={cn(
-                    "text-xs",
+                    "text-xs rounded-lg",
                     isLight ? "text-gray-500" : "text-gray-400"
                   )}>
                     {t.adminImages.supportedFormats}
@@ -1003,7 +1003,7 @@ export default function ImageUpload({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className={cn(
-                    "px-4 py-2 border transition-colors",
+                    "px-4 py-2 border transition-colors rounded-lg",
                     isLight
                       ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                       : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -1020,7 +1020,7 @@ export default function ImageUpload({
         {providers.length > 1 && (
           <div className="space-y-2">
             <label className={cn(
-              "block text-sm font-medium",
+              "block text-sm font-medium rounded-lg",
               isLight ? "text-gray-700" : "text-gray-300"
             )}>
               {t.adminImages.storageService}
@@ -1034,7 +1034,7 @@ export default function ImageUpload({
                 }
               }}
               className={cn(
-                "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                 isLight
                   ? "bg-white border-gray-300"
                   : "bg-gray-800 border-gray-600"
@@ -1054,10 +1054,10 @@ export default function ImageUpload({
         )}
 
         {/* Group and Tags */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg">
           <div className="space-y-2">
             <label className={cn(
-              "block text-sm font-medium",
+              "block text-sm font-medium rounded-lg",
               isLight ? "text-gray-700" : "text-gray-300"
             )}>
               {t.adminImages.selectGroup} {t.adminImages.groupOptional}
@@ -1066,7 +1066,7 @@ export default function ImageUpload({
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
               className={cn(
-                "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                 isLight
                   ? "bg-white border-gray-300"
                   : "bg-gray-800 border-gray-600"
@@ -1084,7 +1084,7 @@ export default function ImageUpload({
           </div>
           <div className="space-y-2">
             <label className={cn(
-              "block text-sm font-medium",
+              "block text-sm font-medium rounded-lg",
               isLight ? "text-gray-700" : "text-gray-300"
             )}>
               {t.adminImages.tagsOptional}
@@ -1095,7 +1095,7 @@ export default function ImageUpload({
               onChange={(e) => setTags(e.target.value)}
               placeholder={t.adminImages.tagsPlaceholder}
               className={cn(
-                "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                 isLight
                   ? "bg-white border-gray-300"
                   : "bg-gray-800 border-gray-600"
@@ -1115,7 +1115,7 @@ export default function ImageUpload({
                   0 || uploading
               }
               className={cn(
-                "px-6 py-2 border transition-colors",
+                "px-6 py-2 border transition-colors rounded-lg",
                 fileStates.filter((fs) => fs.status === "pending").length ===
                   0 || uploading
                   ? isLight
@@ -1167,7 +1167,7 @@ export default function ImageUpload({
 
         {/* Upload Progress */}
         {uploading && (
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-lg">
             <div className={cn(
               "w-full h-1.5",
               isLight ? "bg-gray-200" : "bg-gray-700"
@@ -1181,7 +1181,7 @@ export default function ImageUpload({
               />
             </div>
             <p className={cn(
-              "text-sm text-center",
+              "text-sm text-center rounded-lg",
               isLight ? "text-gray-600" : "text-gray-400"
             )}>
               {uploadProgress}%
@@ -1191,12 +1191,12 @@ export default function ImageUpload({
 
         {/* File List */}
         {fileStates.length > 0 && (
-          <div className="space-y-1 max-h-96 overflow-y-auto">
+          <div className="space-y-1 max-h-96 overflow-y-auto rounded-lg">
             {fileStates.map((fileState, index) => (
               <div
                 key={index}
                 className={cn(
-                  "flex items-center justify-between p-2 border",
+                  "flex items-center justify-between p-2 border rounded-lg",
                   fileState.status === "success"
                     ? isLight
                       ? "bg-green-50 border-green-200"
@@ -1216,7 +1216,7 @@ export default function ImageUpload({
               >
                 <div className="flex items-center space-x-2 min-w-0 flex-1">
                   <div className={cn(
-                    "w-8 h-8 flex items-center justify-center flex-shrink-0",
+                    "w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-lg",
                     isLight ? "bg-gray-200" : "bg-gray-700"
                   )}>
                     <ImageIcon className={cn(
@@ -1227,14 +1227,14 @@ export default function ImageUpload({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className={cn(
-                        "text-sm truncate",
+                        "text-sm truncate rounded-lg",
                         isLight ? "text-gray-900" : "text-gray-100"
                       )}>
                         {fileState.file.name}
                       </p>
                       {fileState.status === "success" && (
                         <span className={cn(
-                          "text-xs px-2 py-0.5 border",
+                          "text-xs px-2 py-0.5 border rounded-lg",
                           isLight
                             ? "bg-green-50 border-green-200 text-green-700"
                             : "bg-green-900/20 border-green-800 text-green-400"
@@ -1244,7 +1244,7 @@ export default function ImageUpload({
                       )}
                       {fileState.status === "failed" && (
                         <span className={cn(
-                          "text-xs px-2 py-0.5 border",
+                          "text-xs px-2 py-0.5 border rounded-lg",
                           isLight
                             ? "bg-red-50 border-red-200 text-red-700"
                             : "bg-red-900/20 border-red-800 text-red-400"
@@ -1255,7 +1255,7 @@ export default function ImageUpload({
                     </div>
                     {fileState.error && (
                       <p className={cn(
-                        "text-xs truncate",
+                        "text-xs truncate rounded-lg",
                         isLight ? "text-red-600" : "text-red-400"
                       )}>
                         {fileState.error}

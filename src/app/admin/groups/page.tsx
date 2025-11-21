@@ -346,22 +346,25 @@ export default function GroupsPage() {
   }
 
   return (
-      <div className="space-y-6">
+      <div className="space-y-6 rounded-lg">
         {/* Header & Stats */}
         <div className={cn(
-          "border p-6",
+          "border p-6 rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
-          <div className="flex flex-col gap-8">
-            <div className="flex justify-between items-end">
+          <div className="flex flex-col gap-8 rounded-lg">
+            <div className="flex justify-between items-end rounded-lg">
               <div>
                 <h1 className={cn(
-                  "text-3xl font-bold mb-2",
+                  "text-3xl font-bold mb-2 rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {t.adminGroups.title}
                 </h1>
-                <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+                <p className={cn(
+                  "text-sm rounded-lg",
+                  isLight ? "text-gray-600" : "text-gray-400"
+                )}>
                   {t.adminGroups.description}
                 </p>
               </div>
@@ -369,7 +372,7 @@ export default function GroupsPage() {
                 <button
                   onClick={showUnassignedImagesModal}
                   className={cn(
-                    "px-4 py-2 border flex items-center gap-2 transition-colors",
+                    "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
                     isLight
                       ? "bg-orange-500 text-white border-orange-600 hover:bg-orange-600"
                       : "bg-orange-600 text-white border-orange-500 hover:bg-orange-700"
@@ -381,7 +384,7 @@ export default function GroupsPage() {
                 <button
                   onClick={startCreate}
                   className={cn(
-                    "px-4 py-2 border flex items-center gap-2 transition-colors",
+                    "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
                     isLight
                       ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                       : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -393,70 +396,70 @@ export default function GroupsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 rounded-lg">
               <div className={cn(
-                "border p-6",
+                "border p-6 rounded-lg",
                 isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
               )}>
                 <p className={cn(
-                  "text-sm font-medium mb-2",
+                  "text-sm font-medium mb-2 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminGroups.totalImages}
                 </p>
                 <div className={cn(
-                  "text-3xl font-bold",
+                  "text-3xl font-bold rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {totalImages}
                 </div>
               </div>
               <div className={cn(
-                "border p-6",
+                "border p-6 rounded-lg",
                 isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
               )}>
                 <p className={cn(
-                  "text-sm font-medium mb-2",
+                  "text-sm font-medium mb-2 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminGroups.groupsCount}
                 </p>
                 <div className={cn(
-                  "text-3xl font-bold",
+                  "text-3xl font-bold rounded-lg",
                   isLight ? "text-blue-600" : "text-blue-400"
                 )}>
                   {groups.length}
                 </div>
               </div>
               <div className={cn(
-                "border p-6",
+                "border p-6 rounded-lg",
                 isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
               )}>
                 <p className={cn(
-                  "text-sm font-medium mb-2",
+                  "text-sm font-medium mb-2 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminGroups.groupsWithImages}
                 </p>
                 <div className={cn(
-                  "text-3xl font-bold",
+                  "text-3xl font-bold rounded-lg",
                   isLight ? "text-green-600" : "text-green-400"
                 )}>
                   {groups.filter(g => g.imageCount > 0).length}
                 </div>
               </div>
               <div className={cn(
-                "border p-6",
+                "border p-6 rounded-lg",
                 isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
               )}>
                 <p className={cn(
-                  "text-sm font-medium mb-2",
+                  "text-sm font-medium mb-2 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminGroups.averageImages}
                 </p>
                 <div className={cn(
-                  "text-3xl font-bold",
+                  "text-3xl font-bold rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {groups.length > 0 ? Math.round(groups.reduce((sum, group) => sum + group.imageCount, 0) / groups.length) : 0}
@@ -468,14 +471,14 @@ export default function GroupsPage() {
 
         {/* Create / Edit Modal */}
         {(showCreateForm || editingGroup) && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0 rounded-lg">
             <div className={cn(
-              "border max-w-lg w-full",
+              "border max-w-lg w-full rounded-lg",
               isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
             )}>
-              <div className="p-6">
+              <div className="p-6 rounded-lg">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 rounded-lg">
                   <h3 className={cn(
                     "text-lg font-semibold",
                     isLight ? "text-gray-900" : "text-gray-100"
@@ -485,13 +488,13 @@ export default function GroupsPage() {
                   <button
                     onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
                     className={cn(
-                      "p-2 transition-colors",
+                      "p-2 transition-colors rounded-lg",
                       isLight
                         ? "text-gray-500 hover:bg-gray-100"
                         : "text-gray-400 hover:bg-gray-700"
                     )}
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 rounded-lg" />
                   </button>
                 </div>
 
@@ -499,7 +502,7 @@ export default function GroupsPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className={cn(
-                      "block text-sm font-medium mb-2",
+                      "block text-sm font-medium mb-2 rounded-lg",
                       isLight ? "text-gray-700" : "text-gray-300"
                     )}>
                       {t.adminGroups.groupName}
@@ -510,7 +513,7 @@ export default function GroupsPage() {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                       className={cn(
-                        "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                        "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                         isLight
                           ? "bg-white border-gray-300"
                           : "bg-gray-800 border-gray-600"
@@ -519,7 +522,7 @@ export default function GroupsPage() {
                   </div>
                   <div>
                     <label className={cn(
-                      "block text-sm font-medium mb-2",
+                      "block text-sm font-medium mb-2 rounded-lg",
                       isLight ? "text-gray-700" : "text-gray-300"
                     )}>
                       {t.adminGroups.description}
@@ -529,7 +532,7 @@ export default function GroupsPage() {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={3}
                       className={cn(
-                        "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                        "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                         isLight
                           ? "bg-white border-gray-300"
                           : "bg-gray-800 border-gray-600"
@@ -538,12 +541,12 @@ export default function GroupsPage() {
                   </div>
                   
                   {/* Action Buttons */}
-                  <div className="flex gap-3 mt-6">
+                  <div className="flex gap-3 mt-6 rounded-lg">
                     <button
                       type="submit"
                       disabled={submitting}
                       className={cn(
-                        "flex-1 py-2 px-4 border flex items-center justify-center gap-2 transition-colors disabled:opacity-50",
+                        "flex-1 py-2 px-4 border flex items-center justify-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
                         isLight
                           ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                           : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -556,7 +559,7 @@ export default function GroupsPage() {
                       type="button"
                       onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
                       className={cn(
-                        "flex-1 py-2 px-4 border transition-colors",
+                        "flex-1 py-2 px-4 border transition-colors rounded-lg",
                         isLight
                           ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
                           : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
@@ -573,51 +576,51 @@ export default function GroupsPage() {
 
         {/* Groups List */}
         <div className={cn(
-          "border p-6",
+          "border p-6 rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
           <h2 className={cn(
-            "text-lg font-semibold mb-4",
+            "text-lg font-semibold mb-4 rounded-lg",
             isLight ? "text-gray-900" : "text-gray-100"
           )}>
             {t.adminGroups.title || '分组管理'}
           </h2>
           {loading ? (
-            <div className="text-center py-8">
+            <div className="text-center py-8 rounded-lg">
               <div className={cn(
-                "w-8 h-8 border-2 border-t-transparent animate-spin mx-auto",
+                "w-8 h-8 border-2 border-t-transparent animate-spin mx-auto rounded-lg",
                 isLight ? "border-blue-500" : "border-blue-600"
               )}></div>
             </div>
           ) : groups.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="text-center py-8 rounded-lg">
               <p className={isLight ? "text-gray-600" : "text-gray-400"}>
                 {t.adminGroups.noGroups}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 rounded-lg">
               {groups.map((group) => (
                 <div
                   key={group.id}
                   className={cn(
-                    "border p-4 transition-colors",
+                    "border p-4 transition-colors rounded-lg",
                     isLight
                       ? "bg-gray-50 border-gray-300 hover:bg-gray-100"
                       : "bg-gray-700 border-gray-600 hover:bg-gray-600"
                   )}
                 >
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex justify-between items-start mb-3 rounded-lg">
                     <div className="flex-1">
                       <h3 className={cn(
-                        "font-semibold mb-1",
+                        "font-semibold mb-1 rounded-lg",
                         isLight ? "text-gray-900" : "text-gray-100"
                       )}>
                         {group.name}
                       </h3>
                       {group.description && (
                         <p className={cn(
-                          "text-sm",
+                          "text-sm rounded-lg",
                           isLight ? "text-gray-600" : "text-gray-400"
                         )}>
                           {group.description}
@@ -628,7 +631,7 @@ export default function GroupsPage() {
                       <button
                         onClick={() => startEdit(group)}
                         className={cn(
-                          "p-2 transition-colors",
+                          "p-2 transition-colors rounded-lg",
                           isLight
                             ? "text-blue-600 hover:bg-blue-50"
                             : "text-blue-400 hover:bg-blue-900/20"
@@ -639,7 +642,7 @@ export default function GroupsPage() {
                       <button
                         onClick={() => handleDeleteGroup(group.id, group.name)}
                         className={cn(
-                          "p-2 transition-colors",
+                          "p-2 transition-colors rounded-lg",
                           isLight
                             ? "text-red-600 hover:bg-red-50"
                             : "text-red-400 hover:bg-red-900/20"
@@ -650,13 +653,13 @@ export default function GroupsPage() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 rounded-lg">
                       <ImageIcon className={cn(
                         "w-4 h-4",
                         isLight ? "text-gray-600" : "text-gray-400"
                       )} />
                       <span className={cn(
-                        "text-sm",
+                        "text-sm rounded-lg",
                         isLight ? "text-gray-600" : "text-gray-400"
                       )}>
                         {group.imageCount} {t.adminGroups.images}
@@ -665,7 +668,7 @@ export default function GroupsPage() {
                     <button
                       onClick={() => viewGroupImages(group)}
                       className={cn(
-                        "px-3 py-1 text-sm border transition-colors",
+                        "px-3 py-1 text-sm border transition-colors rounded-lg",
                         isLight
                           ? "bg-white border-gray-300 hover:bg-gray-50"
                           : "bg-gray-800 border-gray-600 hover:bg-gray-700"
@@ -682,19 +685,19 @@ export default function GroupsPage() {
 
         {/* Unassigned Images Modal */}
         {showUnassignedImages && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 rounded-lg">
             <div
               className={cn(
-                "w-full max-w-6xl h-[90vh] border flex flex-col",
+                "w-full max-w-6xl h-[90vh] border flex flex-col rounded-lg",
                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
               )}
             >
               <div className={cn(
-                "p-4 border-b flex items-center justify-between shrink-0",
+                "p-4 border-b flex items-center justify-between shrink-0 rounded-lg",
                 isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
               )}>
                 <h2 className={cn(
-                  "text-xl font-bold",
+                  "text-xl font-bold rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {t.adminGroups.totalUnassignedImages.replace('{count}', unassignedImages.length.toString()) || `共 ${unassignedImages.length} 张未分组图片`}
@@ -702,32 +705,32 @@ export default function GroupsPage() {
                 <button
                   onClick={() => setShowUnassignedImages(false)}
                   className={cn(
-                    "p-2 transition-colors",
+                    "p-2 transition-colors rounded-lg",
                     isLight
                       ? "text-gray-500 hover:bg-gray-100"
                       : "text-gray-400 hover:bg-gray-700"
                   )}
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5 rounded-lg" />
                 </button>
               </div>
               {selectedImages.size > 0 && (
                 <div className={cn(
-                  "mb-4 p-4 border flex flex-wrap items-center justify-between gap-4 shrink-0",
+                  "mb-4 p-4 border flex flex-wrap items-center justify-between gap-4 shrink-0 rounded-lg",
                   isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
                 )}>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 rounded-lg">
                     <span className={cn(
-                      "text-sm font-medium",
+                      "text-sm font-medium rounded-lg",
                       isLight ? "text-gray-900" : "text-gray-100"
                     )}>
                       {selectedImages.size} selected
                     </span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 rounded-lg">
                       <button
                         onClick={selectAllImages}
                         className={cn(
-                          "text-xs px-3 py-1.5 border transition-colors",
+                          "text-xs px-3 py-1.5 border transition-colors rounded-lg",
                           isLight
                             ? "bg-white border-gray-300 hover:bg-gray-50"
                             : "bg-gray-800 border-gray-600 hover:bg-gray-700"
@@ -738,7 +741,7 @@ export default function GroupsPage() {
                       <button
                         onClick={clearSelection}
                         className={cn(
-                          "text-xs px-3 py-1.5 border transition-colors",
+                          "text-xs px-3 py-1.5 border transition-colors rounded-lg",
                           isLight
                             ? "bg-white border-gray-300 hover:bg-gray-50"
                             : "bg-gray-800 border-gray-600 hover:bg-gray-700"
@@ -750,12 +753,12 @@ export default function GroupsPage() {
                   </div>
 
                   {selectedImages.size > 0 && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 rounded-lg">
                       <select
                         value={assigningToGroup}
                         onChange={(e) => setAssigningToGroup(e.target.value)}
                         className={cn(
-                          "border text-sm p-2 outline-none focus:border-blue-500",
+                          "border text-sm p-2 outline-none focus:border-blue-500 rounded-lg",
                           isLight
                             ? "bg-white border-gray-300"
                             : "bg-gray-800 border-gray-600"
@@ -772,7 +775,7 @@ export default function GroupsPage() {
                         onClick={assignImagesToGroup}
                         disabled={!assigningToGroup}
                         className={cn(
-                          "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50",
+                          "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
                           isLight
                             ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                             : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -786,23 +789,23 @@ export default function GroupsPage() {
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-4 rounded-lg">
                 {loadingUnassignedImages ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 rounded-lg">
                     {Array.from({ length: 12 }).map((_, i) => (
                       <div
                         key={i}
                         className={cn(
-                          "aspect-square animate-pulse",
+                          "aspect-square animate-pulse rounded-lg",
                           isLight ? "bg-gray-200" : "bg-gray-700"
                         )}
                       />
                     ))}
                   </div>
                 ) : unassignedImages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20">
+                  <div className="flex flex-col items-center justify-center py-20 rounded-lg">
                     <Check className={cn(
-                      "w-16 h-16 mb-4",
+                      "w-16 h-16 mb-4 rounded-lg",
                       isLight ? "text-green-500" : "text-green-400"
                     )} />
                     <p className={isLight ? "text-gray-600" : "text-gray-400"}>
@@ -810,12 +813,12 @@ export default function GroupsPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 rounded-lg">
                     {unassignedImages.map((image) => (
                       <div
                         key={image.id}
                         className={cn(
-                          "relative group aspect-square overflow-hidden cursor-pointer transition-colors border",
+                          "relative group aspect-square overflow-hidden cursor-pointer transition-colors border rounded-lg",
                           selectedImages.has(image.id)
                             ? isLight
                               ? "border-blue-500"
@@ -834,11 +837,11 @@ export default function GroupsPage() {
                         />
                         {selectedImages.has(image.id) && (
                           <div className={cn(
-                            "absolute inset-0 flex items-center justify-center",
+                            "absolute inset-0 flex items-center justify-center rounded-lg",
                             isLight ? "bg-blue-500/20" : "bg-blue-600/20"
                           )}>
                             <div className={cn(
-                              "p-1",
+                              "p-1 rounded-lg",
                               isLight ? "bg-blue-500" : "bg-blue-600"
                             )}>
                               <Check className="w-4 h-4 text-white" />

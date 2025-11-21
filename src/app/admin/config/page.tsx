@@ -304,16 +304,16 @@ export default function ConfigPage() {
   if (loading) {
     return (
       <div className={cn(
-        "border p-6",
+        "border p-6 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
-        <div className="animate-pulse">
+        <div className="animate-pulse rounded-lg">
           <div className={cn(
-            "h-8 mb-4",
+            "h-8 mb-4 rounded-lg",
             isLight ? "bg-gray-200" : "bg-gray-700"
           )} style={{ width: '25%' }}></div>
           <div className={cn(
-            "h-4",
+            "h-4 rounded-lg",
             isLight ? "bg-gray-200" : "bg-gray-700"
           )} style={{ width: '75%' }}></div>
         </div>
@@ -324,16 +324,19 @@ export default function ConfigPage() {
   if (!config) {
     return (
       <div className={cn(
-        "border p-6",
+        "border p-6 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <h1 className={cn(
-          "text-2xl font-bold mb-4",
+          "text-2xl font-bold mb-4 rounded-lg",
           isLight ? "text-gray-900" : "text-gray-100"
         )}>
           {t.adminConfig.title}
         </h1>
-        <p className={isLight ? "text-red-600" : "text-red-400"}>
+        <p className={cn(
+          "text-red-600 rounded-lg",
+          isLight ? "text-red-600" : "text-red-400"
+        )}>
           {t.adminConfig.loadFailed}
         </p>
       </div>
@@ -341,20 +344,23 @@ export default function ConfigPage() {
   }
 
   return (
-      <div className="space-y-6 pb-20">
+      <div className="space-y-6 pb-20 rounded-lg">
         {/* Header */}
         <div className={cn(
-          "border p-6 flex justify-between items-start",
+          "border p-6 flex justify-between items-start rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
           <div>
             <h1 className={cn(
-              "text-3xl font-bold mb-2",
+              "text-3xl font-bold mb-2 rounded-lg",
               isLight ? "text-gray-900" : "text-gray-100"
             )}>
               {t.adminConfig.title}
             </h1>
-            <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+            <p className={cn(
+              "text-gray-600 rounded-lg",
+              isLight ? "text-gray-600" : "text-gray-400"
+            )}>
               {t.adminConfig.description}
             </p>
           </div>
@@ -362,7 +368,7 @@ export default function ConfigPage() {
             onClick={saveConfig}
             disabled={saving}
             className={cn(
-              "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50",
+              "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
               isLight
                 ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                 : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -374,36 +380,36 @@ export default function ConfigPage() {
         </div>
 
         {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
           <div className={cn(
-            "border p-6 flex items-center justify-between",
+            "border p-6 flex items-center justify-between rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <div className="flex items-center gap-4">
               <div className={cn(
-                "w-12 h-12 flex items-center justify-center",
+                "w-12 h-12 flex items-center justify-center rounded-lg",
                 config.isEnabled
                   ? isLight ? "bg-green-500" : "bg-green-600"
                   : isLight ? "bg-red-500" : "bg-red-600"
               )}>
-                <Globe className="w-6 h-6 text-white" />
+                <Globe className="w-6 h-6 text-white rounded-lg" />
               </div>
               <div>
                 <h3 className={cn(
-                  "font-semibold",
+                  "font-semibold rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {t.adminConfig.apiStatus}
                 </h3>
                 <p className={cn(
-                  "text-sm",
+                  "text-sm rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminConfig.enablePublicAPI}
                 </p>
               </div>
             </div>
-            <label className="relative inline-block w-12 h-6 cursor-pointer">
+            <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
               <input
                 type="checkbox"
                 name="toggle"
@@ -413,13 +419,13 @@ export default function ConfigPage() {
                 className="sr-only"
               />
               <span className={cn(
-                "absolute inset-0 transition-colors",
+                "absolute inset-0 transition-colors rounded-lg",
                 config.isEnabled
                   ? isLight ? "bg-green-500" : "bg-green-600"
                   : isLight ? "bg-gray-300" : "bg-gray-600"
               )}></span>
               <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform",
+                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
                 config.isEnabled ? "translate-x-6" : "translate-x-0"
               )}></span>
@@ -427,34 +433,34 @@ export default function ConfigPage() {
           </div>
 
           <div className={cn(
-            "border p-6 flex items-center justify-between",
+            "border p-6 flex items-center justify-between rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 rounded-lg">
               <div className={cn(
-                "w-12 h-12 flex items-center justify-center",
+                "w-12 h-12 flex items-center justify-center rounded-lg",
                 config.apiKeyEnabled
                   ? isLight ? "bg-blue-500" : "bg-blue-600"
                   : isLight ? "bg-gray-400" : "bg-gray-600"
               )}>
-                <Key className="w-6 h-6 text-white" />
+                <Key className="w-6 h-6 text-white rounded-lg" />
               </div>
               <div>
                 <h3 className={cn(
-                  "font-semibold",
+                  "font-semibold rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {t.adminConfig.apiKeyAuth}
                 </h3>
                 <p className={cn(
-                  "text-sm",
+                  "text-sm rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminConfig.enableApiKey}
                 </p>
               </div>
             </div>
-            <label className="relative inline-block w-12 h-6 cursor-pointer">
+            <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
               <input
                 type="checkbox"
                 name="toggle"
@@ -464,13 +470,13 @@ export default function ConfigPage() {
                 className="sr-only"
               />
               <span className={cn(
-                "absolute inset-0 transition-colors",
+                "absolute inset-0 transition-colors rounded-lg",
                 config.apiKeyEnabled
                   ? isLight ? "bg-blue-500" : "bg-blue-600"
                   : isLight ? "bg-gray-300" : "bg-gray-600"
               )}></span>
               <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform",
+                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
                 config.apiKeyEnabled ? "translate-x-6" : "translate-x-0"
               )}></span>
@@ -478,34 +484,34 @@ export default function ConfigPage() {
           </div>
 
           <div className={cn(
-            "border p-6 flex items-center justify-between",
+            "border p-6 flex items-center justify-between rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 rounded-lg">
               <div className={cn(
-                "w-12 h-12 flex items-center justify-center",
+                "w-12 h-12 flex items-center justify-center rounded-lg",
                 config.enableDirectResponse
                   ? isLight ? "bg-purple-500" : "bg-purple-600"
                   : isLight ? "bg-gray-400" : "bg-gray-600"
               )}>
-                <ExternalLink className="w-6 h-6 text-white" />
+                <ExternalLink className="w-6 h-6 text-white rounded-lg" />
               </div>
               <div>
                 <h3 className={cn(
-                  "font-semibold",
+                  "font-semibold rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {t.adminConfig.enableDirectResponse}
                 </h3>
                 <p className={cn(
-                  "text-sm",
+                  "text-sm rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   Allow non-redirect
                 </p>
               </div>
             </div>
-            <label className="relative inline-block w-12 h-6 cursor-pointer">
+            <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
               <input
                 type="checkbox"
                 name="toggle"
@@ -515,13 +521,13 @@ export default function ConfigPage() {
                 className="sr-only"
               />
               <span className={cn(
-                "absolute inset-0 transition-colors",
+                "absolute inset-0 transition-colors rounded-lg",
                 config.enableDirectResponse
                   ? isLight ? "bg-purple-500" : "bg-purple-600"
                   : isLight ? "bg-gray-300" : "bg-gray-600"
               )}></span>
               <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform",
+                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
                 config.enableDirectResponse ? "translate-x-6" : "translate-x-0"
               )}></span>
@@ -529,35 +535,35 @@ export default function ConfigPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 rounded-lg">
           {/* Left Column: Settings */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 rounded-lg">
             {/* API Key Config */}
             {config.apiKeyEnabled && (
               <div className={cn(
-                "border p-6 space-y-4",
+                "border p-6 space-y-4 rounded-lg",
                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
               )}>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-4 rounded-lg">
                   <Shield className={cn(
-                    "w-5 h-5",
+                    "w-5 h-5 rounded-lg",
                     isLight ? "text-blue-500" : "text-blue-400"
                   )} />
                   <h3 className={cn(
-                    "font-bold text-lg",
+                    "font-bold text-lg rounded-lg",
                     isLight ? "text-gray-900" : "text-gray-100"
                   )}>
                     {t.adminConfig.apiKeyValue}
                   </h3>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 rounded-lg">
                   <input
                     type="text"
                     value={config.apiKey || ''}
                     onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
                     placeholder={t.adminConfig.apiKeyPlaceholder}
                     className={cn(
-                      "flex-1 p-3 border outline-none focus:border-blue-500 font-mono",
+                      "flex-1 p-3 border outline-none focus:border-blue-500 font-mono rounded-lg",
                       isLight
                         ? "bg-white border-gray-300"
                         : "bg-gray-800 border-gray-600"
@@ -569,7 +575,7 @@ export default function ConfigPage() {
                       setConfig({ ...config, apiKey: randomKey });
                     }}
                     className={cn(
-                      "px-4 py-2 border transition-colors",
+                      "px-4 py-2 border transition-colors rounded-lg",
                       isLight
                         ? "bg-gray-100 border-gray-300 hover:bg-gray-200"
                         : "bg-gray-700 border-gray-600 hover:bg-gray-600"
@@ -579,7 +585,7 @@ export default function ConfigPage() {
                   </button>
                 </div>
                 <p className={cn(
-                  "text-sm",
+                  "text-sm rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminConfig.apiKeyValueDesc}
@@ -589,16 +595,16 @@ export default function ConfigPage() {
 
             {/* Scope Config */}
             <div className={cn(
-              "border p-6 space-y-6",
+              "border p-6 space-y-6 rounded-lg",
               isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
             )}>
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4 rounded-lg">
                 <Database className={cn(
-                  "w-5 h-5",
+                  "w-5 h-5 rounded-lg",
                   isLight ? "text-blue-500" : "text-blue-400"
                 )} />
                 <h3 className={cn(
-                  "font-bold text-lg",
+                  "font-bold text-lg rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {t.adminConfig.defaultScope}
@@ -607,7 +613,7 @@ export default function ConfigPage() {
 
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-2",
+                  "block text-sm font-medium mb-2 rounded-lg",
                   isLight ? "text-gray-700" : "text-gray-300"
                 )}>
                   {t.adminConfig.defaultScopeDesc}
@@ -616,7 +622,7 @@ export default function ConfigPage() {
                   value={config.defaultScope}
                   onChange={(e) => setConfig({ ...config, defaultScope: e.target.value as 'all' | 'groups' })}
                   className={cn(
-                    "w-full p-3 border outline-none focus:border-blue-500",
+                    "w-full p-3 border outline-none focus:border-blue-500 rounded-lg",
                     isLight
                       ? "bg-white border-gray-300"
                       : "bg-gray-800 border-gray-600"
@@ -629,11 +635,11 @@ export default function ConfigPage() {
 
               {config.defaultScope === 'groups' && (
                 <div className={cn(
-                  "p-4 border",
+                  "p-4 border rounded-lg",
                   isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
                 )}>
                   <label className={cn(
-                    "block text-sm font-medium mb-3",
+                    "block text-sm font-medium mb-3 rounded-lg",
                     isLight ? "text-gray-700" : "text-gray-300"
                   )}>
                     {t.adminConfig.defaultGroups}
@@ -643,7 +649,7 @@ export default function ConfigPage() {
                       <label
                         key={group.id}
                         className={cn(
-                          "flex items-center gap-2 p-2 border cursor-pointer transition-colors",
+                          "flex items-center gap-2 p-2 border cursor-pointer transition-colors rounded-lg",
                           isLight
                             ? "bg-white border-gray-300 hover:bg-gray-50"
                             : "bg-gray-800 border-gray-600 hover:bg-gray-700"
@@ -660,14 +666,14 @@ export default function ConfigPage() {
                             }
                           }}
                           className={cn(
-                            "border",
+                            "border rounded-lg",
                             isLight
                               ? "border-gray-300"
                               : "border-gray-600"
                           )}
                         />
                         <span className={cn(
-                          "text-sm",
+                          "text-sm rounded-lg",
                           isLight ? "text-gray-900" : "text-gray-100"
                         )}>
                           {group.name}
@@ -681,17 +687,17 @@ export default function ConfigPage() {
 
             {/* Parameter Management */}
             <div className={cn(
-              "border p-6",
+              "border p-6 rounded-lg",
               isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
             )}>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6 rounded-lg">
                 <div className="flex items-center gap-3">
                   <Settings className={cn(
-                    "w-5 h-5",
+                    "w-5 h-5 rounded-lg",
                     isLight ? "text-blue-500" : "text-blue-400"
                   )} />
                   <h3 className={cn(
-                    "font-bold text-lg",
+                    "font-bold text-lg rounded-lg",
                     isLight ? "text-gray-900" : "text-gray-100"
                   )}>
                     {t.adminConfig.parameterManagement}
@@ -700,7 +706,7 @@ export default function ConfigPage() {
                 <button
                   onClick={() => setShowAddParameter(true)}
                   className={cn(
-                    "px-3 py-1.5 text-sm border flex items-center gap-2 transition-colors",
+                    "px-3 py-1.5 text-sm border flex items-center gap-2 transition-colors rounded-lg",
                     isLight
                       ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                       : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -714,7 +720,7 @@ export default function ConfigPage() {
               <div className="space-y-4">
                 {config.allowedParameters.length === 0 ? (
                   <div className={cn(
-                    "text-center py-12 border-2 border-dashed",
+                    "text-center py-12 border-2 border-dashed rounded-lg",
                     isLight
                       ? "border-gray-300 text-gray-600"
                       : "border-gray-600 text-gray-400"
@@ -723,7 +729,7 @@ export default function ConfigPage() {
                     <button
                       onClick={() => setShowAddParameter(true)}
                       className={cn(
-                        "mt-4 px-4 py-2 border transition-colors",
+                        "mt-4 px-4 py-2 border transition-colors rounded-lg",
                         isLight
                           ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                           : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -737,7 +743,7 @@ export default function ConfigPage() {
                     <div
                       key={index}
                       className={cn(
-                        "p-4 border flex items-center justify-between group transition-colors",
+                        "p-4 border flex items-center justify-between group transition-colors rounded-lg",
                         isLight
                           ? "bg-gray-50 border-gray-300 hover:bg-gray-100"
                           : "bg-gray-700 border-gray-600 hover:bg-gray-600"
@@ -746,13 +752,13 @@ export default function ConfigPage() {
                       <div>
                         <div className="flex items-center gap-3 mb-1">
                           <h4 className={cn(
-                            "font-bold",
+                            "font-bold rounded-lg",
                             isLight ? "text-gray-900" : "text-gray-100"
                           )}>
                             {param.name}
                           </h4>
                           <span className={cn(
-                            "text-xs px-2 py-0.5 border",
+                            "text-xs px-2 py-0.5 border rounded-lg",
                             param.isEnabled
                               ? isLight
                                 ? "bg-green-50 border-green-300 text-green-700"
@@ -764,7 +770,7 @@ export default function ConfigPage() {
                             {param.isEnabled ? 'Enabled' : 'Disabled'}
                           </span>
                           <span className={cn(
-                            "text-xs px-2 py-0.5 border capitalize",
+                            "text-xs px-2 py-0.5 border capitalize rounded-lg",
                             isLight
                               ? "bg-blue-50 border-blue-300 text-blue-700"
                               : "bg-blue-900/20 border-blue-600 text-blue-400"
@@ -773,7 +779,7 @@ export default function ConfigPage() {
                           </span>
                         </div>
                         <div className={cn(
-                          "text-xs",
+                          "text-xs rounded-lg",
                           isLight ? "text-gray-600" : "text-gray-400"
                         )}>
                           Values: {param.allowedValues.join(', ')}
@@ -783,7 +789,7 @@ export default function ConfigPage() {
                         <button
                           onClick={() => setEditingParameter(param)}
                           className={cn(
-                            "p-2 border transition-colors",
+                            "p-2 border transition-colors rounded-lg",
                             isLight
                               ? "text-blue-600 border-gray-300 hover:bg-blue-50"
                               : "text-blue-400 border-gray-600 hover:bg-blue-900/20"
@@ -794,7 +800,7 @@ export default function ConfigPage() {
                         <button
                           onClick={() => deleteParameter(index)}
                           className={cn(
-                            "p-2 border transition-colors",
+                            "p-2 border transition-colors rounded-lg",
                             isLight
                               ? "text-red-600 border-gray-300 hover:bg-red-50"
                               : "text-red-400 border-gray-600 hover:bg-red-900/20"
@@ -811,13 +817,13 @@ export default function ConfigPage() {
           </div>
 
           {/* Right Column: API Test & Info */}
-          <div className="space-y-6">
+          <div className="space-y-6 rounded-lg">
             <div className={cn(
-              "border p-6 space-y-6 sticky top-24",
+              "border p-6 space-y-6 sticky top-24 rounded-lg",
               isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
             )}>
               <h3 className={cn(
-                "font-bold text-lg mb-4",
+                "font-bold text-lg mb-4 rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {t.adminConfig.apiLinks}
@@ -826,14 +832,14 @@ export default function ConfigPage() {
               <div className="space-y-4">
                 <div>
                   <label className={cn(
-                    "text-xs uppercase tracking-wider mb-1 block",
+                    "text-xs uppercase tracking-wider mb-1 block rounded-lg",
                     isLight ? "text-gray-600" : "text-gray-400"
                   )}>
                     Base URL
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 rounded-lg">
                     <div className={cn(
-                      "flex-1 p-2 border font-mono text-xs truncate",
+                      "flex-1 p-2 border font-mono text-xs truncate rounded-lg",
                       isLight
                         ? "bg-gray-50 border-gray-300"
                         : "bg-gray-700 border-gray-600"
@@ -843,7 +849,7 @@ export default function ConfigPage() {
                     <button
                       onClick={() => navigator.clipboard.writeText(generateApiUrl())}
                       className={cn(
-                        "p-2 border transition-colors",
+                        "p-2 border transition-colors rounded-lg",
                         isLight
                           ? "bg-gray-100 border-gray-300 hover:bg-gray-200"
                           : "bg-gray-700 border-gray-600 hover:bg-gray-600"
@@ -856,31 +862,31 @@ export default function ConfigPage() {
 
                 <div>
                   <label className={cn(
-                    "text-xs uppercase tracking-wider mb-2 block",
+                    "text-xs uppercase tracking-wider mb-2 block rounded-lg",
                     isLight ? "text-gray-600" : "text-gray-400"
                   )}>
                     Examples
                   </label>
-                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 rounded-lg">
                     {generateExampleUrls().map((example, i) => (
                       <div
                         key={i}
                         className={cn(
-                          "p-3 border text-xs",
+                          "p-3 border text-xs rounded-lg",
                           isLight
                             ? "bg-gray-50 border-gray-300"
                             : "bg-gray-700 border-gray-600"
                         )}
                       >
                         <div className={cn(
-                          "font-semibold mb-1 truncate",
+                          "font-semibold mb-1 truncate rounded-lg",
                           isLight ? "text-gray-900" : "text-gray-100"
                         )} title={example.label}>
                           {example.label}
                         </div>
-                        <div className="flex gap-2 items-center">
+                        <div className="flex gap-2 items-center rounded-lg">
                           <div className={cn(
-                            "flex-1 font-mono truncate",
+                            "flex-1 font-mono truncate rounded-lg",
                             isLight ? "text-gray-600" : "text-gray-400"
                           )} title={example.url}>
                             {example.url}
@@ -888,7 +894,7 @@ export default function ConfigPage() {
                           <button
                             onClick={() => navigator.clipboard.writeText(example.url)}
                             className={cn(
-                              "hover:opacity-70 transition-opacity",
+                              "hover:opacity-70 transition-opacity rounded-lg",
                               isLight ? "text-gray-700" : "text-gray-300"
                             )}
                           >
@@ -897,7 +903,7 @@ export default function ConfigPage() {
                           <button
                             onClick={() => window.open(example.url, '_blank')}
                             className={cn(
-                              "hover:opacity-70 transition-opacity",
+                              "hover:opacity-70 transition-opacity rounded-lg",
                               isLight ? "text-gray-700" : "text-gray-300"
                             )}
                           >
@@ -911,23 +917,23 @@ export default function ConfigPage() {
               </div>
 
               <div className={cn(
-                "pt-6 border-t",
+                "pt-6 border-t rounded-lg",
                 isLight ? "border-gray-300" : "border-gray-600"
               )}>
                 <h3 className={cn(
-                  "font-bold text-lg mb-4",
+                  "font-bold text-lg mb-4 rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {t.adminConfig.apiTest}
                 </h3>
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-4 rounded-lg">
                   <input
                     type="text"
                     value={testUrl}
                     onChange={(e) => setTestUrl(e.target.value)}
                     placeholder="https://..."
                     className={cn(
-                      "flex-1 p-2 border outline-none focus:border-blue-500 text-sm font-mono",
+                      "flex-1 p-2 border outline-none focus:border-blue-500 text-sm font-mono rounded-lg",
                       isLight
                         ? "bg-white border-gray-300"
                         : "bg-gray-800 border-gray-600"
@@ -937,7 +943,7 @@ export default function ConfigPage() {
                     onClick={testApi}
                     disabled={!testUrl || testing}
                     className={cn(
-                      "px-3 py-2 border flex items-center transition-colors disabled:opacity-50",
+                      "px-3 py-2 border flex items-center transition-colors disabled:opacity-50 rounded-lg",
                       isLight
                         ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                         : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -949,7 +955,7 @@ export default function ConfigPage() {
 
                 {testResult && (
                   <div className={cn(
-                    "p-4 border text-xs font-mono overflow-hidden",
+                    "p-4 border text-xs font-mono overflow-hidden rounded-lg",
                     testResult.success
                       ? isLight
                         ? "bg-green-50 border-green-300"
@@ -959,7 +965,7 @@ export default function ConfigPage() {
                       : "bg-red-900/20 border-red-600"
                   )}>
                     <div className={cn(
-                      "flex items-center gap-2 mb-2 font-bold",
+                      "flex items-center gap-2 mb-2 font-bold rounded-lg",
                       testResult.success
                         ? isLight ? "text-green-700" : "text-green-400"
                         : isLight ? "text-red-700" : "text-red-400"
@@ -978,11 +984,11 @@ export default function ConfigPage() {
                     )}
                     {testResult.headers && (
                       <div className={cn(
-                        "opacity-70 mt-2",
+                        "opacity-70 mt-2 rounded-lg",
                         isLight ? "text-gray-600" : "text-gray-400"
                       )}>
                         <div className="uppercase text-[10px] mb-1">Response Headers:</div>
-                        <pre className="overflow-x-auto whitespace-pre-wrap break-all">
+                        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg">
                           {JSON.stringify(testResult.headers, null, 2)}
                         </pre>
                       </div>

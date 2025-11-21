@@ -134,7 +134,7 @@ export default function ImageFilters({
                   : "bg-gray-800 border-gray-600"
               )}
             >
-              <option value="">{t.adminImages.selectGroup}</option>
+              <option value="">{t.adminImages.selectGroupPlaceholder}</option>
               <option value="unassigned">{t.adminImages.unassigned}</option>
               {Array.isArray(groups) && groups.length > 0 ? (
                 groups.map((group) => (

@@ -219,26 +219,29 @@ export default function SystemStatusPage() {
 
   // --- V3 Layout (Flat Design) ---
   return (
-      <div className="space-y-6">
+      <div className="space-y-6 rounded-lg">
         {/* Header */}
         <div className={cn(
-          "border p-6 flex justify-between items-start",
+          "border p-6 flex justify-between items-start rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
           <div>
             <h1 className={cn(
-              "text-3xl font-bold mb-2",
+              "text-3xl font-bold mb-2 rounded-lg",
               isLight ? "text-gray-900" : "text-gray-100"
             )}>
               {t.adminStatus.title}
             </h1>
-            <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+            <p className={cn(
+              "text-sm rounded-lg",
+              isLight ? "text-gray-600" : "text-gray-400"
+            )}>
               {t.adminStatus.description}
             </p>
           </div>
           <div className="flex items-center gap-4">
             <div className={cn(
-              "flex items-center gap-2 text-sm",
+              "flex items-center gap-2 text-sm rounded-lg",
               isLight ? "text-gray-600" : "text-gray-400"
             )}>
               <span className="relative flex h-2 w-2">
@@ -251,12 +254,12 @@ export default function SystemStatusPage() {
                   status.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'
                 )}></span>
               </span>
-              {autoRefresh ? 'Live' : 'Paused'}
+              {autoRefresh ? t.adminStatus.live : t.adminStatus.paused}
             </div>
             <button
               onClick={loadStatus}
               className={cn(
-                "px-4 py-2 border flex items-center gap-2 transition-colors",
+                "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
                 isLight
                   ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                   : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -269,26 +272,26 @@ export default function SystemStatusPage() {
         </div>
 
         {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 rounded-lg">
           <div className={cn(
-            "border p-6 flex items-center gap-4",
+            "border p-6 flex items-center gap-4 rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <div className={cn(
-              "w-12 h-12 flex items-center justify-center",
+              "w-12 h-12 flex items-center justify-center rounded-lg",
               isLight ? "bg-blue-500" : "bg-blue-600"
             )}>
               <Activity className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className={cn(
-                "text-sm mb-1",
+                "text-sm mb-1 rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.adminStatus.uptime}
               </p>
               <p className={cn(
-                "text-xl font-bold",
+                "text-xl font-bold rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {formatUptime(status.uptime)}
@@ -297,24 +300,24 @@ export default function SystemStatusPage() {
           </div>
 
           <div className={cn(
-            "border p-6 flex items-center gap-4",
+            "border p-6 flex items-center gap-4 rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <div className={cn(
-              "w-12 h-12 flex items-center justify-center",
+              "w-12 h-12 flex items-center justify-center rounded-lg",
               isLight ? "bg-green-500" : "bg-green-600"
             )}>
               <Zap className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className={cn(
-                "text-sm mb-1",
+                "text-sm mb-1 rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.adminStatus.healthScore}
               </p>
               <p className={cn(
-                "text-xl font-bold",
+                "text-xl font-bold rounded-lg",
                 getHealthScoreColor(status.health.score)
               )}>
                 {status.health.score}/100
@@ -323,24 +326,24 @@ export default function SystemStatusPage() {
           </div>
 
           <div className={cn(
-            "border p-6 flex items-center gap-4",
+            "border p-6 flex items-center gap-4 rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <div className={cn(
-              "w-12 h-12 flex items-center justify-center",
+              "w-12 h-12 flex items-center justify-center rounded-lg",
               isLight ? "bg-purple-500" : "bg-purple-600"
             )}>
               <Activity className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className={cn(
-                "text-sm mb-1",
+                "text-sm mb-1 rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.adminStatus.responseTime}
               </p>
               <p className={cn(
-                "text-xl font-bold",
+                "text-xl font-bold rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {status.performance.responseTime}
@@ -349,24 +352,24 @@ export default function SystemStatusPage() {
           </div>
 
           <div className={cn(
-            "border p-6 flex items-center gap-4",
+            "border p-6 flex items-center gap-4 rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <div className={cn(
-              "w-12 h-12 flex items-center justify-center",
+              "w-12 h-12 flex items-center justify-center rounded-lg",
               isLight ? "bg-orange-500" : "bg-orange-600"
             )}>
               <Cpu className="w-6 h-6 text-white" />
             </div>
             <div>
               <p className={cn(
-                "text-sm mb-1",
+                "text-sm mb-1 rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.adminStatus.version}
               </p>
               <p className={cn(
-                "text-xl font-bold",
+                "text-xl font-bold rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 v{status.version}
@@ -377,26 +380,26 @@ export default function SystemStatusPage() {
 
         {/* Services Status */}
         <div className={cn(
-          "border p-6",
+          "border p-6 rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
           <h2 className={cn(
-            "text-lg font-semibold mb-4",
+            "text-lg font-semibold mb-4 rounded-lg",
             isLight ? "text-gray-900" : "text-gray-100"
           )}>
             {t.adminStatus.serviceStatus}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
             <div className={cn(
-              "border p-4",
+              "border p-4 rounded-lg",
               isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
             )}>
               <div className="flex items-center justify-between mb-2">
                 <span className={cn(
-                  "text-sm font-medium",
+                  "text-sm font-medium rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
-                  Database
+                  {t.adminStatus.database}
                 </span>
                 <div className={cn(
                   "w-3 h-3",
@@ -405,7 +408,7 @@ export default function SystemStatusPage() {
               </div>
               {status.services.database.responseTime && (
                 <p className={cn(
-                  "text-xs",
+                  "text-xs rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {status.services.database.responseTime}ms
@@ -414,15 +417,15 @@ export default function SystemStatusPage() {
             </div>
 
             <div className={cn(
-              "border p-4",
+              "border p-4 rounded-lg",
               isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
             )}>
               <div className="flex items-center justify-between mb-2">
                 <span className={cn(
-                  "text-sm font-medium",
+                  "text-sm font-medium rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
-                  Cloudinary
+                  {t.adminStatus.cloudinary}
                 </span>
                 <div className={cn(
                   "w-3 h-3",
@@ -431,7 +434,7 @@ export default function SystemStatusPage() {
               </div>
               {status.services.cloudinary.responseTime && (
                 <p className={cn(
-                  "text-xs",
+                  "text-xs rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {status.services.cloudinary.responseTime}ms
@@ -440,15 +443,15 @@ export default function SystemStatusPage() {
             </div>
 
             <div className={cn(
-              "border p-4",
+              "border p-4 rounded-lg",
               isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
             )}>
               <div className="flex items-center justify-between mb-2">
                 <span className={cn(
-                  "text-sm font-medium",
+                  "text-sm font-medium rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
-                  API Service
+                  {t.adminStatus.apiService}
                 </span>
                 <div className={cn(
                   "w-3 h-3",
@@ -457,10 +460,10 @@ export default function SystemStatusPage() {
               </div>
               {status.services.api.parametersCount !== undefined && (
                 <p className={cn(
-                  "text-xs",
+                  "text-xs rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
-                  {status.services.api.parametersCount} parameters
+                  {status.services.api.parametersCount} {t.adminStatus.parameters}
                 </p>
               )}
             </div>
@@ -470,21 +473,21 @@ export default function SystemStatusPage() {
         {/* Health Issues */}
         {status.health.issues.length > 0 && (
           <div className={cn(
-            "border p-6",
+            "border p-6 rounded-lg",
             isLight ? "bg-yellow-50 border-yellow-300" : "bg-yellow-900/20 border-yellow-800"
           )}>
             <h2 className={cn(
-              "text-lg font-semibold mb-4",
+              "text-lg font-semibold mb-4 rounded-lg",
               isLight ? "text-yellow-900" : "text-yellow-200"
             )}>
               {t.adminStatus.healthIssues}
             </h2>
-            <div className="space-y-2">
+            <div className="space-y-2 rounded-lg">
               {status.health.issues.map((issue, index) => (
                 <div
                   key={index}
                   className={cn(
-                    "flex items-center gap-3 p-3 border",
+                    "flex items-center gap-3 p-3 border rounded-lg",
                     isLight
                       ? "bg-white border-yellow-300"
                       : "bg-gray-800 border-yellow-800"
@@ -495,7 +498,7 @@ export default function SystemStatusPage() {
                     isLight ? "bg-yellow-500" : "bg-yellow-400"
                   )}></span>
                   <span className={cn(
-                    "text-sm",
+                    "text-sm rounded-lg",
                     isLight ? "text-yellow-800" : "text-yellow-200"
                   )}>
                     {issue}

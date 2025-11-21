@@ -134,10 +134,15 @@ export interface Translations {
     totalAccess: string;
     quickActions: string;
     uploadImage: string;
+    uploadImageDesc: string;
     manageGroups: string;
+    manageGroupsDesc: string;
     apiConfig: string;
+    apiConfigDesc: string;
     backupManagement: string;
+    backupManagementDesc: string;
     testAPI: string;
+    last24HoursAccessShort: string;
   };
 
   // 系统健康监控
@@ -244,7 +249,6 @@ export interface Translations {
     urlImportJsonExampleTitle: string;
     urlImportJsonExampleContent: string;
     // ImageList 组件
-    selectGroup: string;
     unassigned: string;
     reset: string;
     group: string;
@@ -421,6 +425,9 @@ export interface Translations {
     recentErrors: string;
     environment: string;
     healthIssues: string;
+    live: string;
+    paused: string;
+    parameters: string;
   };
 
   // 系统日志
@@ -470,6 +477,8 @@ export interface Translations {
     noLogsFound: string;
     viewDetails: string;
     details: string;
+    systemLogsStream: string;
+    live: string;
     invalidTime: string;
     page: string;
     totalPages: string;
@@ -765,5 +774,9 @@ export interface Translations {
     export: string;
     noData: string;
     loadFailed: string;
+    requests: string;
+    blocked: string;
+    activeLimits: string;
+    noAccessData: string;
   };
 }

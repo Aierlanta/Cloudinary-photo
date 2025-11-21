@@ -20,7 +20,7 @@ interface LogViewerProps {
 }
 
 export default function LogViewer({
-  maxEntries = 100,
+  maxEntries = 25,
   autoRefresh: initialAutoRefresh = false,
   refreshInterval = 5000
 }: LogViewerProps) {
@@ -264,13 +264,13 @@ export default function LogViewer({
   }
 
   return (
-    <div className="transparent-panel rounded-lg p-6 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
+    <div className="transparent-panel rounded-lg p-6 shadow-lg flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4 shrink-0">
         <h2 className="text-lg font-semibold panel-text">{t.adminLogs.systemLogs}</h2>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => loadLogs()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors rounded-lg"
           >
             {t.adminLogs.refresh}
           </button>
@@ -286,12 +286,12 @@ export default function LogViewer({
                   console.error('生成测试日志失败:', error);
                 }
               }}
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors"
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors rounded-lg"
             >
               {t.adminLogs.generateTestLog}
             </button>
           )}
-          <label className="flex items-center text-sm panel-text">
+          <label className="flex items-center text-sm panel-text rounded-lg">
             <input
               type="checkbox"
               checked={autoRefresh}
@@ -304,17 +304,17 @@ export default function LogViewer({
       </div>
 
       {/* 筛选器 */}
-      <div className="space-y-4 mb-6">
+      <div className="space-y-4 mb-6 shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* 日志级别过滤 */}
           <div>
-            <label className="block text-sm font-medium panel-text mb-2">
+            <label className="block text-sm font-medium panel-text mb-2 rounded-lg">
               {t.adminLogs.logLevel}
             </label>
             <select
               value={filter.level}
               onChange={(e) => setFilter(prev => ({ ...prev, level: e.target.value as LogLevel | 'all' }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
             >
               <option value="all">{t.adminLogs.allLevels}</option>
               <option value={LogLevel.DEBUG}>DEBUG</option>
@@ -326,13 +326,13 @@ export default function LogViewer({
 
           {/* 日志类型过滤 */}
           <div>
-            <label className="block text-sm font-medium panel-text mb-2">
+            <label className="block text-sm font-medium panel-text mb-2 rounded-lg">
               {t.adminLogs.logType}
             </label>
             <select
               value={filter.type}
               onChange={(e) => setFilter(prev => ({ ...prev, type: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
             >
               <option value="all">{t.adminLogs.allTypes}</option>
               <option value="api_request">{t.adminLogs.apiRequest}</option>
@@ -348,7 +348,7 @@ export default function LogViewer({
 
           {/* 时间范围 */}
           <div>
-            <label className="block text-sm font-medium panel-text mb-2">
+            <label className="block text-sm font-medium panel-text mb-2 rounded-lg">
               {t.adminLogs.timeRange}
             </label>
             <select
@@ -386,7 +386,7 @@ export default function LogViewer({
                   }));
                 }
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
             >
               <option value="all">{t.adminLogs.allTime}</option>
               <option value="1h">{t.adminLogs.lastHour}</option>
@@ -398,7 +398,7 @@ export default function LogViewer({
 
           {/* 每页条数 */}
           <div>
-            <label className="block text-sm font-medium panel-text mb-2">
+            <label className="block text-sm font-medium panel-text mb-2 rounded-lg">
               {t.adminLogs.itemsPerPage}
             </label>
             <select
@@ -408,7 +408,7 @@ export default function LogViewer({
                 setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
                 loadLogs(1);
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
             >
               <option value="25">{t.adminLogs.items25}</option>
               <option value="50">{t.adminLogs.items50}</option>
@@ -421,7 +421,7 @@ export default function LogViewer({
         {/* 搜索框和操作按钮 */}
         <div className="flex items-end space-x-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium panel-text mb-2">
+            <label className="block text-sm font-medium panel-text mb-2 rounded-lg">
               {t.adminLogs.searchLogMessage}
             </label>
             <div className="relative">
@@ -430,7 +430,7 @@ export default function LogViewer({
                 value={filter.search}
                 onChange={(e) => setFilter(prev => ({ ...prev, search: e.target.value }))}
                 placeholder={t.adminLogs.searchPlaceholder}
-                className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,7 +453,7 @@ export default function LogViewer({
               });
               setPagination(prev => ({ ...prev, page: 1 }));
             }}
-            className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors rounded-lg"
           >
             {t.adminLogs.clearFilters}
           </button>
@@ -462,7 +462,7 @@ export default function LogViewer({
 
       {/* 错误显示 */}
       {error && (
-        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shrink-0">
           <div className="flex items-center">
             <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -473,22 +473,22 @@ export default function LogViewer({
       )}
 
       {/* 日志列表 */}
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 h-[calc(100vh-400px)] min-h-[400px] overflow-y-auto">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 flex-1 overflow-y-auto min-h-0">
         {loading ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8 rounded-lg">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">加载中...</p>
           </div>
         ) : logs.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8 rounded-lg">
             <p className="text-gray-500 dark:text-gray-400">暂无日志记录</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-lg">
             {logs.map((log, index) => (
               <div
                 key={index}
-                className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700"
+                className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -496,37 +496,37 @@ export default function LogViewer({
                       <span className={`px-2 py-1 rounded text-xs font-medium ${getLevelColor(log.level)}`}>
                         {getLevelName(log.level)}
                       </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 rounded-lg">
                         {formatTimestamp(log.timestamp)}
                       </span>
                       {log.requestId && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono rounded-lg">
                           {log.requestId}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm panel-text mb-1">{translateLogMessage(log.message)}</p>
+                    <p className="text-sm panel-text mb-1 rounded-lg">{translateLogMessage(log.message)}</p>
                     {log.context && Object.keys(log.context).length > 0 && (
                       <details className="mt-2">
-                        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer rounded-lg">
                           {t.adminLogs.viewDetails}
                         </summary>
-                        <pre className="text-xs text-gray-600 dark:text-gray-300 mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto">
+                        <pre className="text-xs text-gray-600 dark:text-gray-300 mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto rounded-lg">
                           {JSON.stringify(log.context, null, 2)}
                         </pre>
                       </details>
                     )}
                     {log.error && (
-                      <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                      <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded rounded-lg">
                         <p className="text-xs text-red-700 dark:text-red-300 font-medium">
                           {log.error.message}
                         </p>
                         {log.error.stack && (
                           <details className="mt-1">
-                            <summary className="text-xs text-red-600 dark:text-red-400 cursor-pointer">
+                            <summary className="text-xs text-red-600 dark:text-red-400 cursor-pointer rounded-lg">
                               堆栈跟踪
                             </summary>
-                            <pre className="text-xs text-red-600 dark:text-red-400 mt-1 overflow-auto max-h-32">
+                            <pre className="text-xs text-red-600 dark:text-red-400 mt-1 overflow-auto max-h-32 rounded-lg">
                               {log.error.stack}
                             </pre>
                           </details>
@@ -543,8 +543,8 @@ export default function LogViewer({
 
       {/* 分页控件 */}
       {pagination.totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-4 flex items-center justify-between shrink-0">
+          <div className="text-sm text-gray-500 dark:text-gray-400 rounded-lg">
             {t.adminLogs.pageInfo
               .replace('{page}', pagination.page.toString())
               .replace('{totalPages}', pagination.totalPages.toString())
@@ -573,7 +573,7 @@ export default function LogViewer({
       )}
 
       {/* 统计信息 */}
-      <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 panel-text">
+      <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 panel-text shrink-0">
         {t.adminLogs.showingRecords.replace('{count}', logs.length.toString())}
         {filter.search && ` (${t.adminLogs.searchFilter.replace('{search}', filter.search)})`}
         {filter.level !== 'all' && ` (${t.adminLogs.levelFilter.replace('{level}', getLevelName(filter.level as LogLevel))})`}

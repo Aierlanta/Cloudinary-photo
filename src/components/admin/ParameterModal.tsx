@@ -123,14 +123,14 @@ export default function ParameterModal({
 
   // --- V3 Layout (Flat Design) ---
   return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0 rounded-lg">
         <div className={cn(
-          "border max-w-2xl w-full max-h-[90vh] overflow-y-auto",
+          "border max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
-          <div className="p-6">
+          <div className="p-6 rounded-lg">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 rounded-lg">
               <h3 className={cn(
                 "text-lg font-semibold",
                 isLight ? "text-gray-900" : "text-gray-100"
@@ -140,7 +140,7 @@ export default function ParameterModal({
               <button
                 onClick={onClose}
                 className={cn(
-                  "p-2 transition-colors",
+                  "p-2 transition-colors rounded-lg",
                   isLight
                     ? "text-gray-500 hover:bg-gray-100"
                     : "text-gray-400 hover:bg-gray-700"
@@ -153,12 +153,12 @@ export default function ParameterModal({
             </div>
 
             {/* Form */}
-            <div className="space-y-6">
+            <div className="space-y-6 rounded-lg">
               {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
                 <div>
                   <label className={cn(
-                    "block text-sm font-medium mb-2",
+                    "block text-sm font-medium mb-2 rounded-lg",
                     isLight ? "text-gray-700" : "text-gray-300"
                   )}>
                     {t.adminConfig.parameterNameLabel} *
@@ -169,7 +169,7 @@ export default function ParameterModal({
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder={t.adminConfig.parameterNamePlaceholder}
                     className={cn(
-                      "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                      "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                       isLight
                         ? "bg-white border-gray-300"
                         : "bg-gray-800 border-gray-600"
@@ -179,7 +179,7 @@ export default function ParameterModal({
 
                 <div>
                   <label className={cn(
-                    "block text-sm font-medium mb-2",
+                    "block text-sm font-medium mb-2 rounded-lg",
                     isLight ? "text-gray-700" : "text-gray-300"
                   )}>
                     {t.adminConfig.parameterTypeLabel}
@@ -188,7 +188,7 @@ export default function ParameterModal({
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as 'group' | 'custom' })}
                     className={cn(
-                      "w-full px-3 py-2 border outline-none focus:border-blue-500",
+                      "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                       isLight
                         ? "bg-white border-gray-300"
                         : "bg-gray-800 border-gray-600"
@@ -202,12 +202,12 @@ export default function ParameterModal({
 
               {/* Enable Status */}
               <div>
-                <label className="flex items-center">
+                <label className="flex items-center rounded-lg">
                   <input
                     type="checkbox"
                     checked={formData.isEnabled}
                     onChange={(e) => setFormData({ ...formData, isEnabled: e.target.checked })}
-                    className="w-4 h-4 border-gray-300"
+                    className="w-4 h-4 border-gray-300 rounded-lg"
                   />
                   <span className={cn(
                     "ml-2 text-sm font-medium",
@@ -221,19 +221,19 @@ export default function ParameterModal({
               {/* Allowed Values */}
               <div>
                 <label className={cn(
-                  "block text-sm font-medium mb-2",
+                  "block text-sm font-medium mb-2 rounded-lg",
                   isLight ? "text-gray-700" : "text-gray-300"
                 )}>
                   {t.adminConfig.allowedValuesLabel} *
                 </label>
-                <div className="flex mb-3">
+                <div className="flex mb-3 rounded-lg">
                   <input
                     type="text"
                     value={newValue}
                     onChange={(e) => setNewValue(e.target.value)}
                     placeholder={t.adminConfig.enterParameterValue}
                     className={cn(
-                      "flex-1 px-3 py-2 border outline-none focus:border-blue-500",
+                      "flex-1 px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                       isLight
                         ? "bg-white border-gray-300"
                         : "bg-gray-800 border-gray-600"
@@ -243,7 +243,7 @@ export default function ParameterModal({
                   <button
                     onClick={addValue}
                     className={cn(
-                      "px-4 py-2 border transition-colors",
+                      "px-4 py-2 border transition-colors rounded-lg",
                       isLight
                         ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                         : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -253,12 +253,12 @@ export default function ParameterModal({
                   </button>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 rounded-lg">
                   {formData.allowedValues.map((value, index) => (
                     <span
                       key={index}
                       className={cn(
-                        "inline-flex items-center px-3 py-1 border text-sm",
+                        "inline-flex items-center px-3 py-1 border text-sm rounded-lg",
                         isLight
                           ? "bg-blue-50 border-blue-300 text-blue-800"
                           : "bg-blue-900/20 border-blue-600 text-blue-200"
@@ -268,7 +268,7 @@ export default function ParameterModal({
                       <button
                         onClick={() => removeValue(index)}
                         className={cn(
-                          "ml-2 transition-colors",
+                          "ml-2 transition-colors rounded-lg",
                           isLight
                             ? "text-blue-600 hover:text-blue-800"
                             : "text-blue-300 hover:text-blue-100"
@@ -287,23 +287,23 @@ export default function ParameterModal({
               {formData.type === 'group' && (
                 <div>
                   <label className={cn(
-                    "block text-sm font-medium mb-2",
+                    "block text-sm font-medium mb-2 rounded-lg",
                     isLight ? "text-gray-700" : "text-gray-300"
                   )}>
                     {t.adminConfig.mappedGroupsLabel}
                   </label>
                   <p className={cn(
-                    "text-xs mb-3",
+                    "text-xs mb-3 rounded-lg",
                     isLight ? "text-gray-500" : "text-gray-400"
                   )}>
                     {t.adminConfig.mappedGroupsDesc}
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto rounded-lg">
                     {groups.map(group => (
                       <label
                         key={group.id}
                         className={cn(
-                          "flex items-center p-2 border transition-colors",
+                          "flex items-center p-2 border transition-colors rounded-lg",
                           isLight
                             ? "bg-white border-gray-300 hover:bg-gray-50"
                             : "bg-gray-800 border-gray-600 hover:bg-gray-700"
@@ -313,16 +313,16 @@ export default function ParameterModal({
                           type="checkbox"
                           checked={formData.mappedGroups.includes(group.id)}
                           onChange={() => toggleGroupMapping(group.id)}
-                          className="w-4 h-4 border-gray-300"
+                          className="w-4 h-4 border-gray-300 rounded-lg"
                         />
                         <span className={cn(
-                          "ml-2 text-sm",
+                          "ml-2 text-sm rounded-lg",
                           isLight ? "text-gray-900" : "text-gray-100"
                         )}>
                           {group.name}
                         </span>
                         <span className={cn(
-                          "ml-auto text-xs",
+                          "ml-auto text-xs rounded-lg",
                           isLight ? "text-gray-500" : "text-gray-400"
                         )}>
                           ({group.imageCount})
@@ -335,11 +335,11 @@ export default function ParameterModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-3 mt-8">
+            <div className="flex space-x-3 mt-8 rounded-lg">
               <button
                 onClick={handleSave}
                 className={cn(
-                  "flex-1 py-2 px-4 border transition-colors",
+                  "flex-1 py-2 px-4 border transition-colors rounded-lg",
                   isLight
                     ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                     : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -350,7 +350,7 @@ export default function ParameterModal({
               <button
                 onClick={onClose}
                 className={cn(
-                  "flex-1 py-2 px-4 border transition-colors",
+                  "flex-1 py-2 px-4 border transition-colors rounded-lg",
                   isLight
                     ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
                     : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"

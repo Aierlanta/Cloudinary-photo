@@ -190,11 +190,11 @@ export default function BackupPage() {
   if (loading) {
     return (
       <div className={cn(
-        "border p-6 flex items-center justify-center h-64",
+        "border p-6 flex items-center justify-center h-64 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <div className={cn(
-          "w-8 h-8 border-2 border-t-transparent animate-spin",
+          "w-8 h-8 border-2 border-t-transparent animate-spin rounded-lg",
           isLight ? "border-blue-500" : "border-blue-600"
         )}></div>
       </div>
@@ -203,20 +203,23 @@ export default function BackupPage() {
 
   // --- V3 Layout (Flat Design) ---
   return (
-      <div className="space-y-6">
+      <div className="space-y-6 rounded-lg">
         {/* Header */}
         <div className={cn(
-          "border p-6 flex justify-between items-start",
+          "border p-6 flex justify-between items-start rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
           <div>
             <h1 className={cn(
-              "text-3xl font-bold mb-2",
+              "text-3xl font-bold mb-2 rounded-lg",
               isLight ? "text-gray-900" : "text-gray-100"
             )}>
               {t.adminBackup.title}
             </h1>
-            <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+            <p className={cn(
+              "text-gray-600 rounded-lg",
+              isLight ? "text-gray-600" : "text-gray-400"
+            )}>
               {t.adminBackup.description}
             </p>
           </div>
@@ -224,13 +227,13 @@ export default function BackupPage() {
             onClick={createBackup}
             disabled={isCreatingBackup}
             className={cn(
-              "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50",
+              "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
               isLight
                 ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                 : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
             )}
           >
-            <Play className="w-4 h-4" />
+            <Play className="w-4 h-4 rounded-lg" />
             {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
           </button>
         </div>
@@ -238,28 +241,28 @@ export default function BackupPage() {
         <ToastContainer toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))} />
 
         {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 rounded-lg">
           {/* Database Health */}
           <div className={cn(
-            "border p-6 flex flex-col justify-between",
+            "border p-6 flex flex-col justify-between rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className={cn(
-                  "text-sm font-medium mb-1",
+                  "text-sm font-medium mb-1 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminBackup.databaseHealth}
                 </p>
                 <h3 className={cn(
-                  "text-xl font-bold flex items-center gap-2",
+                  "text-xl font-bold flex items-center gap-2 rounded-lg",
                   backupStatus?.isDatabaseHealthy
                     ? isLight ? "text-green-600" : "text-green-400"
                     : isLight ? "text-red-600" : "text-red-400"
                 )}>
                   {backupStatus?.isDatabaseHealthy ? (
-                    <CheckCircle className="w-5 h-5" />
+                    <CheckCircle className="w-5 h-5 rounded-lg" />
                   ) : (
                     <AlertTriangle className="w-5 h-5" />
                   )}
@@ -267,51 +270,51 @@ export default function BackupPage() {
                 </h3>
               </div>
               <div className={cn(
-                "w-10 h-10 flex items-center justify-center",
+                "w-10 h-10 flex items-center justify-center rounded-lg",
                 backupStatus?.isDatabaseHealthy
                   ? isLight ? "bg-green-500" : "bg-green-600"
                   : isLight ? "bg-red-500" : "bg-red-600"
               )}>
-                <Database className="w-5 h-5 text-white" />
+                <Database className="w-5 h-5 text-white rounded-lg" />
               </div>
             </div>
             <button
               onClick={initializeBackupDatabase}
               disabled={isInitializing}
               className={cn(
-                "w-full px-3 py-2 text-xs border transition-colors disabled:opacity-50 flex items-center justify-center gap-2",
+                "w-full px-3 py-2 text-xs border transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg",
                 isLight
                   ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
                   : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
               )}
             >
-              <RefreshCw className={cn("w-4 h-4", isInitializing ? "animate-spin" : "")} />
+              <RefreshCw className={cn("w-4 h-4 rounded-lg", isInitializing ? "animate-spin" : "")} />
               {isInitializing ? t.adminBackup.initializing : t.adminBackup.initializeBackupDb}
             </button>
           </div>
 
           {/* Last Backup Time */}
           <div className={cn(
-            "border p-6 flex flex-col justify-between",
+            "border p-6 flex flex-col justify-between rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-4 rounded-lg">
               <div>
                 <p className={cn(
-                  "text-sm font-medium mb-1",
+                  "text-sm font-medium mb-1 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminBackup.lastBackupTime}
                 </p>
                 <h3 className={cn(
-                  "text-lg font-bold",
+                  "text-lg font-bold rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {backupStatus?.lastBackupTime ? (
                     <div className="flex flex-col">
                       <span>{new Date(backupStatus.lastBackupTime).toLocaleDateString()}</span>
                       <span className={cn(
-                        "text-sm",
+                        "text-sm rounded-lg",
                         isLight ? "text-gray-600" : "text-gray-400"
                       )}>
                         {backupStatus.lastBackupTime ? new Date(backupStatus.lastBackupTime).toLocaleTimeString() : ''}
@@ -323,35 +326,35 @@ export default function BackupPage() {
                 </h3>
               </div>
               <div className={cn(
-                "w-10 h-10 flex items-center justify-center",
+                "w-10 h-10 flex items-center justify-center rounded-lg",
                 isLight ? "bg-blue-500" : "bg-blue-600"
               )}>
-                <Clock className="w-5 h-5 text-white" />
+                <Clock className="w-5 h-5 text-white rounded-lg" />
               </div>
             </div>
           </div>
 
           {/* Backup Status */}
           <div className={cn(
-            "border p-6 flex flex-col justify-between",
+            "border p-6 flex flex-col justify-between rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-4 rounded-lg">
               <div>
                 <p className={cn(
-                  "text-sm font-medium mb-1",
+                  "text-sm font-medium mb-1 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminBackup.backupStatusLabel}
                 </p>
                 <h3 className={cn(
-                  "text-xl font-bold flex items-center gap-2",
+                  "text-xl font-bold flex items-center gap-2 rounded-lg",
                   backupStatus?.lastBackupSuccess
                     ? isLight ? "text-green-600" : "text-green-400"
                     : isLight ? "text-yellow-600" : "text-yellow-400"
                 )}>
                   {backupStatus?.lastBackupSuccess ? (
-                    <CheckCircle className="w-5 h-5" />
+                    <CheckCircle className="w-5 h-5 rounded-lg" />
                   ) : (
                     <AlertTriangle className="w-5 h-5" />
                   )}
@@ -359,15 +362,15 @@ export default function BackupPage() {
                 </h3>
               </div>
               <div className={cn(
-                "w-10 h-10 flex items-center justify-center",
+                "w-10 h-10 flex items-center justify-center rounded-lg",
                 isLight ? "bg-purple-500" : "bg-purple-600"
               )}>
-                <History className="w-5 h-5 text-white" />
+                <History className="w-5 h-5 text-white rounded-lg" />
               </div>
             </div>
             {backupStatus?.lastBackupError && (
               <p className={cn(
-                "text-xs truncate mt-2",
+                "text-xs truncate mt-2 rounded-lg",
                 isLight ? "text-red-600" : "text-red-400"
               )} title={backupStatus?.lastBackupError}>
                 {backupStatus?.lastBackupError}
@@ -377,83 +380,83 @@ export default function BackupPage() {
 
           {/* Backup Count */}
           <div className={cn(
-            "border p-6 flex flex-col justify-between",
+            "border p-6 flex flex-col justify-between rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-4 rounded-lg">
               <div>
                 <p className={cn(
-                  "text-sm font-medium mb-1",
+                  "text-sm font-medium mb-1 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminBackup.backupCount}
                 </p>
                 <h3 className={cn(
-                  "text-3xl font-bold",
+                  "text-3xl font-bold rounded-lg",
                   isLight ? "text-blue-600" : "text-blue-400"
                 )}>
                   {backupStatus?.backupCount || 0}
                 </h3>
               </div>
               <div className={cn(
-                "w-10 h-10 flex items-center justify-center",
+                "w-10 h-10 flex items-center justify-center rounded-lg",
                 isLight ? "bg-blue-500" : "bg-blue-600"
               )}>
-                <HardDrive className="w-5 h-5 text-white" />
+                <HardDrive className="w-5 h-5 text-white rounded-lg" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Operations and Settings */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-lg">
           {/* Operations */}
           <div className={cn(
-            "border p-6",
+            "border p-6 rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <h3 className={cn(
-              "text-lg font-bold mb-6 flex items-center gap-2",
+              "text-lg font-bold mb-6 flex items-center gap-2 rounded-lg",
               isLight ? "text-gray-900" : "text-gray-100"
             )}>
               <Settings className={cn(
-                "w-5 h-5",
+                "w-5 h-5 rounded-lg",
                 isLight ? "text-blue-500" : "text-blue-400"
               )} />
               {t.adminBackup.backupOperations}
             </h3>
 
             <div className={cn(
-              "border p-4 mb-4",
+              "border p-4 mb-4 rounded-lg",
               isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
             )}>
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-4 rounded-lg">
                 <div>
                   <h4 className={cn(
-                    "font-medium mb-1",
+                    "font-medium mb-1 rounded-lg",
                     isLight ? "text-gray-900" : "text-gray-100"
                   )}>
                     {t.adminBackup.restoreFromBackup}
                   </h4>
                   <p className={cn(
-                    "text-sm",
+                    "text-sm rounded-lg",
                     isLight ? "text-gray-600" : "text-gray-400"
                   )}>
                     {t.adminBackup.restoreWarning}
                   </p>
                 </div>
                 <div className={cn(
-                  "w-10 h-10 flex items-center justify-center",
+                  "w-10 h-10 flex items-center justify-center rounded-lg",
                   isLight ? "bg-orange-500" : "bg-orange-600"
                 )}>
-                  <RotateCcw className="w-5 h-5 text-white" />
+                  <RotateCcw className="w-5 h-5 text-white rounded-lg" />
                 </div>
               </div>
               <button
                 onClick={restoreBackup}
                 disabled={isRestoring}
                 className={cn(
-                  "w-full px-4 py-2 border transition-colors disabled:opacity-50",
+                  "w-full px-4 py-2 border transition-colors disabled:opacity-50 rounded-lg",
                   isLight
                     ? "bg-orange-500 text-white border-orange-600 hover:bg-orange-600"
                     : "bg-orange-600 text-white border-orange-500 hover:bg-orange-700"
@@ -466,39 +469,39 @@ export default function BackupPage() {
 
           {/* Settings */}
           <div className={cn(
-            "border p-6",
+            "border p-6 rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <h3 className={cn(
-              "text-lg font-bold mb-6 flex items-center gap-2",
+              "text-lg font-bold mb-6 flex items-center gap-2 rounded-lg",
               isLight ? "text-gray-900" : "text-gray-100"
             )}>
               <Settings className={cn(
-                "w-5 h-5",
+                "w-5 h-5 rounded-lg",
                 isLight ? "text-blue-500" : "text-blue-400"
               )} />
               {t.adminBackup.autoBackupSettings}
             </h3>
 
             <div className={cn(
-              "flex items-center justify-between p-4 border",
+              "flex items-center justify-between p-4 border rounded-lg",
               isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
             )}>
               <div>
                 <h4 className={cn(
-                  "font-medium mb-1",
+                  "font-medium mb-1 rounded-lg",
                   isLight ? "text-gray-900" : "text-gray-100"
                 )}>
                   {t.adminBackup.enableAutoBackup}
                 </h4>
                 <p className={cn(
-                  "text-sm mt-1",
+                  "text-sm mt-1 rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
                   {t.adminBackup.autoBackupDescription}
                 </p>
               </div>
-              <label className="relative inline-block w-12 h-6 cursor-pointer">
+              <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
                 <input
                   type="checkbox"
                   name="toggle"
@@ -508,13 +511,13 @@ export default function BackupPage() {
                   className="sr-only"
                 />
                 <span className={cn(
-                  "absolute inset-0 transition-colors",
+                  "absolute inset-0 transition-colors rounded-lg",
                   backupStatus?.isAutoBackupEnabled
                     ? isLight ? "bg-blue-500" : "bg-blue-600"
                     : isLight ? "bg-gray-300" : "bg-gray-600"
                 )}></span>
                 <span className={cn(
-                  "absolute left-0 top-0 h-6 w-6 border transition-transform",
+                  "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
                   isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
                   backupStatus?.isAutoBackupEnabled ? "translate-x-6" : "translate-x-0"
                 )}></span>

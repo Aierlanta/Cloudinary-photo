@@ -126,10 +126,15 @@ export const en: Translations = {
     totalAccess: 'Total Access',
     quickActions: 'Quick Actions',
     uploadImage: 'Upload Image',
+    uploadImageDesc: 'Add new content',
     manageGroups: 'Manage Groups',
+    manageGroupsDesc: 'Organize collections',
     apiConfig: 'API Config',
+    apiConfigDesc: 'System settings',
     backupManagement: 'Backup Management',
+    backupManagementDesc: 'Data safety',
     testAPI: 'Test API',
+    last24HoursAccessShort: '24h Access',
   },
 
   healthMonitor: {
@@ -306,6 +311,9 @@ export const en: Translations = {
     recentErrors: 'Recent Errors',
     environment: 'Environment',
     healthIssues: 'Health Issues',
+    live: 'Live',
+    paused: 'Paused',
+    parameters: 'parameters',
   },
 
   adminLogs: {
@@ -354,6 +362,8 @@ export const en: Translations = {
     noLogsFound: 'No logs found',
     viewDetails: 'View Details',
     details: 'Details',
+    systemLogsStream: 'System Logs Stream',
+    live: 'Live',
     invalidTime: 'Invalid Time',
     page: 'Page',
     totalPages: 'Total Pages',
@@ -540,7 +550,6 @@ export const en: Translations = {
     urlImportJsonExampleContent:
       '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "Home banner",\n    "description": "Desktop homepage banner",\n    "tags": ["banner", "pc"]\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "Mobile banner",\n    "tags": ["banner", "mobile"]\n  }\n]',
     // ImageList 组件
-    selectGroup: 'Select Group',
     unassigned: 'Unassigned',
     reset: 'Reset',
     group: 'Group',
@@ -760,5 +769,9 @@ export const en: Translations = {
     export: 'Export',
     noData: 'No Data',
     loadFailed: 'Load Failed',
+    requests: 'requests',
+    blocked: 'blocked',
+    activeLimits: 'active limits',
+    noAccessData: 'No access data',
   },
 };

@@ -42,7 +42,7 @@ export default function SystemLogsPage() {
       }
     } catch (error) {
       console.error('导出日志失败:', error)
-      alert('导出日志失败')
+      alert(t.adminLogs.exportFailed)
     }
     setIsExportMenuOpen(false);
   }
@@ -65,26 +65,29 @@ export default function SystemLogsPage() {
       }
     } catch (error) {
       console.error('清空日志失败:', error)
-      alert('清空日志失败')
+      alert(t.adminLogs.clearFailed)
     }
   }
 
   // --- V3 Layout (Flat Design) ---
   return (
-      <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col">
+      <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col rounded-lg">
         {/* Header */}
         <div className={cn(
-          "border p-6 flex justify-between items-start shrink-0",
+          "border p-6 flex justify-between items-start shrink-0 rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
           <div>
             <h1 className={cn(
-              "text-3xl font-bold mb-2",
+              "text-3xl font-bold mb-2 rounded-lg",
               isLight ? "text-gray-900" : "text-gray-100"
             )}>
               {t.adminLogs.title}
             </h1>
-            <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+            <p className={cn(
+              "text-sm rounded-lg",
+              isLight ? "text-gray-600" : "text-gray-400"
+            )}>
               {t.adminLogs.description}
             </p>
           </div>
@@ -93,7 +96,7 @@ export default function SystemLogsPage() {
               <button
                 onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
                 className={cn(
-                  "px-4 py-2 border flex items-center gap-2 transition-colors",
+                  "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
                   isLight
                     ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
                     : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -105,7 +108,7 @@ export default function SystemLogsPage() {
               </button>
               {isExportMenuOpen && (
                 <div className={cn(
-                  "absolute right-0 top-full mt-2 w-48 border z-50",
+                  "absolute right-0 top-full mt-2 w-48 border z-50 rounded-lg",
                   isLight
                     ? "bg-white border-gray-300"
                     : "bg-gray-800 border-gray-600"
@@ -113,7 +116,7 @@ export default function SystemLogsPage() {
                   <button
                     onClick={() => handleExportLogs('json')}
                     className={cn(
-                      "w-full text-left px-3 py-2 text-sm transition-colors border-b",
+                      "w-full text-left px-3 py-2 text-sm transition-colors border-b rounded-lg",
                       isLight
                         ? "bg-white hover:bg-gray-50 border-gray-300 text-gray-900"
                         : "bg-gray-800 hover:bg-gray-700 border-gray-600 text-gray-100"
@@ -124,7 +127,7 @@ export default function SystemLogsPage() {
                   <button
                     onClick={() => handleExportLogs('csv')}
                     className={cn(
-                      "w-full text-left px-3 py-2 text-sm transition-colors border-b",
+                      "w-full text-left px-3 py-2 text-sm transition-colors border-b rounded-lg",
                       isLight
                         ? "bg-white hover:bg-gray-50 border-gray-300 text-gray-900"
                         : "bg-gray-800 hover:bg-gray-700 border-gray-600 text-gray-100"
@@ -135,7 +138,7 @@ export default function SystemLogsPage() {
                   <button
                     onClick={() => handleExportLogs('txt')}
                     className={cn(
-                      "w-full text-left px-3 py-2 text-sm transition-colors",
+                      "w-full text-left px-3 py-2 text-sm transition-colors rounded-lg",
                       isLight
                         ? "bg-white hover:bg-gray-50 text-gray-900"
                         : "bg-gray-800 hover:bg-gray-700 text-gray-100"
@@ -151,7 +154,7 @@ export default function SystemLogsPage() {
               <button
                 onClick={handleClearLogs}
                 className={cn(
-                  "px-4 py-2 border flex items-center gap-2 transition-colors",
+                  "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
                   isLight
                     ? "bg-red-500 text-white border-red-600 hover:bg-red-600"
                     : "bg-red-600 text-white border-red-500 hover:bg-red-700"
@@ -166,38 +169,38 @@ export default function SystemLogsPage() {
 
         {/* Log Viewer */}
         <div className={cn(
-          "border flex-1 overflow-hidden flex flex-col",
+          "border flex-1 overflow-hidden flex flex-col rounded-lg",
           isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
         )}>
           <div className={cn(
-            "p-4 border-b flex items-center gap-3 shrink-0",
+            "p-4 border-b flex items-center gap-3 shrink-0 rounded-lg",
             isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
           )}>
             <div className={cn(
-              "w-10 h-10 flex items-center justify-center",
+              "w-10 h-10 flex items-center justify-center rounded-lg",
               isLight ? "bg-blue-500" : "bg-blue-600"
             )}>
               <FileText className="w-5 h-5 text-white" />
             </div>
             <h3 className={cn(
-              "font-semibold",
+              "font-semibold rounded-lg",
               isLight ? "text-gray-900" : "text-gray-100"
             )}>
-              System Logs Stream
+              {t.adminLogs.systemLogsStream}
             </h3>
             <div className={cn(
-              "ml-auto flex items-center gap-2 text-xs",
+              "ml-auto flex items-center gap-2 text-xs rounded-lg",
               isLight ? "text-gray-600" : "text-gray-400"
             )}>
               <span className={cn(
-                "w-2 h-2",
+                "w-2 h-2 rounded-lg",
                 isLight ? "bg-green-500" : "bg-green-400"
               )} style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></span>
-              Live
+              {t.adminLogs.live}
             </div>
           </div>
-          <div className="flex-1 overflow-hidden relative">
-            <LogViewer maxEntries={200} autoRefresh={true} refreshInterval={5000} />
+          <div className="flex-1 overflow-hidden relative rounded-lg">
+            <LogViewer maxEntries={25} autoRefresh={true} refreshInterval={5000} />
           </div>
         </div>
       </div>

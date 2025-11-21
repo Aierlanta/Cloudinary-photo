@@ -267,47 +267,50 @@ export default function GalleryPage() {
   }).filter(Boolean) as number[];
 
   return (
-    <div className="space-y-6 max-w-[1800px] mx-auto">
+    <div className="space-y-6 max-w-[1800px] mx-auto rounded-lg">
       {/* Header */}
       <div className={cn(
-        "border p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between",
+        "border p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <div>
           <h1 className={cn(
-            "text-3xl font-bold flex items-center gap-3 mb-2",
+            "text-3xl font-bold flex items-center gap-3 mb-2 rounded-lg",
             isLight ? "text-gray-900" : "text-gray-100"
           )}>
             <ImageIcon className={cn(
-              "w-8 h-8",
+              "w-8 h-8 rounded-lg",
               isLight ? "text-blue-500" : "text-blue-400"
             )} />
             {t.adminGallery?.title || "图库"}
           </h1>
-          <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+          <p className={cn(
+            "text-sm rounded-lg",
+            isLight ? "text-gray-600" : "text-gray-400"
+          )}>
             {t.adminGallery?.description || "浏览和管理您的图片库"}
           </p>
         </div>
         <div className={cn(
-          "flex flex-wrap items-center gap-6 p-4 border",
+          "flex flex-wrap items-center gap-6 p-4 border rounded-lg",
           isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
         )}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-lg">
             <div className={cn(
-              "w-10 h-10 flex items-center justify-center",
+              "w-10 h-10 flex items-center justify-center rounded-lg",
               isLight ? "bg-blue-500" : "bg-blue-600"
             )}>
               <ImageIcon className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className={cn(
-                "text-xs",
+                "text-xs rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.adminImages.totalImages}
               </p>
               <p className={cn(
-                "text-xl font-bold",
+                "text-xl font-bold rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {totalImages}
@@ -315,25 +318,25 @@ export default function GalleryPage() {
             </div>
           </div>
           <div className={cn(
-            "w-px h-10",
+            "w-px h-10 rounded-lg",
             isLight ? "bg-gray-300" : "bg-gray-600"
           )} />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-lg">
             <div className={cn(
-              "w-10 h-10 flex items-center justify-center",
+              "w-10 h-10 flex items-center justify-center rounded-lg",
               isLight ? "bg-green-500" : "bg-green-600"
             )}>
               <Grid className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className={cn(
-                "text-xs",
+                "text-xs rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.adminImages.groupCount}
               </p>
               <p className={cn(
-                "text-xl font-bold",
+                "text-xl font-bold rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {groups.length}
@@ -345,15 +348,15 @@ export default function GalleryPage() {
 
       {/* Filters */}
       <div className={cn(
-        "border p-6",
+        "border p-6 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <h2 className={cn(
-          "text-lg font-semibold mb-4 flex items-center gap-2",
+          "text-lg font-semibold mb-4 flex items-center gap-2 rounded-lg",
           isLight ? "text-gray-900" : "text-gray-100"
         )}>
           <Filter className={cn(
-            "w-5 h-5",
+            "w-5 h-5 rounded-lg",
             isLight ? "text-blue-500" : "text-blue-400"
           )} />
           {t.adminImages.filterAndSearch}
@@ -363,31 +366,31 @@ export default function GalleryPage() {
 
       {/* Image List */}
       <div className={cn(
-        "border p-6 space-y-6",
+        "border p-6 space-y-6 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg">
+          <div className="flex items-center gap-3 rounded-lg">
             <h2 className={cn(
-              "text-lg font-semibold flex items-center gap-2",
+              "text-lg font-semibold flex items-center gap-2 rounded-lg",
               isLight ? "text-gray-900" : "text-gray-100"
             )}>
               <ImageIcon className={cn(
-                "w-5 h-5",
+                "w-5 h-5 rounded-lg",
                 isLight ? "text-blue-500" : "text-blue-400"
               )} />
               {t.adminImages.imageList}
             </h2>
             <span className={cn(
-              "text-sm",
+              "text-sm rounded-lg",
               isLight ? "text-gray-600" : "text-gray-400"
             )}>
               ({totalImages} {t.adminImages.imagesCount})
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-lg">
             <span className={cn(
-              "text-sm",
+              "text-sm rounded-lg",
               isLight ? "text-gray-600" : "text-gray-400"
             )}>
               {t.adminImages.itemsPerPage}:
@@ -396,7 +399,7 @@ export default function GalleryPage() {
               value={filters.limit}
               onChange={(e) => handleFilterChange({ limit: parseInt(e.target.value) })}
               className={cn(
-                "border text-sm px-3 py-1 outline-none focus:border-blue-500",
+                "border text-sm px-3 py-1 outline-none focus:border-blue-500 rounded-lg",
                 isLight
                   ? "bg-white border-gray-300"
                   : "bg-gray-800 border-gray-600"
@@ -422,13 +425,13 @@ export default function GalleryPage() {
         />
 
         {totalPages > 1 && (
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg">
+            <div className="flex items-center gap-2 flex-wrap rounded-lg">
               <button
                 onClick={() => handleFilterChange({ page: filters.page - 1 })}
                 disabled={filters.page <= 1}
                 className={cn(
-                  "px-4 py-2 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                  "px-4 py-2 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg",
                   isLight
                     ? "bg-white border-gray-300 hover:bg-gray-50 disabled:bg-gray-100"
                     : "bg-gray-800 border-gray-600 hover:bg-gray-700 disabled:bg-gray-900"
@@ -436,13 +439,13 @@ export default function GalleryPage() {
               >
                 {t.adminImages.previousPage}
               </button>
-              <div className="flex gap-1 flex-wrap">
+              <div className="flex gap-1 flex-wrap rounded-lg">
                 {paginationButtons.map((page) => (
                   <button
                     key={page}
                     onClick={() => handleFilterChange({ page })}
                     className={cn(
-                      "w-10 h-10 flex items-center justify-center transition-colors border",
+                      "w-10 h-10 flex items-center justify-center transition-colors border rounded-lg",
                       page === filters.page
                         ? isLight
                           ? "bg-blue-500 text-white border-blue-600"
@@ -460,7 +463,7 @@ export default function GalleryPage() {
                 onClick={() => handleFilterChange({ page: filters.page + 1 })}
                 disabled={filters.page >= totalPages}
                 className={cn(
-                  "px-4 py-2 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                  "px-4 py-2 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg",
                   isLight
                     ? "bg-white border-gray-300 hover:bg-gray-50 disabled:bg-gray-100"
                     : "bg-gray-800 border-gray-600 hover:bg-gray-700 disabled:bg-gray-900"
@@ -469,7 +472,7 @@ export default function GalleryPage() {
                 {t.adminImages.nextPage}
               </button>
             </div>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm rounded-lg">
               <span className={isLight ? "text-gray-600" : "text-gray-400"}>
                 {t.adminImages.currentPage}:
               </span>
@@ -483,7 +486,7 @@ export default function GalleryPage() {
                   if (e.key === "Enter") handlePageJump();
                 }}
                 className={cn(
-                  "w-20 px-3 py-2 border outline-none",
+                  "w-20 px-3 py-2 border outline-none rounded-lg",
                   isLight
                     ? "bg-white border-gray-300 focus:border-blue-500"
                     : "bg-gray-800 border-gray-600 focus:border-blue-500"
@@ -492,7 +495,7 @@ export default function GalleryPage() {
               <button
                 onClick={handlePageJump}
                 className={cn(
-                  "px-3 py-2 border transition-colors",
+                  "px-3 py-2 border transition-colors rounded-lg",
                   isLight
                     ? "bg-gray-100 border-gray-300 hover:bg-gray-200"
                     : "bg-gray-700 border-gray-600 hover:bg-gray-600"

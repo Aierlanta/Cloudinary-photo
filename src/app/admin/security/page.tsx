@@ -119,27 +119,30 @@ export default function SecurityManagement() {
 
   // --- V3 Layout (Flat Design) ---
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rounded-lg">
       {/* Header */}
       <div className={cn(
-        "border p-6 flex justify-between items-start",
+        "border p-6 flex justify-between items-start rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <div>
           <h1 className={cn(
-            "text-3xl font-bold mb-2",
+            "text-3xl font-bold mb-2 rounded-lg",
             isLight ? "text-gray-900" : "text-gray-100"
           )}>
             {t.adminSecurity.title}
           </h1>
-          <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+          <p className={cn(
+            "text-sm rounded-lg",
+            isLight ? "text-gray-600" : "text-gray-400"
+          )}>
             {t.adminSecurity.description}
           </p>
         </div>
         <button
           onClick={handleRefresh}
           className={cn(
-            "px-4 py-2 border flex items-center gap-2 transition-colors",
+            "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
             isLight
               ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
               : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
@@ -151,10 +154,10 @@ export default function SecurityManagement() {
       </div>
 
       {/* Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
         <div
           className={cn(
-            "border p-4 cursor-pointer transition-colors",
+            "border p-4 cursor-pointer transition-colors rounded-lg",
             activeTab === 'stats'
               ? isLight
                 ? "bg-blue-500 border-blue-600"
@@ -167,7 +170,7 @@ export default function SecurityManagement() {
         >
           <div className="flex items-center gap-4">
             <div className={cn(
-              "w-12 h-12 flex items-center justify-center",
+              "w-12 h-12 flex items-center justify-center rounded-lg",
               activeTab === 'stats'
                 ? "bg-white/20"
                 : isLight
@@ -181,16 +184,16 @@ export default function SecurityManagement() {
             </div>
             <div>
               <h3 className={cn(
-                "font-bold",
+                "font-bold rounded-lg",
                 activeTab === 'stats' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {t.adminSecurity.accessStats}
               </h3>
               <p className={cn(
-                "text-xs",
+                "text-xs rounded-lg",
                 activeTab === 'stats' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
               )}>
-                {realtimeStats?.total || 0} requests
+                {realtimeStats?.total || 0} {t.adminSecurity.requests}
               </p>
             </div>
           </div>
@@ -198,7 +201,7 @@ export default function SecurityManagement() {
 
         <div
           className={cn(
-            "border p-4 cursor-pointer transition-colors",
+            "border p-4 cursor-pointer transition-colors rounded-lg",
             activeTab === 'banned'
               ? isLight
                 ? "bg-red-500 border-red-600"
@@ -211,7 +214,7 @@ export default function SecurityManagement() {
         >
           <div className="flex items-center gap-4">
             <div className={cn(
-              "w-12 h-12 flex items-center justify-center",
+              "w-12 h-12 flex items-center justify-center rounded-lg",
               activeTab === 'banned'
                 ? "bg-white/20"
                 : isLight
@@ -225,16 +228,16 @@ export default function SecurityManagement() {
             </div>
             <div>
               <h3 className={cn(
-                "font-bold",
+                "font-bold rounded-lg",
                 activeTab === 'banned' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {t.adminSecurity.bannedIPs}
               </h3>
               <p className={cn(
-                "text-xs",
+                "text-xs rounded-lg",
                 activeTab === 'banned' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
               )}>
-                {bannedIPs.length} blocked
+                {bannedIPs.length} {t.adminSecurity.blocked}
               </p>
             </div>
           </div>
@@ -242,7 +245,7 @@ export default function SecurityManagement() {
 
         <div
           className={cn(
-            "border p-4 cursor-pointer transition-colors",
+            "border p-4 cursor-pointer transition-colors rounded-lg",
             activeTab === 'limits'
               ? isLight
                 ? "bg-yellow-500 border-yellow-600"
@@ -255,7 +258,7 @@ export default function SecurityManagement() {
         >
           <div className="flex items-center gap-4">
             <div className={cn(
-              "w-12 h-12 flex items-center justify-center",
+              "w-12 h-12 flex items-center justify-center rounded-lg",
               activeTab === 'limits'
                 ? "bg-white/20"
                 : isLight
@@ -269,16 +272,16 @@ export default function SecurityManagement() {
             </div>
             <div>
               <h3 className={cn(
-                "font-bold",
+                "font-bold rounded-lg",
                 activeTab === 'limits' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {t.adminSecurity.rateLimits}
               </h3>
               <p className={cn(
-                "text-xs",
+                "text-xs rounded-lg",
                 activeTab === 'limits' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
               )}>
-                {rateLimits.length} active limits
+                {rateLimits.length} {t.adminSecurity.activeLimits}
               </p>
             </div>
           </div>
@@ -289,7 +292,7 @@ export default function SecurityManagement() {
       <div className="min-h-[400px]">
         {loading ? (
           <div className={cn(
-            "border p-6 flex items-center justify-center",
+            "border p-6 flex items-center justify-center rounded-lg",
             isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
           )}>
             <div className={cn(
@@ -300,16 +303,16 @@ export default function SecurityManagement() {
         ) : (
           <>
             {activeTab === 'stats' && (
-              <div className="space-y-6">
+              <div className="space-y-6 rounded-lg">
                 {/* Realtime Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
                   <div className={cn(
-                    "border p-6",
+                    "border p-6 rounded-lg",
                     isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                   )}>
                     <div className="flex justify-between items-start mb-2">
                       <p className={cn(
-                        "text-sm",
+                        "text-sm rounded-lg",
                         isLight ? "text-gray-600" : "text-gray-400"
                       )}>
                         {t.adminSecurity.lastHour}
@@ -320,19 +323,19 @@ export default function SecurityManagement() {
                       )} />
                     </div>
                     <div className={cn(
-                      "text-3xl font-bold",
+                      "text-3xl font-bold rounded-lg",
                       isLight ? "text-gray-900" : "text-gray-100"
                     )}>
                       {realtimeStats?.lastHour || 0}
                     </div>
                   </div>
                   <div className={cn(
-                    "border p-6",
+                    "border p-6 rounded-lg",
                     isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                   )}>
                     <div className="flex justify-between items-start mb-2">
                       <p className={cn(
-                        "text-sm",
+                        "text-sm rounded-lg",
                         isLight ? "text-gray-600" : "text-gray-400"
                       )}>
                         {t.adminSecurity.last24Hours}
@@ -343,19 +346,19 @@ export default function SecurityManagement() {
                       )} />
                     </div>
                     <div className={cn(
-                      "text-3xl font-bold",
+                      "text-3xl font-bold rounded-lg",
                       isLight ? "text-gray-900" : "text-gray-100"
                     )}>
                       {realtimeStats?.last24Hours || 0}
                     </div>
                   </div>
                   <div className={cn(
-                    "border p-6",
+                    "border p-6 rounded-lg",
                     isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                   )}>
                     <div className="flex justify-between items-start mb-2">
                       <p className={cn(
-                        "text-sm",
+                        "text-sm rounded-lg",
                         isLight ? "text-gray-600" : "text-gray-400"
                       )}>
                         {t.adminSecurity.totalAccess}
@@ -366,7 +369,7 @@ export default function SecurityManagement() {
                       )} />
                     </div>
                     <div className={cn(
-                      "text-3xl font-bold",
+                      "text-3xl font-bold rounded-lg",
                       isLight ? "text-gray-900" : "text-gray-100"
                     )}>
                       {realtimeStats?.total || 0}
@@ -377,11 +380,11 @@ export default function SecurityManagement() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {/* Top Paths */}
                   <div className={cn(
-                    "border p-6",
+                    "border p-6 rounded-lg",
                     isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                   )}>
                     <h3 className={cn(
-                      "font-bold mb-4 flex items-center gap-2",
+                      "font-bold mb-4 flex items-center gap-2 rounded-lg",
                       isLight ? "text-gray-900" : "text-gray-100"
                     )}>
                       <BarChart2 className={cn(
@@ -390,32 +393,32 @@ export default function SecurityManagement() {
                       )} />
                       {t.adminSecurity.topPaths}
                     </h3>
-                    <div className="space-y-2">
+                    <div className="space-y-2 rounded-lg">
                       {stats?.pathStats && stats.pathStats.length > 0 ? (
                         stats.pathStats.slice(0, 8).map((item, i) => (
                           <div
                             key={i}
                             className={cn(
-                              "flex items-center justify-between text-sm p-2 border",
+                              "flex items-center justify-between text-sm p-2 border rounded-lg",
                               isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
                             )}
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <span className={cn(
-                                "w-4",
+                                "w-4 rounded-lg",
                                 isLight ? "text-gray-600" : "text-gray-400"
                               )}>
                                 {i + 1}
                               </span>
                               <span className={cn(
-                                "font-mono truncate px-2 py-0.5 text-xs border",
+                                "font-mono truncate px-2 py-0.5 text-xs border rounded-lg",
                                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                               )}>
                                 {item.path}
                               </span>
                             </div>
                             <span className={cn(
-                              "font-medium",
+                              "font-medium rounded-lg",
                               isLight ? "text-gray-900" : "text-gray-100"
                             )}>
                               {item.count}
@@ -424,10 +427,10 @@ export default function SecurityManagement() {
                         ))
                       ) : (
                         <div className={cn(
-                          "text-center py-8 text-sm",
+                          "text-center py-8 text-sm rounded-lg",
                           isLight ? "text-gray-500" : "text-gray-400"
                         )}>
-                          暂无访问数据
+                          {t.adminSecurity.noAccessData}
                         </div>
                       )}
                     </div>
@@ -435,11 +438,11 @@ export default function SecurityManagement() {
 
                   {/* Top IPs */}
                   <div className={cn(
-                    "border p-6",
+                    "border p-6 rounded-lg",
                     isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                   )}>
                     <h3 className={cn(
-                      "font-bold mb-4 flex items-center gap-2",
+                      "font-bold mb-4 flex items-center gap-2 rounded-lg",
                       isLight ? "text-gray-900" : "text-gray-100"
                     )}>
                       <Shield className={cn(
@@ -448,31 +451,31 @@ export default function SecurityManagement() {
                       )} />
                       {t.adminSecurity.topIPs}
                     </h3>
-                    <div className="space-y-2">
+                    <div className="space-y-2 rounded-lg">
                       {(stats?.topIPs ?? []).slice(0, 8).map((item, i) => (
                         <div
                           key={i}
                           className={cn(
-                            "flex items-center justify-between text-sm p-2 border",
+                            "flex items-center justify-between text-sm p-2 border rounded-lg",
                             isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
                           )}
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <span className={cn(
-                              "w-4",
+                              "w-4 rounded-lg",
                               isLight ? "text-gray-600" : "text-gray-400"
                             )}>
                               {i + 1}
                             </span>
                             <span className={cn(
-                              "font-mono truncate px-2 py-0.5 text-xs border",
+                              "font-mono truncate px-2 py-0.5 text-xs border rounded-lg",
                               isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                             )}>
                               {item.ip}
                             </span>
                           </div>
                           <span className={cn(
-                            "font-medium",
+                            "font-medium rounded-lg",
                             isLight ? "text-gray-900" : "text-gray-100"
                           )}>
                             {item.count}
@@ -487,7 +490,7 @@ export default function SecurityManagement() {
 
             {activeTab === 'banned' && (
               <div className={cn(
-                "border p-6",
+                "border p-6 rounded-lg",
                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
               )}>
                 <BannedIPManagement bannedIPs={bannedIPs} onRefresh={handleRefresh} />
@@ -496,7 +499,7 @@ export default function SecurityManagement() {
 
             {activeTab === 'limits' && (
               <div className={cn(
-                "border p-6",
+                "border p-6 rounded-lg",
                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
               )}>
                 <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />

@@ -88,15 +88,15 @@ export default function ImagesPage() {
 
 
   return (
-    <div className="space-y-6 max-w-[1800px] mx-auto">
+    <div className="space-y-6 max-w-[1800px] mx-auto rounded-lg">
       {/* Header */}
       <div className={cn(
-        "border p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between",
+        "border p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <div>
           <h1 className={cn(
-            "text-3xl font-bold flex items-center gap-3 mb-2",
+            "text-3xl font-bold flex items-center gap-3 mb-2 rounded-lg",
             isLight ? "text-gray-900" : "text-gray-100"
           )}>
             <Upload className={cn(
@@ -105,30 +105,33 @@ export default function ImagesPage() {
             )} />
             {t.adminUpload?.title || "图片上传"}
           </h1>
-          <p className={isLight ? "text-gray-600" : "text-gray-400"}>
+          <p className={cn(
+            "text-sm rounded-lg",
+            isLight ? "text-gray-600" : "text-gray-400"
+          )}>
             {t.adminUpload?.description || "上传和管理您的图片"}
           </p>
         </div>
         <div className={cn(
-          "flex flex-wrap items-center gap-6 p-4 border",
+          "flex flex-wrap items-center gap-6 p-4 border rounded-lg",
           isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
         )}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-lg">
             <div className={cn(
-              "w-10 h-10 flex items-center justify-center",
+              "w-10 h-10 flex items-center justify-center rounded-lg",
               isLight ? "bg-blue-500" : "bg-blue-600"
             )}>
               <Upload className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className={cn(
-                "text-xs",
+                "text-xs rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.adminImages.totalImages}
               </p>
               <p className={cn(
-                "text-xl font-bold",
+                "text-xl font-bold rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {totalImages}
@@ -136,25 +139,25 @@ export default function ImagesPage() {
             </div>
           </div>
           <div className={cn(
-            "w-px h-10",
+            "w-px h-10 rounded-lg",
             isLight ? "bg-gray-300" : "bg-gray-600"
           )} />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-lg">
             <div className={cn(
-              "w-10 h-10 flex items-center justify-center",
+              "w-10 h-10 flex items-center justify-center rounded-lg",
               isLight ? "bg-green-500" : "bg-green-600"
             )}>
               <Grid className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className={cn(
-                "text-xs",
+                "text-xs rounded-lg",
                 isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {t.adminImages.groupCount}
               </p>
               <p className={cn(
-                "text-xl font-bold",
+                "text-xl font-bold rounded-lg",
                 isLight ? "text-gray-900" : "text-gray-100"
               )}>
                 {groups.length}
@@ -166,15 +169,15 @@ export default function ImagesPage() {
 
       {/* Upload */}
       <div className={cn(
-        "border p-6",
+        "border p-6 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <h2 className={cn(
-          "text-lg font-semibold mb-4 flex items-center gap-2",
+          "text-lg font-semibold mb-4 flex items-center gap-2 rounded-lg",
           isLight ? "text-gray-900" : "text-gray-100"
         )}>
           <Database className={cn(
-            "w-5 h-5",
+            "w-5 h-5 rounded-lg",
             isLight ? "text-blue-500" : "text-blue-400"
           )} />
           {t.adminImages.uploadImage}
