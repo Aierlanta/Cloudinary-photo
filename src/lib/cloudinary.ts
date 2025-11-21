@@ -7,6 +7,12 @@ import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryError } from '@/types/errors';
 import { CloudinaryResponse, UploadOptions, Transformation } from '@/types/models';
 
+const isCloudinaryEnabled = (): boolean => process.env.CLOUDINARY_ENABLE !== 'false';
+const CLOUDINARY_DISABLED_DETAILS = {
+  reason: 'Cloudinary服务已通过环境变量禁用',
+  hint: '设置 CLOUDINARY_ENABLE=true 即可重新启用 Cloudinary 功能'
+};
+
 // 配置Cloudinary
 const configureCloudinary = () => {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -96,7 +102,9 @@ export class CloudinaryService {
   private isConfigured = false;
 
   private constructor() {
-    this.ensureConfigured();
+    if (isCloudinaryEnabled()) {
+      this.ensureConfigured();
+    }
   }
 
   public static getInstance(): CloudinaryService {
@@ -107,16 +115,25 @@ export class CloudinaryService {
   }
 
   private ensureConfigured(): void {
-    if (!this.isConfigured) {
-      try {
-        configureCloudinary();
-        this.isConfigured = true;
-      } catch (error) {
-        throw new CloudinaryError(
-          'Cloudinary配置失败',
-          { error: error instanceof Error ? error.message : error }
-        );
-      }
+    if (!isCloudinaryEnabled()) {
+      throw new CloudinaryError(
+        'Cloudinary服务已禁用',
+        CLOUDINARY_DISABLED_DETAILS
+      );
+    }
+
+    if (this.isConfigured) {
+      return;
+    }
+
+    try {
+      configureCloudinary();
+      this.isConfigured = true;
+    } catch (error) {
+      throw new CloudinaryError(
+        'Cloudinary配置失败',
+        { error: error instanceof Error ? error.message : error }
+      );
     }
   }
 
