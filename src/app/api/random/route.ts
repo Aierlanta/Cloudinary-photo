@@ -10,6 +10,7 @@ import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-utils';
+import { buildFetchInitFor } from '@/lib/telegram-proxy';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
 
@@ -250,6 +251,36 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       redirectUrl: secureImageUrl
     });
 
+    // 如果是 Telegram 直连图床，则直接回传图片流，避免 302 暴露 token
+    if (isTelegramImage(randomImage, secureImageUrl)) {
+      const mimeType = getMimeTypeFromUrl(randomImage.url);
+      const downloaded = await downloadImageWithCandidates(randomImage, request, mimeType);
+      const size = downloaded.buffer.length;
+
+      logger.apiResponse('GET', '/api/random', 200, duration, {
+        imageId: randomImage.id,
+        imageSize: size,
+        mimeType: downloaded.mimeType,
+        mode: 'buffered',
+        via: downloaded.reason,
+        url: downloaded.usedUrl
+      });
+
+      return new NextResponse(bufferToStream(downloaded.buffer), {
+        status: 200,
+        headers: {
+          'Content-Type': downloaded.mimeType,
+          'Content-Length': size.toString(),
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Image-Id': randomImage.id,
+          'X-Image-PublicId': randomImage.publicId,
+          'X-Transfer-Mode': 'buffered'
+        }
+      });
+    }
+
     // 重定向到图片URL（正确方式：第二个参数为状态码，额外头部手动设置）
     // 如果是站内相对路径，转换为绝对URL
     const finalRedirectUrl = secureImageUrl.startsWith('http')
@@ -358,7 +389,7 @@ async function getRandomImageFromGroups(groupIds: string[], orientation?: Orient
   const randomOptions = orientation ? { orientation } : undefined;
   if (groupIds.length === 0) {
     // 从所有图片中选择
-    const images = await databaseService.getRandomImages(1, undefined, randomOptions);
+    const images = await databaseService.getRandomImagesIncludingTelegram(1, undefined, randomOptions);
     return images[0] || null;
   }
 
@@ -367,14 +398,14 @@ async function getRandomImageFromGroups(groupIds: string[], orientation?: Orient
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
 
-  const images = await databaseService.getRandomImages(1, selectedGroupId, randomOptions);
+  const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId, randomOptions);
   const image = images[0] || null;
 
   if (!image && groupIds.length > 1) {
     // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
       if (groupId !== selectedGroupId) {
-        const fallbackImages = await databaseService.getRandomImages(1, groupId, randomOptions);
+        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, randomOptions);
         const fallbackImage = fallbackImages[0] || null;
         if (fallbackImage) {
           return fallbackImage;
@@ -407,3 +438,196 @@ export const GET = withErrorHandler(
     enableAccessLog: true // 启用访问日志记录
   })(getRandomImage)
 );
+
+// ---------------- Telegram 直连辅助逻辑（与 /api/response 保持一致的候选与回退） ----------------
+class HttpStatusError extends Error {
+  status: number;
+  statusText: string;
+  url: string;
+  constructor(status: number, statusText: string, url: string) {
+    super(`HTTP ${status}: ${statusText}`);
+    this.status = status;
+    this.statusText = statusText;
+    this.url = url;
+  }
+}
+
+interface DownloadCandidate {
+  url: string;
+  reason: string;
+}
+
+function normalizeMimeType(mimeType: string | null | undefined, fallback: string): string {
+  if (mimeType && mimeType.toLowerCase().startsWith('image/')) {
+    return mimeType;
+  }
+  return fallback;
+}
+
+function bufferToStream(buffer: Buffer): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(buffer));
+      controller.close();
+    }
+  });
+}
+
+function parseTelegramBotId(image: any): string | undefined {
+  if (image.storageMetadata) {
+    try {
+      const meta = JSON.parse(image.storageMetadata);
+      if (meta?.telegramBotId) {
+        return String(meta.telegramBotId);
+      }
+    } catch {
+      // ignore
+    }
+  }
+  if (image.telegramBotToken) {
+    const prefix = image.telegramBotToken.split(':')[0];
+    if (/^\d+$/.test(prefix)) {
+      return prefix;
+    }
+  }
+  return undefined;
+}
+
+function buildTelegramCandidates(image: any, request: NextRequest): DownloadCandidate[] {
+  const candidates: DownloadCandidate[] = [];
+  const botId = parseTelegramBotId(image);
+
+  if (image.telegramFileId) {
+    const tgUrl = new URL('/api/telegram/image', request.url);
+    tgUrl.searchParams.set('file_id', image.telegramFileId);
+    if (botId) tgUrl.searchParams.set('bot_id', botId);
+    if (image.telegramFilePath && !tgUrl.searchParams.get('file_path')) {
+      tgUrl.searchParams.set('file_path', image.telegramFilePath);
+    }
+    candidates.push({ url: tgUrl.toString(), reason: 'telegram-file-id' });
+  }
+
+  if (image.telegramFilePath && image.telegramBotToken) {
+    const direct = `https://api.telegram.org/file/bot${image.telegramBotToken}/${image.telegramFilePath}`;
+    candidates.push({ url: direct, reason: 'telegram-direct-path' });
+  }
+
+  // 兜底使用存储的 URL（已应用 tgState 转换）
+  if (image.url) {
+    candidates.push({ url: image.url, reason: 'stored-url' });
+  }
+
+  const seen = new Set<string>();
+  return candidates.filter(c => {
+    if (seen.has(c.url)) return false;
+    seen.add(c.url);
+    return true;
+  });
+}
+
+async function downloadFromCandidate(
+  candidate: DownloadCandidate,
+  baseMimeType: string
+): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
+  const resp = await fetch(candidate.url, buildFetchInitFor(candidate.url, { cache: 'no-store' } as RequestInit));
+  if (!resp.ok) {
+    throw new HttpStatusError(resp.status, resp.statusText, candidate.url);
+  }
+  const ab = await resp.arrayBuffer();
+  const buffer = Buffer.from(ab);
+  const mimeType = normalizeMimeType(resp.headers.get('content-type'), baseMimeType);
+  return { buffer, mimeType, usedUrl: candidate.url, reason: candidate.reason };
+}
+
+async function downloadImageWithCandidates(
+  image: any,
+  request: NextRequest,
+  baseMimeType: string
+): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
+  const candidates = buildTelegramCandidates(image, request);
+  let lastStatus: number | undefined;
+  let lastUrl: string | undefined;
+  let lastError: any;
+
+  for (const candidate of candidates) {
+    try {
+      return await downloadFromCandidate(candidate, baseMimeType);
+    } catch (err) {
+      lastError = err;
+      if (err instanceof HttpStatusError) {
+        lastStatus = err.status;
+        lastUrl = err.url;
+        logger.warn('随机端点图片下载失败', {
+          type: 'api_random_download',
+          status: err.status,
+          statusText: err.statusText,
+          url: err.url,
+          reason: candidate.reason
+        });
+      } else {
+        logger.warn('随机端点图片下载异常', {
+          type: 'api_random_download',
+          error: err instanceof Error ? err.message : String(err),
+          url: candidate.url,
+          reason: candidate.reason
+        });
+      }
+    }
+  }
+
+  if (lastStatus === 404 || lastStatus === 410) {
+    throw new AppError(
+      ErrorType.NOT_FOUND,
+      `源图返回 404 (${lastUrl ?? 'unknown'})`,
+      404,
+      { url: lastUrl, status: lastStatus }
+    );
+  }
+
+  if (lastStatus && lastStatus >= 500) {
+    throw new AppError(
+      ErrorType.EXTERNAL_SERVICE_ERROR,
+      `源图服务错误 (${lastStatus})`,
+      502,
+      { url: lastUrl, status: lastStatus }
+    );
+  }
+
+  throw new AppError(
+    ErrorType.INTERNAL_ERROR,
+    '下载图片失败',
+    500,
+    { url: lastUrl, status: lastStatus, error: lastError instanceof Error ? lastError.message : String(lastError ?? '') }
+  );
+}
+
+function isTelegramImage(image: any, secureUrl: string): boolean {
+  if (image?.primaryProvider === 'telegram') return true;
+  if (secureUrl.includes('api.telegram.org/file/bot')) return true;
+  if (secureUrl.includes('/api/telegram/image')) return true;
+  return false;
+}
+
+function getMimeTypeFromUrl(url: string): string {
+  const extension = url.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'bmp':
+      return 'image/bmp';
+    case 'tiff':
+    case 'tif':
+      return 'image/tiff';
+    default:
+      return 'image/jpeg';
+  }
+}
