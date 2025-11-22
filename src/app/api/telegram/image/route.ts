@@ -19,6 +19,9 @@ interface TelegramFileResponse {
 
 // 该路由依赖查询参数与外部请求，必须禁用静态优化
 export const dynamic = 'force-dynamic';
+// 禁止 Next.js 对外部 fetch 做增量缓存
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
 
 /**
  * 读取 Token 列表
@@ -53,7 +56,10 @@ function cacheFileIdToken(fileId: string, token: string) {
 async function fetchBotIdForToken(token: string): Promise<string | null> {
   try {
     const url = `https://api.telegram.org/bot${token}/getMe`;
-    const resp = await fetch(url, buildFetchInitFor(url, { signal: AbortSignal.timeout(5000) } as RequestInit));
+    const resp = await fetch(
+      url,
+      buildFetchInitFor(url, { signal: AbortSignal.timeout(5000), cache: 'no-store' } as RequestInit)
+    );
     if (!resp.ok) return null;
     const data = await resp.json();
     if (!data?.ok || !data?.result?.id) return null;
@@ -113,7 +119,7 @@ async function fetchTelegramFilePath(token: string, fileId: string, maxRetries =
       const getFileUrl = `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`;
       const resp = await fetch(
         getFileUrl, 
-        buildFetchInitFor(getFileUrl, { signal: AbortSignal.timeout(10000) } as RequestInit)
+        buildFetchInitFor(getFileUrl, { signal: AbortSignal.timeout(10000), cache: 'no-store' } as RequestInit)
       );
 
       lastStatus = resp.status;
@@ -218,7 +224,7 @@ export async function GET(request: NextRequest) {
           const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePathParam}`;
           const downloadResponse = await fetch(
             downloadUrl,
-            buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit)
+            buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000), cache: 'no-store' } as RequestInit)
           );
           if (downloadResponse.ok) {
             const imageBuffer = await downloadResponse.arrayBuffer();
@@ -236,8 +242,9 @@ export async function GET(request: NextRequest) {
               status: 200,
               headers: {
                 'Content-Type': contentType,
+                // 前端可缓存，Next 侧已禁用增量缓存
                 'Cache-Control': 'public, max-age=31536000, immutable',
-                'X-Content-Type-Options': 'nosniff', // 防止 MIME Sniffing
+                'X-Content-Type-Options': 'nosniff' // 防止 MIME Sniffing
               }
             });
           }
@@ -255,7 +262,10 @@ export async function GET(request: NextRequest) {
       if (result.success && result.filePath) {
         const downloadUrl = `https://api.telegram.org/file/bot${cachedToken}/${result.filePath}`;
         try {
-          const downloadResponse = await fetch(downloadUrl, buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit));
+          const downloadResponse = await fetch(
+            downloadUrl,
+            buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000), cache: 'no-store' } as RequestInit)
+          );
           if (downloadResponse.ok) {
             const imageBuffer = await downloadResponse.arrayBuffer();
             let contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
@@ -270,7 +280,7 @@ export async function GET(request: NextRequest) {
               headers: {
                 'Content-Type': contentType,
                 'Cache-Control': 'public, max-age=31536000, immutable',
-                'X-Content-Type-Options': 'nosniff',
+                'X-Content-Type-Options': 'nosniff'
               }
             });
           }
@@ -293,7 +303,10 @@ export async function GET(request: NextRequest) {
           try {
             // 2) 下载文件
             const downloadUrl = `https://api.telegram.org/file/bot${token}/${result.filePath}`;
-            const downloadResponse = await fetch(downloadUrl, buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit));
+            const downloadResponse = await fetch(
+              downloadUrl,
+              buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000), cache: 'no-store' } as RequestInit)
+            );
             if (downloadResponse.ok) {
               const imageBuffer = await downloadResponse.arrayBuffer();
               let contentType = downloadResponse.headers.get('content-type') || 'application/octet-stream';
@@ -349,7 +362,10 @@ export async function GET(request: NextRequest) {
       // 2. 下载文件
       try {
         const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
-        const downloadResponse = await fetch(downloadUrl, buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000) } as RequestInit));
+        const downloadResponse = await fetch(
+          downloadUrl,
+          buildFetchInitFor(downloadUrl, { signal: AbortSignal.timeout(30000), cache: 'no-store' } as RequestInit)
+        );
 
         if (!downloadResponse.ok) {
           lastErrorStatus = downloadResponse.status;
@@ -376,7 +392,7 @@ export async function GET(request: NextRequest) {
           headers: {
             'Content-Type': contentType,
             'Cache-Control': 'public, max-age=31536000, immutable', // 缓存 1 年
-            'X-Content-Type-Options': 'nosniff',
+            'X-Content-Type-Options': 'nosniff'
           }
         });
       } catch (err) {
