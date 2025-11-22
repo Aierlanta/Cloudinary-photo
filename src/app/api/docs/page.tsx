@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Server,
   FileJson,
-  ArrowLeft
+  ArrowLeft,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useLocale, LocaleProvider } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
@@ -219,6 +220,62 @@ function APIDocsContent() {
                      </div>
                   </div>
                </div>
+            </div>
+          </GlassCard>
+
+          {/* Orientation & Resize */}
+          <GlassCard className="p-6 sm:p-8">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <ImageIcon className="w-6 h-6 text-primary" />
+              {t.apiDocs.orientationAndSize}
+            </h2>
+
+            <div className="space-y-6 text-sm text-muted-foreground">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-foreground">{t.apiDocs.orientationTitle}</h3>
+                <p>{t.apiDocs.orientationDesc}</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>`orientation` = `landscape` | `portrait` | `square`</li>
+                  <li>{t.apiDocs.orientationNote}</li>
+                </ul>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[
+                    { id: "ori-random", label: t.apiDocs.exampleLandscapeRandom, url: "/api/random?orientation=landscape" },
+                    { id: "ori-response", label: t.apiDocs.exampleLandscapeResponse, url: "/api/response?orientation=landscape" },
+                  ].map((ex) => (
+                    <div key={ex.id} className="bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10 flex items-center gap-2">
+                      <code className="flex-1 font-mono text-xs sm:text-sm text-slate-300 truncate">
+                        {baseUrl}
+                        {ex.url}
+                      </code>
+                      {baseUrl && <CopyButton text={`${baseUrl}${ex.url}`} id={ex.id} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-semibold text-foreground">{t.apiDocs.resizeTitle}</h3>
+                <p>{t.apiDocs.resizeDesc}</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>`width` / `height` {t.apiDocs.resizeWidthHeight}</li>
+                  <li>`fit` = `cover` | `contain` ({t.apiDocs.resizeFitDefault})</li>
+                </ul>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[
+                    { id: "resize-cover", label: t.apiDocs.exampleResizeCover, url: "/api/response?width=800&height=600&fit=cover" },
+                    { id: "resize-contain", label: t.apiDocs.exampleResizeContain, url: "/api/response?width=800&height=600&fit=contain" },
+                  ].map((ex) => (
+                    <div key={ex.id} className="bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10 flex items-center gap-2">
+                      <code className="flex-1 font-mono text-xs sm:text-sm text-slate-300 truncate">
+                        {baseUrl}
+                        {ex.url}
+                      </code>
+                      {baseUrl && <CopyButton text={`${baseUrl}${ex.url}`} id={ex.id} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </GlassCard>
 

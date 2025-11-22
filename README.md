@@ -165,13 +165,14 @@ GET /api/random?group=wallpaper&key=your-api-key
 GET /api/random
 ```
 
-**Function**: Get a random image, supports group filtering and parameter configuration
-**Response**: 302 redirect to image URL
+**Function**: Get a random image, supports group filtering, orientation filtering, and parameter configuration  
+**Response**: 302 redirect to image URL  
 **Parameters**:
 
 - `key` - API key (required if authentication is enabled)
-- Supports custom parameters (configured via admin panel)
-- Example: `?group=wallpaper&category=nature`
+- `group`/custom params - Mapped in admin panel
+- `orientation` - `landscape` | `portrait` | `square` (optional; filters by stored width/height/orientation)
+- Example: `?group=wallpaper&orientation=landscape`
 - Example with key: `?group=wallpaper&key=your-api-key`
 
 #### Direct Response Endpoint
@@ -191,6 +192,9 @@ GET /api/response
 - `bgColor` - Background color (optional), supports the following formats:
   - Preset color names: `white` (default), `black`
   - Hexadecimal: `ffffff` or `#ffffff`
+- `orientation` - `landscape` | `portrait` | `square` (optional; works with random selection)
+- `width` / `height` - Resize output; if only one is provided, aspect ratio is preserved
+- `fit` - Resize mode when width/height are both present: `cover` (default) | `contain`
 
 **Usage Examples**:
 
@@ -200,6 +204,12 @@ GET /api/response
 
 # With API Key
 GET /api/response?key=your-api-key
+
+# Prefer landscape images
+GET /api/response?orientation=landscape
+
+# Resize to 800x600 with cover fit
+GET /api/response?width=800&height=600&fit=cover
 
 # 50% opacity with white background
 GET /api/response?opacity=0.5&bgColor=white

@@ -189,13 +189,14 @@ GET /api/random?group=wallpaper&key=你的API密钥
 GET /api/random
 ```
 
-**功能**: 获取随机图片，支持分组筛选和参数配置
-**响应**: 302 重定向到图片 URL
+**功能**: 获取随机图片，支持分组筛选、横竖图筛选和参数配置  
+**响应**: 302 重定向到图片 URL  
 **参数**:
 
 - `key` - API 密钥（启用鉴权时必需）
-- 支持自定义参数（通过管理面板配置）
-- 例如: `?group=wallpaper&category=nature`
+- `group`/自定义参数 - 通过管理面板映射
+- `orientation` - `landscape` | `portrait` | `square`（可选，用于按宽高/方向过滤）
+- 例如: `?group=wallpaper&orientation=landscape`
 - 带密钥示例: `?group=wallpaper&key=你的API密钥`
 
 #### 直接响应接口
@@ -215,6 +216,9 @@ GET /api/response
 - `bgColor` - 背景颜色（可选），支持以下格式：
   - 预设颜色名称：`white`（默认）、`black`
   - 十六进制：`ffffff` 或 `#ffffff`
+- `orientation` - `landscape` | `portrait` | `square`（可选，随机筛选方向）
+- `width` / `height` - 输出尺寸，单个参数保留比例，两个一起使用时按 fit 模式裁切/缩放
+- `fit` - 与 width/height 搭配：`cover`（默认）| `contain`
 
 **使用示例**:
 
@@ -224,6 +228,12 @@ GET /api/response
 
 # 使用 API Key
 GET /api/response?key=你的API密钥
+
+# 偏好横图
+GET /api/response?orientation=landscape
+
+# 等比缩放到 800x600（cover 模式）
+GET /api/response?width=800&height=600&fit=cover
 
 # 50% 透明度，白色背景
 GET /api/response?opacity=0.5&bgColor=white
