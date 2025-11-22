@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
@@ -46,6 +46,14 @@ interface RateLimit {
   createdAt: Date;
 }
 
+type TopIPRange = "default" | "lastHour" | "last24Hours";
+
+const TOP_IP_RANGE_TO_HOURS: Record<TopIPRange, number | null> = {
+  default: null,
+  lastHour: 1,
+  last24Hours: 24,
+};
+
 export default function SecurityManagement() {
   const { t } = useLocale();
   const isLight = useTheme();
@@ -55,6 +63,9 @@ export default function SecurityManagement() {
   // 访问统计数据
   const [stats, setStats] = useState<AccessStats | null>(null);
   const [realtimeStats, setRealtimeStats] = useState<RealtimeStats | null>(null);
+  const [topIPs, setTopIPs] = useState<AccessStats["topIPs"]>([]);
+  const [topIPRange, setTopIPRange] = useState<TopIPRange>("default");
+  const [topIPLoading, setTopIPLoading] = useState(false);
 
   // 封禁IP数据
   const [bannedIPs, setBannedIPs] = useState<BannedIP[]>([]);
@@ -62,22 +73,46 @@ export default function SecurityManagement() {
   // 速率限制数据
   const [rateLimits, setRateLimits] = useState<RateLimit[]>([]);
 
+  const refreshTopIPs = useCallback(async (range: TopIPRange, latestStats?: AccessStats | null) => {
+    const hours = TOP_IP_RANGE_TO_HOURS[range];
+    if (!hours) {
+      setTopIPs((latestStats || stats)?.topIPs ?? []);
+      return;
+    }
+
+    setTopIPLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("hours", hours.toString());
+      const response = await fetch(`/api/admin/security/stats?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTopIPs(data.data.stats.topIPs ?? []);
+      }
+    } catch (error) {
+      console.error("加载Top IP列表失败:", error);
+    } finally {
+      setTopIPLoading(false);
+    }
+  }, [stats]);
+
   // 加载访问统计
-  const loadStats = async () => {
+  const loadStats = useCallback(async (range: TopIPRange = topIPRange) => {
     try {
       const response = await fetch("/api/admin/security/stats?days=7");
       if (response.ok) {
         const data = await response.json();
         setStats(data.data.stats);
         setRealtimeStats(data.data.realtime);
+        await refreshTopIPs(range, data.data.stats);
+        setTopIPRange(range);
       }
     } catch (error) {
       console.error("加载统计数据失败:", error);
     }
-  };
-
+  }, [refreshTopIPs, topIPRange]);
   // 加载封禁IP列表
-  const loadBannedIPs = async () => {
+  const loadBannedIPs = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/security/banned-ips");
       if (response.ok) {
@@ -87,10 +122,10 @@ export default function SecurityManagement() {
     } catch (error) {
       console.error("加载封禁IP列表失败:", error);
     }
-  };
+  }, []);
 
   // 加载速率限制列表
-  const loadRateLimits = async () => {
+  const loadRateLimits = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/security/rate-limits");
       if (response.ok) {
@@ -100,7 +135,7 @@ export default function SecurityManagement() {
     } catch (error) {
       console.error("加载速率限制列表失败:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -109,13 +144,25 @@ export default function SecurityManagement() {
       setLoading(false);
     };
     loadData();
-  }, []);
+  }, [loadStats, loadBannedIPs, loadRateLimits]);
 
   const handleRefresh = () => {
-    loadStats();
+    loadStats(topIPRange);
     loadBannedIPs();
     loadRateLimits();
   };
+
+  const handleTopIPCardClick = (range: TopIPRange) => {
+    setTopIPRange(range);
+    refreshTopIPs(range);
+  };
+
+  const topIPRangeLabel =
+    topIPRange === "lastHour"
+      ? t.adminSecurity.lastHour
+      : topIPRange === "last24Hours"
+      ? t.adminSecurity.last24Hours
+      : t.adminSecurity.last7Days;
 
   // --- V3 Layout (Flat Design) ---
   return (
@@ -306,10 +353,24 @@ export default function SecurityManagement() {
               <div className="space-y-6 rounded-lg">
                 {/* Realtime Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
-                  <div className={cn(
-                    "border p-6 rounded-lg",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                  )}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleTopIPCardClick("lastHour")}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleTopIPCardClick("lastHour");
+                      }
+                    }}
+                    className={cn(
+                      "border p-6 rounded-lg transition cursor-pointer",
+                      isLight
+                        ? "bg-white border-gray-300 hover:border-blue-400"
+                        : "bg-gray-800 border-gray-600 hover:border-blue-400/60",
+                      topIPRange === "lastHour" ? "ring-2 ring-blue-500" : ""
+                    )}
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <p className={cn(
                         "text-sm rounded-lg",
@@ -329,10 +390,24 @@ export default function SecurityManagement() {
                       {realtimeStats?.lastHour || 0}
                     </div>
                   </div>
-                  <div className={cn(
-                    "border p-6 rounded-lg",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                  )}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleTopIPCardClick("last24Hours")}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleTopIPCardClick("last24Hours");
+                      }
+                    }}
+                    className={cn(
+                      "border p-6 rounded-lg transition cursor-pointer",
+                      isLight
+                        ? "bg-white border-gray-300 hover:border-green-400"
+                        : "bg-gray-800 border-gray-600 hover:border-green-400/60",
+                      topIPRange === "last24Hours" ? "ring-2 ring-green-500" : ""
+                    )}
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <p className={cn(
                         "text-sm rounded-lg",
@@ -441,47 +516,78 @@ export default function SecurityManagement() {
                     "border p-6 rounded-lg",
                     isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                   )}>
-                    <h3 className={cn(
-                      "font-bold mb-4 flex items-center gap-2 rounded-lg",
-                      isLight ? "text-gray-900" : "text-gray-100"
-                    )}>
-                      <Shield className={cn(
-                        "w-4 h-4",
-                        isLight ? "text-blue-500" : "text-blue-400"
-                      )} />
-                      {t.adminSecurity.topIPs}
-                    </h3>
+                    <div className="flex items-center gap-3 mb-4">
+                      <h3 className={cn(
+                        "font-bold flex items-center gap-2 rounded-lg",
+                        isLight ? "text-gray-900" : "text-gray-100"
+                      )}>
+                        <Shield className={cn(
+                          "w-4 h-4",
+                          isLight ? "text-blue-500" : "text-blue-400"
+                        )} />
+                        {t.adminSecurity.topIPs}
+                      </h3>
+                      <span className={cn(
+                        "text-xs px-2 py-1 rounded-full border",
+                        isLight ? "text-blue-700 bg-blue-50 border-blue-200" : "text-blue-100 bg-blue-900/40 border-blue-700"
+                      )}>
+                        {topIPRangeLabel}
+                      </span>
+                      {topIPLoading && (
+                        <RefreshCw className={cn(
+                          "w-4 h-4 animate-spin",
+                          isLight ? "text-blue-500" : "text-blue-400"
+                        )} />
+                      )}
+                    </div>
                     <div className="space-y-2 rounded-lg">
-                      {(stats?.topIPs ?? []).slice(0, 8).map((item, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            "flex items-center justify-between text-sm p-2 border rounded-lg",
-                            isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
-                          )}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
+                      {topIPLoading ? (
+                        <div className={cn(
+                          "flex items-center gap-2 text-sm rounded-lg",
+                          isLight ? "text-gray-600" : "text-gray-400"
+                        )}>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          {t.adminSecurity.loading}
+                        </div>
+                      ) : topIPs.length > 0 ? (
+                        topIPs.slice(0, 8).map((item, i) => (
+                          <div
+                            key={item.ip ?? i}
+                            className={cn(
+                              "flex items-center justify-between text-sm p-2 border rounded-lg",
+                              isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
+                            )}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className={cn(
+                                "w-4 rounded-lg",
+                                isLight ? "text-gray-600" : "text-gray-400"
+                              )}>
+                                {i + 1}
+                              </span>
+                              <span className={cn(
+                                "font-mono truncate px-2 py-0.5 text-xs border rounded-lg",
+                                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                              )}>
+                                {item.ip}
+                              </span>
+                            </div>
                             <span className={cn(
-                              "w-4 rounded-lg",
-                              isLight ? "text-gray-600" : "text-gray-400"
+                              "font-medium rounded-lg",
+                              isLight ? "text-gray-900" : "text-gray-100"
                             )}>
-                              {i + 1}
-                            </span>
-                            <span className={cn(
-                              "font-mono truncate px-2 py-0.5 text-xs border rounded-lg",
-                              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                            )}>
-                              {item.ip}
+                              {item.count}
                             </span>
                           </div>
-                          <span className={cn(
-                            "font-medium rounded-lg",
-                            isLight ? "text-gray-900" : "text-gray-100"
-                          )}>
-                            {item.count}
-                          </span>
+                        ))
+                      ) : (
+                        <div className={cn(
+                          "text-center py-8 text-sm rounded-lg",
+                          isLight ? "text-gray-500" : "text-gray-400"
+                        )}>
+                          {t.adminSecurity.noAccessData}
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 </div>

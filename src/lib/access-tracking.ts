@@ -6,6 +6,14 @@
 import { prisma } from './prisma';
 import { NextRequest } from 'next/server';
 
+const HOUR_IN_MS = 60 * 60 * 1000;
+const DAY_IN_MS = 24 * HOUR_IN_MS;
+
+interface AccessStatsOptions {
+  days?: number;
+  hours?: number;
+}
+
 /**
  * 获取客户端IP地址
  */
@@ -65,9 +73,14 @@ export async function logAccess(
 /**
  * 获取访问统计概览
  */
-export async function getAccessStats(days: number = 7) {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
+export async function getAccessStats(options: AccessStatsOptions = {}) {
+  const { days, hours } = options;
+  const effectiveHours = typeof hours === 'number' && hours > 0 ? hours : undefined;
+  const effectiveDays = typeof days === 'number' && days > 0 ? days : 7;
+  const startTimestamp = effectiveHours
+    ? Date.now() - effectiveHours * HOUR_IN_MS
+    : Date.now() - effectiveDays * DAY_IN_MS;
+  const startDate = new Date(startTimestamp);
 
   try {
     // 总访问量
@@ -250,4 +263,3 @@ export async function getRealtimeStats() {
     throw error;
   }
 }
-

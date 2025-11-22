@@ -15,10 +15,18 @@ export const dynamic = 'force-dynamic';
 async function getStats(request: NextRequest): Promise<Response> {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const days = parseInt(searchParams.get('days') || '7', 10);
+    const daysParam = searchParams.get('days');
+    const hoursParam = searchParams.get('hours');
+    const parsedDays = daysParam ? parseInt(daysParam, 10) : Number.NaN;
+    const parsedHours = hoursParam ? parseInt(hoursParam, 10) : Number.NaN;
+    const days = Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : undefined;
+    const hours = Number.isFinite(parsedHours) && parsedHours > 0 ? parsedHours : undefined;
 
     const [stats, realtimeStats] = await Promise.all([
-      getAccessStats(days),
+      getAccessStats({
+        days,
+        hours,
+      }),
       getRealtimeStats(),
     ]);
 
@@ -47,4 +55,3 @@ export const GET = withErrorHandler(
     enableAccessLog: false, // 统计API不记录访问日志
   })(withAdminAuth(getStats))
 );
-
