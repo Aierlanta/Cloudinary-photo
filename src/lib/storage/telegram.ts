@@ -22,28 +22,55 @@ export interface TelegramConfig {
   chatId?: string; // 可选的目标 chat_id,默认使用 bot 自己的存储
 }
 
+export interface TelegramFileThumb {
+  file_id: string;
+  file_unique_id: string;
+  file_size?: number;
+  width?: number;
+  height?: number;
+}
+
+export interface TelegramFileLike {
+  file_id: string;
+  file_unique_id: string;
+  file_size?: number;
+  width?: number;
+  height?: number;
+  thumbnail?: TelegramFileThumb;
+  thumb?: TelegramFileThumb;
+}
+
+export interface TelegramPhotoSize {
+  file_id: string;
+  file_unique_id: string;
+  file_size?: number;
+  width: number;
+  height: number;
+}
+
 export interface TelegramUploadResponse {
   ok: boolean;
   result?: {
     message_id: number;
-    document: {
-      file_name: string;
-      mime_type: string;
-      file_id: string;
-      file_unique_id: string;
-      file_size: number;
-      thumbnail?: {
-        file_id: string;
-        file_unique_id: string;
-        file_size: number;
-        width: number;
-        height: number;
-      };
-      thumb?: any; // 与 thumbnail 相同
-    };
+    document?: TelegramFileLike;
+    sticker?: TelegramFileLike;
+    photo?: TelegramPhotoSize[];
+    animation?: TelegramFileLike;
+    video?: TelegramFileLike;
+    voice?: TelegramFileLike;
+    audio?: TelegramFileLike;
   };
   description?: string;
 }
+
+type TelegramUploadFile = {
+  file_id: string;
+  file_unique_id: string;
+  file_size?: number;
+  width?: number;
+  height?: number;
+  thumbnail?: TelegramFileThumb;
+};
 
 export interface TelegramFileResponse {
   ok: boolean;
@@ -266,7 +293,15 @@ export class TelegramService extends ImageStorageService {
       this.stats.successCount++;
       this.stats.totalResponseTime += responseTime;
 
-      const telegramDoc = result.result.document;
+      const telegramDoc = this.pickUploadFile(result.result);
+      if (!telegramDoc) {
+        throw new StorageError(
+          'Telegram 上传成功但响应中未找到文件信息 (document/sticker/photo/animation 等)',
+          StorageProvider.TELEGRAM,
+          'UPLOAD_NO_FILE',
+          result
+        );
+      }
       if ((!width || !height) && telegramDoc.thumbnail) {
         width = width ?? telegramDoc.thumbnail.width;
         height = height ?? telegramDoc.thumbnail.height;
@@ -475,7 +510,7 @@ export class TelegramService extends ImageStorageService {
 
   private async resolveFilePaths(
     token: string,
-    document: NonNullable<TelegramUploadResponse['result']>['document']
+    document: TelegramUploadFile
   ): Promise<{ filePath?: string; thumbnailPath?: string }> {
     const mainPromise = this.getFilePath(token, document.file_id);
     const thumbPromise = document.thumbnail
@@ -539,6 +574,57 @@ export class TelegramService extends ImageStorageService {
   private extractFormat(filename: string): string {
     const parts = filename.split('.');
     return parts.length > 1 ? parts[parts.length - 1] : 'unknown';
+  }
+
+  /**
+   * 选择并标准化上传返回的文件对象，避免 document 缺失导致报错
+   */
+  private pickUploadFile(result?: TelegramUploadResponse['result']): TelegramUploadFile | undefined {
+    if (!result) return undefined;
+
+    const normalizedCandidates: Array<TelegramUploadFile | undefined> = [
+      this.normalizeFileLike(result.document),
+      this.normalizeFileLike(result.sticker),
+      this.normalizeFileLike(this.pickBestPhoto(result.photo)),
+      this.normalizeFileLike(result.animation),
+      this.normalizeFileLike(result.video),
+      this.normalizeFileLike(result.voice),
+      this.normalizeFileLike(result.audio)
+    ];
+
+    return normalizedCandidates.find(item => Boolean(item));
+  }
+
+  private pickBestPhoto(photoSizes?: TelegramPhotoSize[]): TelegramPhotoSize | undefined {
+    if (!photoSizes || photoSizes.length === 0) return undefined;
+    return photoSizes.reduce((best, current) => {
+      const bestSize = best.file_size ?? 0;
+      const currentSize = current.file_size ?? 0;
+      return currentSize > bestSize ? current : best;
+    }, photoSizes[photoSizes.length - 1]);
+  }
+
+  private normalizeFileLike(file?: TelegramFileLike | TelegramPhotoSize): TelegramUploadFile | undefined {
+    if (!file) return undefined;
+    const maybeThumb = (file as TelegramFileLike).thumbnail || (file as TelegramFileLike).thumb;
+    const thumbnail = maybeThumb
+      ? {
+          file_id: maybeThumb.file_id,
+          file_unique_id: maybeThumb.file_unique_id,
+          file_size: maybeThumb.file_size,
+          width: maybeThumb.width,
+          height: maybeThumb.height
+        }
+      : undefined;
+
+    return {
+      file_id: file.file_id,
+      file_unique_id: file.file_unique_id,
+      file_size: file.file_size,
+      width: (file as TelegramFileLike).width,
+      height: (file as TelegramFileLike).height,
+      thumbnail
+    };
   }
 
   /**
