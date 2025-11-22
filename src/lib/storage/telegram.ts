@@ -193,8 +193,6 @@ export class TelegramService extends ImageStorageService {
         height = meta.height || undefined;
       } catch (err) {
         console.warn('[Telegram 上传] 读取图片尺寸失败，将尝试使用缩略图尺寸回退', err);
-        width = document.thumbnail?.width;
-        height = document.thumbnail?.height;
       }
 
       // 创建 FormData (使用 Web API FormData)
@@ -268,17 +266,21 @@ export class TelegramService extends ImageStorageService {
       this.stats.successCount++;
       this.stats.totalResponseTime += responseTime;
 
-      const document = result.result.document;
-      const { filePath, thumbnailPath } = await this.resolveFilePaths(token, document);
+      const telegramDoc = result.result.document;
+      if ((!width || !height) && telegramDoc.thumbnail) {
+        width = width ?? telegramDoc.thumbnail.width;
+        height = height ?? telegramDoc.thumbnail.height;
+      }
+      const { filePath, thumbnailPath } = await this.resolveFilePaths(token, telegramDoc);
       const guessedBotId = botInfo?.id ?? this.extractBotIdFromToken(token);
       const finalUrl = filePath
         ? this.buildFileUrl(token, filePath)
-        : this.buildProxyUrl(document.file_id, guessedBotId);
+        : this.buildProxyUrl(telegramDoc.file_id, guessedBotId);
 
       // 构建返回结果
       const storageResult: StorageResult = {
-        id: document.file_id,
-        publicId: document.file_id,
+        id: telegramDoc.file_id,
+        publicId: telegramDoc.file_id,
         // 使用 Telegram 原始 URL (包含 bot token)
         // 这个 URL 只能通过 /api/response 访问,不会通过 /api/random 暴露
         url: finalUrl,
@@ -293,9 +295,9 @@ export class TelegramService extends ImageStorageService {
           responseTime,
           // 存储 bot token 用于后续访问
           telegramBotToken: token,
-          telegramFileId: document.file_id,
+          telegramFileId: telegramDoc.file_id,
           telegramFilePath: filePath,
-          telegramThumbnailFileId: document.thumbnail?.file_id,
+          telegramThumbnailFileId: telegramDoc.thumbnail?.file_id,
           telegramThumbnailPath: thumbnailPath,
           telegramBotId: guessedBotId,
           downloadStrategy: filePath ? 'direct' : 'proxy',

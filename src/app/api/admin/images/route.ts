@@ -12,6 +12,7 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
+import { Image } from '@/types/models';
 import { StorageProvider } from '@/lib/storage/base';
 import { storageServiceManager } from '@/lib/storage/factory';
 import { StorageDatabaseService } from '@/lib/database/storage';
@@ -36,6 +37,14 @@ import {
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
+
+function normalizeOrientation(orientation?: string | null): Image['orientation'] {
+  if (!orientation) return undefined;
+  if (orientation === 'landscape' || orientation === 'portrait' || orientation === 'square') {
+    return orientation;
+  }
+  return 'unknown';
+}
 
 /**
  * GET /api/admin/images
@@ -178,7 +187,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
     );
   }
 
-  let image;
+  let image: Image;
 
   if (selectedProviderString === 'cloudinary') {
     // 使用原有的Cloudinary逻辑（向后兼容）
@@ -247,6 +256,17 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       throw error;
     }
 
+    const parsedTags = (() => {
+      if (!savedImage.tags) return [];
+      try {
+        const result = JSON.parse(savedImage.tags);
+        return Array.isArray(result) ? result : [];
+      } catch {
+        return [];
+      }
+    })();
+    const normalizedOrientation = normalizeOrientation(savedImage.orientation);
+
     // 转换为兼容格式
     image = {
       id: savedImage.id,
@@ -254,10 +274,10 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       publicId: savedImage.publicId,
       title: savedImage.title,
       description: savedImage.description,
-      tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
-      width: savedImage.width || undefined,
-      height: savedImage.height || undefined,
-      orientation: savedImage.orientation || undefined,
+      tags: parsedTags,
+      width: savedImage.width ?? undefined,
+      height: savedImage.height ?? undefined,
+      orientation: normalizedOrientation,
       groupId: savedImage.groupId,
       uploadedAt: savedImage.uploadedAt,
       storageMetadata: savedImage.storageMetadata

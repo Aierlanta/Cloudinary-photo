@@ -9,6 +9,7 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
+import { Image } from '@/types/models';
 import { applyProxyToImageUrl } from '@/lib/image-utils';
 import {
   ImageUploadRequestSchema,
@@ -25,6 +26,13 @@ import { getEnabledProviders, isProviderInEnabledList } from '@/lib/storage';
 
 const storageDatabaseService = new StorageDatabaseService();
 
+function normalizeOrientation(orientation?: string | null): Image['orientation'] {
+  if (!orientation) return undefined;
+  if (orientation === 'landscape' || orientation === 'portrait' || orientation === 'square') {
+    return orientation;
+  }
+  return 'unknown';
+}
 
 /**
  * POST /api/admin/images/upload-to-provider
@@ -147,17 +155,28 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
       url: uploadResult.url
     });
 
+    const parsedTags = (() => {
+      if (!savedImage.tags) return [];
+      try {
+        const result = JSON.parse(savedImage.tags);
+        return Array.isArray(result) ? result : [];
+      } catch {
+        return [];
+      }
+    })();
+    const normalizedOrientation = normalizeOrientation(savedImage.orientation);
+
     // 应用代理URL转换（如果配置了 tgState 代理）
-    const imageWithProxy = applyProxyToImageUrl({
+    const imageWithProxy: Image = applyProxyToImageUrl({
       id: savedImage.id,
       url: savedImage.url,
       publicId: savedImage.publicId,
       title: savedImage.title,
       description: savedImage.description,
-      tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
-      width: savedImage.width || undefined,
-      height: savedImage.height || undefined,
-      orientation: savedImage.orientation || undefined,
+      tags: parsedTags,
+      width: savedImage.width ?? undefined,
+      height: savedImage.height ?? undefined,
+      orientation: normalizedOrientation,
       groupId: savedImage.groupId,
       uploadedAt: savedImage.uploadedAt,
       primaryProvider: savedImage.primaryProvider,

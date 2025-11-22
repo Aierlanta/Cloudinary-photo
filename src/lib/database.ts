@@ -10,6 +10,14 @@ import { prisma } from './prisma';
 
 type OrientationFilter = 'landscape' | 'portrait' | 'square';
 
+function normalizeOrientationValue(orientation?: string | null): Image['orientation'] {
+  if (!orientation) return undefined;
+  if (orientation === 'landscape' || orientation === 'portrait' || orientation === 'square') {
+    return orientation;
+  }
+  return 'unknown';
+}
+
 export class DatabaseService {
   private static instance: DatabaseService;
   private isInitializing: boolean = false;
@@ -291,7 +299,7 @@ export class DatabaseService {
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         width: image.width || undefined,
         height: image.height || undefined,
-        orientation: image.orientation || undefined,
+        orientation: normalizeOrientationValue(image.orientation),
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         storageMetadata: image.storageMetadata || undefined
@@ -323,7 +331,7 @@ export class DatabaseService {
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         width: image.width || undefined,
         height: image.height || undefined,
-        orientation: image.orientation || undefined,
+        orientation: normalizeOrientationValue(image.orientation),
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         primaryProvider: (image as any).primaryProvider || 'cloudinary',
@@ -425,7 +433,7 @@ export class DatabaseService {
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         width: image.width || undefined,
         height: image.height || undefined,
-        orientation: image.orientation || undefined,
+        orientation: normalizeOrientationValue(image.orientation),
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         primaryProvider: image.primaryProvider || 'cloudinary', // 新增：图床信息
@@ -706,7 +714,7 @@ export class DatabaseService {
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         width: image.width || undefined,
         height: image.height || undefined,
-        orientation: image.orientation || undefined,
+        orientation: normalizeOrientationValue(image.orientation),
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         primaryProvider: image.primaryProvider || 'cloudinary',
@@ -793,7 +801,7 @@ export class DatabaseService {
         tags: image.tags ? JSON.parse(image.tags) : undefined,
         width: image.width || undefined,
         height: image.height || undefined,
-        orientation: image.orientation || undefined,
+        orientation: normalizeOrientationValue(image.orientation),
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         primaryProvider: image.primaryProvider || 'cloudinary',

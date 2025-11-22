@@ -674,6 +674,18 @@ export interface Translations {
     directResponseWithParamsR18: string;
     withParamsSfw: string;
     directResponseWithParamsSfw: string;
+    orientationAndSize: string;
+    orientationTitle: string;
+    orientationDesc: string;
+    orientationNote: string;
+    resizeTitle: string;
+    resizeDesc: string;
+    resizeWidthHeight: string;
+    resizeFitDefault: string;
+    exampleLandscapeRandom: string;
+    exampleLandscapeResponse: string;
+    exampleResizeCover: string;
+    exampleResizeContain: string;
     transparencyAdjustment: string;
     transparencyIntro: string;
     parameterDescription: string;
