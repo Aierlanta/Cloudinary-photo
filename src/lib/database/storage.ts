@@ -6,6 +6,10 @@
 import { StorageProvider, StorageResult, MultiStorageConfig } from '../storage/base';
 import { prisma } from '../prisma';
 
+// 写冲突重试配置（避免硬编码散落）
+const DEADLOCK_RETRY_ATTEMPTS = 5;
+const DEADLOCK_RETRY_BASE_DELAY_MS = 30;
+
 export interface ImageWithStorage {
   id: string;
   url: string;
@@ -72,55 +76,57 @@ export class StorageDatabaseService {
       storageMetadata.telegramBotId = telegramMetadata.telegramBotId;
     }
 
-    // 事务化写入 image 及其 storage records，防止部分成功
-    const { image, storageRecords } = await prisma.$transaction(async (tx) => {
-      const createdImage = await tx.image.create({
-        data: {
-          id: imageId,
-          url: data.url,
-          publicId: data.publicId,
-          title: data.title,
-          description: data.description,
-          groupId: data.groupId,
-          tags: data.tags ? JSON.stringify(data.tags) : null,
-          primaryProvider: data.primaryProvider,
-          backupProvider: data.backupProvider,
-          storageMetadata: JSON.stringify(storageMetadata),
+    // 事务化写入 image 及其 storage records，防止部分成功 + 针对 P2034 的重试
+    const { image, storageRecords } = await this.runWithDeadlockRetry(async () =>
+      prisma.$transaction(async (tx) => {
+        const createdImage = await tx.image.create({
+          data: {
+            id: imageId,
+            url: data.url,
+            publicId: data.publicId,
+            title: data.title,
+            description: data.description,
+            groupId: data.groupId,
+            tags: data.tags ? JSON.stringify(data.tags) : null,
+            primaryProvider: data.primaryProvider,
+            backupProvider: data.backupProvider,
+            storageMetadata: JSON.stringify(storageMetadata),
 
-          telegramFileId: telegramMetadata?.telegramFileId,
-          telegramThumbnailFileId: telegramMetadata?.telegramThumbnailFileId,
-          telegramFilePath: telegramMetadata?.telegramFilePath,
-          telegramThumbnailPath: telegramMetadata?.telegramThumbnailPath,
-          telegramBotToken: telegramMetadata?.telegramBotToken
-        }
-      });
+            telegramFileId: telegramMetadata?.telegramFileId,
+            telegramThumbnailFileId: telegramMetadata?.telegramThumbnailFileId,
+            telegramFilePath: telegramMetadata?.telegramFilePath,
+            telegramThumbnailPath: telegramMetadata?.telegramThumbnailPath,
+            telegramBotToken: telegramMetadata?.telegramBotToken
+          }
+        });
 
-      const createdStorageRecords = await Promise.all(
-        data.storageResults.map(({ provider, result }) =>
-          tx.imageStorageRecord.create({
-            data: {
-              imageId: imageId,
-              provider,
-              identifier: result.publicId,
-              url: result.url,
-              metadata: JSON.stringify({
-                originalResult: result,
-                uploadTime: new Date().toISOString()
-              }),
-              status: 'active'
-            }
-          })
-        )
-      );
+        const createdStorageRecords = await Promise.all(
+          data.storageResults.map(({ provider, result }) =>
+            tx.imageStorageRecord.create({
+              data: {
+                imageId: imageId,
+                provider,
+                identifier: result.publicId,
+                url: result.url,
+                metadata: JSON.stringify({
+                  originalResult: result,
+                  uploadTime: new Date().toISOString()
+                }),
+                status: 'active'
+              }
+            })
+          )
+        );
 
-      return {
-        image: createdImage,
-        storageRecords: createdStorageRecords
-      };
-    }, {
-      maxWait: 15000,
-      timeout: 30000
-    });
+        return {
+          image: createdImage,
+          storageRecords: createdStorageRecords
+        };
+      }, {
+        maxWait: 15000,
+        timeout: 30000
+      })
+    );
 
     // group.update 独立执行 + 自动重试（彻底避免死锁）
     if (data.groupId) {
@@ -144,7 +150,7 @@ export class StorageDatabaseService {
 
   // ⭐ 加入安全自动重试（强烈推荐）
   private async incrementGroupCountSafe(groupId: string) {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < DEADLOCK_RETRY_ATTEMPTS; i++) {
       try {
         await prisma.group.update({
           where: { id: groupId },
@@ -153,7 +159,7 @@ export class StorageDatabaseService {
         return;
       } catch (err: any) {
         if (err.code === "P2034") {   // 死锁写冲突
-          await new Promise(r => setTimeout(r, 30 * (i + 1)));
+          await this.sleep(DEADLOCK_RETRY_BASE_DELAY_MS * (i + 1));
           continue;
         }
         throw err;
@@ -454,6 +460,27 @@ export class StorageDatabaseService {
    */
   private generateImageId(): string {
     return `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private async runWithDeadlockRetry<T>(fn: () => Promise<T>): Promise<T> {
+    let lastError: any;
+    for (let i = 0; i < DEADLOCK_RETRY_ATTEMPTS; i++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        if (err?.code === 'P2034') {
+          lastError = err;
+          await this.sleep(DEADLOCK_RETRY_BASE_DELAY_MS * (i + 1));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastError || new Error('Transaction failed after retry');
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
