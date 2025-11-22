@@ -17,6 +17,9 @@ interface TelegramFileResponse {
   description?: string;
 }
 
+// 该路由依赖查询参数与外部请求，必须禁用静态优化
+export const dynamic = 'force-dynamic';
+
 /**
  * 读取 Token 列表
  */
