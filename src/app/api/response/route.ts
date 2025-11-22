@@ -87,14 +87,202 @@ function buildGroupKey(groupIds: string[]): string {
 
 function takePrefetched(key: string): PrefetchedItem | undefined {
   const slot = prefetchCache.get(key);
-  if (!slot || !slot.item) return undefined;
+  if (!slot) return undefined;
+
+  if (slot.expiresAt && slot.expiresAt <= Date.now()) {
+    prefetchCache.delete(key);
+    return undefined;
+  }
+  if (!slot.item) return undefined;
   const item = slot.item;
   // 单槽语义：消费即置空
   slot.item = undefined;
   return item;
 }
 
-async function prefetchNext(key: string, groupIds: string[]): Promise<void> {
+class HttpStatusError extends Error {
+  status: number;
+  statusText: string;
+  url: string;
+
+  constructor(status: number, statusText: string, url: string) {
+    super(`HTTP ${status}: ${statusText}`);
+    this.status = status;
+    this.statusText = statusText;
+    this.url = url;
+  }
+}
+
+interface DownloadCandidate {
+  url: string;
+  reason: string;
+  preferCloudinary?: boolean;
+}
+
+function parseTelegramBotId(image: Image): string | undefined {
+  if (image.storageMetadata) {
+    try {
+      const meta = JSON.parse(image.storageMetadata);
+      if (meta?.telegramBotId) {
+        return String(meta.telegramBotId);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (image.telegramBotToken) {
+    const prefix = image.telegramBotToken.split(':')[0];
+    if (/^\d+$/.test(prefix)) {
+      return prefix;
+    }
+  }
+  return undefined;
+}
+
+function buildDownloadCandidates(image: Image, request?: NextRequest): DownloadCandidate[] {
+  const candidates: DownloadCandidate[] = [];
+  const botId = parseTelegramBotId(image);
+
+  if (image.telegramFileId) {
+    const tgUrl = new URL('/api/telegram/image', request?.url ?? 'http://localhost');
+    tgUrl.searchParams.set('file_id', image.telegramFileId);
+    if (botId) tgUrl.searchParams.set('bot_id', botId);
+    if (image.telegramFilePath && !tgUrl.searchParams.get('file_path')) {
+      tgUrl.searchParams.set('file_path', image.telegramFilePath);
+    }
+    candidates.push({ url: tgUrl.toString(), reason: 'telegram-file-id' });
+  }
+
+  if (image.telegramFilePath && image.telegramBotToken) {
+    const direct = `https://api.telegram.org/file/bot${image.telegramBotToken}/${image.telegramFilePath}`;
+    candidates.push({ url: direct, reason: 'telegram-direct-path' });
+  }
+
+  let secureUrl = image.url.replace(/^http:/, 'https:');
+  secureUrl = convertTgStateToProxyUrl(secureUrl);
+  try {
+    const urlObj = new URL(secureUrl, request?.url ?? 'http://localhost');
+    if (urlObj.pathname.startsWith('/api/telegram/image')) {
+      if (image.telegramFilePath && !urlObj.searchParams.get('file_path')) {
+        urlObj.searchParams.set('file_path', image.telegramFilePath);
+      }
+      if (botId && !urlObj.searchParams.get('bot_id')) {
+        urlObj.searchParams.set('bot_id', botId);
+      }
+    }
+    secureUrl = urlObj.toString();
+  } catch {
+    // ignore
+  }
+
+  candidates.push({
+    url: secureUrl,
+    reason: 'stored-url',
+    preferCloudinary: isCloudinaryUrl(secureUrl)
+  });
+
+  // 去重（按URL）
+  const seen = new Set<string>();
+  return candidates.filter(c => {
+    if (seen.has(c.url)) return false;
+    seen.add(c.url);
+    return true;
+  });
+}
+
+async function downloadFromCandidate(
+  candidate: DownloadCandidate,
+  image: Image,
+  baseMimeType: string
+): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
+  // Cloudinary 优先（可回退到 fetch）
+  if (candidate.preferCloudinary || isCloudinaryUrl(candidate.url)) {
+    try {
+      const buf = await cloudinaryService.downloadImage(image.publicId);
+      return { buffer: buf, mimeType: baseMimeType, usedUrl: candidate.url, reason: candidate.reason };
+    } catch (err) {
+      logger.warn('Cloudinary下载失败，使用URL回退获取', {
+        type: 'api_download_fallback',
+        error: err instanceof Error ? err.message : 'unknown',
+        url: candidate.url
+      });
+    }
+  }
+
+  const resp = await fetch(candidate.url, buildFetchInitFor(candidate.url, { cache: 'no-store' } as RequestInit));
+  if (!resp.ok) {
+    throw new HttpStatusError(resp.status, resp.statusText, candidate.url);
+  }
+  const ab = await resp.arrayBuffer();
+  const buffer = Buffer.from(ab);
+  const mimeType = normalizeMimeType(resp.headers.get('content-type'), baseMimeType);
+  return { buffer, mimeType, usedUrl: candidate.url, reason: candidate.reason };
+}
+
+async function downloadImageWithCandidates(
+  image: Image,
+  request: NextRequest | undefined,
+  baseMimeType: string
+): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
+  const candidates = buildDownloadCandidates(image, request);
+  let lastStatus: number | undefined;
+  let lastUrl: string | undefined;
+  let lastError: any;
+
+  for (const candidate of candidates) {
+    try {
+      return await downloadFromCandidate(candidate, image, baseMimeType);
+    } catch (err) {
+      lastError = err;
+      if (err instanceof HttpStatusError) {
+        lastStatus = err.status;
+        lastUrl = err.url;
+        logger.warn('图片下载失败', {
+          type: 'api_download',
+          status: err.status,
+          statusText: err.statusText,
+          url: err.url,
+          reason: candidate.reason
+        });
+      } else {
+        logger.warn('图片下载异常', {
+          type: 'api_download',
+          error: err instanceof Error ? err.message : String(err),
+          url: candidate.url,
+          reason: candidate.reason
+        });
+      }
+    }
+  }
+
+  if (lastStatus === 404 || lastStatus === 410) {
+    throw new AppError(
+      ErrorType.NOT_FOUND,
+      `源图返回 404 (${lastUrl ?? 'unknown'})`,
+      404,
+      { url: lastUrl, status: lastStatus }
+    );
+  }
+
+  if (lastStatus && lastStatus >= 500) {
+    throw new AppError(
+      ErrorType.EXTERNAL_SERVICE_ERROR,
+      `源图服务错误 (${lastStatus})`,
+      502,
+      { url: lastUrl, status: lastStatus }
+    );
+  }
+
+  throw new AppError(
+    ErrorType.INTERNAL_ERROR,
+    '下载图片失败',
+    500,
+    { url: lastUrl, status: lastStatus, error: lastError instanceof Error ? lastError.message : String(lastError ?? '') }
+  );
+}
+
+async function prefetchNext(key: string, groupIds: string[], request?: NextRequest): Promise<void> {
   // 已有进行中的预取则复用
   const existing = prefetchCache.get(key);
   if (existing?.inflight) return existing.inflight;
@@ -104,68 +292,47 @@ async function prefetchNext(key: string, groupIds: string[]): Promise<void> {
       // 选择下一张随机图片（与当前筛选条件一致）
       const img = await getRandomImageFromGroups(groupIds);
       if (!img) return; // 无可用图片，跳过
-      const mimeType = getMimeTypeFromUrl(img.url);
-      // 优先按 URL 判断图床：Cloudinary 才走 Cloudinary 下载，否则直接 URL 抓取
-      let buffer: Buffer;
-      let secureUrl = img.url.replace(/^http:/, 'https:');
-      // 应用代理URL转换（如果配置了 tgState 代理）
-      secureUrl = convertTgStateToProxyUrl(secureUrl);
-      // 如果是 Telegram 代理 URL，尝试附加 file_path 以提高成功率（当URL为绝对地址时）
-      try {
-        if (secureUrl.startsWith('http')) {
-          const u = new URL(secureUrl);
-          if (u.pathname.startsWith('/api/telegram/image')) {
-            if (img.telegramFilePath && !u.searchParams.get('file_path')) {
-              u.searchParams.set('file_path', img.telegramFilePath);
-            }
-            secureUrl = u.toString();
-          }
-        }
-      } catch {
-        // 忽略解析失败
-      }
-      if (isCloudinaryUrl(secureUrl)) {
-        try {
-          buffer = await cloudinaryService.downloadImage(img.publicId);
-        } catch (err) {
-          logger.warn('Cloudinary下载失败，使用URL回退获取', { type: 'api_prefetch_fallback', error: err instanceof Error ? err.message : 'unknown' });
-          const resp = await fetch(secureUrl, buildFetchInitFor(secureUrl, { cache: 'no-store' } as RequestInit));
-          if (!resp.ok) throw err;
-          const ab = await resp.arrayBuffer();
-          buffer = Buffer.from(ab);
-        }
-      } else {
-        const resp = await fetch(secureUrl, buildFetchInitFor(secureUrl, { cache: 'no-store' } as RequestInit));
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-        const ab = await resp.arrayBuffer();
-        buffer = Buffer.from(ab);
-      }
-      const size = buffer.length;
+      const baseMimeType = getMimeTypeFromUrl(img.url);
+      const downloaded = await downloadImageWithCandidates(img, request, baseMimeType);
+      const size = downloaded.buffer.length;
 
       prefetchCache.set(key, {
         item: {
-          buffer,
-          mimeType,
+          buffer: downloaded.buffer,
+          mimeType: downloaded.mimeType,
           size,
           imageId: img.id,
           publicId: img.publicId,
           url: img.url,
           createdAt: Date.now()
         },
-        inflight: undefined
+        inflight: undefined,
+        expiresAt: Date.now() + PREFETCH_TTL_MS
       });
 
-      logger.info('预取完成', { type: 'api_prefetch', key, imageId: img.id, size });
+      logger.info('预取完成', {
+        type: 'api_prefetch',
+        key,
+        imageId: img.id,
+        size,
+        via: downloaded.reason,
+        url: downloaded.usedUrl
+      });
     } catch (err) {
       // 失败不影响主流程
-      logger.warn('预取失败', { type: 'api_prefetch', key, error: err instanceof Error ? err.message : 'unknown' });
+      logger.warn('预取失败', {
+        type: 'api_prefetch',
+        key,
+        error: err instanceof Error ? err.message : 'unknown',
+        status: err instanceof AppError ? err.statusCode : undefined
+      });
     } finally {
       const s = prefetchCache.get(key);
       if (s) s.inflight = undefined;
     }
   })();
 
-  prefetchCache.set(key, { ...(existing || {}), inflight });
+  prefetchCache.set(key, { ...(existing || {}), inflight, expiresAt: Date.now() + PREFETCH_TTL_MS });
   await inflight; // 注意：调用方通常不 await；这里确保返回的是相同Promise
 }
 
@@ -358,24 +525,25 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       });
 
       // 异步预取下一张（不阻塞响应）
-      prefetchNext(cacheKey, targetGroupIds).catch(() => {});
+      prefetchNext(cacheKey, targetGroupIds, request).catch(() => {});
 
-      return new NextResponse(new Uint8Array(finalBuffer), {
+      return new NextResponse(bufferToStream(finalBuffer), {
         status: 200,
         headers: {
           'Content-Type': finalMimeType,
           'Content-Length': finalSize.toString(),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'X-Image-Id': prefetched.imageId,
-          'X-Image-PublicId': prefetched.publicId,
-          'X-Image-Size': finalSize.toString(),
-          'X-Response-Time': `${duration}ms`,
-          'X-Transfer-Mode': transparencyOptions ? 'prefetch-processed' : 'prefetch'
-        }
-      });
-    }
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'X-Image-Id': prefetched.imageId,
+        'X-Image-PublicId': prefetched.publicId,
+        'X-Image-Size': finalSize.toString(),
+        'X-Response-Time': `${duration}ms`,
+        'X-Transfer-Mode': transparencyOptions ? 'prefetch-processed' : 'prefetch',
+        'Content-Disposition': `inline; filename="${buildFilename(prefetched.imageId, finalMimeType)}"`
+      }
+    });
+  }
 
 
     // 获取随机图片（复用现有逻辑）
@@ -407,88 +575,51 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
 
     // 确定图片的MIME类型
     const mimeType = getMimeTypeFromUrl(randomImage.url);
+    const downloadResult = await downloadImageWithCandidates(randomImage, request, mimeType);
 
-    // 获取图片URL用于流式传输
-    let imageUrl = randomImage.url.replace(/^http:/, 'https:');
-
-    // 应用代理URL转换（如果配置了 tgState 代理）
-    imageUrl = convertTgStateToProxyUrl(imageUrl);
-
-    // 如果是 Telegram 代理 URL，且我们已持有 file_path，则附加上以提高成功率；同时确保为绝对URL
-    try {
-      const urlObj = new URL(imageUrl, request.url); // 基于当前请求构建绝对URL
-      if (urlObj.pathname.startsWith('/api/telegram/image')) {
-        if (randomImage.telegramFilePath && !urlObj.searchParams.get('file_path')) {
-          urlObj.searchParams.set('file_path', randomImage.telegramFilePath);
-        }
-      }
-      imageUrl = urlObj.toString();
-    } catch {
-      // 忽略解析失败，保持原始URL
+    // 应用透明度处理（如果需要）
+    let finalBuffer = downloadResult.buffer;
+    let finalMimeType = downloadResult.mimeType;
+    if (transparencyOptions) {
+      const processed = await adjustImageTransparency(downloadResult.buffer, transparencyOptions);
+      finalBuffer = processed.buffer;
+      finalMimeType = processed.mimeType;
     }
 
-    {
-      // 直接缓冲模式（便于与预取缓存对接）
-      let imageBuffer: Buffer;
-      if (isCloudinaryUrl(imageUrl)) {
-        try {
-          imageBuffer = await cloudinaryService.downloadImage(randomImage.publicId);
-        } catch (err) {
-          logger.warn('Cloudinary下载失败，使用URL回退获取', { type: 'api_response_fallback', error: err instanceof Error ? err.message : 'unknown' });
-          const resp = await fetch(imageUrl, buildFetchInitFor(imageUrl, { cache: 'no-store' } as RequestInit));
-          if (!resp.ok) throw err;
-          const ab = await resp.arrayBuffer();
-          imageBuffer = Buffer.from(ab);
-        }
-      } else {
-        const resp = await fetch(imageUrl, buildFetchInitFor(imageUrl, { cache: 'no-store' } as RequestInit));
-        if (!resp.ok) {
-          throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-        }
-        const ab = await resp.arrayBuffer();
-        imageBuffer = Buffer.from(ab);
+    const size = finalBuffer.length;
+    const duration = Math.round(performance.now() - startTime);
+
+    // 记录成功响应
+    logger.apiResponse('GET', '/api/response', 200, duration, {
+      imageId: randomImage.id,
+      imageSize: size,
+      mimeType: finalMimeType,
+      mode: 'buffered',
+      transparency: transparencyOptions ? 'processed' : 'original',
+      via: downloadResult.reason,
+      url: downloadResult.usedUrl
+    });
+
+    // 异步预取下一张（不阻塞响应；透明度请求同样复用原图预取流程）
+    prefetchNext(cacheKey, targetGroupIds, request).catch(() => {});
+
+    // 返回缓冲响应
+    return new NextResponse(bufferToStream(finalBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': finalMimeType,
+        'Content-Length': size.toString(),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'X-Image-Id': randomImage.id,
+        'X-Image-PublicId': randomImage.publicId,
+        'X-Response-Time': `${duration}ms`,
+        'X-Image-Size': size.toString(),
+        'X-Transfer-Mode': transparencyOptions ? 'buffered-processed' : 'buffered',
+        'Content-Disposition': `inline; filename="${buildFilename(randomImage.id, finalMimeType)}"`
       }
-      // 应用透明度处理（如果需要）
-      let finalBuffer = imageBuffer;
-      let finalMimeType = mimeType;
-      if (transparencyOptions) {
-        const processed = await adjustImageTransparency(imageBuffer, transparencyOptions);
-        finalBuffer = processed.buffer;
-        finalMimeType = processed.mimeType;
-      }
-
-      const size = finalBuffer.length;
-      const duration = Math.round(performance.now() - startTime);
-
-      // 记录成功响应
-      logger.apiResponse('GET', '/api/response', 200, duration, {
-        imageId: randomImage.id,
-        imageSize: size,
-        mimeType: finalMimeType,
-        mode: 'buffered',
-        transparency: transparencyOptions ? 'processed' : 'original'
-      });
-
-      // 异步预取下一张（不阻塞响应；透明度请求同样复用原图预取流程）
-      prefetchNext(cacheKey, targetGroupIds).catch(() => {});
-
-      // 返回缓冲响应
-      return new NextResponse(new Uint8Array(finalBuffer), {
-        status: 200,
-        headers: {
-          'Content-Type': finalMimeType,
-          'Content-Length': size.toString(),
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'X-Image-Id': randomImage.id,
-          'X-Image-PublicId': randomImage.publicId,
-          'X-Response-Time': `${duration}ms`,
-          'X-Image-Size': size.toString(),
-          'X-Transfer-Mode': transparencyOptions ? 'buffered-processed' : 'buffered'
-        }
-      });
-    }
+    });
 
   } catch (error) {
     // 错误会被withErrorHandler中间件处理
@@ -536,6 +667,40 @@ function getMimeTypeFromUrl(url: string): string {
     default:
       return 'image/jpeg'; // 默认为JPEG
   }
+}
+
+function normalizeMimeType(mimeType: string | null | undefined, fallback: string): string {
+  if (mimeType && mimeType.toLowerCase().startsWith('image/')) {
+    return mimeType;
+  }
+  return fallback;
+}
+
+function getExtensionFromMime(mimeType: string): string {
+  if (!mimeType) return 'jpg';
+  const lower = mimeType.toLowerCase();
+  if (lower.includes('jpeg')) return 'jpg';
+  if (lower.includes('png')) return 'png';
+  if (lower.includes('gif')) return 'gif';
+  if (lower.includes('webp')) return 'webp';
+  if (lower.includes('svg')) return 'svg';
+  if (lower.includes('bmp')) return 'bmp';
+  if (lower.includes('tiff')) return 'tif';
+  return 'jpg';
+}
+
+function buildFilename(imageId: string, mimeType: string): string {
+  const ext = getExtensionFromMime(mimeType);
+  return `${imageId}.${ext}`;
+}
+
+function bufferToStream(buffer: Buffer): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(buffer));
+      controller.close();
+    }
+  });
 }
 
 /**
