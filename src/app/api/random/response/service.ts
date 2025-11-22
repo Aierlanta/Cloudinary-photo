@@ -8,7 +8,9 @@ import {
   adjustImageTransparency,
   parseTransparencyParams,
   convertImageOutput,
-  OutputFormat
+  OutputFormat,
+  resizeImage,
+  ResizeFit
 } from '@/lib/image-processor';
 import { buildFetchInitFor } from '@/lib/telegram-proxy';
 
@@ -21,6 +23,7 @@ const MIME_TO_FORMAT: Record<string, OutputFormat> = {
   'image/webp': 'webp',
   'image/gif': 'gif'
 };
+const MAX_RESIZE_DIMENSION = 3000;
 
 function normalizeOutputFormat(format?: string): OutputFormat | null {
   if (!format) {
@@ -74,6 +77,29 @@ function getMimeTypeFromUrl(url: string): string {
   }
 }
 
+function parseDimension(raw?: string, name?: string): number | undefined {
+  if (typeof raw === 'undefined') return undefined;
+  if (raw === '') return undefined;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0 || value > MAX_RESIZE_DIMENSION) {
+    throw new AppError(
+      ErrorType.VALIDATION_ERROR,
+      `${name || 'dimension'} 必须在 1-${MAX_RESIZE_DIMENSION} 之间`,
+      400
+    );
+  }
+  return Math.round(value);
+}
+
+function parseFit(raw?: string): ResizeFit | undefined {
+  if (!raw) return undefined;
+  const normalized = raw.toLowerCase();
+  if (normalized === 'cover' || normalized === 'contain') {
+    return normalized;
+  }
+  throw new AppError(ErrorType.VALIDATION_ERROR, 'fit 仅支持 cover 或 contain', 400);
+}
+
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
@@ -92,9 +118,16 @@ export async function serveRandomResponse(
   const queryParams = Object.fromEntries(url.searchParams.entries());
   const imageId = options?.imageId ?? queryParams.imageId;
   const requestedFormat = normalizeOutputFormat(queryParams.format);
+  const targetWidth = parseDimension(queryParams.width, 'width');
+  const targetHeight = parseDimension(queryParams.height, 'height');
+  const resizeFit = parseFit(queryParams.fit);
 
   if (queryParams.format && !requestedFormat) {
     throw new AppError(ErrorType.VALIDATION_ERROR, '不支持的输出格式', 400);
+  }
+
+  if (resizeFit && !targetWidth && !targetHeight) {
+    throw new AppError(ErrorType.VALIDATION_ERROR, '指定 fit 时需提供 width 或 height', 400);
   }
 
   let requestedQuality: number | undefined;
@@ -204,6 +237,16 @@ export async function serveRandomResponse(
     const processed = await adjustImageTransparency(imageBuffer, transparencyOptions);
     finalBuffer = processed.buffer;
     finalMimeType = processed.mimeType;
+  }
+
+  if (targetWidth || targetHeight) {
+    const resized = await resizeImage(finalBuffer, {
+      width: targetWidth,
+      height: targetHeight,
+      fit: resizeFit
+    });
+    finalBuffer = resized.buffer;
+    finalMimeType = resized.mimeType ?? finalMimeType;
   }
 
   const needsFormatConversion = requestedFormat || typeof requestedQuality !== 'undefined';

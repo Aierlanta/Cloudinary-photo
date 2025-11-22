@@ -946,7 +946,7 @@ export default function ImageUpload({
                   )}>
                     {importMode === "txt"
                       ? "https://example.com/image1.jpg\nhttps://example.com/image2.jpg"
-                      : '[\n  "https://example.com/image1.jpg",\n  "https://example.com/image2.jpg"\n]'}
+                      : '[\n  { "url": "https://example.com/image1.jpg", "title": "封面", "width": 1920, "height": 1080 },\n  { "url": "https://example.com/image2.jpg" }\n]'}
                   </pre>
                 </div>
                 {lastImportResult && (

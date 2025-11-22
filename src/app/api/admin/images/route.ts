@@ -192,6 +192,8 @@ async function uploadImage(request: NextRequest): Promise<Response> {
     image = await databaseService.saveImage({
       publicId: cloudinaryResult.public_id,
       url: cloudinaryResult.url,
+      width: cloudinaryResult.width,
+      height: cloudinaryResult.height,
       title: uploadParams.title,
       description: uploadParams.description,
       groupId: uploadParams.groupId,
@@ -253,6 +255,9 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       title: savedImage.title,
       description: savedImage.description,
       tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
+      width: savedImage.width || undefined,
+      height: savedImage.height || undefined,
+      orientation: savedImage.orientation || undefined,
       groupId: savedImage.groupId,
       uploadedAt: savedImage.uploadedAt,
       storageMetadata: savedImage.storageMetadata

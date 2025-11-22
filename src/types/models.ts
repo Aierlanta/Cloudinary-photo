@@ -8,6 +8,9 @@ export interface Image {
   id: string;
   publicId: string;
   url: string;
+  width?: number;
+  height?: number;
+  orientation?: 'landscape' | 'portrait' | 'square' | 'unknown';
   title?: string;
   description?: string;
   tags?: string[];

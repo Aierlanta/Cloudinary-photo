@@ -14,6 +14,7 @@ import {
   StorageError
 } from './base';
 import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import sharp from 'sharp';
 
 export interface TelegramConfig {
   botTokens: string[]; // 支持多个 Bot Token
@@ -184,6 +185,17 @@ export class TelegramService extends ImageStorageService {
       // 将 File 转换为 Buffer
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+      let width: number | undefined;
+      let height: number | undefined;
+      try {
+        const meta = await sharp(buffer).metadata();
+        width = meta.width || undefined;
+        height = meta.height || undefined;
+      } catch (err) {
+        console.warn('[Telegram 上传] 读取图片尺寸失败，将尝试使用缩略图尺寸回退', err);
+        width = document.thumbnail?.width;
+        height = document.thumbnail?.height;
+      }
 
       // 创建 FormData (使用 Web API FormData)
       const formData = new FormData();
@@ -272,6 +284,8 @@ export class TelegramService extends ImageStorageService {
         url: finalUrl,
         filename: file.name,
         format: this.extractFormat(file.name),
+        width,
+        height,
         bytes: file.size,
         metadata: {
           provider: StorageProvider.TELEGRAM,
@@ -635,4 +649,3 @@ export class TelegramService extends ImageStorageService {
     };
   }
 }
-

@@ -77,6 +77,11 @@ jest.mock('@/lib/database', () => ({
   },
 }));
 
+jest.mock('@/lib/security', () => ({
+  withSecurity: () => (handler: any) => handler
+}));
+
+
 const mockDatabaseService = databaseService as unknown as {
   getAPIConfig: jest.Mock,
   initialize: jest.Mock,
@@ -88,6 +93,7 @@ const createMockRequest = (url: string): NextRequest => {
     method: 'GET',
     headers: new Headers(),
     nextUrl: new URL(url),
+    url,
     cookies: {
       get: jest.fn().mockReturnValue(undefined)
     }
@@ -165,7 +171,7 @@ describe('/api/random API端点测试', () => {
     it('接受有效参数并按分组获取图片', async () => {
       const request = createMockRequest('http://localhost:3000/api/random?category=nature');
       await GET(request);
-      expect(mockDatabaseService.getRandomImages).toHaveBeenCalledWith(1, 'grp_000001');
+      expect(mockDatabaseService.getRandomImages).toHaveBeenCalledWith(1, 'grp_000001', undefined);
     });
 
     it('拒绝无效参数名', async () => {
@@ -217,6 +223,28 @@ describe('/api/random API端点测试', () => {
       const request = createMockRequest('http://localhost:3000/api/random');
       const response = await GET(request);
       expect(response.status).toBe(500);
+    });
+  });
+
+  describe('新增参数', () => {
+    it('orientation=landscape 时将筛选条件传递到数据库查询', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?orientation=landscape');
+      await GET(request);
+      expect(mockDatabaseService.getRandomImages).toHaveBeenCalledWith(1, undefined, { orientation: 'landscape' });
+    });
+
+    it('携带 width/height 且未使用 response=true 时返回 400', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?width=800&height=600');
+      const response = await GET(request);
+      expect(response.status).toBe(400);
+      const json = await response.json();
+      expect(json.error.type).toBe('VALIDATION_ERROR');
+    });
+
+    it('orientation 非法时返回 400', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?orientation=wide');
+      const response = await GET(request);
+      expect(response.status).toBe(400);
     });
   });
 });

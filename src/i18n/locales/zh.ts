@@ -529,7 +529,7 @@ export const zh: Translations = {
     urlImportSelectFile: '选择 txt/json 文件',
     urlImportTxtPlaceholder: 'TXT 模式：每行一个图片 URL，支持以 # 开头的注释行',
     urlImportJsonPlaceholder:
-      'JSON 模式：可为 ["https://...", ...] 或 [{ "url": "...", "title": "...", "description": "...", "tags": ["tag1"] }]',
+      'JSON 模式：可为 ["https://...", ...] 或 [{ "url": "...", "title": "...", "description": "...", "tags": ["tag1"], "width": 1920, "height": 1080 }]',
     urlImportLastResult: '上次导入：共 {total} 条，成功 {success} 条，失败 {failed} 条',
     urlImportButton: '开始导入 URL',
     urlImporting: '正在导入...',
@@ -547,7 +547,7 @@ export const zh: Translations = {
       '# 示例：每行一个图片 URL，# 开头为注释行\nhttps://example.com/image1.jpg\nhttps://example.com/image2.png',
     urlImportJsonExampleTitle: 'JSON 示例',
     urlImportJsonExampleContent:
-      '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "首页 Banner",\n    "description": "PC 端首页大图",\n    "tags": ["banner", "pc"]\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "移动端 Banner",\n    "tags": ["banner", "mobile"]\n  }\n]',
+      '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "首页 Banner",\n    "description": "PC 端首页大图",\n    "tags": ["banner", "pc"],\n    "width": 1920,\n    "height": 1080\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "移动端 Banner",\n    "tags": ["banner", "mobile"],\n    "width": 1080,\n    "height": 1920\n  }\n]',
     // ImageList 组件
     unassigned: '未分组',
     reset: '重置',

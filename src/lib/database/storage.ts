@@ -14,6 +14,9 @@ export interface ImageWithStorage {
   id: string;
   url: string;
   publicId: string;
+  width?: number | null;
+  height?: number | null;
+  orientation?: string | null;
   title?: string;
   description?: string;
   tags?: string;
@@ -40,6 +43,9 @@ export interface ImageStorageRecord {
 export interface CreateImageData {
   publicId: string;
   url: string;
+  width?: number | null;
+  height?: number | null;
+  orientation?: string | null;
   title?: string;
   description?: string;
   groupId?: string;
@@ -76,6 +82,14 @@ export class StorageDatabaseService {
       storageMetadata.telegramBotId = telegramMetadata.telegramBotId;
     }
 
+    const primaryResult = data.storageResults.find(
+      sr => sr.provider === data.primaryProvider
+    ) ?? data.storageResults[0];
+
+    const resolvedWidth = data.width ?? primaryResult?.result.width ?? null;
+    const resolvedHeight = data.height ?? primaryResult?.result.height ?? null;
+    const resolvedOrientation = data.orientation ?? this.getOrientationFromSize(resolvedWidth, resolvedHeight);
+
     // 事务化写入 image 及其 storage records，防止部分成功 + 针对 P2034 的重试
     const { image, storageRecords } = await this.runWithDeadlockRetry(async () =>
       prisma.$transaction(async (tx) => {
@@ -84,6 +98,9 @@ export class StorageDatabaseService {
             id: imageId,
             url: data.url,
             publicId: data.publicId,
+            width: resolvedWidth,
+            height: resolvedHeight,
+            orientation: resolvedOrientation,
             title: data.title,
             description: data.description,
             groupId: data.groupId,
@@ -137,6 +154,9 @@ export class StorageDatabaseService {
       ...image,
       title: image.title || undefined,
       description: image.description || undefined,
+      width: image.width || undefined,
+      height: image.height || undefined,
+      orientation: image.orientation || undefined,
       tags: image.tags || undefined,
       groupId: image.groupId || undefined,
       backupProvider: image.backupProvider || undefined,
@@ -248,6 +268,7 @@ export class StorageDatabaseService {
         tags: image.tags || undefined,
         groupId: image.groupId || undefined,
         backupProvider: image.backupProvider || undefined,
+        orientation: image.orientation || undefined,
         storageMetadata: image.storageMetadata || undefined,
         storageRecords: image.storageRecords.map(record => ({
           ...record,
@@ -481,6 +502,12 @@ export class StorageDatabaseService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private getOrientationFromSize(width?: number | null, height?: number | null): string | null {
+    if (!width || !height) return null;
+    if (width === height) return 'square';
+    return width > height ? 'landscape' : 'portrait';
   }
 }
 

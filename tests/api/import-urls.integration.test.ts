@@ -2,6 +2,10 @@
  * /api/admin/images/import-urls 集成测试（后端 API 行为）
  */
 
+// 测试环境固定管理员密码，避免 401
+process.env.ADMIN_PASSWORD = 'test-password';
+process.env.SESSION_SECRET = 'test-secret';
+
 import { databaseService } from '@/lib/database';
 
 // Mock Next.js server 模块，提供精简版 NextResponse/NextRequest
@@ -68,6 +72,18 @@ jest.mock('@/lib/database', () => ({
   },
 }));
 
+// Mock 安全相关依赖，避免触发真实数据库写入
+jest.mock('@/lib/ip-management', () => ({
+  isIPBanned: jest.fn().mockResolvedValue(false),
+  getIPRateLimit: jest.fn().mockResolvedValue(null),
+  checkIPTotalLimit: jest.fn().mockResolvedValue({ exceeded: false, current: 0 }),
+  incrementIPTotalAccess: jest.fn(),
+}));
+
+jest.mock('@/lib/access-tracking', () => ({
+  logAccess: jest.fn().mockResolvedValue(undefined),
+}));
+
 // Mock 多图床数据库服务，拦截 saveImageWithStorage
 jest.mock('@/lib/database/storage', () => {
   const mockSaveImageWithStorage = jest.fn();
@@ -119,7 +135,7 @@ function createMockRequest(
       : options.adminPassword ?? process.env.ADMIN_PASSWORD ?? 'test-password';
 
   if (adminPassword) {
-    headers.set('x-admin-password', adminPassword);
+    headers.set('authorization', `Bearer ${adminPassword}`);
   }
 
   return {
@@ -215,6 +231,8 @@ describe('/api/admin/images/import-urls API 集成测试', () => {
           title: 'A',
           description: 'desc',
           tags: ['tag1', 'tag2'],
+          width: 800,
+          height: 600,
         },
       ]),
     };
@@ -236,6 +254,38 @@ describe('/api/admin/images/import-urls API 集成测试', () => {
         description: 'desc',
         tags: ['tag1', 'tag2'],
         groupId: 'grp_1',
+        width: 800,
+        height: 600,
+      }),
+    );
+  });
+
+  it('JSON 模式携带 width/height 时的附加字段应传入存储层', async () => {
+    const body = {
+      provider: 'custom',
+      mode: 'json',
+      groupId: 'grp_1',
+      content: JSON.stringify([
+        {
+          url: 'https://example.com/b.jpg',
+          width: 600,
+          height: 1200,
+        },
+      ]),
+    };
+
+    const request = createMockRequest(body, { contentType: 'application/json' });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+
+    expect(json.success).toBe(true);
+    expect(mockSaveImageWithStorage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://example.com/b.jpg',
+        width: 600,
+        height: 1200,
       }),
     );
   });
@@ -475,4 +525,3 @@ describe('/api/admin/images/import-urls API 集成测试', () => {
     expect(json.error.message).toContain('单次导入数量不能超过 500 条');
   });
 });
-

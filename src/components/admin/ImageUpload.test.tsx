@@ -141,16 +141,15 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
 
     render(<ImageUpload groups={groups} onUploadSuccess={onUploadSuccess} />);
 
-    // 等待 provider 列表加载完成，直到包含自定义图床选项的下拉框渲染完成
     await waitFor(() => {
-      const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
-      const provider = selects.find((select) =>
-        Array.from(select.options).some((opt) => opt.value === "custom")
-      );
-      expect(provider).toBeDefined();
+      const selects = screen.getAllByRole("combobox");
+      expect(selects.length).toBeGreaterThan(1);
     });
-
     const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
+    const provider = selects.find((select) =>
+      Array.from(select.options).some((opt) => opt.value === "custom")
+    );
+    expect(provider).toBeDefined();
 
     // 选择自定义图床 provider（包含 custom 选项的那个下拉框）
     const providerSelect = selects.find((select) =>
@@ -195,6 +194,128 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
     expect(onUploadSuccess).toHaveBeenCalledTimes(1);
   });
 
+  it("JSON 模式下携带 width/height 时会透传给后端", async () => {
+    const jsonText =
+      '[{"url":"https://example.com/image1.jpg","width":800,"height":600}]';
+
+    const providersResponse = {
+      data: {
+        providers: [
+          {
+            id: "cloudinary",
+            name: "Cloudinary",
+            description: "Cloudinary",
+            isAvailable: true,
+            features: [],
+          },
+          {
+            id: "custom",
+            name: "自定义外链",
+            description: "自定义外链",
+            isAvailable: true,
+            features: [],
+          },
+        ],
+      },
+    };
+
+    const importResult: ImageUrlImportResponse = {
+      total: 1,
+      success: 1,
+      failed: 0,
+      errors: [],
+    };
+
+    const fetchMock = jest.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+
+        if (url === "/api/admin/storage/providers") {
+          return createJsonResponse(providersResponse);
+        }
+
+        if (url === "/api/admin/images/import-urls") {
+          const body =
+            init && typeof init.body === "string"
+              ? JSON.parse(init.body)
+              : null;
+
+          expect(body).toEqual({
+            provider: "custom",
+            groupId: groups[0].id,
+            mode: "json",
+            content: jsonText,
+          });
+
+          return createJsonResponse({ data: importResult });
+        }
+
+        throw new Error(`Unexpected fetch url: ${url}`);
+      }
+    ) as jest.Mock;
+
+    global.fetch = fetchMock as any;
+
+    const onUploadSuccess = jest.fn();
+
+    render(<ImageUpload groups={groups} onUploadSuccess={onUploadSuccess} />);
+
+    await waitFor(() => {
+      const selects = screen.getAllByRole("combobox");
+      expect(selects.length).toBeGreaterThan(1);
+    });
+    const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
+    const provider = selects.find((select) =>
+      Array.from(select.options).some((opt) => opt.value === "custom")
+    );
+    expect(provider).toBeDefined();
+
+    // 选择自定义图床 provider（包含 custom 选项的那个下拉框）
+    const providerSelect = selects.find((select) =>
+      Array.from(select.options).some((opt) => opt.value === "custom")
+    ) as HTMLSelectElement;
+    fireEvent.change(providerSelect, { target: { value: "custom" } });
+
+    // 选择分组（其余的下拉框）
+    const groupSelect = selects.find(
+      (select) => select !== providerSelect
+    ) as HTMLSelectElement;
+    fireEvent.change(groupSelect, { target: { value: groups[0].id } });
+
+    // 切换到 JSON 模式
+    const jsonModeBtn = screen.getByRole("button", {
+      name: translations.adminImages.urlImportModeJson,
+    });
+    fireEvent.click(jsonModeBtn);
+
+    // 填写 JSON 内容
+    const jsonPlaceholder: string = translations.adminImages.urlImportJsonPlaceholder;
+    const textarea = screen.getByPlaceholderText(
+      jsonPlaceholder
+    ) as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: jsonText } });
+
+    // 点击“导入 URL”按钮
+    const importButtonLabel: string = translations.adminImages.urlImportButton;
+    const importButton = screen.getByRole("button", {
+      name: importButtonLabel,
+    });
+    fireEvent.click(importButton);
+
+    // 等待导入请求发送
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/images/import-urls",
+        expect.objectContaining({
+          method: "POST",
+        })
+      );
+    });
+
+    expect(successMock).toHaveBeenCalledTimes(1);
+    expect(onUploadSuccess).toHaveBeenCalledTimes(1);
+  });
+
   it("后端返回错误时会展示错误 toast 并不会调用 onUploadSuccess", async () => {
     const urlsText = "https://example.com/image1.jpg";
     const serverErrorMessage = "模拟导入失败";
@@ -202,6 +323,13 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
     const providersResponse = {
       data: {
         providers: [
+          {
+            id: "cloudinary",
+            name: "Cloudinary",
+            description: "Cloudinary",
+            isAvailable: true,
+            features: [],
+          },
           {
             id: "custom",
             name: "自定义外链",
@@ -237,18 +365,16 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
 
     render(<ImageUpload groups={groups} onUploadSuccess={onUploadSuccess} />);
 
-    // 等待 provider 列表加载完成，直到包含自定义图床选项的下拉框渲染完成
     await waitFor(() => {
-      const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
-      const provider = selects.find((select) =>
-        Array.from(select.options).some((opt) => opt.value === "custom")
-      );
-      expect(provider).toBeDefined();
+      const selects = screen.getAllByRole("combobox");
+      expect(selects.length).toBeGreaterThan(1);
     });
-
     const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
+    const provider = selects.find((select) =>
+      Array.from(select.options).some((opt) => opt.value === "custom")
+    );
+    expect(provider).toBeDefined();
 
-    // 选择自定义图床 provider
     const providerSelect = selects.find((select) =>
       Array.from(select.options).some((opt) => opt.value === "custom")
     ) as HTMLSelectElement;

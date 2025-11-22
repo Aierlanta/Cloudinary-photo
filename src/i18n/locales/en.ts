@@ -531,7 +531,7 @@ export const en: Translations = {
     urlImportTxtPlaceholder:
       'TXT mode: one image URL per line, lines starting with # are treated as comments',
     urlImportJsonPlaceholder:
-      'JSON mode: can be ["https://...", ...] or [{ "url": "...", "title": "...", "description": "...", "tags": ["tag1"] }]',
+      'JSON mode: can be ["https://...", ...] or [{ "url": "...", "title": "...", "description": "...", "tags": ["tag1"], "width": 1920, "height": 1080 }]',
     urlImportLastResult: 'Last import: total {total}, success {success}, failed {failed}',
     urlImportButton: 'Import URLs',
     urlImporting: 'Importing...',
@@ -549,7 +549,7 @@ export const en: Translations = {
       '# Example: one image URL per line, lines starting with # are comments\nhttps://example.com/image1.jpg\nhttps://example.com/image2.png',
     urlImportJsonExampleTitle: 'JSON example',
     urlImportJsonExampleContent:
-      '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "Home banner",\n    "description": "Desktop homepage banner",\n    "tags": ["banner", "pc"]\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "Mobile banner",\n    "tags": ["banner", "mobile"]\n  }\n]',
+      '[\n  {\n    "url": "https://example.com/image1.jpg",\n    "title": "Home banner",\n    "description": "Desktop homepage banner",\n    "tags": ["banner", "pc"],\n    "width": 1920,\n    "height": 1080\n  },\n  {\n    "url": "https://example.com/image2.png",\n    "title": "Mobile banner",\n    "tags": ["banner", "mobile"],\n    "width": 1080,\n    "height": 1920\n  }\n]',
     // ImageList 组件
     unassigned: 'Unassigned',
     reset: 'Reset',

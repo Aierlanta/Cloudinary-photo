@@ -8,6 +8,8 @@ import { DatabaseError, NotFoundError } from '@/types/errors';
 import { LogLevel, LogEntry } from './logger';
 import { prisma } from './prisma';
 
+type OrientationFilter = 'landscape' | 'portrait' | 'square';
+
 export class DatabaseService {
   private static instance: DatabaseService;
   private isInitializing: boolean = false;
@@ -231,6 +233,12 @@ export class DatabaseService {
     }
   }
 
+  private determineOrientation(width?: number | null, height?: number | null): OrientationFilter | 'unknown' | null {
+    if (!width || !height) return null;
+    if (width === height) return 'square';
+    return width > height ? 'landscape' : 'portrait';
+  }
+
   // ==================== 图片相关操作 ====================
 
   /**
@@ -239,12 +247,18 @@ export class DatabaseService {
   async saveImage(imageData: Omit<Image, 'id' | 'uploadedAt'>): Promise<Image> {
     try {
       const id = await this.generateImageId();
+      const resolvedWidth = imageData.width ?? null;
+      const resolvedHeight = imageData.height ?? null;
+      const resolvedOrientation = this.determineOrientation(resolvedWidth, resolvedHeight);
       
       const image = await prisma.image.create({
         data: {
           id,
           url: imageData.url,
           publicId: imageData.publicId,
+          width: resolvedWidth,
+          height: resolvedHeight,
+          orientation: resolvedOrientation,
           title: imageData.title,
           description: imageData.description,
           tags: imageData.tags ? JSON.stringify(imageData.tags) : null,
@@ -275,6 +289,9 @@ export class DatabaseService {
         title: image.title || undefined,
         description: image.description || undefined,
         tags: image.tags ? JSON.parse(image.tags) : undefined,
+        width: image.width || undefined,
+        height: image.height || undefined,
+        orientation: image.orientation || undefined,
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         storageMetadata: image.storageMetadata || undefined
@@ -304,6 +321,9 @@ export class DatabaseService {
         title: image.title || undefined,
         description: image.description || undefined,
         tags: image.tags ? JSON.parse(image.tags) : undefined,
+        width: image.width || undefined,
+        height: image.height || undefined,
+        orientation: image.orientation || undefined,
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         primaryProvider: (image as any).primaryProvider || 'cloudinary',
@@ -373,6 +393,9 @@ export class DatabaseService {
             title: true,
             description: true,
             tags: true,
+            width: true,
+            height: true,
+            orientation: true,
             groupId: true,
             uploadedAt: true,
             // 图床相关字段
@@ -400,6 +423,9 @@ export class DatabaseService {
         title: image.title || undefined,
         description: image.description || undefined,
         tags: image.tags ? JSON.parse(image.tags) : undefined,
+        width: image.width || undefined,
+        height: image.height || undefined,
+        orientation: image.orientation || undefined,
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         primaryProvider: image.primaryProvider || 'cloudinary', // 新增：图床信息
@@ -607,7 +633,7 @@ export class DatabaseService {
    * 获取随机图片
    * 注意: 此方法用于 /api/random 端点,会自动过滤掉 Telegram 直连图床的图片
    */
-  async getRandomImages(count: number = 1, groupId?: string): Promise<Image[]> {
+  async getRandomImages(count: number = 1, groupId?: string, options?: { orientation?: OrientationFilter }): Promise<Image[]> {
     try {
       const where: any = {};
       if (groupId) {
@@ -625,6 +651,10 @@ export class DatabaseService {
       where.primaryProvider = {
         not: 'telegram'
       };
+
+      if (options?.orientation) {
+        where.orientation = options.orientation;
+      }
 
       // 获取总数
       const total = await prisma.image.count({ where });
@@ -648,6 +678,9 @@ export class DatabaseService {
               title: true,
               description: true,
               tags: true,
+              width: true,
+              height: true,
+              orientation: true,
               groupId: true,
               uploadedAt: true,
               primaryProvider: true,
@@ -666,16 +699,19 @@ export class DatabaseService {
         .flat()
         .map(image => ({
           id: image.id,
-          url: image.url,
-          publicId: image.publicId,
-          title: image.title || undefined,
-          description: image.description || undefined,
-          tags: image.tags ? JSON.parse(image.tags) : undefined,
-          groupId: image.groupId || undefined,
-          uploadedAt: image.uploadedAt,
-          primaryProvider: image.primaryProvider || 'cloudinary',
-          backupProvider: image.backupProvider || undefined,
-          telegramFileId: image.telegramFileId || undefined,
+        url: image.url,
+        publicId: image.publicId,
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags ? JSON.parse(image.tags) : undefined,
+        width: image.width || undefined,
+        height: image.height || undefined,
+        orientation: image.orientation || undefined,
+        groupId: image.groupId || undefined,
+        uploadedAt: image.uploadedAt,
+        primaryProvider: image.primaryProvider || 'cloudinary',
+        backupProvider: image.backupProvider || undefined,
+        telegramFileId: image.telegramFileId || undefined,
           telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
           telegramFilePath: image.telegramFilePath || undefined,
           telegramThumbnailPath: image.telegramThumbnailPath || undefined,
@@ -690,7 +726,7 @@ export class DatabaseService {
    * 获取随机图片（包含 Telegram）
    * 用于 /api/response 端点：不排除 Telegram 直连图床
    */
-  async getRandomImagesIncludingTelegram(count: number = 1, groupId?: string): Promise<Image[]> {
+  async getRandomImagesIncludingTelegram(count: number = 1, groupId?: string, options?: { orientation?: OrientationFilter }): Promise<Image[]> {
     try {
       const where: any = {};
       if (groupId) {
@@ -699,6 +735,10 @@ export class DatabaseService {
         } else {
           where.groupId = groupId;
         }
+      }
+
+      if (options?.orientation) {
+        where.orientation = options.orientation;
       }
 
       // 不排除 Telegram
@@ -725,6 +765,9 @@ export class DatabaseService {
               title: true,
               description: true,
               tags: true,
+              width: true,
+              height: true,
+              orientation: true,
               groupId: true,
               uploadedAt: true,
               primaryProvider: true,
@@ -743,16 +786,19 @@ export class DatabaseService {
         .flat()
         .map(image => ({
           id: image.id,
-          url: image.url,
-          publicId: image.publicId,
-          title: image.title || undefined,
-          description: image.description || undefined,
-          tags: image.tags ? JSON.parse(image.tags) : undefined,
-          groupId: image.groupId || undefined,
-          uploadedAt: image.uploadedAt,
-          primaryProvider: image.primaryProvider || 'cloudinary',
-          backupProvider: image.backupProvider || undefined,
-          telegramFileId: image.telegramFileId || undefined,
+        url: image.url,
+        publicId: image.publicId,
+        title: image.title || undefined,
+        description: image.description || undefined,
+        tags: image.tags ? JSON.parse(image.tags) : undefined,
+        width: image.width || undefined,
+        height: image.height || undefined,
+        orientation: image.orientation || undefined,
+        groupId: image.groupId || undefined,
+        uploadedAt: image.uploadedAt,
+        primaryProvider: image.primaryProvider || 'cloudinary',
+        backupProvider: image.backupProvider || undefined,
+        telegramFileId: image.telegramFileId || undefined,
           telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
           telegramFilePath: image.telegramFilePath || undefined,
           telegramThumbnailPath: image.telegramThumbnailPath || undefined,

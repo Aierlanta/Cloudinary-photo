@@ -205,7 +205,9 @@ export const ImportUrlItemSchema = z.object({
   url: z.string().url('URL格式不正确'),
   title: z.string().optional(),
   description: z.string().optional(),
-  tags: TagsSchema.optional()
+  tags: TagsSchema.optional(),
+  width: z.number().int().positive('宽度必须为正数').max(10000, '宽度不能超过10000').optional(),
+  height: z.number().int().positive('高度必须为正数').max(10000, '高度不能超过10000').optional()
 });
 
 // 批量URL导入请求验证模式

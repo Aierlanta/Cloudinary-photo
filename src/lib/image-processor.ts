@@ -17,8 +17,9 @@ export interface TransparencyOptions {
 }
 
 export type OutputFormat = 'jpeg' | 'png' | 'webp' | 'gif';
+export type ResizeFit = 'cover' | 'contain';
 
-const OUTPUT_MIME_MAP: Record<OutputFormat, string> = {
+export const OUTPUT_MIME_MAP: Record<OutputFormat, string> = {
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
@@ -248,5 +249,29 @@ export async function convertImageOutput(
   return {
     buffer,
     mimeType: OUTPUT_MIME_MAP[format]
+  };
+}
+
+export async function resizeImage(
+  imageBuffer: Buffer,
+  options: { width?: number; height?: number; fit?: ResizeFit }
+): Promise<{ buffer: Buffer; mimeType?: string }> {
+  const { width, height } = options;
+  if (!width && !height) {
+    return { buffer: imageBuffer, mimeType: undefined };
+  }
+  const fit = options.fit === 'contain' ? 'contain' : 'cover';
+  const { data, info } = await sharp(imageBuffer)
+    .resize({
+      width,
+      height,
+      fit
+    })
+    .toBuffer({ resolveWithObject: true });
+
+  const mimeType = info.format ? OUTPUT_MIME_MAP[info.format as OutputFormat] : undefined;
+  return {
+    buffer: data,
+    mimeType
   };
 }

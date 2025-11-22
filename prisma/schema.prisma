@@ -12,6 +12,9 @@ model Image {
   id                      String               @id
   url                     String
   publicId                String
+  width                   Int?
+  height                  Int?
+  orientation             String?
   title                   String?
   description             String?
   tags                    String?
@@ -30,6 +33,8 @@ model Image {
   group                   Group?               @relation(fields: [groupId], references: [id])
 
   @@index([groupId], map: "images_groupId_fkey")
+  @@index([width, height])
+  @@index([orientation])
   @@index([telegramFileId])
   @@index([uploadedAt])
   @@index([groupId, uploadedAt])

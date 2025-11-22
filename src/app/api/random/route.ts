@@ -11,6 +11,8 @@ import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-utils';
 
+type OrientationParam = 'landscape' | 'portrait' | 'square';
+
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +33,19 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       queryParams[key] = value;
     });
     const useResponseFlow = searchParams.get('response') === 'true';
+    const orientation = parseOrientation(searchParams.get('orientation'));
+
+    const requestedWidth = searchParams.get('width');
+    const requestedHeight = searchParams.get('height');
+    const fit = searchParams.get('fit');
+
+    if ((requestedWidth || requestedHeight || fit) && !useResponseFlow) {
+      throw new AppError(
+        ErrorType.VALIDATION_ERROR,
+        '指定裁剪尺寸时请使用 response=true 以便服务器处理变换',
+        400,
+      );
+    }
 
     // 用于日志的参数脱敏（避免泄露API Key）
     const redactedParams = { ...queryParams };
@@ -151,7 +166,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     // 如果targetGroupIds为空，则从所有图片中选择
 
     // 获取随机图片
-    const randomImage = await getRandomImageFromGroups(targetGroupIds);
+    const randomImage = await getRandomImageFromGroups(targetGroupIds, orientation);
     
     if (!randomImage) {
       logger.warn('没有找到符合条件的图片', {
@@ -280,7 +295,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['key', 'response', 'format', 'quality', 't']);
+  const RESERVED_PARAMS = new Set(['key', 'response', 'format', 'quality', 't', 'orientation', 'width', 'height', 'fit', 'opacity', 'bgColor']);
 
   // 如果没有配置允许的参数，则允许所有请求
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {
@@ -339,10 +354,11 @@ async function validateAndParseParams(
 /**
  * 从指定分组中获取随机图片
  */
-async function getRandomImageFromGroups(groupIds: string[]) {
+async function getRandomImageFromGroups(groupIds: string[], orientation?: OrientationParam) {
+  const randomOptions = orientation ? { orientation } : undefined;
   if (groupIds.length === 0) {
     // 从所有图片中选择
-    const images = await databaseService.getRandomImages(1);
+    const images = await databaseService.getRandomImages(1, undefined, randomOptions);
     return images[0] || null;
   }
 
@@ -351,14 +367,14 @@ async function getRandomImageFromGroups(groupIds: string[]) {
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
 
-  const images = await databaseService.getRandomImages(1, selectedGroupId);
+  const images = await databaseService.getRandomImages(1, selectedGroupId, randomOptions);
   const image = images[0] || null;
 
   if (!image && groupIds.length > 1) {
     // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
       if (groupId !== selectedGroupId) {
-        const fallbackImages = await databaseService.getRandomImages(1, groupId);
+        const fallbackImages = await databaseService.getRandomImages(1, groupId, randomOptions);
         const fallbackImage = fallbackImages[0] || null;
         if (fallbackImage) {
           return fallbackImage;
@@ -368,6 +384,19 @@ async function getRandomImageFromGroups(groupIds: string[]) {
   }
 
   return image;
+}
+
+function parseOrientation(raw: string | null): OrientationParam | undefined {
+  if (!raw) return undefined;
+  const normalized = raw.toLowerCase();
+  if (normalized === 'landscape' || normalized === 'portrait' || normalized === 'square') {
+    return normalized;
+  }
+  throw new AppError(
+    ErrorType.VALIDATION_ERROR,
+    'orientation 仅支持 landscape/portrait/square',
+    400,
+  );
 }
 
 // 应用安全中间件和错误处理

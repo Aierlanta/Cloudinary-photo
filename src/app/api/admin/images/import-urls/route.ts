@@ -31,6 +31,8 @@ interface ParsedImportItem {
   title?: string;
   description?: string;
   tags?: string[];
+  width?: number;
+  height?: number;
 }
 
 function parseTxtContent(content: string): ParsedImportItem[] {
@@ -116,8 +118,8 @@ function parseJsonContent(content: string): ParsedImportItem[] {
     if (typeof entry === 'string') {
       items.push({ url: entry });
     } else if (entry && typeof entry === 'object') {
-      const { url, title, description, tags } = entry as any;
-      items.push({ url, title, description, tags });
+      const { url, title, description, tags, width, height } = entry as any;
+      items.push({ url, title, description, tags, width, height });
     }
   }
 
@@ -240,6 +242,8 @@ async function importUrls(request: NextRequest): Promise<Response> {
         await storageDatabaseService.saveImageWithStorage({
           publicId,
           url: item.url,
+          width: item.width ?? null,
+          height: item.height ?? null,
           title: item.title,
           description: item.description,
           groupId: parsedRequest.groupId || undefined,
@@ -256,8 +260,8 @@ async function importUrls(request: NextRequest): Promise<Response> {
                 secureUrl: item.url,
                 filename,
                 format,
-                width: undefined,
-                height: undefined,
+                width: item.width,
+                height: item.height,
                 bytes: 0,
                 metadata: {
                   source: 'external-url',
@@ -306,4 +310,3 @@ export const POST = withErrorHandler(
     maxRequestSize: 1024 * 1024, // 1MB 文本足够
   })(withAdminAuth(importUrls)),
 );
-

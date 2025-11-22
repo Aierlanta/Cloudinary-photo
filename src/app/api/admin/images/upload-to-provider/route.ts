@@ -127,6 +127,8 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
     const savedImage = await storageDatabaseService.saveImageWithStorage({
       publicId: uploadResult.publicId,
       url: uploadResult.url,
+      width: uploadResult.width,
+      height: uploadResult.height,
       title: uploadParams.title,
       description: uploadParams.description,
       groupId: uploadParams.groupId,
@@ -153,6 +155,9 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
       title: savedImage.title,
       description: savedImage.description,
       tags: savedImage.tags ? JSON.parse(savedImage.tags) : [],
+      width: savedImage.width || undefined,
+      height: savedImage.height || undefined,
+      orientation: savedImage.orientation || undefined,
       groupId: savedImage.groupId,
       uploadedAt: savedImage.uploadedAt,
       primaryProvider: savedImage.primaryProvider,
