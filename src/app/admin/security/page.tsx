@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
@@ -59,6 +59,8 @@ export default function SecurityManagement() {
   const isLight = useTheme();
   const [activeTab, setActiveTab] = useState<"stats" | "banned" | "limits">("stats");
   const [loading, setLoading] = useState(true);
+  const statsRef = useRef<AccessStats | null>(null);
+  const topIPRangeRef = useRef<TopIPRange>("default");
 
   // 访问统计数据
   const [stats, setStats] = useState<AccessStats | null>(null);
@@ -75,8 +77,9 @@ export default function SecurityManagement() {
 
   const refreshTopIPs = useCallback(async (range: TopIPRange, latestStats?: AccessStats | null) => {
     const hours = TOP_IP_RANGE_TO_HOURS[range];
+    const fallbackStats = latestStats ?? statsRef.current;
     if (!hours) {
-      setTopIPs((latestStats || stats)?.topIPs ?? []);
+      setTopIPs(fallbackStats?.topIPs ?? []);
       return;
     }
 
@@ -94,23 +97,25 @@ export default function SecurityManagement() {
     } finally {
       setTopIPLoading(false);
     }
-  }, [stats]);
+  }, []);
 
   // 加载访问统计
-  const loadStats = useCallback(async (range: TopIPRange = topIPRange) => {
+  const loadStats = useCallback(async (range: TopIPRange = topIPRangeRef.current) => {
     try {
       const response = await fetch("/api/admin/security/stats?days=7");
       if (response.ok) {
         const data = await response.json();
+        statsRef.current = data.data.stats;
         setStats(data.data.stats);
         setRealtimeStats(data.data.realtime);
         await refreshTopIPs(range, data.data.stats);
         setTopIPRange(range);
+        topIPRangeRef.current = range;
       }
     } catch (error) {
       console.error("加载统计数据失败:", error);
     }
-  }, [refreshTopIPs, topIPRange]);
+  }, [refreshTopIPs]);
   // 加载封禁IP列表
   const loadBannedIPs = useCallback(async () => {
     try {
@@ -140,20 +145,24 @@ export default function SecurityManagement() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([loadStats(), loadBannedIPs(), loadRateLimits()]);
-      setLoading(false);
+      try {
+        await Promise.all([loadStats(), loadBannedIPs(), loadRateLimits()]);
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, [loadStats, loadBannedIPs, loadRateLimits]);
 
   const handleRefresh = () => {
-    loadStats(topIPRange);
+    loadStats(topIPRangeRef.current);
     loadBannedIPs();
     loadRateLimits();
   };
 
   const handleTopIPCardClick = (range: TopIPRange) => {
     setTopIPRange(range);
+    topIPRangeRef.current = range;
     refreshTopIPs(range);
   };
 
@@ -427,10 +436,22 @@ export default function SecurityManagement() {
                       {realtimeStats?.last24Hours || 0}
                     </div>
                   </div>
-                  <div className={cn(
-                    "border p-6 rounded-lg",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                  )}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleTopIPCardClick("default")}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleTopIPCardClick("default");
+                      }
+                    }}
+                    className={cn(
+                      "border p-6 rounded-lg transition cursor-pointer",
+                      isLight ? "bg-white border-gray-300 hover:border-purple-400" : "bg-gray-800 border-gray-600 hover:border-purple-400/60",
+                      topIPRange === "default" ? "ring-2 ring-purple-500" : ""
+                    )}
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <p className={cn(
                         "text-sm rounded-lg",
