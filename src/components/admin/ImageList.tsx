@@ -58,7 +58,7 @@ interface ImageListProps {
   images: ImageItem[];
   groups: Group[];
   loading: boolean;
-  onDeleteImage: (imageId: string) => void;
+  onDeleteImage: (imageId: string) => Promise<void>;
   onBulkDelete?: (imageIds: string[]) => void;
   onUpdateImage?: (
     imageId: string,
@@ -513,10 +513,14 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
     }
   };
 
-  const handleDeleteSingleImage = (imageId: string, imageTitle?: string) => {
+  const handleDeleteSingleImage = async (imageId: string, imageTitle?: string) => {
     if (confirm(t.adminImages.deleteImageConfirm.replace('{name}', imageTitle || imageId))) {
-      onDeleteImage(imageId);
-      success(t.adminImages.deleteSuccess, t.adminImages.deleteSuccessMessage);
+      try {
+        await onDeleteImage(imageId);
+        success(t.adminImages.deleteSuccess, t.adminImages.deleteSuccessMessage);
+      } catch (error) {
+        showToastError(t.adminImages.deleteFailed, t.adminImages.deleteFailedMessage);
+      }
     }
   };
 

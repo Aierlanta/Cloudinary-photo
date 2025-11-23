@@ -168,21 +168,19 @@ export default function GalleryPage() {
   };
 
   const handleDeleteImage = async (imageId: string) => {
-    if (!confirm(t.adminImages.confirmDelete)) return;
-
     try {
       const response = await fetch(`/api/admin/images/${imageId}`, {
         method: "DELETE",
       });
 
-      if (response.ok) {
-        setFilters((prev) => ({ ...prev }));
-      } else {
-        showError(t.adminGroups.deleteFailed, t.adminGroups.deleteFailed);
+      if (!response.ok) {
+        throw new Error(t.adminGroups.deleteFailed);
       }
+
+      setFilters((prev) => ({ ...prev }));
     } catch (error) {
       console.error("删除图片失败:", error);
-      showError(t.adminGroups.deleteFailed, t.adminGroups.deleteFailed);
+      throw error;
     }
   };
 

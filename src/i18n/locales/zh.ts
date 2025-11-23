@@ -565,6 +565,7 @@ export const zh: Translations = {
     deleteImageConfirm: '确定要删除图片 "{name}" 吗？',
     deleteImage: '删除图片',
     deleteSuccessMessage: '图片已删除',
+    deleteFailedMessage: '删除失败，请稍后重试',
     moveImagesConfirm: '确定要移动 {count} 张图片吗？',
     updateFailed: '更新图片失败',
     bulkDeleteFailed: '批量删除图片失败',

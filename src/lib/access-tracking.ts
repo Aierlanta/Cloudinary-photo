@@ -70,12 +70,14 @@ export async function logAccess(
   statusCode?: number,
   responseTime?: number
 ): Promise<void> {
+  const normalizedPath = normalizePath(path);
+
   try {
     // 记录访问日志
     await prisma.accessLog.create({
       data: {
         ip,
-        path,
+        path: normalizedPath,
         method,
         userAgent,
         statusCode,
@@ -154,7 +156,11 @@ export async function getAccessStats(options: AccessStatsOptions = {}) {
     for (const stat of filteredPathStats) {
       const normalizedPath = normalizePath(stat.path);
       const currentCount = normalizedPathMap.get(normalizedPath) || 0;
-      normalizedPathMap.set(normalizedPath, currentCount + stat._count);
+      const statCount =
+        typeof stat._count === 'number'
+          ? stat._count
+          : (stat as any)._count?._all ?? (stat as any)._count?.path ?? 0;
+      normalizedPathMap.set(normalizedPath, currentCount + statCount);
     }
 
     // 转换为数组并按计数排序

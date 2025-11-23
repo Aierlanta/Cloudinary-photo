@@ -567,6 +567,7 @@ export const en: Translations = {
     deleteImageConfirm: 'Are you sure you want to delete image "{name}"?',
     deleteImage: 'Delete Image',
     deleteSuccessMessage: 'Image deleted successfully',
+    deleteFailedMessage: 'Failed to delete image, please try again',
     moveImagesConfirm: 'Are you sure you want to move {count} images?',
     updateFailed: 'Failed to update image',
     bulkDeleteFailed: 'Failed to bulk delete images',
