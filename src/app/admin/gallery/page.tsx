@@ -50,6 +50,14 @@ interface FilterState {
   sortOrder: "asc" | "desc";
 }
 
+const ITEMS_PER_PAGE_BASE = 15;
+const ITEMS_PER_PAGE_COUNT = 6;
+
+const itemsPerPageOptions = Array.from(
+  { length: ITEMS_PER_PAGE_COUNT },
+  (_, index) => ITEMS_PER_PAGE_BASE * (index + 1)
+);
+
 export default function GalleryPage() {
   const { t } = useLocale();
   const isLight = useTheme();
@@ -70,7 +78,7 @@ export default function GalleryPage() {
     dateFrom: "",
     dateTo: "",
     page: 1,
-    limit: 12,
+    limit: ITEMS_PER_PAGE_BASE,
     sortBy: "uploadedAt",
     sortOrder: "desc",
   });
@@ -412,7 +420,7 @@ export default function GalleryPage() {
                   : "bg-gray-800 border-gray-600"
               )}
             >
-              {[12, 24, 36, 48, 72, 100].map((count) => (
+              {itemsPerPageOptions.map((count) => (
                 <option key={count} value={count}>
                   {count}
                 </option>
