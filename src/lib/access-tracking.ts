@@ -9,6 +9,29 @@ import { NextRequest } from 'next/server';
 const HOUR_IN_MS = 60 * 60 * 1000;
 const DAY_IN_MS = 24 * HOUR_IN_MS;
 
+/**
+ * 规范化路径，移除 t 参数（时间戳参数，用于缓存破坏）
+ */
+function normalizePath(path: string): string {
+  try {
+    const url = new URL(path, 'http://localhost');
+    // 移除 t 参数
+    url.searchParams.delete('t');
+    // 重新构建路径，保留其他参数
+    const normalizedPath = url.pathname + (url.search ? url.search : '');
+    return normalizedPath;
+  } catch {
+    // 如果解析失败，尝试手动处理
+    const [pathname, search] = path.split('?');
+    if (!search) return pathname;
+    
+    const params = new URLSearchParams(search);
+    params.delete('t');
+    const newSearch = params.toString();
+    return pathname + (newSearch ? '?' + newSearch : '');
+  }
+}
+
 interface AccessStatsOptions {
   days?: number;
   hours?: number;
@@ -119,12 +142,25 @@ export async function getAccessStats(options: AccessStatsOptions = {}) {
       },
     });
 
-    // 过滤出只包含 /api/random 和 /api/response 的路径（保留参数）
+    // 过滤出只包含 /api/random 和 /api/response 的路径（保留参数，但移除 t 参数）
     const filteredPathStats = allPathStats
       .filter(stat => {
         const path = stat.path;
         return path.startsWith('/api/random') || path.startsWith('/api/response');
-      })
+      });
+
+    // 规范化路径（移除 t 参数）并重新聚合
+    const normalizedPathMap = new Map<string, number>();
+    for (const stat of filteredPathStats) {
+      const normalizedPath = normalizePath(stat.path);
+      const currentCount = normalizedPathMap.get(normalizedPath) || 0;
+      normalizedPathMap.set(normalizedPath, currentCount + stat._count);
+    }
+
+    // 转换为数组并按计数排序
+    const normalizedPathStats = Array.from(normalizedPathMap.entries())
+      .map(([path, count]) => ({ path, count }))
+      .sort((a, b) => b.count - a.count)
       .slice(0, 10); // 只取前10个
 
     // 按日期统计
@@ -156,10 +192,7 @@ export async function getAccessStats(options: AccessStatsOptions = {}) {
     return {
       totalAccess,
       uniqueIPCount: uniqueIPs.length,
-      pathStats: filteredPathStats.map(stat => ({
-        path: stat.path,
-        count: stat._count,
-      })),
+      pathStats: normalizedPathStats,
       dailyStats: dailyStats.map(stat => ({
         date: stat.date,
         count: Number(stat.count),

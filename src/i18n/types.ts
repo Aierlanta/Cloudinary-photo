@@ -263,6 +263,9 @@ export interface Translations {
     moveToGroup: string;
     noImagesFound: string;
     deleteImagesConfirm: string;
+    deleteImageConfirm: string;
+    deleteImage: string;
+    deleteSuccessMessage: string;
     moveImagesConfirm: string;
     updateFailed: string;
     bulkDeleteFailed: string;

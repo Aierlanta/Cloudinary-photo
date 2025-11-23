@@ -483,6 +483,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkGroupId, setBulkGroupId] = useState<string>("");
+  const [hoveredImageId, setHoveredImageId] = useState<string | null>(null);
   const { toasts, success, error: showToastError, removeToast } = useToast();
 
   const { triggerPrewarming } = useImageCachePrewarming(images, {
@@ -509,6 +510,13 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
       if (onBulkDelete) onBulkDelete(Array.from(selectedImages));
       setSelectedImages(new Set());
       setBulkMode(false);
+    }
+  };
+
+  const handleDeleteSingleImage = (imageId: string, imageTitle?: string) => {
+    if (confirm(t.adminImages.deleteImageConfirm.replace('{name}', imageTitle || imageId))) {
+      onDeleteImage(imageId);
+      success(t.adminImages.deleteSuccess, t.adminImages.deleteSuccessMessage);
     }
   };
 
@@ -633,7 +641,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
               <div
                 key={image.id}
                 className={cn(
-                  "border overflow-hidden transition-colors",
+                  "border overflow-hidden transition-colors relative",
                   bulkMode && selectedImages.has(image.id)
                     ? isLight
                       ? "border-blue-500"
@@ -642,6 +650,8 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                     ? "bg-white border-gray-300 hover:bg-gray-50"
                     : "bg-gray-800 border-gray-600 hover:bg-gray-700"
                 )}
+                onMouseEnter={() => !bulkMode && setHoveredImageId(image.id)}
+                onMouseLeave={() => setHoveredImageId(null)}
               >
                 <div className={cn(
                   "aspect-square relative",
@@ -673,6 +683,24 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                         <Check className="w-5 h-5 text-white" />
                       </div>
                     </div>
+                  )}
+                  {!bulkMode && hoveredImageId === image.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSingleImage(image.id, image.title || image.publicId);
+                      }}
+                      className={cn(
+                        "absolute top-2 right-2 p-2 rounded-full transition-all z-10",
+                        "hover:scale-110 active:scale-95",
+                        isLight
+                          ? "bg-red-500 text-white hover:bg-red-600 shadow-lg"
+                          : "bg-red-600 text-white hover:bg-red-700 shadow-lg"
+                      )}
+                      title={t.adminImages.deleteImage || '删除图片'}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
                 <div className="p-3">
