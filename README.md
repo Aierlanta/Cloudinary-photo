@@ -56,18 +56,35 @@ Create a `.env.local` file and configure the following environment variables:
 # Database configuration
 DATABASE_URL="mysql://username:password@host:port/database"
 
+# Server configuration
+# Optional, defaults to 3000 if not set
+PORT=3000
+
 # Cloudinary image hosting configuration (primary)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# TgState image hosting configuration (optional)
+# TgState image hosting configuration (optional, third-party service)
 TGSTATE_BASE_URL=https://your-tgstate-domain.com
 # TgState image proxy URL (optional, for faster access or CDN acceleration)
 # If configured, API will return image URLs using the proxy address
 # TGSTATE_PROXY_URL=https://tg-img.your-domain.com
 # Or use Cloudflare Worker as reverse proxy:
 # TGSTATE_PROXY_URL=https://tg-proxy.workers.dev
+
+# Telegram direct image hosting configuration (recommended; no extra backend required)
+# Supports multiple Bot Tokens (comma-separated) for load balancing and rate limit mitigation
+TELEGRAM_BOT_TOKENS=token1,token2,token3
+# Or a single Bot Token
+# TELEGRAM_BOT_TOKEN=your_bot_token
+# Optional: specify the target chat_id for uploads (defaults to the bot's Saved Messages)
+# TELEGRAM_CHAT_ID=your_chat_id
+
+# Host toggles (optional; default to enabled when not set)
+CLOUDINARY_ENABLE=true
+TGSTATE_ENABLE=false
+TELEGRAM_ENABLE=true
 
 # Admin authentication
 ADMIN_PASSWORD=your_secure_admin_password
@@ -83,11 +100,12 @@ Control which hosts are enabled via environment variables. Defaults to enabled w
 ```env
 # Host toggles (enabled by default if not set)
 CLOUDINARY_ENABLE=true
-TGSTATE_ENABLE=true
+TGSTATE_ENABLE=false
+TELEGRAM_ENABLE=true
 ```
 
 - Set to `false` to disable a host (e.g., enable TgState only: `CLOUDINARY_ENABLE=false`).
-- When both are `false`, upload APIs return `503 No image hosting service enabled`.
+- When all hosts are `false`, upload APIs return `503 No image hosting service enabled`.
 - The multi-host manager registers only enabled services; selectable providers and defaults follow accordingly.
 
 ### Installation and Deployment
@@ -582,6 +600,6 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 
 ---
 
-**Current Version**: v1.9.1 | **Last Updated**: 2025-11-20
+**Current Version**: v1.11.0 | **Last Updated**: 2025-11-23
 
 For issues or suggestions, feel free to submit an Issue or Pull Request!

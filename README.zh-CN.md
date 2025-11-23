@@ -56,6 +56,10 @@
 # 数据库配置
 DATABASE_URL="mysql://username:password@host:port/database"
 
+# 服务配置
+# 可选，不设置时默认为 3000
+PORT=3000
+
 # Cloudinary 图床配置（主图床）
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
@@ -70,7 +74,7 @@ TGSTATE_BASE_URL=https://your-tgstate-domain.com
 # TGSTATE_PROXY_URL=https://tg-proxy.workers.dev
 
 # Telegram 直连配置（推荐，无需第三方服务）
-# 支持多个 Bot Token (逗号分隔),实现轮询和负载均衡,防止单个 token 被限速
+# 支持多个 Bot Token (逗号分隔)，实现轮询和负载均衡，防止单个 token 被限速
 TELEGRAM_BOT_TOKENS=token1,token2,token3
 # 或单个 Token
 # TELEGRAM_BOT_TOKEN=your_bot_token
@@ -607,6 +611,6 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 
 ---
 
-**当前版本**: v1.9.1 | **最后更新**: 2025-11-20
+**当前版本**: v1.11.0 | **最后更新**: 2025-11-23
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request！
