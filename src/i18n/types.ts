@@ -265,7 +265,9 @@ export interface Translations {
     deleteImagesConfirm: string;
     deleteImageConfirm: string;
     deleteImage: string;
+    deleteSuccess: string;
     deleteSuccessMessage: string;
+    deleteFailed: string;
     deleteFailedMessage: string;
     moveImagesConfirm: string;
     updateFailed: string;
