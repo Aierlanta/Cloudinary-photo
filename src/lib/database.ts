@@ -370,6 +370,7 @@ export class DatabaseService {
       
       if (dateFrom || dateTo) {
         where.uploadedAt = {};
+        // 前端已经传递了正确的 UTC 时间戳，直接使用
         if (dateFrom) where.uploadedAt.gte = dateFrom;
         if (dateTo) where.uploadedAt.lte = dateTo;
       }
@@ -1190,6 +1191,7 @@ export class DatabaseService {
 
       if (dateFrom || dateTo) {
         where.timestamp = {};
+        // 前端已经传递了正确的 UTC 时间戳，直接使用
         if (dateFrom) where.timestamp.gte = new Date(dateFrom);
         if (dateTo) where.timestamp.lte = new Date(dateTo);
       }

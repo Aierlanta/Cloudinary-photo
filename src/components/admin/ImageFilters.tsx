@@ -69,10 +69,29 @@ export default function ImageFilters({
     });
   };
 
+  // 将 ISO 时间戳转换为本地日期字符串（用于 date input 显示）
   const formatDateForInput = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toISOString().split("T")[0];
+    // 使用本地时区的日期格式
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // 将本地日期字符串转换为 UTC 时间戳
+  const localDateToUTC = (dateString: string, isEndOfDay: boolean) => {
+    if (!dateString) return "";
+    // 解析为本地时间
+    const [year, month, day] = dateString.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    if (isEndOfDay) {
+      date.setHours(23, 59, 59, 999);
+    } else {
+      date.setHours(0, 0, 0, 0);
+    }
+    return date.toISOString();
   };
 
   const hasActiveFilters =
@@ -184,7 +203,7 @@ export default function ImageFilters({
               <input
                 type="date"
                 value={formatDateForInput(filters.dateFrom)}
-                onChange={(e) => onFilterChange({ dateFrom: e.target.value })}
+                onChange={(e) => onFilterChange({ dateFrom: localDateToUTC(e.target.value, false) })}
                 className={cn(
                   "w-full p-2 border outline-none focus:border-blue-500 text-sm",
                   isLight
@@ -203,7 +222,7 @@ export default function ImageFilters({
               <input
                 type="date"
                 value={formatDateForInput(filters.dateTo)}
-                onChange={(e) => onFilterChange({ dateTo: e.target.value })}
+                onChange={(e) => onFilterChange({ dateTo: localDateToUTC(e.target.value, true) })}
                 className={cn(
                   "w-full p-2 border outline-none focus:border-blue-500 text-sm",
                   isLight
@@ -251,20 +270,28 @@ export default function ImageFilters({
         {/* Quick Filters */}
         <div className="flex flex-wrap gap-2 pt-2">
           {[
-            { label: t.adminImages.today, days: 1 },
-            { label: t.adminImages.last7Days, days: 7 },
-            { label: t.adminImages.last30Days, days: 30 },
+            { label: t.adminImages.today, days: 0 },
+            { label: t.adminImages.last7Days, days: 6 },
+            { label: t.adminImages.last30Days, days: 29 },
           ].map((item) => (
             <button
               key={item.days}
-              onClick={() =>
+              onClick={() => {
+                const now = new Date();
+                // 计算用户本地时区的日期范围
+                // dateFrom: N 天前的本地时间 00:00:00
+                const fromDate = new Date(now);
+                fromDate.setDate(fromDate.getDate() - item.days);
+                fromDate.setHours(0, 0, 0, 0);
+                // dateTo: 今天的本地时间 23:59:59.999
+                const toDate = new Date(now);
+                toDate.setHours(23, 59, 59, 999);
+                // 传递 ISO 格式的 UTC 时间戳给后端
                 onFilterChange({
-                  dateFrom: new Date(Date.now() - (item.days === 1 ? 1 : item.days) * 24 * 60 * 60 * 1000)
-                    .toISOString()
-                    .split("T")[0],
-                  dateTo: new Date().toISOString().split("T")[0],
-                })
-              }
+                  dateFrom: fromDate.toISOString(),
+                  dateTo: toDate.toISOString(),
+                });
+              }}
               className={cn(
                 "px-3 py-1.5 text-xs font-medium border transition-colors",
                 isLight
