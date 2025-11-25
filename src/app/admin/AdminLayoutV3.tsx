@@ -115,18 +115,13 @@ export default function AdminLayoutV3({
               isLight ? "border-gray-300" : "border-gray-600"
             )}
           >
-            <div
-              className={cn(
-                "w-10 h-10 flex items-center justify-center",
-                isLight ? "bg-blue-500" : "bg-blue-600"
-              )}
-            >
+            <div className="w-10 h-10 flex items-center justify-center">
               <Image
-                src="/icon.svg"
+                src="/icon.png"
                 alt="Admin Logo"
-                width={24}
-                height={24}
-                className="w-6 h-6"
+                width={36}
+                height={36}
+                className="w-9 h-9"
                 priority
               />
             </div>
@@ -250,18 +245,13 @@ export default function AdminLayoutV3({
                   isLight ? "border-gray-300" : "border-gray-600"
                 )}
               >
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center",
-                    isLight ? "bg-blue-500" : "bg-blue-600"
-                  )}
-                >
+                <div className="w-10 h-10 flex items-center justify-center">
                   <Image
-                    src="/icon.svg"
+                    src="/icon.png"
                     alt="Admin Logo"
-                    width={24}
-                    height={24}
-                    className="w-6 h-6"
+                    width={36}
+                    height={36}
+                    className="w-9 h-9"
                     priority
                   />
                 </div>

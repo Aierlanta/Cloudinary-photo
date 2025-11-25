@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   Image as ImageIcon,
@@ -225,8 +226,8 @@ function HomeContent() {
         <div className="w-full px-6 lg:px-12">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20">
-                <ImageIcon className="w-6 h-6" />
+              <div className="w-12 h-12 flex items-center justify-center">
+                <Image src="/icon.png" alt="Logo" width={48} height={48} className="w-full h-full object-contain" />
               </div>
               <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
                 {t.home.title}
@@ -678,8 +679,8 @@ function HomeContent() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-primary/20">
-                A
+              <div className="w-8 h-8 flex items-center justify-center">
+                <Image src="/icon.png" alt="Logo" width={32} height={32} className="w-full h-full object-contain" />
               </div>
               <div className="text-sm text-muted-foreground">
                 &copy; {new Date().getFullYear()} {t.footer.copyright}
