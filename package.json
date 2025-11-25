@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node scripts/start-dev.js",
     "build": "next build",
-    "build:replit": "npm install --include=dev && npx prisma generate && next build",
+    "build:replit": "rm -rf .next && npm install --include=dev && npx prisma generate && next build",
     "start": "node scripts/start-prod.js",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
