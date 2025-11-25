@@ -25,7 +25,7 @@ channel = "stable-24_05"
 
 # 部署配置
 [deployment]
-build = ["sh", "-c", "npm run build:replit"]
+build = ["sh", "-c", "rm -rf .next && npm run build:replit"]
 run = ["sh", "-c", "chmod +x fast-start.sh && ./fast-start.sh"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
