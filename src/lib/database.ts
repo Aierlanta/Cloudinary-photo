@@ -1208,18 +1208,35 @@ export class DatabaseService {
       ]);
 
       // 转换数据格式
-      const logEntries: LogEntry[] = logs.map(log => ({
-        id: log.id,
-        timestamp: log.timestamp,
-        level: log.level as LogLevel,
-        message: log.message,
-        context: log.context ? JSON.parse(log.context) : undefined,
-        error: log.error ? JSON.parse(log.error) : undefined,
-        userId: log.userId || undefined,
-        requestId: log.requestId || undefined,
-        ip: log.ip || undefined,
-        userAgent: log.userAgent || undefined
-      }));
+      const logEntries: LogEntry[] = logs.map(log => {
+        let context: Record<string, any> | undefined;
+        let error: any;
+
+        try {
+          context = log.context ? JSON.parse(log.context) : undefined;
+        } catch (e) {
+          context = { raw: log.context, parseError: true };
+        }
+
+        try {
+          error = log.error ? JSON.parse(log.error) : undefined;
+        } catch (e) {
+          error = log.error ? { message: log.error, parseError: true } : undefined;
+        }
+
+        return {
+          id: log.id,
+          timestamp: log.timestamp,
+          level: log.level as LogLevel,
+          message: log.message,
+          context,
+          error,
+          userId: log.userId || undefined,
+          requestId: log.requestId || undefined,
+          ip: log.ip || undefined,
+          userAgent: log.userAgent || undefined
+        };
+      });
 
       const totalPages = Math.ceil(total / limit);
 
@@ -1233,6 +1250,7 @@ export class DatabaseService {
         hasPrev: page > 1
       };
     } catch (error) {
+      console.error('getLogs error details:', error);
       throw new DatabaseError('获取日志失败', error);
     }
   }
