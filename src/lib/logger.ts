@@ -11,6 +11,7 @@ export enum LogLevel {
 }
 
 export interface LogEntry {
+  id?: string
   timestamp: Date
   level: LogLevel
   message: string
@@ -266,9 +267,9 @@ export class Logger {
       url: request.url,
       headers: Object.fromEntries(request.headers.entries()),
       userAgent: request.headers.get('user-agent'),
-      ip: request.headers.get('x-forwarded-for') || 
-          request.headers.get('x-real-ip') || 
-          'unknown'
+      ip: request.headers.get('x-forwarded-for') ||
+        request.headers.get('x-real-ip') ||
+        'unknown'
     }
   }
 

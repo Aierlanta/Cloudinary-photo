@@ -258,7 +258,7 @@ export class DatabaseService {
       const resolvedWidth = imageData.width ?? null;
       const resolvedHeight = imageData.height ?? null;
       const resolvedOrientation = this.determineOrientation(resolvedWidth, resolvedHeight);
-      
+
       const image = await prisma.image.create({
         data: {
           id,
@@ -288,7 +288,7 @@ export class DatabaseService {
       }
 
       console.log(`图片已保存: ${id}`);
-      
+
       // 转换为应用层的Image类型
       return {
         id: image.id,
@@ -367,14 +367,14 @@ export class DatabaseService {
       if (provider) {
         where.primaryProvider = provider;
       }
-      
+
       if (dateFrom || dateTo) {
         where.uploadedAt = {};
         // 前端已经传递了正确的 UTC 时间戳，直接使用
         if (dateFrom) where.uploadedAt.gte = dateFrom;
         if (dateTo) where.uploadedAt.lte = dateTo;
       }
-      
+
       if (search) {
         const searchLower = search.toLowerCase();
         where.OR = [
@@ -708,19 +708,19 @@ export class DatabaseService {
         .flat()
         .map(image => ({
           id: image.id,
-        url: image.url,
-        publicId: image.publicId,
-        title: image.title || undefined,
-        description: image.description || undefined,
-        tags: image.tags ? JSON.parse(image.tags) : undefined,
-        width: image.width || undefined,
-        height: image.height || undefined,
-        orientation: normalizeOrientationValue(image.orientation),
-        groupId: image.groupId || undefined,
-        uploadedAt: image.uploadedAt,
-        primaryProvider: image.primaryProvider || 'cloudinary',
-        backupProvider: image.backupProvider || undefined,
-        telegramFileId: image.telegramFileId || undefined,
+          url: image.url,
+          publicId: image.publicId,
+          title: image.title || undefined,
+          description: image.description || undefined,
+          tags: image.tags ? JSON.parse(image.tags) : undefined,
+          width: image.width || undefined,
+          height: image.height || undefined,
+          orientation: normalizeOrientationValue(image.orientation),
+          groupId: image.groupId || undefined,
+          uploadedAt: image.uploadedAt,
+          primaryProvider: image.primaryProvider || 'cloudinary',
+          backupProvider: image.backupProvider || undefined,
+          telegramFileId: image.telegramFileId || undefined,
           telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
           telegramFilePath: image.telegramFilePath || undefined,
           telegramThumbnailPath: image.telegramThumbnailPath || undefined,
@@ -795,19 +795,19 @@ export class DatabaseService {
         .flat()
         .map(image => ({
           id: image.id,
-        url: image.url,
-        publicId: image.publicId,
-        title: image.title || undefined,
-        description: image.description || undefined,
-        tags: image.tags ? JSON.parse(image.tags) : undefined,
-        width: image.width || undefined,
-        height: image.height || undefined,
-        orientation: normalizeOrientationValue(image.orientation),
-        groupId: image.groupId || undefined,
-        uploadedAt: image.uploadedAt,
-        primaryProvider: image.primaryProvider || 'cloudinary',
-        backupProvider: image.backupProvider || undefined,
-        telegramFileId: image.telegramFileId || undefined,
+          url: image.url,
+          publicId: image.publicId,
+          title: image.title || undefined,
+          description: image.description || undefined,
+          tags: image.tags ? JSON.parse(image.tags) : undefined,
+          width: image.width || undefined,
+          height: image.height || undefined,
+          orientation: normalizeOrientationValue(image.orientation),
+          groupId: image.groupId || undefined,
+          uploadedAt: image.uploadedAt,
+          primaryProvider: image.primaryProvider || 'cloudinary',
+          backupProvider: image.backupProvider || undefined,
+          telegramFileId: image.telegramFileId || undefined,
           telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
           telegramFilePath: image.telegramFilePath || undefined,
           telegramThumbnailPath: image.telegramThumbnailPath || undefined,
@@ -1209,6 +1209,7 @@ export class DatabaseService {
 
       // 转换数据格式
       const logEntries: LogEntry[] = logs.map(log => ({
+        id: log.id,
         timestamp: log.timestamp,
         level: log.level as LogLevel,
         message: log.message,

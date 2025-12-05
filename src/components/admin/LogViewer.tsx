@@ -1,11 +1,14 @@
 'use client'
 
+import { motion, AnimatePresence } from 'framer-motion'
+
 import { useState, useEffect, useCallback } from 'react'
 import { LogLevel } from '@/lib/logger'
 import { useLocale } from '@/hooks/useLocale'
 
 interface LogEntry {
-  timestamp: Date
+  id?: string
+  timestamp: Date | string
   level: LogLevel
   message: string
   context?: Record<string, any>
@@ -107,12 +110,81 @@ export default function LogViewer({
     loadLogs(1)
   }, [filter, loadLogs])
 
+  // 自动刷新逻辑 - 改为流式更新
+  const fetchNewLogs = useCallback(async () => {
+    if (logs.length === 0) {
+      loadLogs(1);
+      return;
+    }
+
+    try {
+      // 获取最新的一条日志的时间戳
+      const latestLog = logs[0];
+      const dateFrom = typeof latestLog.timestamp === 'string' 
+        ? latestLog.timestamp 
+        : latestLog.timestamp.toISOString();
+
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '50'); // 获取最新的50条，防止漏掉
+      if (filter.level !== 'all') params.append('level', filter.level.toString());
+      if (filter.search) params.append('search', filter.search);
+      if (filter.type !== 'all') params.append('type', filter.type);
+      
+      // 使用 dateFrom 获取比当前最新日志更新的日志
+      // 注意：API是 gte (大于等于)，所以我们需要在前端去重
+      params.append('dateFrom', dateFrom);
+
+      const response = await fetch(`/api/admin/logs?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data?.logs?.length > 0) {
+          const newLogs = data.data.logs as LogEntry[];
+          
+          // 过滤掉已存在的日志
+          const uniqueNewLogs = newLogs.filter(newLog => {
+            // 如果有ID，使用ID去重
+            if (newLog.id && latestLog.id) {
+              // 检查当前日志列表中是否存在该ID
+              return !logs.some(existingLog => existingLog.id === newLog.id);
+            }
+            // 降级使用时间戳+消息内容去重
+            const newTime = typeof newLog.timestamp === 'string' ? newLog.timestamp : new Date(newLog.timestamp).toISOString();
+            return !logs.some(existingLog => {
+              const existingTime = typeof existingLog.timestamp === 'string' ? existingLog.timestamp : new Date(existingLog.timestamp).toISOString();
+              return existingTime === newTime && existingLog.message === newLog.message;
+            });
+          });
+
+          if (uniqueNewLogs.length > 0) {
+            setLogs(prevLogs => {
+              // 将新日志插入到顶部
+              const updatedLogs = [...uniqueNewLogs, ...prevLogs];
+              // 保持列表长度不超过一定限制（例如 500 条），避免内存溢出
+              return updatedLogs.slice(0, 500);
+            });
+            
+            // 更新分页总数信息
+            setPagination(prev => ({
+              ...prev,
+              total: (prev.total || 0) + uniqueNewLogs.length
+            }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('流式获取日志失败:', error);
+    }
+  }, [logs, filter, loadLogs]);
+
   useEffect(() => {
     if (autoRefresh) {
-      const interval = setInterval(() => loadLogs(), refreshInterval)
-      return () => clearInterval(interval)
+      const interval = setInterval(() => {
+        fetchNewLogs();
+      }, refreshInterval);
+      return () => clearInterval(interval);
     }
-  }, [autoRefresh, refreshInterval, loadLogs])
+  }, [autoRefresh, refreshInterval, fetchNewLogs]);
 
   // 分页处理
   const handlePageChange = (newPage: number) => {
@@ -485,58 +557,64 @@ export default function LogViewer({
           </div>
         ) : (
           <div className="space-y-2 rounded-lg">
-            {logs.map((log, index) => (
-              <div
-                key={index}
-                className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getLevelColor(log.level)}`}>
-                        {getLevelName(log.level)}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 rounded-lg">
-                        {formatTimestamp(log.timestamp)}
-                      </span>
-                      {log.requestId && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono rounded-lg">
-                          {log.requestId}
+            <AnimatePresence initial={false}>
+              {logs.map((log, index) => (
+                <motion.div
+                  key={log.id || `${typeof log.timestamp === 'string' ? log.timestamp : log.timestamp.toISOString()}-${index}`}
+                  initial={{ opacity: 0, y: -20, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getLevelColor(log.level)}`}>
+                          {getLevelName(log.level)}
                         </span>
-                      )}
-                    </div>
-                    <p className="text-sm panel-text mb-1 rounded-lg">{translateLogMessage(log.message)}</p>
-                    {log.context && Object.keys(log.context).length > 0 && (
-                      <details className="mt-2">
-                        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer rounded-lg">
-                          {t.adminLogs.viewDetails}
-                        </summary>
-                        <pre className="text-xs text-gray-600 dark:text-gray-300 mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto rounded-lg">
-                          {JSON.stringify(log.context, null, 2)}
-                        </pre>
-                      </details>
-                    )}
-                    {log.error && (
-                      <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded rounded-lg">
-                        <p className="text-xs text-red-700 dark:text-red-300 font-medium">
-                          {log.error.message}
-                        </p>
-                        {log.error.stack && (
-                          <details className="mt-1">
-                            <summary className="text-xs text-red-600 dark:text-red-400 cursor-pointer rounded-lg">
-                              堆栈跟踪
-                            </summary>
-                            <pre className="text-xs text-red-600 dark:text-red-400 mt-1 overflow-auto max-h-32 rounded-lg">
-                              {log.error.stack}
-                            </pre>
-                          </details>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 rounded-lg">
+                          {formatTimestamp(log.timestamp)}
+                        </span>
+                        {log.requestId && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono rounded-lg">
+                            {log.requestId}
+                          </span>
                         )}
                       </div>
-                    )}
+                      <p className="text-sm panel-text mb-1 rounded-lg">{translateLogMessage(log.message)}</p>
+                      {log.context && Object.keys(log.context).length > 0 && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer rounded-lg">
+                            {t.adminLogs.viewDetails}
+                          </summary>
+                          <pre className="text-xs text-gray-600 dark:text-gray-300 mt-1 bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-auto rounded-lg">
+                            {JSON.stringify(log.context, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                      {log.error && (
+                        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded rounded-lg">
+                          <p className="text-xs text-red-700 dark:text-red-300 font-medium">
+                            {log.error.message}
+                          </p>
+                          {log.error.stack && (
+                            <details className="mt-1">
+                              <summary className="text-xs text-red-600 dark:text-red-400 cursor-pointer rounded-lg">
+                                堆栈跟踪
+                              </summary>
+                              <pre className="text-xs text-red-600 dark:text-red-400 mt-1 overflow-auto max-h-32 rounded-lg">
+                                {log.error.stack}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>
