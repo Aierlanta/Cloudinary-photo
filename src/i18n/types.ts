@@ -764,6 +764,7 @@ export interface Translations {
     banIP: string;
     unbanIP: string;
     ipAddress: string;
+    location: string;
     reason: string;
     bannedAt: string;
     bannedBy: string;

@@ -15,6 +15,7 @@ import {
   BarChart2,
   RefreshCw
 } from "lucide-react";
+import { IPLocationBadge } from "@/components/admin/IPLocation";
 
 interface AccessStats {
   totalAccess: number;
@@ -579,22 +580,23 @@ export default function SecurityManagement() {
                               isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
                             )}
                           >
-                            <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <span className={cn(
-                                "w-4 rounded-lg",
+                                "w-4 flex-shrink-0 rounded-lg",
                                 isLight ? "text-gray-600" : "text-gray-400"
                               )}>
                                 {i + 1}
                               </span>
                               <span className={cn(
-                                "font-mono truncate px-2 py-0.5 text-xs border rounded-lg",
+                                "font-mono px-2 py-0.5 text-xs border rounded-lg flex-shrink-0",
                                 isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
                               )}>
                                 {item.ip}
                               </span>
+                              <IPLocationBadge ip={item.ip} compact />
                             </div>
                             <span className={cn(
-                              "font-medium rounded-lg",
+                              "font-medium rounded-lg flex-shrink-0 ml-2",
                               isLight ? "text-gray-900" : "text-gray-100"
                             )}>
                               {item.count}

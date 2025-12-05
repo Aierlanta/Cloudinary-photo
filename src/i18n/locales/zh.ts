@@ -750,6 +750,7 @@ export const zh: Translations = {
     banIP: '封禁IP',
     unbanIP: '解封IP',
     ipAddress: 'IP地址',
+    location: '地域',
     reason: '封禁原因',
     bannedAt: '封禁时间',
     bannedBy: '操作人',

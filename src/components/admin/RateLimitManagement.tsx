@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
+import { IPLocationBadge } from '@/components/admin/IPLocation';
 
 interface RateLimit {
   ip: string;
@@ -137,6 +138,9 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
                   {t.adminSecurity.ipAddress}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {t.adminSecurity.location}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {t.adminSecurity.maxRequests}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -158,6 +162,9 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
                 <tr key={item.ip}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono panel-text">
                     {item.ip}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm panel-text">
+                    <IPLocationBadge ip={item.ip} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm panel-text">
                     {item.maxRequests}

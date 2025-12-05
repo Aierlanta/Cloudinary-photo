@@ -752,6 +752,7 @@ export const en: Translations = {
     banIP: 'Ban IP',
     unbanIP: 'Unban IP',
     ipAddress: 'IP Address',
+    location: 'Location',
     reason: 'Reason',
     bannedAt: 'Banned At',
     bannedBy: 'Banned By',
