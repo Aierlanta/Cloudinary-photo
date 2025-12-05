@@ -102,7 +102,9 @@ export class Logger {
    * 记录API响应
    */
   apiResponse(method: string, path: string, status: number, duration: number, context?: Record<string, any>): void {
-    const level = status >= 400 ? LogLevel.ERROR : status >= 300 ? LogLevel.WARN : LogLevel.INFO
+    // 302 是正常的重定向行为（如 Telegram 直连图床），使用 INFO 级别
+    // 其他 3xx 状态码保持 WARN 级别，4xx+ 使用 ERROR 级别
+    const level = status >= 400 ? LogLevel.ERROR : (status >= 300 && status !== 302) ? LogLevel.WARN : LogLevel.INFO
     this.log(level, `API ${method} ${path} - ${status} (${duration}ms)`, {
       type: 'api_response',
       method,
