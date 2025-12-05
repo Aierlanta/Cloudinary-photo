@@ -1186,7 +1186,7 @@ export default function ImageUpload({
               "text-sm text-center rounded-lg",
               isLight ? "text-gray-600" : "text-gray-400"
             )}>
-              {uploadProgress}%
+              {uploadProgress.toFixed(2)}%
             </p>
           </div>
         )}
