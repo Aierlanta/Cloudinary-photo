@@ -79,7 +79,7 @@ export function IPLocationBadge({
     globalLocationCache.get(ip) || null
   );
   const [loading, setLoading] = useState(!globalLocationCache.has(ip));
-  const fetchedRef = useRef(false);
+  const fetchedRef = useRef<string | null>(null);
 
   useEffect(() => {
     // 如果已经有缓存，直接使用
@@ -89,13 +89,17 @@ export function IPLocationBadge({
       return;
     }
 
-    // 防止重复请求
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
+    // 防止对同一个 IP 重复请求
+    if (fetchedRef.current === ip) return;
+    fetchedRef.current = ip;
+
+    setLoading(true);
 
     const fetchLocation = async () => {
       try {
-        const response = await fetch(`/api/admin/security/ip-location?ip=${encodeURIComponent(ip)}`);
+        const response = await fetch(`/api/admin/security/ip-location?ip=${encodeURIComponent(ip)}`, {
+          credentials: 'include', // 发送认证 cookie
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data?.location) {
@@ -216,11 +220,21 @@ interface BatchIPLocationProviderProps {
 export function BatchIPLocationProvider({ ips, children }: BatchIPLocationProviderProps) {
   const [locations, setLocations] = useState<Map<string, IPLocationInfo>>(new Map());
   const [loading, setLoading] = useState(true);
-  const fetchedRef = useRef(false);
+  // 使用 ips 的序列化字符串作为 key 来追踪变化
+  const prevIpsKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (fetchedRef.current || ips.length === 0) {
+    if (ips.length === 0) {
+      setLocations(new Map());
       setLoading(false);
+      return;
+    }
+
+    // 生成当前 ips 的唯一 key
+    const ipsKey = ips.slice().sort().join(',');
+    
+    // 如果 ips 没有变化，跳过
+    if (prevIpsKeyRef.current === ipsKey) {
       return;
     }
 
@@ -238,15 +252,21 @@ export function BatchIPLocationProvider({ ips, children }: BatchIPLocationProvid
       });
       setLocations(cachedLocations);
       setLoading(false);
+      prevIpsKeyRef.current = ipsKey;
       return;
     }
 
-    fetchedRef.current = true;
+    // 更新 ref，标记当前 ips 正在处理
+    prevIpsKeyRef.current = ipsKey;
+    setLoading(true);
 
     const fetchLocations = async () => {
       try {
         const response = await fetch(
-          `/api/admin/security/ip-location?ips=${encodeURIComponent(uncachedIPs.join(','))}`
+          `/api/admin/security/ip-location?ips=${encodeURIComponent(uncachedIPs.join(','))}`,
+          {
+            credentials: 'include', // 发送认证 cookie
+          }
         );
         
         if (response.ok) {
@@ -287,3 +307,5 @@ export { formatLocation, getCountryFlag };
 export function clearLocationCache() {
   globalLocationCache.clear();
 }
+
+
