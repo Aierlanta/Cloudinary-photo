@@ -397,10 +397,21 @@ export async function GET(request: NextRequest) {
       // 有 file_id 则继续走下方常规流程
     }
 
+    // 走到这里时，后续逻辑都依赖 file_id。
+    // 若请求只有 file_path（无 file_id），应当已在上方快速路径内返回（200 或 410）。
+    // 这里加一道硬保护，避免潜在的运行时错误（以及避免把 null 作为 Map key/函数参数继续传递）。
+    if (!fileId) {
+      return NextResponse.json(
+        { error: 'Missing file_id parameter' },
+        { status: 400 }
+      );
+    }
+    const fileIdStr = fileId;
+
     // 优先：file_id 命中缓存的 token，直接试用
-    const cachedToken = fileIdToToken.get(fileId);
+    const cachedToken = fileIdToToken.get(fileIdStr);
     if (!botId && cachedToken) {
-      const result = await fetchTelegramFilePath(cachedToken, fileId);
+      const result = await fetchTelegramFilePath(cachedToken, fileIdStr);
       if (result.success && result.filePath) {
         const downloadUrl = `https://api.telegram.org/file/bot${cachedToken}/${result.filePath}`;
         try {
@@ -419,7 +430,7 @@ export async function GET(request: NextRequest) {
 
             return new NextResponse(imageBuffer, {
               status: 200,
-              headers: buildImageHeaders(contentType, result.filePath, fileId),
+              headers: buildImageHeaders(contentType, result.filePath, fileIdStr),
             });
           }
         } catch {
@@ -427,7 +438,7 @@ export async function GET(request: NextRequest) {
         }
       } else {
         // 获取 filePath 失败，缓存失效
-        fileIdToToken.delete(fileId);
+        fileIdToToken.delete(fileIdStr);
         console.warn(`[Telegram Image Proxy] file_id 缓存 token 失效 (${result.error})，删除缓存并回退流程`);
       }
     }
@@ -436,7 +447,7 @@ export async function GET(request: NextRequest) {
     if (botId) {
       const token = await resolveTokenByBotId(botId);
       if (token) {
-        const result = await fetchTelegramFilePath(token, fileId);
+        const result = await fetchTelegramFilePath(token, fileIdStr);
         if (result.success && result.filePath) {
           try {
             // 2) 下载文件
@@ -455,10 +466,10 @@ export async function GET(request: NextRequest) {
               }
 
               // 写入缓存，后续相同 file_id 直达
-              cacheFileIdToken(fileId, token);
+              cacheFileIdToken(fileIdStr, token);
               return new NextResponse(imageBuffer, {
                 status: 200,
-                headers: buildImageHeaders(contentType, result.filePath, fileId),
+                headers: buildImageHeaders(contentType, result.filePath, fileIdStr),
               });
             }
           } catch (e) {
@@ -481,7 +492,7 @@ export async function GET(request: NextRequest) {
       if (!token) break;
 
       // 1. 获取文件路径 (带重试，轮询模式下仅尝试1次以避免超时)
-      const result = await fetchTelegramFilePath(token, fileId, 1);
+      const result = await fetchTelegramFilePath(token, fileIdStr, 1);
 
       if (!result.success) {
         lastErrorStatus = result.status;
@@ -519,11 +530,11 @@ export async function GET(request: NextRequest) {
         }
 
          // 写入缓存映射，便于后续直达
-         cacheFileIdToken(fileId, token);
+         cacheFileIdToken(fileIdStr, token);
 
         return new NextResponse(imageBuffer, {
           status: 200,
-          headers: buildImageHeaders(contentType, filePath, fileId),
+          headers: buildImageHeaders(contentType, filePath, fileIdStr),
         });
       } catch (err) {
         console.warn('[Telegram Image Proxy] 使用当前 token 下载失败，尝试下一个', err);
