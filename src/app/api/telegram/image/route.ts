@@ -44,6 +44,54 @@ const botIdToToken = new Map<string, string>();
 const fileIdToToken = new Map<string, string>();
 const MAX_CACHE_SIZE = 1000;
 
+/**
+ * 从 file_path 或 Content-Type 推断文件扩展名
+ */
+function getFileExtension(filePath?: string | null, contentType?: string): string {
+  // 优先从 file_path 提取扩展名
+  if (filePath) {
+    const match = filePath.match(/\.([a-zA-Z0-9]+)$/);
+    if (match) return match[1].toLowerCase();
+  }
+  // 从 Content-Type 推断
+  if (contentType) {
+    const mimeToExt: Record<string, string> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'image/svg+xml': 'svg',
+      'image/bmp': 'bmp',
+    };
+    return mimeToExt[contentType] || 'png';
+  }
+  return 'png';
+}
+
+/**
+ * 构建图片响应头，包含正确的 Content-Disposition
+ */
+function buildImageHeaders(contentType: string, filePath?: string | null, fileId?: string | null): HeadersInit {
+  const ext = getFileExtension(filePath, contentType);
+  // 文件名：优先从 file_path 提取，否则使用 file_id 的前 16 位
+  let filename = 'image';
+  if (filePath) {
+    const pathParts = filePath.split('/');
+    const lastPart = pathParts[pathParts.length - 1];
+    // 移除扩展名后的部分作为基础名
+    filename = lastPart.replace(/\.[^.]+$/, '') || 'image';
+  } else if (fileId) {
+    filename = fileId.substring(0, 16);
+  }
+  
+  return {
+    'Content-Type': contentType,
+    'Content-Disposition': `inline; filename="${filename}.${ext}"`,
+    'Cache-Control': 'public, max-age=31536000, immutable',
+    'X-Content-Type-Options': 'nosniff',
+  };
+}
+
 function cacheFileIdToken(fileId: string, token: string) {
   if (fileIdToToken.size >= MAX_CACHE_SIZE) {
     // 删除最早插入的一个 (Map 按插入顺序迭代)
@@ -185,6 +233,7 @@ async function fetchTelegramFilePath(token: string, fileId: string, maxRetries =
 /**
  * GET /api/telegram/image?file_id=xxx
  * 通过 file_id 获取 Telegram 图片
+ * 也支持只传 file_path（用于兼容没有存储 file_id 的旧图片）
  */
 export async function GET(request: NextRequest) {
   try {
@@ -193,9 +242,10 @@ export async function GET(request: NextRequest) {
     const botId = searchParams.get('bot_id'); // 可选：用于精确选择 token
     const filePathParam = searchParams.get('file_path'); // 可选：直接传入 file_path 以跳过 getFile
     
-    if (!fileId) {
+    // 至少需要 file_id 或 file_path 其中一个
+    if (!fileId && !filePathParam) {
       return NextResponse.json(
-        { error: 'Missing file_id parameter' },
+        { error: 'Missing file_id or file_path parameter' },
         { status: 400 }
       );
     }
@@ -209,6 +259,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 快速路径：如果提供了 file_path，则可直接尝试下载，减少对 getFile 的依赖
+    // 这也支持只有 file_path 没有 file_id 的情况（兼容旧数据）
     if (filePathParam) {
       // 优先根据 bot_id 解析 token，否则走轮询
       const candidateTokens: string[] = [];
@@ -236,23 +287,34 @@ export async function GET(request: NextRequest) {
                contentType = 'application/octet-stream';
             }
 
-            // 写入缓存映射，后续同一 file_id 直达该 token
-            cacheFileIdToken(fileId, token);
+            // 写入缓存映射，后续同一 file_id 直达该 token（仅当有 file_id 时）
+            if (fileId) {
+              cacheFileIdToken(fileId, token);
+            }
             return new NextResponse(imageBuffer, {
               status: 200,
-              headers: {
-                'Content-Type': contentType,
-                // 前端可缓存，Next 侧已禁用增量缓存
-                'Cache-Control': 'public, max-age=31536000, immutable',
-                'X-Content-Type-Options': 'nosniff' // 防止 MIME Sniffing
-              }
+              headers: buildImageHeaders(contentType, filePathParam, fileId),
             });
           }
         } catch {
           // 忽略，尝试下一个 token
         }
       }
-      // 快速路径失败则继续走下方常规流程
+      // 快速路径失败
+      // 如果只有 file_path 没有 file_id，无法继续（file_path 已过期）
+      if (!fileId) {
+        // 使用 410 Gone 表示资源曾经存在但现在已过期/不可用
+        // 这与普通的 404 Not Found 区分开，便于前端识别
+        return NextResponse.json(
+          { 
+            error: 'FILE_PATH_EXPIRED',
+            message: 'Telegram file path has expired and no file_id is available for refresh',
+            hint: 'This image was uploaded without storing file_id. Consider re-uploading or running a migration script.'
+          },
+          { status: 410 }  // 410 Gone - 资源曾经存在但现在已不可用
+        );
+      }
+      // 有 file_id 则继续走下方常规流程
     }
 
     // 优先：file_id 命中缓存的 token，直接试用
@@ -277,11 +339,7 @@ export async function GET(request: NextRequest) {
 
             return new NextResponse(imageBuffer, {
               status: 200,
-              headers: {
-                'Content-Type': contentType,
-                'Cache-Control': 'public, max-age=31536000, immutable',
-                'X-Content-Type-Options': 'nosniff'
-              }
+              headers: buildImageHeaders(contentType, result.filePath, fileId),
             });
           }
         } catch {
@@ -320,11 +378,7 @@ export async function GET(request: NextRequest) {
               cacheFileIdToken(fileId, token);
               return new NextResponse(imageBuffer, {
                 status: 200,
-                headers: {
-                  'Content-Type': contentType,
-                  'Cache-Control': 'public, max-age=31536000, immutable',
-                  'X-Content-Type-Options': 'nosniff',
-                }
+                headers: buildImageHeaders(contentType, result.filePath, fileId),
               });
             }
           } catch (e) {
@@ -389,11 +443,7 @@ export async function GET(request: NextRequest) {
 
         return new NextResponse(imageBuffer, {
           status: 200,
-          headers: {
-            'Content-Type': contentType,
-            'Cache-Control': 'public, max-age=31536000, immutable', // 缓存 1 年
-            'X-Content-Type-Options': 'nosniff'
-          }
+          headers: buildImageHeaders(contentType, filePath, fileId),
         });
       } catch (err) {
         console.warn('[Telegram Image Proxy] 使用当前 token 下载失败，尝试下一个', err);

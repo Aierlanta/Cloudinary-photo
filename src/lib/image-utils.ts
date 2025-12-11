@@ -203,18 +203,56 @@ export function generateThumbnailUrlForImage(
     return buildTelegramImageApiByFileId(image.telegramFileId, botId);
   }
 
-  // 3. 最后尝试使用直连路径（如果有）- 通常只有在极少数且未过期的情况下才有用
-  if (image.telegramThumbnailPath && image.telegramBotToken) {
-     return `https://api.telegram.org/file/bot${image.telegramBotToken}/${image.telegramThumbnailPath}`;
+  // 3. 如果有缩略图路径，使用代理 API（传入 file_path）
+  // 注意：file_path 可能过期，但代理 API 会优雅处理
+  if (image.telegramThumbnailPath) {
+    return buildTelegramImageApiByPath(image.telegramThumbnailPath);
   }
 
   // 否则使用通用逻辑
   return generateThumbnailUrl(image.url, size);
 }
 
+/**
+ * 获取图片的有效访问 URL (用于打开/下载/复制等操作)
+ * 对于 Telegram 直连图片，使用 file_id 通过代理 API 获取，避免 file_path 过期问题
+ * @param image 图片对象 (可能包含 Telegram 信息)
+ * @returns 有效的图片访问 URL
+ */
+export function getEffectiveImageUrl(image: ImageWithTelegram): string {
+  const botId = resolveTelegramBotId(image);
+
+  // 1. 优先使用 telegramFileId 通过代理 API（原图）
+  if (image.telegramFileId) {
+    return buildTelegramImageApiByFileId(image.telegramFileId, botId);
+  }
+
+  // 2. 降级使用 telegramThumbnailFileId（缩略图，但至少能显示）
+  if (image.telegramThumbnailFileId) {
+    return buildTelegramImageApiByFileId(image.telegramThumbnailFileId, botId);
+  }
+
+  // 3. 如果 URL 是 Telegram 直连 URL，尝试提取 file_path 并使用代理 API
+  if (isTelegramImage(image.url)) {
+    const filePath = extractTelegramFilePathFromUrl(image.url);
+    if (filePath) {
+      return buildTelegramImageApiByPath(filePath);
+    }
+  }
+
+  // 非 Telegram 直连图片，直接返回原始 URL
+  return image.url;
+}
+
 export function generateThumbnailUrl(originalUrl: string, size: number = 300): string {
-  // 对于 Telegram 图片，直接返回原始 URL（按你的要求完全直连）
+  // 对于 Telegram 图片，尝试提取 file_path 并使用代理 API
+  // 不再直接返回可能过期的直连 URL
   if (isTelegramImage(originalUrl)) {
+    const filePath = extractTelegramFilePathFromUrl(originalUrl);
+    if (filePath) {
+      return buildTelegramImageApiByPath(filePath);
+    }
+    // 如果已经是代理 API URL，直接返回
     return originalUrl;
   }
 

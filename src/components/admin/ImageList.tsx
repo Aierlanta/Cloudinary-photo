@@ -6,6 +6,7 @@ import {
   generateThumbnailUrlForImage,
   getImageUrls,
   isTgStateImage,
+  getEffectiveImageUrl,
 } from "@/lib/image-utils";
 import SmartImage from "@/components/ui/SmartImage";
 import { useToast } from "@/hooks/useToast";
@@ -219,10 +220,36 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
     }
   };
 
-  const downloadImage = async (url: string, filename: string) => {
+  const downloadImage = async (url: string, fallbackFilename: string) => {
      try {
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       const blob = await response.blob();
+      
+      // 尝试从 Content-Disposition 头获取文件名
+      let filename = fallbackFilename;
+      const contentDisposition = response.headers.get('Content-Disposition');
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+      // 如果文件名没有扩展名，尝试从 Content-Type 推断
+      if (!filename.includes('.')) {
+        const contentType = response.headers.get('Content-Type');
+        const extMap: Record<string, string> = {
+          'image/png': '.png',
+          'image/jpeg': '.jpg',
+          'image/gif': '.gif',
+          'image/webp': '.webp',
+        };
+        const ext = contentType ? extMap[contentType] || '.png' : '.png';
+        filename = `${filename}${ext}`;
+      }
+      
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = downloadUrl;
@@ -254,7 +281,7 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
                 isLight ? "bg-gray-100 border border-gray-300" : "bg-gray-800 border border-gray-600"
               )}>
                 <SmartImage
-                  src={isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrl(image.url, 400)}
+                  src={isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrlForImage(image, 400)}
                   alt={image.title || image.publicId}
                   fill
                   className="object-contain"
@@ -322,7 +349,10 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => window.open(image.url, "_blank")}
+                    onClick={() => {
+                      const effectiveUrl = getEffectiveImageUrl(image);
+                      window.open(effectiveUrl, "_blank");
+                    }}
                     className={cn(
                       "px-4 py-2 border transition-colors",
                       isLight
@@ -333,7 +363,10 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
                     {t.adminImages.open}
                   </button>
                   <button
-                    onClick={() => downloadImage(image.url, image.publicId)}
+                    onClick={() => {
+                      const effectiveUrl = getEffectiveImageUrl(image);
+                      downloadImage(effectiveUrl, image.publicId);
+                    }}
                     className={cn(
                       "px-4 py-2 border transition-colors",
                       isLight
@@ -344,7 +377,14 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
                     {t.adminImages.download}
                   </button>
                   <button
-                    onClick={() => copyToClipboard(image.url)}
+                    onClick={() => {
+                      let effectiveUrl = getEffectiveImageUrl(image);
+                      // 如果是相对路径，转换为完整 URL
+                      if (effectiveUrl.startsWith('/')) {
+                        effectiveUrl = `${window.location.origin}${effectiveUrl}`;
+                      }
+                      copyToClipboard(effectiveUrl);
+                    }}
                     className={cn(
                       "px-4 py-2 border transition-colors col-span-2",
                       isLight
