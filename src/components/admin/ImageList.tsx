@@ -350,7 +350,8 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
           'image/gif': '.gif',
           'image/webp': '.webp',
         };
-        const ext = contentType ? extMap[contentType] || '.png' : '.png';
+        const mime = contentType ? contentType.split(';')[0].trim().toLowerCase() : null;
+        const ext = mime ? extMap[mime] || '.png' : '.png';
         filename = `${filename}${ext}`;
       }
       
