@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { PageErrorBoundary } from '@/components/ErrorBoundary'
 import { cookies, headers } from 'next/headers'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -41,6 +42,7 @@ export default function RootLayout({
         <PageErrorBoundary>
           {children}
         </PageErrorBoundary>
+        <SpeedInsights />
       </body>
     </html>
   )
