@@ -220,6 +220,112 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
     }
   };
 
+  const parseContentDispositionFilename = (contentDisposition: string): string | null => {
+    // 优先解析 RFC 5987 filename*=UTF-8''...（百分号编码，能正确表达特殊字符）
+    // 回退解析 filename="..."（支持 \" 与 \\ 转义）
+
+    const splitParams = (value: string): string[] => {
+      const parts: string[] = [];
+      let current = "";
+      let inQuotes = false;
+      let escaped = false;
+
+      for (let i = 0; i < value.length; i++) {
+        const ch = value[i];
+
+        if (escaped) {
+          current += ch;
+          escaped = false;
+          continue;
+        }
+
+        if (inQuotes && ch === "\\") {
+          current += ch;
+          escaped = true;
+          continue;
+        }
+
+        if (ch === '"') {
+          current += ch;
+          inQuotes = !inQuotes;
+          continue;
+        }
+
+        if (ch === ";" && !inQuotes) {
+          const trimmed = current.trim();
+          if (trimmed) parts.push(trimmed);
+          current = "";
+          continue;
+        }
+
+        current += ch;
+      }
+
+      const trimmed = current.trim();
+      if (trimmed) parts.push(trimmed);
+      return parts;
+    };
+
+    const unquote = (value: string): string => {
+      const v = value.trim();
+      if (v.length >= 2 && v.startsWith('"') && v.endsWith('"')) {
+        return v.slice(1, -1);
+      }
+      return v;
+    };
+
+    const unescapeQuotedString = (value: string): string => {
+      // 仅处理常见的 quoted-string 转义：\" 和 \\
+      return value.replace(/\\(["\\])/g, "$1");
+    };
+
+    const sanitizeFilename = (value: string): string => {
+      // 防止奇怪路径/控制字符（即使 header 理论上不会出现，也做兜底）
+      return value
+        .replace(/[\u0000-\u001F\u007F]/g, "")
+        .replace(/[\\/]/g, "_")
+        .trim();
+    };
+
+    const params = splitParams(contentDisposition);
+    const kv: Record<string, string> = {};
+
+    for (let i = 1; i < params.length; i++) {
+      const part = params[i];
+      const eq = part.indexOf("=");
+      if (eq <= 0) continue;
+      const key = part.slice(0, eq).trim().toLowerCase();
+      const value = part.slice(eq + 1).trim();
+      if (!key) continue;
+      kv[key] = value;
+    }
+
+    const filenameStar = kv["filename*"];
+    if (filenameStar) {
+      const raw = unquote(filenameStar);
+      // RFC 5987: charset'lang'%xx%yy
+      const match = raw.match(/^([^']*)'[^']*'(.*)$/);
+      const encodedPart = match ? match[2] : raw;
+      try {
+        const decoded = decodeURIComponent(encodedPart.replace(/\+/g, "%20"));
+        const safe = sanitizeFilename(decoded);
+        if (safe) return safe;
+      } catch {
+        // ignore decode errors and fallback
+      }
+    }
+
+    const filename = kv["filename"];
+    if (filename) {
+      const raw = unquote(filename);
+      const unescaped = unescapeQuotedString(raw);
+      const safe = sanitizeFilename(unescaped);
+      if (safe) return safe;
+    }
+
+    return null;
+  };
+
   const downloadImage = async (url: string, fallbackFilename: string) => {
      try {
       const response = await fetch(url);
@@ -232,10 +338,8 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
       let filename = fallbackFilename;
       const contentDisposition = response.headers.get('Content-Disposition');
       if (contentDisposition) {
-        const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
-        if (match && match[1]) {
-          filename = match[1];
-        }
+        const parsed = parseContentDispositionFilename(contentDisposition);
+        if (parsed) filename = parsed;
       }
       // 如果文件名没有扩展名，尝试从 Content-Type 推断
       if (!filename.includes('.')) {
