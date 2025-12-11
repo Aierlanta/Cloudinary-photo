@@ -55,17 +55,62 @@ function getFileExtension(filePath?: string | null, contentType?: string): strin
   }
   // 从 Content-Type 推断
   if (contentType) {
+    const mime = contentType.split(';')[0].trim().toLowerCase();
     const mimeToExt: Record<string, string> = {
       'image/png': 'png',
       'image/jpeg': 'jpg',
       'image/gif': 'gif',
       'image/webp': 'webp',
+      'image/avif': 'avif',
       'image/svg+xml': 'svg',
       'image/bmp': 'bmp',
+      'image/x-icon': 'ico',
+      // 安全兜底：无法识别类型/被强制为二进制时，不要误标为 png
+      'application/octet-stream': 'bin',
     };
-    return mimeToExt[contentType] || 'png';
+
+    const mapped = mimeToExt[mime];
+    if (mapped) return mapped;
+
+    // 对于未知的 image/*，尽量从 subtype 推断扩展名（例如 image/heic -> heic）
+    if (mime.startsWith('image/')) {
+      const subtype = mime.slice('image/'.length);
+      // 常见归一化
+      if (subtype === 'jpeg') return 'jpg';
+      if (subtype === 'svg+xml') return 'svg';
+      // 仅允许安全字符，避免生成奇怪扩展名
+      if (/^[a-z0-9.+-]+$/i.test(subtype)) return subtype.toLowerCase();
+    }
+
+    // 非图片/未知类型：回退为通用二进制扩展名
+    return 'bin';
   }
-  return 'png';
+  // 没有任何线索时，回退为通用二进制扩展名
+  return 'bin';
+}
+
+function normalizeImageContentType(contentType: string, ext: string): string {
+  // 已经是图片 MIME，直接使用
+  if (contentType.startsWith('image/')) return contentType;
+
+  // Telegram 很多情况下返回 octet-stream，但其实是图片；这里根据扩展名矫正
+  const extToMime: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    avif: 'image/avif',
+    svg: 'image/svg+xml',
+    bmp: 'image/bmp',
+  };
+
+  if (contentType === 'application/octet-stream') {
+    return extToMime[ext] || contentType;
+  }
+
+  // 安全兜底：非 image/* 也非 octet-stream，一律按二进制返回，避免浏览器渲染潜在 HTML/JS
+  return 'application/octet-stream';
 }
 
 /**
@@ -73,6 +118,7 @@ function getFileExtension(filePath?: string | null, contentType?: string): strin
  */
 function buildImageHeaders(contentType: string, filePath?: string | null, fileId?: string | null): HeadersInit {
   const ext = getFileExtension(filePath, contentType);
+  const normalizedContentType = normalizeImageContentType(contentType, ext);
   // 文件名：优先从 file_path 提取，否则使用 file_id 的前 16 位
   let filename = 'image';
   if (filePath) {
@@ -85,7 +131,7 @@ function buildImageHeaders(contentType: string, filePath?: string | null, fileId
   }
   
   return {
-    'Content-Type': contentType,
+    'Content-Type': normalizedContentType,
     'Content-Disposition': `inline; filename="${filename}.${ext}"`,
     'Cache-Control': 'public, max-age=31536000, immutable',
     'X-Content-Type-Options': 'nosniff',
