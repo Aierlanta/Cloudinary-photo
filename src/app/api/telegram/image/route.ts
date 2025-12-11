@@ -103,6 +103,7 @@ function normalizeImageContentType(contentType: string, ext: string): string {
     avif: 'image/avif',
     svg: 'image/svg+xml',
     bmp: 'image/bmp',
+    ico: 'image/x-icon',
   };
 
   if (contentType === 'application/octet-stream') {
@@ -111,6 +112,38 @@ function normalizeImageContentType(contentType: string, ext: string): string {
 
   // 安全兜底：非 image/* 也非 octet-stream，一律按二进制返回，避免浏览器渲染潜在 HTML/JS
   return 'application/octet-stream';
+}
+
+function stripHttpHeaderControlChars(value: string): string {
+  // 去掉控制字符，防止响应头注入（CR/LF）与非法 header 值
+  // 0x00-0x1F + 0x7F
+  return value.replace(/[\u0000-\u001F\u007F]/g, '');
+}
+
+function escapeQuotedString(value: string): string {
+  // quoted-string 需要转义 \ 和 "
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function encodeRFC5987ValueChars(value: string): string {
+  // RFC 5987: 使用 percent-encoding，encodeURIComponent 作为基础即可
+  // 额外把 RFC 要求的字符也编码掉
+  return encodeURIComponent(value).replace(/['()*]/g, (c) => {
+    return `%${c.charCodeAt(0).toString(16).toUpperCase()}`;
+  });
+}
+
+function buildInlineContentDisposition(filenameWithExt: string): string {
+  const cleaned = stripHttpHeaderControlChars(filenameWithExt);
+  const safe = cleaned.length > 0 ? cleaned : 'image';
+
+  // filename= 走 ASCII 回退，避免旧 UA 对非 ASCII 解析问题
+  const asciiFallback = safe.replace(/[^\x20-\x7E]/g, '_');
+  const quoted = escapeQuotedString(asciiFallback);
+
+  // filename* 提供 UTF-8 真实文件名（RFC 6266/5987）
+  const encoded = encodeRFC5987ValueChars(safe);
+  return `inline; filename="${quoted}"; filename*=UTF-8''${encoded}`;
 }
 
 /**
@@ -130,9 +163,10 @@ function buildImageHeaders(contentType: string, filePath?: string | null, fileId
     filename = fileId.substring(0, 16);
   }
   
+  const filenameWithExt = `${filename}.${ext}`;
   return {
     'Content-Type': normalizedContentType,
-    'Content-Disposition': `inline; filename="${filename}.${ext}"`,
+    'Content-Disposition': buildInlineContentDisposition(filenameWithExt),
     'Cache-Control': 'public, max-age=31536000, immutable',
     'X-Content-Type-Options': 'nosniff',
   };
