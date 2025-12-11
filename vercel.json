@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/backup",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/log-cleanup",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/cron/backup/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}
+
