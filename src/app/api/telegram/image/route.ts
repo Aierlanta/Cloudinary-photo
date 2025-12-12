@@ -89,6 +89,106 @@ function getFileExtension(filePath?: string | null, contentType?: string): strin
   return 'bin';
 }
 
+/**
+ * 当上游返回 application/octet-stream 时，根据文件头（magic bytes）猜测真实图片类型。
+ * 仅识别常见光栅格式；无法识别则返回 null，保持 octet-stream（避免潜在 XSS 风险）。
+ */
+function sniffImageContentType(imageBuffer: ArrayBuffer): string | null {
+  const bytes = new Uint8Array(imageBuffer);
+
+  // JPEG: FF D8 FF
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg';
+  }
+
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+
+  // GIF: "GIF87a" / "GIF89a"
+  if (
+    bytes.length >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38 &&
+    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+    bytes[5] === 0x61
+  ) {
+    return 'image/gif';
+  }
+
+  // WebP: "RIFF" .... "WEBP"
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+
+  // AVIF: ISO BMFF, "ftyp" + brand "avif"/"avis"
+  if (
+    bytes.length >= 12 &&
+    bytes[4] === 0x66 &&
+    bytes[5] === 0x74 &&
+    bytes[6] === 0x79 &&
+    bytes[7] === 0x70
+  ) {
+    const b0 = bytes[8];
+    const b1 = bytes[9];
+    const b2 = bytes[10];
+    const b3 = bytes[11];
+    // 'avif' or 'avis'
+    if (
+      b0 === 0x61 &&
+      b1 === 0x76 &&
+      b2 === 0x69 &&
+      (b3 === 0x66 || b3 === 0x73)
+    ) {
+      return 'image/avif';
+    }
+  }
+
+  // BMP: "BM"
+  if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) {
+    return 'image/bmp';
+  }
+
+  // ICO: 00 00 01 00
+  if (bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) {
+    return 'image/x-icon';
+  }
+
+  // TIFF: "II*\0" or "MM\0*"
+  if (
+    bytes.length >= 4 &&
+    ((bytes[0] === 0x49 && bytes[1] === 0x49 && bytes[2] === 0x2a && bytes[3] === 0x00) ||
+      (bytes[0] === 0x4d && bytes[1] === 0x4d && bytes[2] === 0x00 && bytes[3] === 0x2a))
+  ) {
+    return 'image/tiff';
+  }
+
+  return null;
+}
+
 function normalizeImageContentType(contentType: string, ext: string): string {
   // 已经是图片 MIME，直接使用
   if (contentType.startsWith('image/')) return contentType;
@@ -366,6 +466,11 @@ export async function GET(request: NextRequest) {
             if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
                contentType = 'application/octet-stream';
             }
+            // Telegram 有时会返回 octet-stream，但实际上是图片；这里按 magic-bytes 纠正类型
+            if (contentType === 'application/octet-stream') {
+              const sniffed = sniffImageContentType(imageBuffer);
+              if (sniffed) contentType = sniffed;
+            }
 
             // 写入缓存映射，后续同一 file_id 直达该 token（仅当有 file_id 时）
             if (fileId) {
@@ -427,6 +532,10 @@ export async function GET(request: NextRequest) {
             if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
                contentType = 'application/octet-stream';
             }
+            if (contentType === 'application/octet-stream') {
+              const sniffed = sniffImageContentType(imageBuffer);
+              if (sniffed) contentType = sniffed;
+            }
 
             return new NextResponse(imageBuffer, {
               status: 200,
@@ -463,6 +572,10 @@ export async function GET(request: NextRequest) {
               // 安全检查
               if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
                  contentType = 'application/octet-stream';
+              }
+              if (contentType === 'application/octet-stream') {
+                const sniffed = sniffImageContentType(imageBuffer);
+                if (sniffed) contentType = sniffed;
               }
 
               // 写入缓存，后续相同 file_id 直达
@@ -527,6 +640,10 @@ export async function GET(request: NextRequest) {
         // 安全检查
         if (!contentType.startsWith('image/') && contentType !== 'application/octet-stream') {
             contentType = 'application/octet-stream';
+        }
+        if (contentType === 'application/octet-stream') {
+          const sniffed = sniffImageContentType(imageBuffer);
+          if (sniffed) contentType = sniffed;
         }
 
          // 写入缓存映射，便于后续直达

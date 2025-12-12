@@ -13,6 +13,7 @@ import {
   type Theme,
 } from '@/lib/adminTheme'
 import AdminLayoutV3 from './AdminLayoutV3'
+import { useRecordAdminHistory } from '@/hooks/useAdminHistory'
 
 type AdminLayoutClientProps = {
   children: ReactNode
@@ -43,6 +44,9 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
   const [panelOpacity, setPanelOpacity] = useState(0.9)
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const [isManualTheme, setIsManualTheme] = useState(initialIsManual)
+
+  // 记录访问历史
+  useRecordAdminHistory()
 
   useEffect(() => {
     const preference = resolveClientTheme()

@@ -470,7 +470,29 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
                   <button
                     onClick={() => {
                       const effectiveUrl = getEffectiveImageUrl(image);
-                      downloadImage(effectiveUrl, image.publicId);
+                      // 跨域资源（tgstate / cloudinary 等）在浏览器侧 fetch 可能失败（CORS/鉴权/未暴露响应头），
+                      // 统一走同源 admin 代理下载，避免“下载失败，请重试”。
+                      const shouldProxyDownload = (() => {
+                        try {
+                          const abs = effectiveUrl.startsWith('/')
+                            ? new URL(effectiveUrl, window.location.origin)
+                            : new URL(effectiveUrl);
+                          return abs.origin !== window.location.origin;
+                        } catch {
+                          // URL 解析失败时，保守回退：tgState 仍走代理
+                          return (
+                            image.primaryProvider === 'tgstate' ||
+                            image.backupProvider === 'tgstate' ||
+                            isTgStateImage(image.url)
+                          );
+                        }
+                      })();
+
+                      const url = shouldProxyDownload
+                        ? `/api/admin/images/${encodeURIComponent(image.id)}/file?disposition=attachment`
+                        : effectiveUrl;
+
+                      downloadImage(url, image.publicId);
                     }}
                     className={cn(
                       "px-4 py-2 border transition-colors",
