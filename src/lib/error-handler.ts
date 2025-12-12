@@ -80,6 +80,16 @@ export function withErrorHandler<T extends any[]>(
 /**
  * 处理错误并返回标准化响应
  */
+function sanitizeErrorDetails(details: unknown): unknown {
+  if (process.env.NODE_ENV === 'development') return details
+  if (!details || typeof details !== 'object') return details
+  if (Array.isArray(details)) return details.map((d) => sanitizeErrorDetails(d))
+
+  const record = details as Record<string, unknown>
+  const { stack: _stack, originalError: _originalError, ...rest } = record
+  return rest
+}
+
 export function handleError(
   error: unknown,
   context: ErrorContext = {},
@@ -121,7 +131,7 @@ export function handleError(
     error: {
       type: appError.type,
       message: appError.message,
-      details: appError.details,
+      details: sanitizeErrorDetails(appError.details),
       timestamp: new Date(),
       requestId: context.requestId
     },

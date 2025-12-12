@@ -410,7 +410,14 @@ async function assertSafeOutboundUrl(url: URL, allowedHostPatterns: string[]): P
   }
 
   // 5) DNS 解析：hostname -> IP 列表
-  const resolved = await lookup(host, { all: true, verbatim: true });
+  let resolved: Array<{ address: string; family: number }>;
+  try {
+    resolved = (await lookup(host, { all: true, verbatim: true })) as Array<{ address: string; family: number }>;
+  } catch (e) {
+    const err = e as any;
+    const code = typeof err?.code === 'string' ? err.code : undefined;
+    throw new AppError(ErrorType.EXTERNAL_SERVICE_ERROR, 'DNS 解析失败', 502, { host, code });
+  }
   if (!resolved || resolved.length === 0) {
     throw new AppError(ErrorType.VALIDATION_ERROR, '无法解析目标主机', 400, { host });
   }
@@ -436,16 +443,32 @@ async function fetchWithRedirectGuard(
   for (let i = 0; i <= maxRedirects; i++) {
     await assertSafeOutboundUrl(current, allowedHostPatterns);
 
-    const resp = await fetch(
-      current.toString(),
-      buildFetchInitFor(
+    let resp: Response;
+    try {
+      resp = await fetch(
         current.toString(),
-        { ...init, redirect: 'manual' } as RequestInit
-      )
-    );
+        buildFetchInitFor(current.toString(), { ...init, redirect: 'manual' } as RequestInit)
+      );
+    } catch (e) {
+      const err = e as any;
+      const name = typeof err?.name === 'string' ? err.name : undefined;
+      const code = typeof err?.code === 'string' ? err.code : undefined;
+      const isTimeout = name === 'AbortError';
+      throw new AppError(
+        ErrorType.EXTERNAL_SERVICE_ERROR,
+        isTimeout ? '请求上游超时' : '请求上游失败',
+        isTimeout ? 504 : 502,
+        { url: current.toString(), name, code }
+      );
+    }
 
     // Handle redirects manually with validation
     if ([301, 302, 303, 307, 308].includes(resp.status)) {
+      try {
+        await resp.body?.cancel();
+      } catch {
+        // ignore
+      }
       const location = resp.headers.get('location');
       if (!location) {
         throw new AppError(ErrorType.EXTERNAL_SERVICE_ERROR, '上游重定向缺少 Location', 502, { status: resp.status });
@@ -522,7 +545,7 @@ async function buildLimitedRewindStream(
       transferred += value.length;
       if (transferred > maxBytes) {
         try { await reader.cancel(); } catch {}
-        controller.error(new Error('FILE_TOO_LARGE'));
+        controller.error(new AppError(ErrorType.FILE_TOO_LARGE, '文件过大，已拒绝下载', 413));
         return;
       }
       controller.enqueue(value);
@@ -642,5 +665,4 @@ export const GET = withErrorHandler(
     enableAccessLog: true,
   })(withAdminAuth(getAdminImageFile))
 );
-
 
