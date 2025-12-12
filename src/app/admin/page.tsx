@@ -17,6 +17,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import { useRecentAdminRoutes } from "@/hooks/useAdminHistory";
 
 interface Stats {
   totalImages: number;
@@ -41,6 +42,18 @@ export default function AdminDashboard() {
   const isLight = useTheme();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  const { routes, isLoaded, routeConfig } = useRecentAdminRoutes();
+
+  const getTrans = (key: string) => {
+    const parts = key.split('.');
+    let current: any = t;
+    for (const part of parts) {
+      if (current === undefined || current === null) return key;
+      current = current[part];
+    }
+    return current || key;
+  };
 
   useEffect(() => {
     const loadStats = async () => {
@@ -274,125 +287,75 @@ export default function AdminDashboard() {
             {t.adminDashboard.quickActions}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-lg">
-            <Link href="/admin/images" className="block">
-              <div className={cn(
-                "flex items-center gap-3 p-3 border transition-colors rounded-lg",
-                isLight
-                  ? "bg-white border-gray-300 hover:bg-gray-50"
-                  : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-              )}>
-                <div className={cn(
-                  "w-10 h-10 flex items-center justify-center rounded-lg",
-                  isLight ? "bg-blue-500" : "bg-blue-600"
-                )}>
-                  <Plus className="w-5 h-5 text-white rounded-lg" />
-                </div>
-                <div>
-                  <p className={cn(
-                    "font-medium rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminDashboard.uploadImage}
-                  </p>
-                  <p className={cn(
-                    "text-xs rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminDashboard.uploadImageDesc}
-                  </p>
-                </div>
-              </div>
-            </Link>
+            {!isLoaded ? (
+              Array(4).fill(0).map((_, i) => (
+                <div key={i} className={cn(
+                  "h-16 border rounded-lg animate-pulse",
+                  isLight ? "bg-gray-100 border-gray-200" : "bg-gray-700 border-gray-600"
+                )} />
+              ))
+            ) : (
+              routes.map(path => {
+                const config = routeConfig[path];
+                if (!config) return null;
+                const Icon = config.icon;
+                
+                const colorMap: Record<string, { light: string, dark: string }> = {
+                  blue: { light: 'bg-blue-500', dark: 'bg-blue-600' },
+                  green: { light: 'bg-green-500', dark: 'bg-green-600' },
+                  purple: { light: 'bg-purple-500', dark: 'bg-purple-600' },
+                  emerald: { light: 'bg-emerald-500', dark: 'bg-emerald-600' },
+                  indigo: { light: 'bg-indigo-500', dark: 'bg-indigo-600' },
+                  orange: { light: 'bg-orange-500', dark: 'bg-orange-600' },
+                  cyan: { light: 'bg-cyan-500', dark: 'bg-cyan-600' },
+                  red: { light: 'bg-red-500', dark: 'bg-red-600' },
+                  slate: { light: 'bg-slate-500', dark: 'bg-slate-600' },
+                };
+                
+                const colorClasses = colorMap[config.color || 'blue'] || colorMap.blue;
 
-            <Link href="/admin/groups" className="block">
-              <div className={cn(
-                "flex items-center gap-3 p-3 border transition-colors rounded-lg",
-                isLight
-                  ? "bg-white border-gray-300 hover:bg-gray-50"
-                  : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-              )}>
-                <div className={cn(
-                  "w-10 h-10 flex items-center justify-center rounded-lg",
-                  isLight ? "bg-green-500" : "bg-green-600"
-                )}>
-                  <Layers className="w-5 h-5 text-white rounded-lg" />
-                </div>
-                <div>
-                  <p className={cn(
-                    "font-medium rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminDashboard.manageGroups}
-                  </p>
-                  <p className={cn(
-                    "text-xs rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminDashboard.manageGroupsDesc}
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/admin/config" className="block">
-              <div className={cn(
-                "flex items-center gap-3 p-3 border transition-colors rounded-lg",
-                isLight
-                  ? "bg-white border-gray-300 hover:bg-gray-50"
-                  : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-              )}>
-                <div className={cn(
-                  "w-10 h-10 flex items-center justify-center rounded-lg",
-                  isLight ? "bg-purple-500" : "bg-purple-600"
-                )}>
-                  <Settings className="w-5 h-5 text-white rounded-lg" />
-                </div>
-                <div>
-                  <p className={cn(
-                    "font-medium rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminDashboard.apiConfig}
-                  </p>
-                  <p className={cn(
-                    "text-xs rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminDashboard.apiConfigDesc}
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/admin/backup" className="block">
-              <div className={cn(
-                "flex items-center gap-3 p-3 border transition-colors rounded-lg",
-                isLight
-                  ? "bg-white border-gray-300 hover:bg-gray-50"
-                  : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-              )}>
-                <div className={cn(
-                  "w-10 h-10 flex items-center justify-center rounded-lg",
-                  isLight ? "bg-emerald-500" : "bg-emerald-600"
-                )}>
-                  <Database className="w-5 h-5 text-white rounded-lg" />
-                </div>
-                <div>
-                  <p className={cn(
-                    "font-medium rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminDashboard.backupManagement}
-                  </p>
-                  <p className={cn(
-                    "text-xs rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminDashboard.backupManagementDesc}
-                  </p>
-                </div>
-              </div>
-            </Link>
+                return (
+                  <Link key={path} href={path} className="block">
+                    <div className={cn(
+                      "flex items-center gap-3 p-3 border transition-colors rounded-lg",
+                      isLight
+                        ? "bg-white border-gray-300 hover:bg-gray-50"
+                        : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+                    )}>
+                      <div className={cn(
+                        "w-10 h-10 flex items-center justify-center rounded-lg",
+                        isLight ? colorClasses.light : colorClasses.dark
+                      )}>
+                        <Icon className="w-5 h-5 text-white rounded-lg" />
+                      </div>
+                      <div>
+                        <p className={cn(
+                          "font-medium rounded-lg",
+                          isLight ? "text-gray-900" : "text-gray-100"
+                        )}>
+                          {getTrans(config.labelKey)}
+                        </p>
+                        {config.descKey ? (
+                          <p className={cn(
+                            "text-xs rounded-lg",
+                            isLight ? "text-gray-600" : "text-gray-400"
+                          )}>
+                            {getTrans(config.descKey)}
+                          </p>
+                        ) : config.defaultDesc ? (
+                          <p className={cn(
+                            "text-xs rounded-lg",
+                            isLight ? "text-gray-600" : "text-gray-400"
+                          )}>
+                            {config.defaultDesc}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
           </div>
         </div>
 
