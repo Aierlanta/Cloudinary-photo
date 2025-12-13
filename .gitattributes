@@ -1,0 +1,6 @@
+# Vercel 分支特化文件：在把 main merge 到 vercel 时，自动保留 vercel(ours) 版本，避免反复冲突
+package.json merge=keepvercel
+package-lock.json merge=keepvercel
+vercel.json merge=keepvercel
+
+
