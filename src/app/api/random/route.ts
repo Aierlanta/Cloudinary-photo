@@ -371,13 +371,11 @@ async function validateAndParseParams(
 
     // 根据参数类型累积过滤条件
     if (paramConfig.type === 'provider') {
-      if (paramConfig.mappedProviders && paramConfig.mappedProviders.length > 0) {
-        allowedProviders.push(...paramConfig.mappedProviders);
-      }
+      const providers = Array.isArray(paramConfig.mappedProviders) ? paramConfig.mappedProviders : [];
+      if (providers.length > 0) allowedProviders.push(...providers);
     } else {
-      if (paramConfig.mappedGroups && paramConfig.mappedGroups.length > 0) {
-        allowedGroupIds.push(...paramConfig.mappedGroups);
-      }
+      const groups = Array.isArray(paramConfig.mappedGroups) ? paramConfig.mappedGroups : [];
+      if (groups.length > 0) allowedGroupIds.push(...groups);
     }
   }
 
@@ -600,7 +598,7 @@ async function downloadImageWithCandidates(
       } else {
         logger.warn('随机端点图片下载异常', {
           type: 'api_random_download',
-          error: err instanceof Error ? err.message : String(err),
+          error: redactTelegramBotTokenInUrl(err instanceof Error ? err.message : String(err)),
           url: redactTelegramBotTokenInUrl(candidate.url),
           reason: candidate.reason
         });
@@ -634,7 +632,7 @@ async function downloadImageWithCandidates(
     {
       url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl,
       status: lastStatus,
-      error: lastError instanceof Error ? lastError.message : String(lastError ?? '')
+      error: redactTelegramBotTokenInUrl(lastError instanceof Error ? lastError.message : String(lastError ?? ''))
     }
   );
 }

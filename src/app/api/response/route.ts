@@ -215,7 +215,7 @@ async function downloadFromCandidate(
     } catch (err) {
       logger.warn('Cloudinary下载失败，使用URL回退获取', {
         type: 'api_download_fallback',
-        error: err instanceof Error ? err.message : 'unknown',
+        error: err instanceof Error ? redactTelegramBotTokenInUrl(err.message) : 'unknown',
         url: redactTelegramBotTokenInUrl(candidate.url)
       });
     }
@@ -259,7 +259,7 @@ async function downloadImageWithCandidates(
       } else {
         logger.warn('图片下载异常', {
           type: 'api_download',
-          error: err instanceof Error ? err.message : String(err),
+          error: redactTelegramBotTokenInUrl(err instanceof Error ? err.message : String(err)),
           url: redactTelegramBotTokenInUrl(candidate.url),
           reason: candidate.reason
         });
@@ -293,7 +293,7 @@ async function downloadImageWithCandidates(
     {
       url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl,
       status: lastStatus,
-      error: lastError instanceof Error ? lastError.message : String(lastError ?? '')
+      error: redactTelegramBotTokenInUrl(lastError instanceof Error ? lastError.message : String(lastError ?? ''))
     }
   );
 }
@@ -339,7 +339,7 @@ async function prefetchNext(key: string, groupIds: string[], providers: string[]
       logger.warn('预取失败', {
         type: 'api_prefetch',
         key,
-        error: err instanceof Error ? err.message : 'unknown',
+        error: err instanceof Error ? redactTelegramBotTokenInUrl(err.message) : 'unknown',
         status: err instanceof AppError ? err.statusCode : undefined
       });
     } finally {
