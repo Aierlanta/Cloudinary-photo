@@ -3,4 +3,7 @@ package.json merge=keepvercel
 package-lock.json merge=keepvercel
 vercel.json merge=keepvercel
 
+# 脚本文件：避免 bash 脚本被 CRLF 换行破坏
+scripts/*.sh text eol=lf
+
 
