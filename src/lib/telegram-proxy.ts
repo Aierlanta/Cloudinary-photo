@@ -8,6 +8,40 @@ const TELEGRAM_PROXY_ENABLED = process.env.TELEGRAM_PROXY_ENABLED === 'true';
 const TELEGRAM_PROXY_URL = process.env.TELEGRAM_PROXY_URL || '';
 
 /**
+ * 对 Telegram Bot 直连 URL 做脱敏（bot<TOKEN> -> bot***）
+ * 仅用于日志/错误信息；不影响实际请求
+ */
+export function redactTelegramBotTokenInUrl(url: string): string {
+  if (!url) return url;
+  // https://api.telegram.org/file/bot<TOKEN>/...
+  // https://api.telegram.org/bot<TOKEN>/...
+  return url
+    .replace(/(api\.telegram\.org\/file\/bot)[^/]+/ig, '$1***')
+    .replace(/(api\.telegram\.org\/bot)[^/]+/ig, '$1***');
+}
+
+/**
+ * 脱敏 Telegram Bot Token（默认保留前后各4位；可通过 options 调整）
+ */
+export function maskTelegramBotToken(
+  token: string,
+  options: { prefixLen?: number; suffixLen?: number } = {}
+): string {
+  const prefixLen = options.prefixLen ?? 4;
+  const suffixLen = options.suffixLen ?? 4;
+
+  if (!token) return '****';
+  if (prefixLen < 0 || suffixLen < 0) return '****';
+
+  // 过短时直接整体脱敏
+  if (token.length <= prefixLen + suffixLen) return '****';
+
+  const head = prefixLen > 0 ? token.substring(0, prefixLen) : '';
+  const tail = suffixLen > 0 ? token.substring(token.length - suffixLen) : '';
+  return suffixLen > 0 ? `${head}...${tail}` : `${head}...`;
+}
+
+/**
  * 为指定 URL 构造带 Telegram 代理的 RequestInit
  * - 仅当启用 TELEGRAM_PROXY_ENABLED 且 TELEGRAM_PROXY_URL 有值时生效
  * - 仅匹配 api.telegram.org 域名

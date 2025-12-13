@@ -10,7 +10,7 @@ import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-utils';
-import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
 
@@ -135,7 +135,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     }
 
     // 验证和解析参数
-    const { allowedGroupIds, hasInvalidParams } = await validateAndParseParams(
+    const { allowedGroupIds, allowedProviders, hasInvalidParams } = await validateAndParseParams(
       queryParams,
       apiConfig
     );
@@ -166,8 +166,8 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
-    // 获取随机图片
-    const randomImage = await getRandomImageFromGroups(targetGroupIds, orientation);
+    // 获取随机图片（支持 provider 过滤）
+    const randomImage = await getRandomImageFromGroupsAndProviders(targetGroupIds, allowedProviders, orientation);
     
     if (!randomImage) {
       logger.warn('没有找到符合条件的图片', {
@@ -245,12 +245,6 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       return redirectResponse;
     }
 
-    // 记录成功响应
-    logger.apiResponse('GET', '/api/random', 302, duration, {
-      imageId: randomImage.id,
-      redirectUrl: secureImageUrl
-    });
-
     // 如果是 Telegram 直连图床，则直接回传图片流，避免 302 暴露 token
     if (isTelegramImage(randomImage, secureImageUrl)) {
       const mimeType = getMimeTypeFromUrl(randomImage.url);
@@ -263,7 +257,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
         mimeType: downloaded.mimeType,
         mode: 'buffered',
         via: downloaded.reason,
-        url: downloaded.usedUrl
+        url: redactTelegramBotTokenInUrl(downloaded.usedUrl)
       });
 
       return new NextResponse(bufferToStream(downloaded.buffer), {
@@ -286,6 +280,13 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     const finalRedirectUrl = secureImageUrl.startsWith('http')
       ? secureImageUrl
       : new URL(secureImageUrl, request.url).toString();
+
+    // 记录成功响应（此处一定是 302 跳转路径）
+    logger.apiResponse('GET', '/api/random', 302, duration, {
+      imageId: randomImage.id,
+      redirectUrl: redactTelegramBotTokenInUrl(finalRedirectUrl)
+    });
+
     const redirectResponse = NextResponse.redirect(finalRedirectUrl, 302);
     redirectResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     redirectResponse.headers.set('Pragma', 'no-cache');
@@ -321,8 +322,9 @@ function getClientIP(request: NextRequest): string {
 async function validateAndParseParams(
   queryParams: Record<string, string>,
   apiConfig: any
-): Promise<{ allowedGroupIds: string[]; hasInvalidParams: boolean }> {
+): Promise<{ allowedGroupIds: string[]; allowedProviders: string[]; hasInvalidParams: boolean }> {
   const allowedGroupIds: string[] = [];
+  const allowedProviders: string[] = [];
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
@@ -330,7 +332,7 @@ async function validateAndParseParams(
 
   // 如果没有配置允许的参数，则允许所有请求
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {
-    return { allowedGroupIds: [], hasInvalidParams: false };
+    return { allowedGroupIds: [], allowedProviders: [], hasInvalidParams: false };
   }
 
   // 检查每个查询参数
@@ -367,17 +369,23 @@ async function validateAndParseParams(
       continue;
     }
 
-    // 添加对应的分组ID
-    if (paramConfig.mappedGroups && paramConfig.mappedGroups.length > 0) {
-      allowedGroupIds.push(...paramConfig.mappedGroups);
+    // 根据参数类型累积过滤条件
+    if (paramConfig.type === 'provider') {
+      const providers = Array.isArray(paramConfig.mappedProviders) ? paramConfig.mappedProviders : [];
+      if (providers.length > 0) allowedProviders.push(...providers);
+    } else {
+      const groups = Array.isArray(paramConfig.mappedGroups) ? paramConfig.mappedGroups : [];
+      if (groups.length > 0) allowedGroupIds.push(...groups);
     }
   }
 
   // 去重
   const uniqueGroupIds = [...new Set(allowedGroupIds)];
+  const uniqueProviders = [...new Set(allowedProviders)];
 
   return { 
-    allowedGroupIds: uniqueGroupIds, 
+    allowedGroupIds: uniqueGroupIds,
+    allowedProviders: uniqueProviders,
     hasInvalidParams 
   };
 }
@@ -385,11 +393,11 @@ async function validateAndParseParams(
 /**
  * 从指定分组中获取随机图片
  */
-async function getRandomImageFromGroups(groupIds: string[], orientation?: OrientationParam) {
+async function getRandomImageFromGroups(groupIds: string[], orientation?: OrientationParam, provider?: string) {
   const randomOptions = orientation ? { orientation } : undefined;
   if (groupIds.length === 0) {
     // 从所有图片中选择
-    const images = await databaseService.getRandomImagesIncludingTelegram(1, undefined, randomOptions);
+    const images = await databaseService.getRandomImagesIncludingTelegram(1, undefined, randomOptions, provider);
     return images[0] || null;
   }
 
@@ -398,14 +406,14 @@ async function getRandomImageFromGroups(groupIds: string[], orientation?: Orient
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
 
-  const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId, randomOptions);
+  const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId, randomOptions, provider);
   const image = images[0] || null;
 
   if (!image && groupIds.length > 1) {
     // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
       if (groupId !== selectedGroupId) {
-        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, randomOptions);
+        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, randomOptions, provider);
         const fallbackImage = fallbackImages[0] || null;
         if (fallbackImage) {
           return fallbackImage;
@@ -415,6 +423,29 @@ async function getRandomImageFromGroups(groupIds: string[], orientation?: Orient
   }
 
   return image;
+}
+
+async function getRandomImageFromGroupsAndProviders(
+  groupIds: string[],
+  providers: string[],
+  orientation?: OrientationParam
+) {
+  const uniqueProviders = [...new Set((providers || []).filter(Boolean))];
+  if (uniqueProviders.length === 0) {
+    return getRandomImageFromGroups(groupIds, orientation);
+  }
+
+  // 2A：先均匀随机选 provider，再从该 provider 范围内取随机图；失败则回退到其它 provider
+  const randomProviderIndex = Math.floor(Math.random() * uniqueProviders.length);
+  const selectedProvider = uniqueProviders[randomProviderIndex];
+  const tryProviders = [selectedProvider, ...uniqueProviders.filter(p => p !== selectedProvider)];
+
+  for (const p of tryProviders) {
+    const img = await getRandomImageFromGroups(groupIds, orientation, p);
+    if (img) return img;
+  }
+
+  return null;
 }
 
 function parseOrientation(raw: string | null): OrientationParam | undefined {
@@ -561,14 +592,14 @@ async function downloadImageWithCandidates(
           type: 'api_random_download',
           status: err.status,
           statusText: err.statusText,
-          url: err.url,
+          url: redactTelegramBotTokenInUrl(err.url),
           reason: candidate.reason
         });
       } else {
         logger.warn('随机端点图片下载异常', {
           type: 'api_random_download',
-          error: err instanceof Error ? err.message : String(err),
-          url: candidate.url,
+          error: redactTelegramBotTokenInUrl(err instanceof Error ? err.message : String(err)),
+          url: redactTelegramBotTokenInUrl(candidate.url),
           reason: candidate.reason
         });
       }
@@ -576,11 +607,12 @@ async function downloadImageWithCandidates(
   }
 
   if (lastStatus === 404 || lastStatus === 410) {
+    const safeUrl = lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : (lastUrl ?? 'unknown');
     throw new AppError(
       ErrorType.NOT_FOUND,
-      `源图返回 404 (${lastUrl ?? 'unknown'})`,
+      `源图返回 404 (${safeUrl})`,
       404,
-      { url: lastUrl, status: lastStatus }
+      { url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl, status: lastStatus }
     );
   }
 
@@ -589,7 +621,7 @@ async function downloadImageWithCandidates(
       ErrorType.EXTERNAL_SERVICE_ERROR,
       `源图服务错误 (${lastStatus})`,
       502,
-      { url: lastUrl, status: lastStatus }
+      { url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl, status: lastStatus }
     );
   }
 
@@ -597,7 +629,11 @@ async function downloadImageWithCandidates(
     ErrorType.INTERNAL_ERROR,
     '下载图片失败',
     500,
-    { url: lastUrl, status: lastStatus, error: lastError instanceof Error ? lastError.message : String(lastError ?? '') }
+    {
+      url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl,
+      status: lastStatus,
+      error: redactTelegramBotTokenInUrl(lastError instanceof Error ? lastError.message : String(lastError ?? ''))
+    }
   );
 }
 

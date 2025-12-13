@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import { buildFetchInitFor, maskTelegramBotToken, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 
 interface TelegramFileResponse {
   ok: boolean;
@@ -360,7 +360,7 @@ async function fetchTelegramFilePath(token: string, fileId: string, maxRetries =
         lastDesc = data.description;
         // 检查是否为临时不可用
         if (lastDesc && lastDesc.includes('temporarily unavailable')) {
-          console.warn(`[Telegram Image Proxy] Token ${token.slice(0, 5)}... 遇到临时不可用 (Retry ${i + 1}/${maxRetries}): ${lastDesc}`);
+          console.warn(`[Telegram Image Proxy] Token ${maskTelegramBotToken(token, { prefixLen: 5, suffixLen: 0 })} 遇到临时不可用 (Retry ${i + 1}/${maxRetries}): ${lastDesc}`);
           await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 指数退避
           continue;
         }
@@ -380,14 +380,14 @@ async function fetchTelegramFilePath(token: string, fileId: string, maxRetries =
 
       // 400 错误且包含 temporarily unavailable 则重试
       if (resp.status === 400 && (lastDesc?.includes('temporarily unavailable') || text.includes('temporarily unavailable'))) {
-        console.warn(`[Telegram Image Proxy] Token ${token.slice(0, 5)}... 遇到 400 临时不可用 (Retry ${i + 1}/${maxRetries}): ${lastDesc}`);
+        console.warn(`[Telegram Image Proxy] Token ${maskTelegramBotToken(token, { prefixLen: 5, suffixLen: 0 })} 遇到 400 临时不可用 (Retry ${i + 1}/${maxRetries}): ${lastDesc}`);
         await new Promise(r => setTimeout(r, 1000 * (i + 1)));
         continue;
       }
 
       // 5xx 或 429 错误重试
       if (resp.status >= 500 || resp.status === 429) {
-        console.warn(`[Telegram Image Proxy] Token ${token.slice(0, 5)}... 遇到 HTTP ${resp.status} (Retry ${i + 1}/${maxRetries})`);
+        console.warn(`[Telegram Image Proxy] Token ${maskTelegramBotToken(token, { prefixLen: 5, suffixLen: 0 })} 遇到 HTTP ${resp.status} (Retry ${i + 1}/${maxRetries})`);
         await new Promise(r => setTimeout(r, 1000 * (i + 1)));
         continue;
       }
@@ -397,7 +397,10 @@ async function fetchTelegramFilePath(token: string, fileId: string, maxRetries =
 
     } catch (e) {
       lastError = e;
-      console.warn(`[Telegram Image Proxy] Token ${token.slice(0, 5)}... 网络请求异常 (Retry ${i + 1}/${maxRetries})`, e);
+      const safeError = redactTelegramBotTokenInUrl(e instanceof Error ? e.message : String(e));
+      console.warn(
+        `[Telegram Image Proxy] Token ${maskTelegramBotToken(token, { prefixLen: 5, suffixLen: 0 })} 网络请求异常 (Retry ${i + 1}/${maxRetries}): ${safeError}`
+      );
       await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
   }
@@ -654,7 +657,8 @@ export async function GET(request: NextRequest) {
           headers: buildImageHeaders(contentType, filePath, fileIdStr),
         });
       } catch (err) {
-        console.warn('[Telegram Image Proxy] 使用当前 token 下载失败，尝试下一个', err);
+        const safeError = redactTelegramBotTokenInUrl(err instanceof Error ? err.message : String(err));
+        console.warn('[Telegram Image Proxy] 使用当前 token 下载失败，尝试下一个', safeError);
         continue;
       }
     }
@@ -669,7 +673,8 @@ export async function GET(request: NextRequest) {
     );
     
   } catch (error) {
-    console.error('[Telegram Image Proxy] Error:', error);
+    const safeError = redactTelegramBotTokenInUrl(error instanceof Error ? error.message : String(error));
+    console.error('[Telegram Image Proxy] Error:', safeError);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

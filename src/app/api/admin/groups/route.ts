@@ -56,8 +56,9 @@ async function createGroup(request: NextRequest): Promise<Response> {
   
   // 检查分组名称是否已存在
   const existingGroups = await databaseService.getGroups();
-  const nameExists = existingGroups.some(group => 
-    group.name.toLowerCase() === validatedData.name.toLowerCase()
+  const normalizedName = validatedData.name.trim().toLowerCase();
+  const nameExists = existingGroups.some(group =>
+    group.name.trim().toLowerCase() === normalizedName
   );
   
   if (nameExists) {

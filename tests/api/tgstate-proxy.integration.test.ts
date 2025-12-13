@@ -74,12 +74,20 @@ jest.mock('next/server', () => {
   return { NextResponse, NextRequest };
 });
 
+jest.mock('@/lib/security', () => ({
+  withSecurity: () => (handler: any) => handler,
+}));
+
+jest.mock('@/lib/error-handler', () => ({
+  withErrorHandler: (handler: any) => handler,
+}));
+
 // Mock 数据库服务，避免真实数据库访问
 jest.mock('@/lib/database', () => ({
   databaseService: {
     getAPIConfig: jest.fn(),
     initialize: jest.fn(),
-    getRandomImages: jest.fn(),
+    getRandomImagesIncludingTelegram: jest.fn(),
     saveLog: jest.fn().mockResolvedValue(undefined)
   }
 }));
@@ -94,7 +102,7 @@ const { GET: ResponseGET } = require('@/app/api/response/route');
 const mockedDatabaseService = databaseService as unknown as {
   getAPIConfig: jest.Mock;
   initialize: jest.Mock;
-  getRandomImages: jest.Mock;
+  getRandomImagesIncludingTelegram: jest.Mock;
 };
 
 const originalEnv = process.env;
@@ -114,6 +122,12 @@ describe('tgState 代理集成测试 - 带路径 TGSTATE_PROXY_URL', () => {
     jest.clearAllMocks();
     process.env = { ...originalEnv };
     mockCloudinary.downloadImage.mockClear();
+
+    // 重置 /api/response 预取缓存，避免跨用例串扰
+    const resetPrefetchCache = (globalThis as any).__resetPrefetchCacheForTests;
+    if (typeof resetPrefetchCache === 'function') {
+      resetPrefetchCache();
+    }
   });
 
   afterAll(() => {
@@ -139,7 +153,7 @@ describe('tgState 代理集成测试 - 带路径 TGSTATE_PROXY_URL', () => {
 
     mockedDatabaseService.getAPIConfig.mockResolvedValue(apiConfig);
     mockedDatabaseService.initialize.mockResolvedValue(undefined);
-    mockedDatabaseService.getRandomImages.mockResolvedValue([
+    mockedDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([
       {
         id: 'img_001',
         url: 'https://tg.example.com/d/abc123?w=300#top',
@@ -178,7 +192,7 @@ describe('tgState 代理集成测试 - 带路径 TGSTATE_PROXY_URL', () => {
 
     mockedDatabaseService.getAPIConfig.mockResolvedValue(apiConfig);
     mockedDatabaseService.initialize.mockResolvedValue(undefined);
-    mockedDatabaseService.getRandomImages.mockResolvedValue([
+    mockedDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([
       {
         id: 'img_002',
         url: 'http://tg.example.com/d/xyz987.png',
@@ -196,6 +210,7 @@ describe('tgState 代理集成测试 - 带路径 TGSTATE_PROXY_URL', () => {
       ok: true,
       status: 200,
       statusText: 'OK',
+      headers: new Headers({ 'content-type': 'image/png' }),
       arrayBuffer: async () => mockBuffer
     });
     (global as any).fetch = mockFetch;
@@ -232,7 +247,7 @@ describe('tgState 代理集成测试 - 带路径 TGSTATE_PROXY_URL', () => {
     // 控制随机选择为第二个分组（索引1）
     const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.9);
 
-    mockedDatabaseService.getRandomImages.mockResolvedValue([
+    mockedDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([
       {
         id: 'img_003',
         url: 'https://res.cloudinary.com/test/image/upload/test_public_id.jpg',
@@ -250,7 +265,7 @@ describe('tgState 代理集成测试 - 带路径 TGSTATE_PROXY_URL', () => {
 
     expect(response.status).toBe(302);
     // 应该按随机选择的第二个分组调用
-    expect(mockedDatabaseService.getRandomImages).toHaveBeenCalledWith(1, 'grp_B');
+    expect(mockedDatabaseService.getRandomImagesIncludingTelegram).toHaveBeenCalledWith(1, 'grp_B', undefined, undefined);
 
     randomSpy.mockRestore();
   });
@@ -273,7 +288,7 @@ describe('tgState 代理集成测试 - 带路径 TGSTATE_PROXY_URL', () => {
 
     mockedDatabaseService.getAPIConfig.mockResolvedValue(apiConfig);
     mockedDatabaseService.initialize.mockResolvedValue(undefined);
-    mockedDatabaseService.getRandomImages.mockResolvedValue([
+    mockedDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([
       {
         id: 'img_004',
         url: 'http://res.cloudinary.com/test/image/upload/test_public_id.jpg',

@@ -10,6 +10,7 @@ import { withAdminAuth } from '@/lib/auth';
 import { withSecurity } from '@/lib/security';
 import { AppError, ErrorType } from '@/types/errors';
 import { APIConfigUpdateRequestSchema } from '@/types/schemas';
+import { StorageProvider } from '@/lib/storage/base';
 import {
   APIResponse,
   APIConfigResponse
@@ -125,13 +126,36 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
       }
     }
     
-    // 验证参数配置中的分组ID
+    // 验证参数配置中的映射
     if (validatedData.allowedParameters) {
       const groups = await databaseService.getGroups();
       const groupIds = groups.map(g => g.id);
-      
+      const providerSet = new Set<string>(Object.values(StorageProvider));
+
       for (const param of validatedData.allowedParameters) {
-        for (const groupId of param.mappedGroups) {
+        if (param.type === 'provider') {
+          const providers = (param as any).mappedProviders as string[] | undefined;
+          if (!providers || providers.length === 0) {
+            throw new AppError(
+              ErrorType.VALIDATION_ERROR,
+              `参数 "${param.name}" 必须至少映射一个图床服务`,
+              400
+            );
+          }
+          for (const p of providers) {
+            if (!providerSet.has(p)) {
+              throw new AppError(
+                ErrorType.VALIDATION_ERROR,
+                `参数 "${param.name}" 中的图床服务 ${p} 不支持`,
+                400
+              );
+            }
+          }
+          continue;
+        }
+
+        // 其他参数类型：校验分组ID
+        for (const groupId of param.mappedGroups || []) {
           if (!groupIds.includes(groupId)) {
             throw new AppError(
               ErrorType.VALIDATION_ERROR,
@@ -163,6 +187,18 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
     return NextResponse.json(response);
   } catch (error) {
     console.error('API配置更新失败:', error);
+
+    // AppError：按真实状态码返回（否则前端/测试会误判为 500）
+    if (error instanceof AppError) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          type: error.type,
+          message: error.message,
+          timestamp: new Date(),
+        },
+      }, { status: error.statusCode });
+    }
 
     // 如果是Zod验证错误，返回详细的错误信息
     if (error && typeof error === 'object' && 'issues' in error) {

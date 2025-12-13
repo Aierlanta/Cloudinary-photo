@@ -26,9 +26,10 @@ import {
 
 interface APIParameter {
   name: string
-  type: 'group' | 'custom'
+  type: 'group' | 'custom' | 'provider'
   allowedValues: string[]
   mappedGroups: string[]
+  mappedProviders?: string[]
   isEnabled: boolean
 }
 
@@ -67,6 +68,7 @@ export default function ConfigPage() {
     type: 'group',
     allowedValues: [],
     mappedGroups: [],
+    mappedProviders: [],
     isEnabled: true
   })
   const [testUrl, setTestUrl] = useState('')
@@ -156,7 +158,7 @@ const {
         showWarning(t.adminConfig.invalidParameterName)
         return
       }
-      if (!param.type || !['group', 'custom'].includes(param.type)) {
+      if (!param.type || !['group', 'custom', 'provider'].includes(param.type)) {
         showWarning(t.adminConfig.invalidParameterType)
         return
       }
@@ -167,6 +169,12 @@ const {
       if (!param.mappedGroups || !Array.isArray(param.mappedGroups)) {
         showWarning(t.adminConfig.invalidMappedGroups)
         return
+      }
+      if (param.type === 'provider') {
+        if (!param.mappedProviders || !Array.isArray(param.mappedProviders) || param.mappedProviders.length === 0) {
+          showWarning(t.adminConfig.validationFailedSelectProvider)
+          return
+        }
       }
     }
 
@@ -219,6 +227,7 @@ const {
       type: 'group',
       allowedValues: [],
       mappedGroups: [],
+      mappedProviders: [],
       isEnabled: true
     })
     setShowAddParameter(false)

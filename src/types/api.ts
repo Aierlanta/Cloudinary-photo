@@ -95,9 +95,10 @@ export interface APIConfigUpdateRequest {
   defaultGroups?: string[];
   allowedParameters?: Array<{
     name: string;
-    type: 'group' | 'custom';
+    type: 'group' | 'custom' | 'provider';
     allowedValues: string[];
     mappedGroups: string[];
+    mappedProviders?: string[];
     isEnabled: boolean;
   }>;
   // 新增：响应模式配置

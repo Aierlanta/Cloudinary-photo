@@ -297,7 +297,8 @@ export class Logger {
 export const logger = Logger.getInstance({
   level: process.env.NODE_ENV === 'development' ? LogLevel.DEBUG : LogLevel.INFO,
   enableConsole: true,
-  enableDatabase: true, // 启用数据库日志存储
+  // 测试环境默认关闭数据库日志，避免 Jest 残留异步句柄/噪音
+  enableDatabase: process.env.NODE_ENV !== 'test',
   enableFile: process.env.NODE_ENV === 'production',
   enableRemote: false
 })

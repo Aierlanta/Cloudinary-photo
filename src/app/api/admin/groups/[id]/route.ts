@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseService } from '@/lib/database';
 import { verifyAdminAuth } from '@/lib/auth';
+import { withSecurity } from '@/lib/security';
 import { AppError, ErrorType } from '@/types/errors';
 import { IdSchema, GroupUpdateRequestSchema } from '@/types/schemas';
 import {
@@ -22,10 +23,10 @@ export const dynamic = 'force-dynamic'
  * PUT /api/admin/groups/[id]
  * 更新分组信息
  */
-export async function PUT(
+async function updateGroupHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
-): Promise<NextResponse> {
+): Promise<Response> {
   try {
     // 验证管理员权限
     verifyAdminAuth(request);
@@ -50,11 +51,14 @@ export async function PUT(
     }
     
     // 如果要更新名称，检查新名称是否已被其他分组使用
-    if (validatedData.name && validatedData.name !== existingGroup.name) {
+    if (validatedData.name) {
+      const normalizedNewName = validatedData.name.trim().toLowerCase();
+      const normalizedExistingName = existingGroup.name.trim().toLowerCase();
+      if (normalizedNewName !== normalizedExistingName) {
       const allGroups = await databaseService.getGroups();
-      const nameExists = allGroups.some(group => 
-        group.id !== groupId && 
-        group.name.toLowerCase() === validatedData.name!.toLowerCase()
+      const nameExists = allGroups.some(group =>
+        group.id !== groupId &&
+        group.name.trim().toLowerCase() === normalizedNewName
       );
       
       if (nameExists) {
@@ -63,6 +67,7 @@ export async function PUT(
           `分组名称 "${validatedData.name}" 已存在`,
           400
         );
+      }
       }
     }
     
@@ -110,14 +115,21 @@ export async function PUT(
   }
 }
 
+export const PUT = withSecurity({
+  rateLimit: 'admin',
+  allowedMethods: ['PUT'],
+  allowedContentTypes: ['application/json'],
+  maxRequestSize: 1024 * 1024 // 1MB
+})(updateGroupHandler);
+
 /**
  * DELETE /api/admin/groups/[id]
  * 删除分组
  */
-export async function DELETE(
+async function deleteGroupHandler(
   request: NextRequest,
   { params }: { params: { id: string } }
-): Promise<NextResponse> {
+): Promise<Response> {
   try {
     // 验证管理员权限
     verifyAdminAuth(request);
@@ -184,3 +196,8 @@ export async function DELETE(
     return NextResponse.json(response, { status: 500 });
   }
 }
+
+export const DELETE = withSecurity({
+  rateLimit: 'admin',
+  allowedMethods: ['DELETE']
+})(deleteGroupHandler);

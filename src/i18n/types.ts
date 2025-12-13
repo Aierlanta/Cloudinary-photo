@@ -387,6 +387,7 @@ export interface Translations {
     parameterTypeLabel: string;
     groupParameterOption: string;
     customParameterOption: string;
+    providerParameterOption: string;
     enableParameter: string;
     allowedValuesLabel: string;
     enterParameterValue: string;
@@ -394,10 +395,13 @@ export interface Translations {
     valueAlreadyExists: string;
     mappedGroupsLabel: string;
     mappedGroupsDesc: string;
+    mappedProvidersLabel: string;
+    mappedProvidersDesc: string;
     updateParameter: string;
     addParameterButton: string;
     validationFailedEnterName: string;
     validationFailedAddValue: string;
+    validationFailedSelectProvider: string;
     validationError: string;
     cancel: string;
   };

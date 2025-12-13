@@ -9,7 +9,7 @@ import { StorageProvider } from '@/lib/storage/base';
 
 // 基础验证模式
 export const IdSchema = z.string().min(1, 'ID不能为空');
-export const NameSchema = z.string().min(1, '名称不能为空').max(100, '名称不能超过100个字符');
+export const NameSchema = z.string().trim().min(1, '名称不能为空').max(100, '名称不能超过100个字符');
 export const DescriptionSchema = z.string().max(500, '描述不能超过500个字符').optional();
 export const TagSchema = z.string().min(1).max(50);
 export const TagsSchema = z.array(TagSchema).max(20, '标签数量不能超过20个');
@@ -43,12 +43,23 @@ export const GroupSchema = z.object({
 // API参数验证模式
 export const APIParameterSchema = z.object({
   name: z.string().min(1, '参数名不能为空').max(50, '参数名不能超过50个字符'),
-  type: z.enum(['group', 'custom'], {
-    errorMap: () => ({ message: '参数类型必须是group或custom' })
+  type: z.enum(['group', 'custom', 'provider'], {
+    errorMap: () => ({ message: '参数类型必须是group/custom/provider' })
   }),
   allowedValues: z.array(z.string().min(1)).min(1, '至少需要一个允许的值'),
-  mappedGroups: z.array(IdSchema),
+  mappedGroups: z.array(IdSchema).default([]),
+  mappedProviders: z.array(z.nativeEnum(StorageProvider)).optional(),
   isEnabled: z.boolean().default(true)
+}).superRefine((data, ctx) => {
+  if (data.type === 'provider') {
+    if (!data.mappedProviders || data.mappedProviders.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'provider 参数必须至少映射一个图床服务',
+        path: ['mappedProviders']
+      });
+    }
+  }
 });
 
 // API配置验证模式

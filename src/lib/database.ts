@@ -642,7 +642,12 @@ export class DatabaseService {
    * 获取随机图片
    * 注意: 此方法用于 /api/random 端点,会自动过滤掉 Telegram 直连图床的图片
    */
-  async getRandomImages(count: number = 1, groupId?: string, options?: { orientation?: OrientationFilter }): Promise<Image[]> {
+  async getRandomImages(
+    count: number = 1,
+    groupId?: string,
+    options?: { orientation?: OrientationFilter },
+    provider?: string | string[]
+  ): Promise<Image[]> {
     try {
       const where: any = {};
       if (groupId) {
@@ -655,11 +660,19 @@ export class DatabaseService {
         }
       }
 
-      // 过滤掉 Telegram 直连图床的图片
-      // 因为 Telegram 图床的 URL 包含敏感的 bot token,只能通过 /api/response 访问
-      where.primaryProvider = {
-        not: 'telegram'
-      };
+      // provider 过滤（/api/random 语义：仍排除 telegram 直连）
+      if (provider) {
+        const providers = Array.isArray(provider) ? provider : [provider];
+        const filtered = providers.filter(p => p !== 'telegram');
+        if (filtered.length === 0) return [];
+        where.primaryProvider = filtered.length === 1 ? filtered[0] : { in: filtered };
+      } else {
+        // 过滤掉 Telegram 直连图床的图片
+        // 因为 Telegram 图床的 URL 包含敏感的 bot token,只能通过 /api/response 访问
+        where.primaryProvider = {
+          not: 'telegram'
+        };
+      }
 
       if (options?.orientation) {
         where.orientation = options.orientation;
@@ -735,7 +748,12 @@ export class DatabaseService {
    * 获取随机图片（包含 Telegram）
    * 用于 /api/response 端点：不排除 Telegram 直连图床
    */
-  async getRandomImagesIncludingTelegram(count: number = 1, groupId?: string, options?: { orientation?: OrientationFilter }): Promise<Image[]> {
+  async getRandomImagesIncludingTelegram(
+    count: number = 1,
+    groupId?: string,
+    options?: { orientation?: OrientationFilter },
+    provider?: string | string[]
+  ): Promise<Image[]> {
     try {
       const where: any = {};
       if (groupId) {
@@ -748,6 +766,11 @@ export class DatabaseService {
 
       if (options?.orientation) {
         where.orientation = options.orientation;
+      }
+
+      // provider 过滤（包含 Telegram）
+      if (provider) {
+        where.primaryProvider = Array.isArray(provider) ? { in: provider } : provider;
       }
 
       // 不排除 Telegram

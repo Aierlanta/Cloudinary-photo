@@ -20,7 +20,7 @@ import {
 interface Group {
   id: string
   name: string
-  description: string
+  description?: string
   createdAt: string
   imageCount: number
 }
@@ -90,7 +90,16 @@ export default function GroupsPage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch('/api/admin/groups')
+      const response = await fetch('/api/admin/groups', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description || '',
+        }),
+      })
 
       if (response.ok) {
         await loadGroups()
@@ -99,7 +108,14 @@ export default function GroupsPage() {
         setShowCreateForm(false)
         success(t.adminGroups.createSuccess, t.adminGroups.createSuccess)
       } else {
-        showError(t.adminGroups.createFailed, t.adminGroups.createFailed)
+        let errMsg = t.adminGroups.createFailed
+        try {
+          const data = await response.json()
+          errMsg = data?.error?.message || data?.message || errMsg
+        } catch {
+          // ignore
+        }
+        showError(t.adminGroups.createFailed, errMsg)
       }
     } catch (error) {
       console.error('创建分组失败:', error)
@@ -177,7 +193,7 @@ export default function GroupsPage() {
 
   const startEdit = (group: Group) => {
     setEditingGroup(group)
-    setFormData({ name: group.name, description: group.description })
+    setFormData({ name: group.name, description: group.description || '' })
     setShowCreateForm(false)
   }
 

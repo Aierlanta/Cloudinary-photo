@@ -39,9 +39,10 @@ export interface Group {
 // API参数配置
 export interface APIParameter {
   name: string; // 参数名，如 'group', 'category'
-  type: 'group' | 'custom';
+  type: 'group' | 'custom' | 'provider';
   allowedValues: string[]; // 允许的参数值
-  mappedGroups: string[]; // 该参数值对应的分组
+  mappedGroups: string[]; // 该参数值对应的分组（type=provider 时通常为空数组）
+  mappedProviders?: string[]; // 映射到图床服务（type=provider 时使用）
   isEnabled: boolean;
 }
 

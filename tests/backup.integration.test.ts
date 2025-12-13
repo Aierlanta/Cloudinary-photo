@@ -10,6 +10,7 @@ const makePrismaMock = () => ({
   $queryRaw: jest.fn() as Mock,
   $queryRawUnsafe: jest.fn() as Mock,
   $executeRawUnsafe: jest.fn() as Mock,
+  $executeRaw: jest.fn() as Mock,
   $connect: jest.fn().mockResolvedValue(undefined) as Mock,
   $disconnect: jest.fn().mockResolvedValue(undefined) as Mock,
   aPIConfig: {
@@ -29,7 +30,21 @@ jest.mock('@prisma/client', () => {
     .fn()
     .mockImplementationOnce(() => mainMock)
     .mockImplementationOnce(() => backupMock);
-  return { PrismaClient: ctor };
+
+  // 极简 Prisma.sql/raw/join 实现：仅用于把模板拼成可断言的字符串
+  const sqlTag = (strings: TemplateStringsArray, ...values: any[]) =>
+    strings.reduce((acc, s, i) => acc + s + (i < values.length ? String(values[i]) : ''), '');
+  const raw = (v: string) => v;
+  const join = (arr: any[], sep: string = ',') => arr.map(String).join(sep);
+
+  return {
+    PrismaClient: ctor,
+    Prisma: {
+      sql: sqlTag,
+      raw,
+      join,
+    },
+  };
 });
 
 // Ensure env URLs are set (tests run in node env project)
@@ -83,6 +98,7 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
 
     // 3) backup DB executes DDL/DML
     (backupMock.$executeRawUnsafe as Mock).mockResolvedValue(0);
+    (backupMock.$executeRaw as Mock).mockResolvedValue(0);
 
     // 4) Status reads/writes
     (mainMock.aPIConfig.findUnique as Mock).mockResolvedValue(null);
@@ -95,7 +111,10 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
     // Main should enumerate tables once
     expect(mainMock.$queryRaw).toHaveBeenCalledTimes(1);
     // Backup should clear tables and then create/insert (at least called)
-    const backupExecCalls = (backupMock.$executeRawUnsafe as Mock).mock.calls.map(args => String(args[0]));
+    const backupExecCalls = [
+      ...(backupMock.$executeRawUnsafe as Mock).mock.calls.map(args => String(args[0])),
+      ...(backupMock.$executeRaw as Mock).mock.calls.map(args => String(args[0]))
+    ];
     // Foreign key toggles
     expect(backupExecCalls.some(s => s.includes('SET FOREIGN_KEY_CHECKS = 0'))).toBe(true);
     expect(backupExecCalls.some(s => s.includes('SET FOREIGN_KEY_CHECKS = 1'))).toBe(true);
@@ -168,17 +187,31 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
     });
 
     (mainMock.$executeRawUnsafe as Mock).mockResolvedValue(0);
+    (mainMock.$executeRaw as Mock).mockResolvedValue(0);
 
     const ok = await backupService.restoreFromBackup();
     expect(ok).toBe(true);
 
-    // INSERTs into api_configs should not include backup_status row
-    const mainExecCalls = (mainMock.$executeRawUnsafe as Mock).mock.calls.map(args => String(args[0]));
-    const apiInsert = mainExecCalls.find(s => s.includes('INSERT INTO `api_configs`'));
+    // Restore 现在走“临时表导入 + RENAME TABLE 原子切换”，所以 INSERT 发生在 api_configs__tmp_restore
+    const mainExecCalls = [
+      ...(mainMock.$executeRawUnsafe as Mock).mock.calls.map(args => String(args[0])),
+      ...(mainMock.$executeRaw as Mock).mock.calls.map(args => String(args[0]))
+    ];
+
+    const apiInsert = mainExecCalls.find(s => s.includes('INSERT INTO `api_configs__tmp_restore`'));
     expect(apiInsert).toBeTruthy();
     if (apiInsert) {
+      // api_configs 导入时应跳过 backup_status（该记录会在最后通过 upsert 恢复）
       expect(apiInsert.includes('backup_status')).toBe(false);
     }
+
+    // 应发生 RENAME TABLE，把临时表切换成正式表
+    expect(
+      mainExecCalls.some(
+        s => s.includes('RENAME TABLE') && s.includes('`api_configs__tmp_restore` TO `api_configs`')
+      )
+    ).toBe(true);
+
     // backup_status should be restored via upsert
     expect(mainMock.aPIConfig.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
