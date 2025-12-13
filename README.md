@@ -183,15 +183,17 @@ GET /api/random?group=wallpaper&key=your-api-key
 GET /api/random
 ```
 
-**Function**: Get a random image, supports group filtering, orientation filtering, and parameter configuration  
+**Function**: Get a random image, supports group/provider filtering, orientation filtering, and parameter configuration  
 **Response**: 302 redirect to image URL  
 **Parameters**:
 
 - `key` - API key (required if authentication is enabled)
 - `group`/custom params - Mapped in admin panel
+- provider-mapped params - Mapped in admin panel to restrict candidate storage providers (optional)
 - `orientation` - `landscape` | `portrait` | `square` (optional; filters by stored width/height/orientation)
 - Example: `?group=wallpaper&orientation=landscape`
 - Example with key: `?group=wallpaper&key=your-api-key`
+- Example (provider-mapped): `?src=fast` (when `src` is configured as a provider parameter in admin panel)
 
 #### Direct Response Endpoint
 
@@ -206,6 +208,8 @@ GET /api/response
 **Parameters**:
 
 - `key` - API key (required if authentication is enabled)
+- `group`/custom params - Mapped in admin panel (same mapping rules as `/api/random`)
+- provider-mapped params - Mapped in admin panel to restrict candidate storage providers (optional)
 - `opacity` - Image opacity (0-1.0), 0 for fully transparent, 1 for fully opaque (optional)
 - `bgColor` - Background color (optional), supports the following formats:
   - Preset color names: `white` (default), `black`
@@ -385,9 +389,11 @@ GET    /api/admin/security/ip-info         # Get IP information and statistics
 
 ### Core Features
 
-- **Random Image API**: Fast random image retrieval with group filtering support
+- **Random Image API**: Fast random image retrieval with group/provider filtering support (via admin-mapped parameters)
 - **Multi-host Storage**: Support for Cloudinary, TgState, Telegram, and a custom external URL provider, with automatic failover between enabled hosts
 - **Management Panel**: Complete web-based admin interface for image and group management
+- **Admin Route History**: Track and display recently visited admin routes for quick navigation
+- **IP Location Badge**: Display IP geolocation in admin security views
 - **API Key Authentication**: Optional API key authentication for public endpoints
 - **Image Processing**: Support for transparency adjustment and background color customization
 - **Prefetch Cache**: Single-slot in-memory cache for improved response time
@@ -402,6 +408,7 @@ GET    /api/admin/security/ip-info         # Get IP information and statistics
 - **Rate Limiting**: Configurable rate limits per IP address
 - **IP Banning**: Block malicious IPs with automatic or manual banning
 - **Access Logging**: Detailed access logs with IP tracking and statistics
+- **Sensitive Data Redaction**: Mask secrets in logs and error outputs (e.g., API keys, Telegram bot tokens)
 - **Session Security**: HMAC-SHA256 signed session tokens for enhanced security
 
 ## Project Architecture
@@ -600,6 +607,6 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 
 ---
 
-**Current Version**: v1.11.0 | **Last Updated**: 2025-11-23
+**Current Version**: v1.13.5 | **Last Updated**: 2025-12-13
 
 For issues or suggestions, feel free to submit an Issue or Pull Request!
