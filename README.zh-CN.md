@@ -8,37 +8,47 @@
 
 ## 预览
 
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/2b7666a1-2273-410a-9ace-0395a242e4db" />
+
 ### 首页预览
 
-<img width="2548" height="1315" alt="image" src="https://github.com/user-attachments/assets/c9f9b5d5-45f6-44c5-8086-286ebe42766d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/765a5a93-91f7-4bc0-ab0f-0f746af2dbd0" />
 
 ### 仪表盘
 
-<img width="2560" height="1316" alt="image" src="https://github.com/user-attachments/assets/05cb8c91-f2ca-425c-ba63-cb6b2163ab5b" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/c7549fd8-14fe-4d05-a7df-9628f07196bc" />
+
+### 图片更新
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/87454195-8540-4c2a-89a4-c563ba2659fa" />
 
 ### 图片管理
 
-<img width="2558" height="1314" alt="image" src="https://github.com/user-attachments/assets/3335edca-b09d-45f0-bb45-9ffe1346e27c" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/d53f7d6f-2db8-48b5-a268-1d6b0f764c99" />
 
 ### 分组管理
 
-<img width="2560" height="1321" alt="image" src="https://github.com/user-attachments/assets/95e31a3d-cd33-4dff-abba-e280273ec09d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/673c3579-7216-41bb-a035-5d3da4c21c54" />
 
 ### API 配置
 
-<img width="2560" height="1312" alt="image" src="https://github.com/user-attachments/assets/1d33cb5b-ee1e-49a6-96e2-781eb030c60d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/131a06d1-bf36-4d00-8135-d73d00abf978" />
 
 ### 系统状态
 
-<img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/4fdf46e7-54e7-4169-84c6-369179bfd9fc" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/bef3ce59-bd05-4942-a9fc-235f0f93c0ed" />
 
 ### 系统日志
 
-<img width="2556" height="1310" alt="image" src="https://github.com/user-attachments/assets/651e9756-7c76-4f69-b0f3-b3a07d044c30" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/3c6beb52-76a9-4305-8bd3-ba514aae57b2" />
 
 ### 备份管理
 
-<img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/e95e146f-6c07-4b3f-bab3-2093fd35c622" />
+
+### 风控管理
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/5a82b929-6103-486b-9077-7cf482f059c6" />
 
 ## 快速开始
 
