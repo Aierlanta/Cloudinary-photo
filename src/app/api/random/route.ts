@@ -135,7 +135,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     }
 
     // 验证和解析参数
-    const { allowedGroupIds, hasInvalidParams } = await validateAndParseParams(
+    const { allowedGroupIds, allowedProviders, hasInvalidParams } = await validateAndParseParams(
       queryParams,
       apiConfig
     );
@@ -166,8 +166,8 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
-    // 获取随机图片
-    const randomImage = await getRandomImageFromGroups(targetGroupIds, orientation);
+    // 获取随机图片（支持 provider 过滤）
+    const randomImage = await getRandomImageFromGroupsAndProviders(targetGroupIds, allowedProviders, orientation);
     
     if (!randomImage) {
       logger.warn('没有找到符合条件的图片', {
@@ -321,8 +321,9 @@ function getClientIP(request: NextRequest): string {
 async function validateAndParseParams(
   queryParams: Record<string, string>,
   apiConfig: any
-): Promise<{ allowedGroupIds: string[]; hasInvalidParams: boolean }> {
+): Promise<{ allowedGroupIds: string[]; allowedProviders: string[]; hasInvalidParams: boolean }> {
   const allowedGroupIds: string[] = [];
+  const allowedProviders: string[] = [];
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
@@ -330,7 +331,7 @@ async function validateAndParseParams(
 
   // 如果没有配置允许的参数，则允许所有请求
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {
-    return { allowedGroupIds: [], hasInvalidParams: false };
+    return { allowedGroupIds: [], allowedProviders: [], hasInvalidParams: false };
   }
 
   // 检查每个查询参数
@@ -367,17 +368,25 @@ async function validateAndParseParams(
       continue;
     }
 
-    // 添加对应的分组ID
-    if (paramConfig.mappedGroups && paramConfig.mappedGroups.length > 0) {
-      allowedGroupIds.push(...paramConfig.mappedGroups);
+    // 根据参数类型累积过滤条件
+    if (paramConfig.type === 'provider') {
+      if (paramConfig.mappedProviders && paramConfig.mappedProviders.length > 0) {
+        allowedProviders.push(...paramConfig.mappedProviders);
+      }
+    } else {
+      if (paramConfig.mappedGroups && paramConfig.mappedGroups.length > 0) {
+        allowedGroupIds.push(...paramConfig.mappedGroups);
+      }
     }
   }
 
   // 去重
   const uniqueGroupIds = [...new Set(allowedGroupIds)];
+  const uniqueProviders = [...new Set(allowedProviders)];
 
   return { 
-    allowedGroupIds: uniqueGroupIds, 
+    allowedGroupIds: uniqueGroupIds,
+    allowedProviders: uniqueProviders,
     hasInvalidParams 
   };
 }
@@ -385,11 +394,11 @@ async function validateAndParseParams(
 /**
  * 从指定分组中获取随机图片
  */
-async function getRandomImageFromGroups(groupIds: string[], orientation?: OrientationParam) {
+async function getRandomImageFromGroups(groupIds: string[], orientation?: OrientationParam, provider?: string) {
   const randomOptions = orientation ? { orientation } : undefined;
   if (groupIds.length === 0) {
     // 从所有图片中选择
-    const images = await databaseService.getRandomImagesIncludingTelegram(1, undefined, randomOptions);
+    const images = await databaseService.getRandomImagesIncludingTelegram(1, undefined, randomOptions, provider);
     return images[0] || null;
   }
 
@@ -398,14 +407,14 @@ async function getRandomImageFromGroups(groupIds: string[], orientation?: Orient
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
 
-  const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId, randomOptions);
+  const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId, randomOptions, provider);
   const image = images[0] || null;
 
   if (!image && groupIds.length > 1) {
     // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
       if (groupId !== selectedGroupId) {
-        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, randomOptions);
+        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, randomOptions, provider);
         const fallbackImage = fallbackImages[0] || null;
         if (fallbackImage) {
           return fallbackImage;
@@ -415,6 +424,29 @@ async function getRandomImageFromGroups(groupIds: string[], orientation?: Orient
   }
 
   return image;
+}
+
+async function getRandomImageFromGroupsAndProviders(
+  groupIds: string[],
+  providers: string[],
+  orientation?: OrientationParam
+) {
+  const uniqueProviders = [...new Set((providers || []).filter(Boolean))];
+  if (uniqueProviders.length === 0) {
+    return getRandomImageFromGroups(groupIds, orientation);
+  }
+
+  // 2A：先均匀随机选 provider，再从该 provider 范围内取随机图；失败则回退到其它 provider
+  const randomProviderIndex = Math.floor(Math.random() * uniqueProviders.length);
+  const selectedProvider = uniqueProviders[randomProviderIndex];
+  const tryProviders = [selectedProvider, ...uniqueProviders.filter(p => p !== selectedProvider)];
+
+  for (const p of tryProviders) {
+    const img = await getRandomImageFromGroups(groupIds, orientation, p);
+    if (img) return img;
+  }
+
+  return null;
 }
 
 function parseOrientation(raw: string | null): OrientationParam | undefined {

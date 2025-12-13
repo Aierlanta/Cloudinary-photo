@@ -58,7 +58,7 @@ describe('安全中间件测试', () => {
   });
 
   describe('限流功能', () => {
-    it('应该允许在限制范围内的请求', () => {
+    it('应该允许在限制范围内的请求', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/api/test' },
         headers: new Map([['x-forwarded-for', '192.168.1.1']])
@@ -70,13 +70,13 @@ describe('安全中间件测试', () => {
         message: '请求过于频繁'
       });
 
-      const result = rateLimitFn(mockRequest);
+      const result = await rateLimitFn(mockRequest);
 
       expect(result.allowed).toBe(true);
       expect(result.remaining).toBe(9);
     });
 
-    it('应该阻止超出限制的请求', () => {
+    it('应该阻止超出限制的请求', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/api/test' },
         headers: new Map([['x-forwarded-for', '192.168.1.1']])
@@ -89,9 +89,9 @@ describe('安全中间件测试', () => {
       });
 
       // 发送3个请求
-      rateLimitFn(mockRequest);
-      rateLimitFn(mockRequest);
-      const result = rateLimitFn(mockRequest);
+      await rateLimitFn(mockRequest);
+      await rateLimitFn(mockRequest);
+      const result = await rateLimitFn(mockRequest);
 
       expect(result.allowed).toBe(false);
       expect(result.remaining).toBe(0);
@@ -110,18 +110,18 @@ describe('安全中间件测试', () => {
       });
 
       // 第一个请求
-      const result1 = rateLimitFn(mockRequest);
+      const result1 = await rateLimitFn(mockRequest);
       expect(result1.allowed).toBe(true);
 
       // 第二个请求应该被阻止
-      const result2 = rateLimitFn(mockRequest);
+      const result2 = await rateLimitFn(mockRequest);
       expect(result2.allowed).toBe(false);
 
       // 等待时间窗口重置
       await new Promise(resolve => setTimeout(resolve, 150));
 
       // 新的请求应该被允许
-      const result3 = rateLimitFn(mockRequest);
+      const result3 = await rateLimitFn(mockRequest);
       expect(result3.allowed).toBe(true);
     });
   });
@@ -239,7 +239,7 @@ describe('安全中间件测试', () => {
   });
 
   describe('限流统计', () => {
-    it('应该返回限流统计信息', () => {
+    it('应该返回限流统计信息', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/api/test' },
         headers: new Map([['x-forwarded-for', '192.168.1.1']])
@@ -251,7 +251,7 @@ describe('安全中间件测试', () => {
         message: '请求过于频繁'
       });
 
-      rateLimitFn(mockRequest);
+      await rateLimitFn(mockRequest);
 
       const stats = getRateLimitStats();
       expect(stats).toHaveLength(1);
@@ -259,7 +259,7 @@ describe('安全中间件测试', () => {
       expect(stats[0].key).toContain('192.168.1.1');
     });
 
-    it('应该清除限流存储', () => {
+    it('应该清除限流存储', async () => {
       const mockRequest = {
         nextUrl: { pathname: '/api/test' },
         headers: new Map([['x-forwarded-for', '192.168.1.1']])
@@ -271,7 +271,7 @@ describe('安全中间件测试', () => {
         message: '请求过于频繁'
       });
 
-      rateLimitFn(mockRequest);
+      await rateLimitFn(mockRequest);
       expect(getRateLimitStats()).toHaveLength(1);
 
       clearRateLimitStore();

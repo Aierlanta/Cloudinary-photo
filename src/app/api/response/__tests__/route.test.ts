@@ -35,6 +35,10 @@ jest.mock('next/server', () => {
       this.headers = new HeadersCtor(init && init.headers);
       this._body = body;
     }
+    async json() {
+      const t = await this.text();
+      return t ? JSON.parse(t) : null;
+    }
     async text() {
       if (typeof this._body === 'string') return this._body;
       const buf = await this.arrayBuffer();
@@ -46,11 +50,35 @@ jest.mock('next/server', () => {
       if (this._body instanceof Uint8Array) return this._body.buffer.slice(this._body.byteOffset, this._body.byteOffset + this._body.byteLength);
       if (typeof this._body === 'string') return new TextEncoder().encode(this._body).buffer;
       if (typeof Buffer !== 'undefined' && Buffer.isBuffer(this._body)) return this._body.buffer.slice(this._body.byteOffset, this._body.byteOffset + this._body.byteLength);
+
+      // ReadableStream<Uint8Array>（/api/response 返回的是 web stream）
+      if (this._body && typeof this._body.getReader === 'function') {
+        const reader = this._body.getReader();
+        const chunks: Uint8Array[] = [];
+        let total = 0;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (!value) continue;
+          const u8 = value instanceof Uint8Array ? value : new Uint8Array(value);
+          chunks.push(u8);
+          total += u8.length;
+        }
+        const merged = new Uint8Array(total);
+        let offset = 0;
+        for (const c of chunks) {
+          merged.set(c, offset);
+          offset += c.length;
+        }
+        return merged.buffer;
+      }
+
       return new ArrayBuffer(0);
     }
   }
 
-  const BaseResponse: any = G.Response || (W && W.Response) || SimpleResponse;
+  const BaseResponse: any = SimpleResponse;
 
   class NextResponse extends BaseResponse {
     static json(data: any, init?: any) {
@@ -62,6 +90,11 @@ jest.mock('next/server', () => {
   class NextRequest {}
   return { NextResponse, NextRequest };
 });
+
+jest.mock('@/lib/security', () => ({
+  withSecurity: () => (handler: any) => handler,
+}));
+
 
 // 使用 require 延后引入路由，确保上面的 mock 已生效
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -83,7 +116,7 @@ jest.mock('@/lib/database', () => {
   const databaseService = {
     getAPIConfig: jest.fn(),
     initialize: jest.fn(),
-    getRandomImages: jest.fn(),
+    getRandomImagesIncludingTelegram: jest.fn(),
     getImages: jest.fn()
   };
   return { databaseService };
@@ -95,7 +128,13 @@ jest.mock('@/lib/cloudinary', () => {
 });
 
 jest.mock('@/lib/logger', () => {
-  const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn(), apiResponse: jest.fn() };
+  const logger = {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    apiResponse: jest.fn(),
+    security: jest.fn(),
+  };
   return { logger };
 });
 
@@ -127,7 +166,7 @@ describe('/api/response', () => {
     });
 
     // 默认图片数据
-    mockDatabaseService.getRandomImages.mockResolvedValue([
+    mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([
       {
         id: 'img_000001',
         publicId: 'test_image',
@@ -160,12 +199,12 @@ describe('/api/response', () => {
       expect(responseBuffer.toString()).toBe('fake-image-data');
 
       expect(mockDatabaseService.getAPIConfig).toHaveBeenCalledTimes(1);
-      expect(mockDatabaseService.getRandomImages).toHaveBeenCalledWith(1);
+      expect(mockDatabaseService.getRandomImagesIncludingTelegram).toHaveBeenCalledWith(1, undefined, undefined, undefined);
       expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith('test_image');
     });
 
     it('应该正确识别不同的图片格式', async () => {
-      mockDatabaseService.getRandomImages.mockResolvedValue([
+      mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([
         {
           id: 'img_000002',
           publicId: 'test_image_png',
@@ -187,7 +226,7 @@ describe('/api/response', () => {
 
     it('应识别 Cloudinary 分片域名并使用 SDK 下载', async () => {
       // 测试 res-1.cloudinary.com 分片域名
-      mockDatabaseService.getRandomImages.mockResolvedValueOnce([{
+      mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValueOnce([{
         id: 'img_shard_1',
         publicId: 'test_image_shard',
         url: 'https://res-1.cloudinary.com/test/image/upload/test_image.jpg',
@@ -203,18 +242,37 @@ describe('/api/response', () => {
     });
 
     it('应识别所有 Cloudinary 分片域名（res-1 到 res-5）', async () => {
+      const waitPrefetch = (globalThis as any).__waitForPrefetchForTests;
+      const resetPrefetchCache = (globalThis as any).__resetPrefetchCacheForTests;
+
       for (let i = 1; i <= 5; i++) {
-        mockDatabaseService.getRandomImages.mockResolvedValueOnce([{
+        // 每轮都清空缓存，避免上一轮的预取命中/后台预取串扰 mockResolvedValueOnce 的消费顺序
+        if (typeof resetPrefetchCache === 'function') {
+          resetPrefetchCache();
+        }
+
+        const img = {
           id: `img_shard_${i}`,
           publicId: `test_image_${i}`,
           url: `https://res-${i}.cloudinary.com/test/image/upload/test_image.jpg`,
           groupId: null,
           uploadedAt: new Date()
-        }]);
+        };
+
+        // 1 次给主请求，1 次给后台预取（保证不偷吃下一轮的数据）
+        mockDatabaseService.getRandomImagesIncludingTelegram
+          .mockResolvedValueOnce([img])
+          .mockResolvedValueOnce([img]);
+
         mockCloudinaryService.downloadImage.mockClear();
 
         const request = createMockRequest('http://localhost:3000/api/response');
         await GET(request);
+
+        // 等待预取完成后再进入下一轮，确保后台任务结束
+        if (typeof waitPrefetch === 'function') {
+          await waitPrefetch('all', 1000);
+        }
 
         expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith(`test_image_${i}`);
       }
@@ -226,7 +284,12 @@ describe('/api/response', () => {
       const url = 'http://localhost:3000/api/response';
       const r1 = await GET(createMockRequest(url));
       expect(r1.headers.get('X-Transfer-Mode')).toBe('buffered');
-      await new Promise((r) => setTimeout(r, 20));
+      const waitPrefetch = (globalThis as any).__waitForPrefetchForTests;
+      if (typeof waitPrefetch === 'function') {
+        await waitPrefetch('all', 1000);
+      } else {
+        await new Promise((r) => setTimeout(r, 30));
+      }
       const r2 = await GET(createMockRequest(url));
       expect(r2.headers.get('X-Transfer-Mode')).toBe('prefetch');
     });
@@ -343,7 +406,7 @@ describe('/api/response', () => {
 
   describe('错误处理测试', () => {
     it('当没有找到图片时应该返回404', async () => {
-      mockDatabaseService.getRandomImages.mockResolvedValue([]);
+      mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([]);
 
       const request = createMockRequest('http://localhost:3000/api/response');
       const response = await GET(request);
@@ -378,7 +441,7 @@ describe('/api/response', () => {
     });
 
     it('错误 404 响应应包含禁止缓存头', async () => {
-      mockDatabaseService.getRandomImages.mockResolvedValueOnce([]);
+      mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValueOnce([]);
       const request = createMockRequest('http://localhost:3000/api/response');
       const response = await GET(request);
 

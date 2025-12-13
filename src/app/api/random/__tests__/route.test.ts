@@ -72,7 +72,7 @@ jest.mock('@/lib/database', () => ({
   databaseService: {
     getAPIConfig: jest.fn(),
     initialize: jest.fn(),
-    getRandomImages: jest.fn(),
+    getRandomImagesIncludingTelegram: jest.fn(),
     saveLog: jest.fn()
   },
 }));
@@ -85,7 +85,7 @@ jest.mock('@/lib/security', () => ({
 const mockDatabaseService = databaseService as unknown as {
   getAPIConfig: jest.Mock,
   initialize: jest.Mock,
-  getRandomImages: jest.Mock,
+  getRandomImagesIncludingTelegram: jest.Mock,
 };
 
 const createMockRequest = (url: string): NextRequest => {
@@ -132,7 +132,7 @@ describe('/api/random API端点测试', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDatabaseService.getAPIConfig.mockResolvedValue(mockAPIConfig);
-    mockDatabaseService.getRandomImages.mockResolvedValue([mockImage]);
+    mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([mockImage]);
   });
 
   describe('基础行为', () => {
@@ -171,7 +171,7 @@ describe('/api/random API端点测试', () => {
     it('接受有效参数并按分组获取图片', async () => {
       const request = createMockRequest('http://localhost:3000/api/random?category=nature');
       await GET(request);
-      expect(mockDatabaseService.getRandomImages).toHaveBeenCalledWith(1, 'grp_000001', undefined);
+      expect(mockDatabaseService.getRandomImagesIncludingTelegram).toHaveBeenCalledWith(1, 'grp_000001', undefined, undefined);
     });
 
     it('拒绝无效参数名', async () => {
@@ -212,7 +212,7 @@ describe('/api/random API端点测试', () => {
     });
 
     it('没有图片返回404', async () => {
-      mockDatabaseService.getRandomImages.mockResolvedValue([]);
+      mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([]);
       const request = createMockRequest('http://localhost:3000/api/random');
       const response = await GET(request);
       expect(response.status).toBe(404);
@@ -230,7 +230,7 @@ describe('/api/random API端点测试', () => {
     it('orientation=landscape 时将筛选条件传递到数据库查询', async () => {
       const request = createMockRequest('http://localhost:3000/api/random?orientation=landscape');
       await GET(request);
-      expect(mockDatabaseService.getRandomImages).toHaveBeenCalledWith(1, undefined, { orientation: 'landscape' });
+      expect(mockDatabaseService.getRandomImagesIncludingTelegram).toHaveBeenCalledWith(1, undefined, { orientation: 'landscape' }, undefined);
     });
 
     it('携带 width/height 且未使用 response=true 时返回 400', async () => {

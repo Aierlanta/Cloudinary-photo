@@ -6,12 +6,14 @@ import { ToastContainer } from '@/components/ui/Toast'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
+import { StorageProvider } from '@/lib/storage/base'
 
 interface APIParameter {
   name: string
-  type: 'group' | 'custom'
+  type: 'group' | 'custom' | 'provider'
   allowedValues: string[]
   mappedGroups: string[]
+  mappedProviders?: string[]
   isEnabled: boolean
 }
 
@@ -47,6 +49,7 @@ export default function ParameterModal({
     type: 'group',
     allowedValues: [],
     mappedGroups: [],
+    mappedProviders: [],
     isEnabled: true
   })
   const [newValue, setNewValue] = useState('')
@@ -56,13 +59,18 @@ export default function ParameterModal({
 
   useEffect(() => {
     if (parameter) {
-      setFormData(parameter)
+      setFormData({
+        ...parameter,
+        mappedGroups: Array.isArray(parameter.mappedGroups) ? parameter.mappedGroups : [],
+        mappedProviders: Array.isArray(parameter.mappedProviders) ? parameter.mappedProviders : []
+      })
     } else {
       setFormData({
         name: '',
         type: 'group',
         allowedValues: [],
         mappedGroups: [],
+        mappedProviders: [],
         isEnabled: true
       })
     }
@@ -76,6 +84,11 @@ export default function ParameterModal({
 
     if (formData.allowedValues.length === 0) {
       showError(t.adminConfig.validationError, t.adminConfig.validationFailedAddValue)
+      return
+    }
+
+    if (formData.type === 'provider' && (!formData.mappedProviders || formData.mappedProviders.length === 0)) {
+      showError(t.adminConfig.validationError, t.adminConfig.validationFailedSelectProvider)
       return
     }
 
@@ -115,6 +128,21 @@ export default function ParameterModal({
       setFormData({
         ...formData,
         mappedGroups: [...formData.mappedGroups, groupId]
+      })
+    }
+  }
+
+  const toggleProviderMapping = (provider: string) => {
+    const current = Array.isArray(formData.mappedProviders) ? formData.mappedProviders : []
+    if (current.includes(provider)) {
+      setFormData({
+        ...formData,
+        mappedProviders: current.filter(p => p !== provider)
+      })
+    } else {
+      setFormData({
+        ...formData,
+        mappedProviders: [...current, provider]
       })
     }
   }
@@ -186,7 +214,16 @@ export default function ParameterModal({
                   </label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as 'group' | 'custom' })}
+                    onChange={(e) => {
+                      const nextType = e.target.value as 'group' | 'custom' | 'provider'
+                      setFormData({
+                        ...formData,
+                        type: nextType,
+                        // 切换类型时，清理不相关的映射，避免配置混淆
+                        mappedGroups: nextType === 'provider' ? [] : (Array.isArray(formData.mappedGroups) ? formData.mappedGroups : []),
+                        mappedProviders: nextType === 'provider' ? (Array.isArray(formData.mappedProviders) ? formData.mappedProviders : []) : []
+                      })
+                    }}
                     className={cn(
                       "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                       isLight
@@ -196,6 +233,7 @@ export default function ParameterModal({
                   >
                     <option value="group">{t.adminConfig.groupParameterOption}</option>
                     <option value="custom">{t.adminConfig.customParameterOption}</option>
+                    <option value="provider">{t.adminConfig.providerParameterOption}</option>
                   </select>
                 </div>
               </div>
@@ -283,7 +321,7 @@ export default function ParameterModal({
                 </div>
               </div>
 
-              {/* Group Mapping (only for group parameters) */}
+              {/* Group Mapping (for group parameters) */}
               {formData.type === 'group' && (
                 <div>
                   <label className={cn(
@@ -307,7 +345,7 @@ export default function ParameterModal({
                           isLight
                             ? "bg-white border-gray-300 hover:bg-gray-50"
                             : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-                        )}
+                        )}>
                       >
                         <input
                           type="checkbox"
@@ -326,6 +364,49 @@ export default function ParameterModal({
                           isLight ? "text-gray-500" : "text-gray-400"
                         )}>
                           ({group.imageCount})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Provider Mapping (for provider parameters) */}
+              {formData.type === 'provider' && (
+                <div>
+                  <label className={cn(
+                    "block text-sm font-medium mb-2 rounded-lg",
+                    isLight ? "text-gray-700" : "text-gray-300"
+                  )}>
+                    {t.adminConfig.mappedProvidersLabel}
+                  </label>
+                  <p className={cn(
+                    "text-xs mb-3 rounded-lg",
+                    isLight ? "text-gray-500" : "text-gray-400"
+                  )}>
+                    {t.adminConfig.mappedProvidersDesc}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto rounded-lg">
+                    {Object.values(StorageProvider).map(provider => (
+                      <label
+                        key={provider}
+                        className={cn(
+                          "flex items-center p-2 border transition-colors rounded-lg",
+                          isLight
+                            ? "bg-white border-gray-300 hover:bg-gray-50"
+                            : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+                        )}>
+                        <input
+                          type="checkbox"
+                          checked={(formData.mappedProviders || []).includes(provider)}
+                          onChange={() => toggleProviderMapping(provider)}
+                          className="w-4 h-4 border-gray-300 rounded-lg"
+                        />
+                        <span className={cn(
+                          "ml-2 text-sm rounded-lg",
+                          isLight ? "text-gray-900" : "text-gray-100"
+                        )}>
+                          {provider}
                         </span>
                       </label>
                     ))}

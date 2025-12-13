@@ -22,7 +22,7 @@ const cloudinaryService = CloudinaryService.getInstance();
 
 // ---------------- 预缓存（内存）实现 ----------------
 // 以参数筛选结果为维度的单槽预取缓存：同一筛选条件维持一个“下一张”的缓冲
-// key 规则：当无分组限制时使用 'all'，否则使用 'groups:<排序后的分组ID,逗号分隔>'
+// key 规则：无筛选时使用 'all'；否则拼接 providers/groups 的排序结果
 interface PrefetchedItem {
   buffer: Buffer;
   mimeType: string;
@@ -79,10 +79,20 @@ interface PrefetchSlot {
 const PREFETCH_TTL_MS = Number(process.env.RESPONSE_PREFETCH_TTL_MS ?? '120000'); // 预取缓存TTL（毫秒），默认2分钟
 const prefetchCache = new Map<string, PrefetchSlot>();
 
-function buildGroupKey(groupIds: string[]): string {
-  if (!groupIds || groupIds.length === 0) return 'all';
-  const uniqueSorted = Array.from(new Set(groupIds)).sort();
-  return `groups:${uniqueSorted.join(',')}`;
+function buildFilterKey(groupIds: string[], providers: string[]): string {
+  const parts: string[] = [];
+  const uniqueProviders = Array.from(new Set((providers || []).filter(Boolean))).sort();
+  const uniqueGroups = Array.from(new Set((groupIds || []).filter(Boolean))).sort();
+
+  if (uniqueProviders.length > 0) {
+    parts.push(`providers:${uniqueProviders.join(',')}`);
+  }
+  if (uniqueGroups.length > 0) {
+    parts.push(`groups:${uniqueGroups.join(',')}`);
+  }
+
+  if (parts.length === 0) return 'all';
+  return parts.join('|');
 }
 
 function takePrefetched(key: string): PrefetchedItem | undefined {
@@ -282,7 +292,7 @@ async function downloadImageWithCandidates(
   );
 }
 
-async function prefetchNext(key: string, groupIds: string[], request?: NextRequest): Promise<void> {
+async function prefetchNext(key: string, groupIds: string[], providers: string[], request?: NextRequest): Promise<void> {
   // 已有进行中的预取则复用
   const existing = prefetchCache.get(key);
   if (existing?.inflight) return existing.inflight;
@@ -290,7 +300,7 @@ async function prefetchNext(key: string, groupIds: string[], request?: NextReque
   const inflight = (async () => {
     try {
       // 选择下一张随机图片（与当前筛选条件一致）
-      const img = await getRandomImageFromGroups(groupIds);
+      const img = await getRandomImageFromGroupsAndProviders(groupIds, providers);
       if (!img) return; // 无可用图片，跳过
       const baseMimeType = getMimeTypeFromUrl(img.url);
       const downloaded = await downloadImageWithCandidates(img, request, baseMimeType);
@@ -341,8 +351,49 @@ function resetPrefetchCacheForTests() {
   prefetchCache.clear();
 }
 
+// 测试辅助：等待指定 key 的预取完成（仅测试调用）
+async function waitForPrefetchForTests(key: string, timeoutMs: number = 500): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const slot = prefetchCache.get(key);
+    if (slot?.item) return;
+
+    if (slot?.inflight) {
+      try {
+        await slot.inflight;
+      } catch {
+        // ignore
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+function getPrefetchKeysForTests(): string[] {
+  return Array.from(prefetchCache.keys());
+}
+
+function getPrefetchStateForTests(key: string): {
+  hasSlot: boolean;
+  hasItem: boolean;
+  hasInflight: boolean;
+  expiresAt?: number;
+} {
+  const slot = prefetchCache.get(key);
+  return {
+    hasSlot: !!slot,
+    hasItem: !!slot?.item,
+    hasInflight: !!slot?.inflight,
+    expiresAt: slot?.expiresAt,
+  };
+}
+
 if (process.env.NODE_ENV === 'test') {
-  (globalThis as { __resetPrefetchCacheForTests?: () => void }).__resetPrefetchCacheForTests = resetPrefetchCacheForTests;
+  (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[] }).__resetPrefetchCacheForTests = resetPrefetchCacheForTests;
+  (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[] }).__waitForPrefetchForTests = waitForPrefetchForTests;
+  (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[]; __getPrefetchStateForTests?: (key: string) => { hasSlot: boolean; hasItem: boolean; hasInflight: boolean; expiresAt?: number } }).__getPrefetchKeysForTests = getPrefetchKeysForTests;
+  (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[]; __getPrefetchStateForTests?: (key: string) => { hasSlot: boolean; hasItem: boolean; hasInflight: boolean; expiresAt?: number } }).__getPrefetchStateForTests = getPrefetchStateForTests;
 }
 
 
@@ -468,7 +519,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     }
 
     // 验证和解析参数（复用现有逻辑）
-    const { allowedGroupIds, hasInvalidParams } = await validateAndParseParams(
+    const { allowedGroupIds, allowedProviders, hasInvalidParams } = await validateAndParseParams(
       queryParams,
       apiConfig
     );
@@ -501,7 +552,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
 
     // 预取命中优先：若存在相同筛选条件的预取结果，直接返回并异步预取下一张
     // 透明度处理会在预取的原始图片上完成，避免重复拉取源图
-    const cacheKey = buildGroupKey(targetGroupIds);
+    const cacheKey = buildFilterKey(targetGroupIds, allowedProviders);
     const prefetched = takePrefetched(cacheKey);
     if (prefetched) {
       let finalBuffer = prefetched.buffer;
@@ -525,7 +576,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       });
 
       // 异步预取下一张（不阻塞响应）
-      prefetchNext(cacheKey, targetGroupIds, request).catch(() => {});
+      prefetchNext(cacheKey, targetGroupIds, allowedProviders, request).catch(() => {});
 
       return new NextResponse(bufferToStream(finalBuffer), {
         status: 200,
@@ -547,7 +598,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
 
 
     // 获取随机图片（复用现有逻辑）
-    const randomImage = await getRandomImageFromGroups(targetGroupIds);
+    const randomImage = await getRandomImageFromGroupsAndProviders(targetGroupIds, allowedProviders);
 
     if (!randomImage) {
       logger.warn('没有找到符合条件的图片', {
@@ -601,7 +652,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     });
 
     // 异步预取下一张（不阻塞响应；透明度请求同样复用原图预取流程）
-    prefetchNext(cacheKey, targetGroupIds, request).catch(() => {});
+    prefetchNext(cacheKey, targetGroupIds, allowedProviders, request).catch(() => {});
 
     // 返回缓冲响应
     return new NextResponse(bufferToStream(finalBuffer), {
@@ -709,8 +760,9 @@ function bufferToStream(buffer: Buffer): ReadableStream<Uint8Array> {
 async function validateAndParseParams(
   queryParams: Record<string, string>,
   apiConfig: any
-): Promise<{ allowedGroupIds: string[]; hasInvalidParams: boolean }> {
+): Promise<{ allowedGroupIds: string[]; allowedProviders: string[]; hasInvalidParams: boolean }> {
   const allowedGroupIds: string[] = [];
+  const allowedProviders: string[] = [];
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
@@ -723,7 +775,7 @@ async function validateAndParseParams(
     if (filteredEntries.length > 0) {
       hasInvalidParams = true;
     }
-    return { allowedGroupIds, hasInvalidParams };
+    return { allowedGroupIds, allowedProviders, hasInvalidParams };
   }
 
   // 验证每个查询参数
@@ -744,15 +796,23 @@ async function validateAndParseParams(
       continue;
     }
 
-    // 添加对应的分组ID
-    allowedGroupIds.push(...paramConfig.mappedGroups);
+    // 根据参数类型累积过滤条件
+    if (paramConfig.type === 'provider') {
+      if (paramConfig.mappedProviders && paramConfig.mappedProviders.length > 0) {
+        allowedProviders.push(...paramConfig.mappedProviders);
+      }
+    } else {
+      allowedGroupIds.push(...paramConfig.mappedGroups);
+    }
   }
 
   // 去重
   const uniqueGroupIds = [...new Set(allowedGroupIds)];
+  const uniqueProviders = [...new Set(allowedProviders)];
 
   return {
     allowedGroupIds: uniqueGroupIds,
+    allowedProviders: uniqueProviders,
     hasInvalidParams
   };
 }
@@ -760,10 +820,10 @@ async function validateAndParseParams(
 /**
  * 从指定分组中获取随机图片（复用自 /api/random）
  */
-async function getRandomImageFromGroups(groupIds: string[]): Promise<Image | null> {
+async function getRandomImageFromGroups(groupIds: string[], provider?: string): Promise<Image | null> {
   if (groupIds.length === 0) {
     // 从所有图片中选择
-    const images = await databaseService.getRandomImagesIncludingTelegram(1);
+    const images = await databaseService.getRandomImagesIncludingTelegram(1, undefined, undefined, provider);
     return images[0] || null;
   }
 
@@ -772,14 +832,14 @@ async function getRandomImageFromGroups(groupIds: string[]): Promise<Image | nul
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
 
-  const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId);
+  const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId, undefined, provider);
   const image = images[0] || null;
 
   if (!image && groupIds.length > 1) {
     // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
       if (groupId !== selectedGroupId) {
-        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId);
+        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, undefined, provider);
         const fallbackImage = fallbackImages[0] || null;
         if (fallbackImage) {
           return fallbackImage;
@@ -789,6 +849,25 @@ async function getRandomImageFromGroups(groupIds: string[]): Promise<Image | nul
   }
 
   return image;
+}
+
+async function getRandomImageFromGroupsAndProviders(groupIds: string[], providers: string[]): Promise<Image | null> {
+  const uniqueProviders = [...new Set((providers || []).filter(Boolean))];
+  if (uniqueProviders.length === 0) {
+    return getRandomImageFromGroups(groupIds);
+  }
+
+  // 2A：先均匀随机选 provider，再从该 provider 范围内取随机图；失败则回退到其它 provider
+  const randomProviderIndex = Math.floor(Math.random() * uniqueProviders.length);
+  const selectedProvider = uniqueProviders[randomProviderIndex];
+  const tryProviders = [selectedProvider, ...uniqueProviders.filter(p => p !== selectedProvider)];
+
+  for (const p of tryProviders) {
+    const img = await getRandomImageFromGroups(groupIds, p);
+    if (img) return img;
+  }
+
+  return null;
 }
 
 // 应用安全中间件和错误处理
