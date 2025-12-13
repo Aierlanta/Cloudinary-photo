@@ -13,7 +13,7 @@ import {
   StorageStats,
   StorageError
 } from './base';
-import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import { buildFetchInitFor, maskTelegramBotToken } from '@/lib/telegram-proxy';
 import sharp from 'sharp';
 
 export interface TelegramConfig {
@@ -561,14 +561,6 @@ export class TelegramService extends ImageStorageService {
   }
 
   /**
-   * 脱敏 Token (只保留前后各4位)
-   */
-  private maskToken(token: string): string {
-    if (token.length <= 8) return '****';
-    return `${token.substring(0, 4)}...${token.substring(token.length - 4)}`;
-  }
-
-  /**
    * 从文件名提取格式
    */
   private extractFormat(filename: string): string {
@@ -729,7 +721,7 @@ export class TelegramService extends ImageStorageService {
       tokenCount: this.tokenManager.getTokenCount(),
       healthStatus: Array.from(this.tokenManager.getHealthStatus().entries()).map(
         ([token, status]) => ({
-          token: this.maskToken(token),
+          token: maskTelegramBotToken(token),
           healthy: status.healthy,
           lastCheck: status.lastCheck
         })

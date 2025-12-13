@@ -10,7 +10,7 @@ import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-utils';
-import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
 
@@ -245,12 +245,6 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       return redirectResponse;
     }
 
-    // 记录成功响应
-    logger.apiResponse('GET', '/api/random', 302, duration, {
-      imageId: randomImage.id,
-      redirectUrl: secureImageUrl
-    });
-
     // 如果是 Telegram 直连图床，则直接回传图片流，避免 302 暴露 token
     if (isTelegramImage(randomImage, secureImageUrl)) {
       const mimeType = getMimeTypeFromUrl(randomImage.url);
@@ -263,7 +257,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
         mimeType: downloaded.mimeType,
         mode: 'buffered',
         via: downloaded.reason,
-        url: downloaded.usedUrl
+        url: redactTelegramBotTokenInUrl(downloaded.usedUrl)
       });
 
       return new NextResponse(bufferToStream(downloaded.buffer), {
@@ -286,6 +280,13 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     const finalRedirectUrl = secureImageUrl.startsWith('http')
       ? secureImageUrl
       : new URL(secureImageUrl, request.url).toString();
+
+    // 记录成功响应（此处一定是 302 跳转路径）
+    logger.apiResponse('GET', '/api/random', 302, duration, {
+      imageId: randomImage.id,
+      redirectUrl: redactTelegramBotTokenInUrl(finalRedirectUrl)
+    });
+
     const redirectResponse = NextResponse.redirect(finalRedirectUrl, 302);
     redirectResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     redirectResponse.headers.set('Pragma', 'no-cache');
@@ -593,14 +594,14 @@ async function downloadImageWithCandidates(
           type: 'api_random_download',
           status: err.status,
           statusText: err.statusText,
-          url: err.url,
+          url: redactTelegramBotTokenInUrl(err.url),
           reason: candidate.reason
         });
       } else {
         logger.warn('随机端点图片下载异常', {
           type: 'api_random_download',
           error: err instanceof Error ? err.message : String(err),
-          url: candidate.url,
+          url: redactTelegramBotTokenInUrl(candidate.url),
           reason: candidate.reason
         });
       }
@@ -608,11 +609,12 @@ async function downloadImageWithCandidates(
   }
 
   if (lastStatus === 404 || lastStatus === 410) {
+    const safeUrl = lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : (lastUrl ?? 'unknown');
     throw new AppError(
       ErrorType.NOT_FOUND,
-      `源图返回 404 (${lastUrl ?? 'unknown'})`,
+      `源图返回 404 (${safeUrl})`,
       404,
-      { url: lastUrl, status: lastStatus }
+      { url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl, status: lastStatus }
     );
   }
 
@@ -621,7 +623,7 @@ async function downloadImageWithCandidates(
       ErrorType.EXTERNAL_SERVICE_ERROR,
       `源图服务错误 (${lastStatus})`,
       502,
-      { url: lastUrl, status: lastStatus }
+      { url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl, status: lastStatus }
     );
   }
 
@@ -629,7 +631,11 @@ async function downloadImageWithCandidates(
     ErrorType.INTERNAL_ERROR,
     '下载图片失败',
     500,
-    { url: lastUrl, status: lastStatus, error: lastError instanceof Error ? lastError.message : String(lastError ?? '') }
+    {
+      url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl,
+      status: lastStatus,
+      error: lastError instanceof Error ? lastError.message : String(lastError ?? '')
+    }
   );
 }
 

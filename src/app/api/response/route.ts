@@ -12,7 +12,7 @@ import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { adjustImageTransparency, parseTransparencyParams } from '@/lib/image-processor';
 import { convertTgStateToProxyUrl } from '@/lib/image-utils';
-import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import type { Image } from '@/types/models';
 
 
@@ -70,6 +70,7 @@ function isCloudinaryUrl(urlStr: string): boolean {
   }
 }
 
+// 仅用于日志/错误详情：对 Telegram bot token 做脱敏（不影响实际请求/响应）
 interface PrefetchSlot {
   item?: PrefetchedItem;
   inflight?: Promise<void>;
@@ -215,7 +216,7 @@ async function downloadFromCandidate(
       logger.warn('Cloudinary下载失败，使用URL回退获取', {
         type: 'api_download_fallback',
         error: err instanceof Error ? err.message : 'unknown',
-        url: candidate.url
+        url: redactTelegramBotTokenInUrl(candidate.url)
       });
     }
   }
@@ -252,14 +253,14 @@ async function downloadImageWithCandidates(
           type: 'api_download',
           status: err.status,
           statusText: err.statusText,
-          url: err.url,
+          url: redactTelegramBotTokenInUrl(err.url),
           reason: candidate.reason
         });
       } else {
         logger.warn('图片下载异常', {
           type: 'api_download',
           error: err instanceof Error ? err.message : String(err),
-          url: candidate.url,
+          url: redactTelegramBotTokenInUrl(candidate.url),
           reason: candidate.reason
         });
       }
@@ -267,11 +268,12 @@ async function downloadImageWithCandidates(
   }
 
   if (lastStatus === 404 || lastStatus === 410) {
+    const safeUrl = lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : (lastUrl ?? 'unknown');
     throw new AppError(
       ErrorType.NOT_FOUND,
-      `源图返回 404 (${lastUrl ?? 'unknown'})`,
+      `源图返回 404 (${safeUrl})`,
       404,
-      { url: lastUrl, status: lastStatus }
+      { url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl, status: lastStatus }
     );
   }
 
@@ -280,7 +282,7 @@ async function downloadImageWithCandidates(
       ErrorType.EXTERNAL_SERVICE_ERROR,
       `源图服务错误 (${lastStatus})`,
       502,
-      { url: lastUrl, status: lastStatus }
+      { url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl, status: lastStatus }
     );
   }
 
@@ -288,7 +290,11 @@ async function downloadImageWithCandidates(
     ErrorType.INTERNAL_ERROR,
     '下载图片失败',
     500,
-    { url: lastUrl, status: lastStatus, error: lastError instanceof Error ? lastError.message : String(lastError ?? '') }
+    {
+      url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl,
+      status: lastStatus,
+      error: lastError instanceof Error ? lastError.message : String(lastError ?? '')
+    }
   );
 }
 
@@ -326,7 +332,7 @@ async function prefetchNext(key: string, groupIds: string[], providers: string[]
         imageId: img.id,
         size,
         via: downloaded.reason,
-        url: downloaded.usedUrl
+        url: redactTelegramBotTokenInUrl(downloaded.usedUrl)
       });
     } catch (err) {
       // 失败不影响主流程
@@ -648,7 +654,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       mode: 'buffered',
       transparency: transparencyOptions ? 'processed' : 'original',
       via: downloadResult.reason,
-      url: downloadResult.usedUrl
+      url: redactTelegramBotTokenInUrl(downloadResult.usedUrl)
     });
 
     // 异步预取下一张（不阻塞响应；透明度请求同样复用原图预取流程）
@@ -798,11 +804,11 @@ async function validateAndParseParams(
 
     // 根据参数类型累积过滤条件
     if (paramConfig.type === 'provider') {
-      if (paramConfig.mappedProviders && paramConfig.mappedProviders.length > 0) {
-        allowedProviders.push(...paramConfig.mappedProviders);
-      }
+      const providers = Array.isArray(paramConfig.mappedProviders) ? paramConfig.mappedProviders : [];
+      if (providers.length > 0) allowedProviders.push(...providers);
     } else {
-      allowedGroupIds.push(...paramConfig.mappedGroups);
+      const groups = Array.isArray(paramConfig.mappedGroups) ? paramConfig.mappedGroups : [];
+      if (groups.length > 0) allowedGroupIds.push(...groups);
     }
   }
 
