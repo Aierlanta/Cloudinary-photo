@@ -9,7 +9,7 @@ import { StorageProvider } from '@/lib/storage/base';
 
 // 基础验证模式
 export const IdSchema = z.string().min(1, 'ID不能为空');
-export const NameSchema = z.string().min(1, '名称不能为空').max(100, '名称不能超过100个字符');
+export const NameSchema = z.string().trim().min(1, '名称不能为空').max(100, '名称不能超过100个字符');
 export const DescriptionSchema = z.string().max(500, '描述不能超过500个字符').optional();
 export const TagSchema = z.string().min(1).max(50);
 export const TagsSchema = z.array(TagSchema).max(20, '标签数量不能超过20个');

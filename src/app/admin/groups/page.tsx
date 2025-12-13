@@ -20,7 +20,7 @@ import {
 interface Group {
   id: string
   name: string
-  description: string
+  description?: string
   createdAt: string
   imageCount: number
 }
@@ -193,7 +193,7 @@ export default function GroupsPage() {
 
   const startEdit = (group: Group) => {
     setEditingGroup(group)
-    setFormData({ name: group.name, description: group.description })
+    setFormData({ name: group.name, description: group.description || '' })
     setShowCreateForm(false)
   }
 
