@@ -346,7 +346,6 @@ export default function ParameterModal({
                             ? "bg-white border-gray-300 hover:bg-gray-50"
                             : "bg-gray-800 border-gray-600 hover:bg-gray-700"
                         )}>
-                      >
                         <input
                           type="checkbox"
                           checked={formData.mappedGroups.includes(group.id)}
