@@ -8,6 +8,8 @@ A random image API service based on Next.js 14, supporting multiple image hostin
 
 ## Preview
 
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/2b7666a1-2273-410a-9ace-0395a242e4db" />
+
 ### Homepage Preview
 
 <img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/765a5a93-91f7-4bc0-ab0f-0f746af2dbd0" />
