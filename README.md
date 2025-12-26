@@ -8,37 +8,48 @@ A random image API service based on Next.js 14, supporting multiple image hostin
 
 ## Preview
 
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/2b7666a1-2273-410a-9ace-0395a242e4db" />
+
 ### Homepage Preview
 
-<img width="2548" height="1315" alt="image" src="https://github.com/user-attachments/assets/c9f9b5d5-45f6-44c5-8086-286ebe42766d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/765a5a93-91f7-4bc0-ab0f-0f746af2dbd0" />
 
 ### Dashboard
 
-<img width="2560" height="1316" alt="image" src="https://github.com/user-attachments/assets/05cb8c91-f2ca-425c-ba63-cb6b2163ab5b" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/c7549fd8-14fe-4d05-a7df-9628f07196bc" />
+
+### Image update
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/87454195-8540-4c2a-89a4-c563ba2659fa" />
 
 ### Image Management
 
-<img width="2558" height="1314" alt="image" src="https://github.com/user-attachments/assets/3335edca-b09d-45f0-bb45-9ffe1346e27c" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/d53f7d6f-2db8-48b5-a268-1d6b0f764c99" />
 
 ### Group Management
 
-<img width="2560" height="1321" alt="image" src="https://github.com/user-attachments/assets/95e31a3d-cd33-4dff-abba-e280273ec09d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/673c3579-7216-41bb-a035-5d3da4c21c54" />
 
 ### API Configuration
 
-<img width="2560" height="1312" alt="image" src="https://github.com/user-attachments/assets/1d33cb5b-ee1e-49a6-96e2-781eb030c60d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/131a06d1-bf36-4d00-8135-d73d00abf978" />
 
 ### System Status
 
-<img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/4fdf46e7-54e7-4169-84c6-369179bfd9fc" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/bef3ce59-bd05-4942-a9fc-235f0f93c0ed" />
 
 ### System Logs
 
-<img width="2556" height="1310" alt="image" src="https://github.com/user-attachments/assets/651e9756-7c76-4f69-b0f3-b3a07d044c30" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/3c6beb52-76a9-4305-8bd3-ba514aae57b2" />
 
 ### Backup Management
 
-<img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/e95e146f-6c07-4b3f-bab3-2093fd35c622" />
+
+### Security Management
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/5a82b929-6103-486b-9077-7cf482f059c6" />
+
 
 ## Quick Start
 
@@ -183,15 +194,17 @@ GET /api/random?group=wallpaper&key=your-api-key
 GET /api/random
 ```
 
-**Function**: Get a random image, supports group filtering, orientation filtering, and parameter configuration  
+**Function**: Get a random image, supports group/provider filtering, orientation filtering, and parameter configuration  
 **Response**: 302 redirect to image URL  
 **Parameters**:
 
 - `key` - API key (required if authentication is enabled)
 - `group`/custom params - Mapped in admin panel
+- provider-mapped params - Mapped in admin panel to restrict candidate storage providers (optional)
 - `orientation` - `landscape` | `portrait` | `square` (optional; filters by stored width/height/orientation)
 - Example: `?group=wallpaper&orientation=landscape`
 - Example with key: `?group=wallpaper&key=your-api-key`
+- Example (provider-mapped): `?src=fast` (when `src` is configured as a provider parameter in admin panel)
 
 #### Direct Response Endpoint
 
@@ -206,6 +219,8 @@ GET /api/response
 **Parameters**:
 
 - `key` - API key (required if authentication is enabled)
+- `group`/custom params - Mapped in admin panel (same mapping rules as `/api/random`)
+- provider-mapped params - Mapped in admin panel to restrict candidate storage providers (optional)
 - `opacity` - Image opacity (0-1.0), 0 for fully transparent, 1 for fully opaque (optional)
 - `bgColor` - Background color (optional), supports the following formats:
   - Preset color names: `white` (default), `black`
@@ -385,9 +400,11 @@ GET    /api/admin/security/ip-info         # Get IP information and statistics
 
 ### Core Features
 
-- **Random Image API**: Fast random image retrieval with group filtering support
+- **Random Image API**: Fast random image retrieval with group/provider filtering support (via admin-mapped parameters)
 - **Multi-host Storage**: Support for Cloudinary, TgState, Telegram, and a custom external URL provider, with automatic failover between enabled hosts
 - **Management Panel**: Complete web-based admin interface for image and group management
+- **Admin Route History**: Track and display recently visited admin routes for quick navigation
+- **IP Location Badge**: Display IP geolocation in admin security views
 - **API Key Authentication**: Optional API key authentication for public endpoints
 - **Image Processing**: Support for transparency adjustment and background color customization
 - **Prefetch Cache**: Single-slot in-memory cache for improved response time
@@ -402,6 +419,7 @@ GET    /api/admin/security/ip-info         # Get IP information and statistics
 - **Rate Limiting**: Configurable rate limits per IP address
 - **IP Banning**: Block malicious IPs with automatic or manual banning
 - **Access Logging**: Detailed access logs with IP tracking and statistics
+- **Sensitive Data Redaction**: Mask secrets in logs and error outputs (e.g., API keys, Telegram bot tokens)
 - **Session Security**: HMAC-SHA256 signed session tokens for enhanced security
 
 ## Project Architecture
@@ -600,6 +618,6 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 
 ---
 
-**Current Version**: v1.11.0 | **Last Updated**: 2025-11-23
+**Current Version**: v1.13.5 | **Last Updated**: 2025-12-13
 
 For issues or suggestions, feel free to submit an Issue or Pull Request!

@@ -8,37 +8,47 @@
 
 ## 预览
 
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/2b7666a1-2273-410a-9ace-0395a242e4db" />
+
 ### 首页预览
 
-<img width="2548" height="1315" alt="image" src="https://github.com/user-attachments/assets/c9f9b5d5-45f6-44c5-8086-286ebe42766d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/765a5a93-91f7-4bc0-ab0f-0f746af2dbd0" />
 
 ### 仪表盘
 
-<img width="2560" height="1316" alt="image" src="https://github.com/user-attachments/assets/05cb8c91-f2ca-425c-ba63-cb6b2163ab5b" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/c7549fd8-14fe-4d05-a7df-9628f07196bc" />
+
+### 图片更新
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/87454195-8540-4c2a-89a4-c563ba2659fa" />
 
 ### 图片管理
 
-<img width="2558" height="1314" alt="image" src="https://github.com/user-attachments/assets/3335edca-b09d-45f0-bb45-9ffe1346e27c" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/d53f7d6f-2db8-48b5-a268-1d6b0f764c99" />
 
 ### 分组管理
 
-<img width="2560" height="1321" alt="image" src="https://github.com/user-attachments/assets/95e31a3d-cd33-4dff-abba-e280273ec09d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/673c3579-7216-41bb-a035-5d3da4c21c54" />
 
 ### API 配置
 
-<img width="2560" height="1312" alt="image" src="https://github.com/user-attachments/assets/1d33cb5b-ee1e-49a6-96e2-781eb030c60d" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/131a06d1-bf36-4d00-8135-d73d00abf978" />
 
 ### 系统状态
 
-<img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/4fdf46e7-54e7-4169-84c6-369179bfd9fc" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/bef3ce59-bd05-4942-a9fc-235f0f93c0ed" />
 
 ### 系统日志
 
-<img width="2556" height="1310" alt="image" src="https://github.com/user-attachments/assets/651e9756-7c76-4f69-b0f3-b3a07d044c30" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/3c6beb52-76a9-4305-8bd3-ba514aae57b2" />
 
 ### 备份管理
 
-<img width="2560" height="1306" alt="image" src="https://github.com/user-attachments/assets/a3801ac3-1592-4641-8d5a-d5ca0eb29730" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/e95e146f-6c07-4b3f-bab3-2093fd35c622" />
+
+### 风控管理
+
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/5a82b929-6103-486b-9077-7cf482f059c6" />
 
 ## 快速开始
 
@@ -193,15 +203,17 @@ GET /api/random?group=wallpaper&key=你的API密钥
 GET /api/random
 ```
 
-**功能**: 获取随机图片，支持分组筛选、横竖图筛选和参数配置  
+**功能**: 获取随机图片，支持分组/图床筛选、横竖图筛选和参数配置  
 **响应**: 302 重定向到图片 URL  
 **参数**:
 
 - `key` - API 密钥（启用鉴权时必需）
 - `group`/自定义参数 - 通过管理面板映射
+- `provider` 类型参数 - 通过管理面板映射到图床（可选，用于限制候选图床）
 - `orientation` - `landscape` | `portrait` | `square`（可选，用于按宽高/方向过滤）
 - 例如: `?group=wallpaper&orientation=landscape`
 - 带密钥示例: `?group=wallpaper&key=你的API密钥`
+- 示例（provider 映射参数）：`?src=fast`（需在管理面板将 `src` 配置为 provider 类型参数）
 
 #### 直接响应接口
 
@@ -216,6 +228,8 @@ GET /api/response
 **参数**:
 
 - `key` - API 密钥（启用鉴权时必需）
+- `group`/自定义参数 - 通过管理面板映射（同 `/api/random` 规则）
+- `provider` 类型参数 - 通过管理面板映射到图床（可选，用于限制候选图床）
 - `opacity` - 图片透明度（0-1.0），0 表示完全透明，1 表示完全不透明（可选）
 - `bgColor` - 背景颜色（可选），支持以下格式：
   - 预设颜色名称：`white`（默认）、`black`
@@ -396,9 +410,11 @@ GET    /api/admin/security/ip-info         # 获取IP信息和统计
 
 ### 核心功能
 
-- **随机图片 API**: 快速的随机图片获取，支持分组过滤
+- **随机图片 API**: 快速的随机图片获取，支持分组/图床过滤（通过管理面板映射参数）
 - **多图床存储**: 支持 Cloudinary、TgState、Telegram 直连以及自定义外链，具备自动故障转移
 - **管理面板**: 完整的 Web 管理界面，用于图片和分组管理
+- **管理路由访问历史**: 记录并展示最近访问的后台路由，便于快速导航
+- **IP 地理位置徽标**: 在风控相关页面展示 IP 地理位置信息
 - **API Key 认证**: 可选的 API Key 认证功能，保护公共端点
 - **图片处理**: 支持透明度调整和背景颜色自定义
 - **预取缓存**: 单槽内存缓存，提升响应速度
@@ -413,6 +429,7 @@ GET    /api/admin/security/ip-info         # 获取IP信息和统计
 - **速率限制**: 可配置的 IP 速率限制
 - **IP 封禁**: 自动或手动封禁恶意 IP
 - **访问日志**: 详细的访问日志，包含 IP 跟踪和统计
+- **敏感信息脱敏**: 日志与错误输出中对敏感字段进行脱敏（如 API Key、Telegram Bot Token）
 - **会话安全**: HMAC-SHA256 签名的会话令牌，增强安全性
 
 ## 项目架构
@@ -611,6 +628,6 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 
 ---
 
-**当前版本**: v1.11.0 | **最后更新**: 2025-11-23
+**当前版本**: v1.13.5 | **最后更新**: 2025-12-13
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request！

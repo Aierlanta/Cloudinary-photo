@@ -1,0 +1,118 @@
+name: Auto tag from .version (no timestamp)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".version"
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          # Find the latest commit in this push that changed .version
+          if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+            COMMITS="$(git rev-list --reverse "$AFTER")"
+          else
+            COMMITS="$(git rev-list --reverse "$BEFORE..$AFTER")"
+          fi
+
+          TARGET_SHA=""
+          while read -r sha; do
+            if git diff-tree --no-commit-id --name-only -r "$sha" | grep -qx "\.version"; then
+              TARGET_SHA="$sha"
+            fi
+          done <<< "$COMMITS"
+
+          if [[ -z "$TARGET_SHA" ]]; then
+            echo "No .version change found in push range; skipping."
+            exit 0
+          fi
+
+          RAW_VERSION="$(git show "${TARGET_SHA}:.version" | tr -d '\r\n')"
+          PREFIX="${RAW_VERSION%%_*}"
+          PREFIX="$(echo -n "$PREFIX" | tr -d '[:space:]')"
+          PREFIX="${PREFIX#v}"
+          PREFIX="${PREFIX#V}"
+
+          # Best-effort extract a SemVer-like string (x.y.z with optional -prerelease and/or +build)
+          BASE_VERSION="$(echo -n "$PREFIX" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+([\-][0-9A-Za-z.-]+)?([+][0-9A-Za-z.-]+)?' | head -n 1 || true)"
+
+          if [[ -z "$BASE_VERSION" ]]; then
+            echo "No SemVer found in .version at $TARGET_SHA: '$RAW_VERSION'; skipping."
+            exit 0
+          fi
+
+          TAG="v${BASE_VERSION}"
+
+          # Prevent version downgrade: compare against the highest existing vX.Y.Z tag (numeric only).
+          parse_numeric() {
+            # input: 1.2.3 or 1.2.3-rc.1+build -> output: "1 2 3"
+            local v="$1"
+            v="${v%%+*}"
+            v="${v%%-*}"
+            IFS='.' read -r a b c <<< "$v"
+            echo "${a:-0} ${b:-0} ${c:-0}"
+          }
+
+          ver_lt() {
+            # returns 0 (true) if $1 < $2 by numeric major/minor/patch
+            read -r a1 b1 c1 <<< "$(parse_numeric "$1")"
+            read -r a2 b2 c2 <<< "$(parse_numeric "$2")"
+            if (( a1 != a2 )); then
+              (( a1 < a2 ))
+              return
+            fi
+            if (( b1 != b2 )); then
+              (( b1 < b2 ))
+              return
+            fi
+            (( c1 < c2 ))
+          }
+
+          HIGHEST=""
+          while read -r t; do
+            # only consider stable numeric tags like v1.2.3
+            if [[ "$t" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              v="${t#v}"
+              if [[ -z "$HIGHEST" ]] || ver_lt "$HIGHEST" "$v"; then
+                HIGHEST="$v"
+              fi
+            fi
+          done < <(git tag -l 'v*' || true)
+
+          if [[ -n "$HIGHEST" ]] && ver_lt "$BASE_VERSION" "$HIGHEST"; then
+            echo "Version downgrade detected: new '$TAG' < existing highest 'v$HIGHEST'. Refusing to tag."
+            exit 1
+          fi
+
+          # If tag already exists, skip (per configured conflict policy)
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag '$TAG' already exists; skipping."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$TAG" -m "Release $TAG" "$TARGET_SHA"
+          git push origin "refs/tags/$TAG"
+
+
