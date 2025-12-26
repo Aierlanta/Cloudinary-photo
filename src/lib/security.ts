@@ -412,6 +412,21 @@ export function withSecurity(options: {
         }
 
       } catch (error) {
+        // 重要：这里的异常会被“吞掉并转成 500 JSON”，外层 withErrorHandler 无法拿到 error 实例。
+        // 为了排查“偶发 500 但终端没有堆栈”的问题，必须在这里打印真实错误。
+        try {
+          console.error('[withSecurity] Unhandled error', {
+            method,
+            path: request?.nextUrl?.pathname,
+            ip: clientIP,
+            userAgent,
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+        } catch {
+          // 忽略日志自身的异常
+        }
+
         // 检查是否是AppError并获取正确的状态码
         const statusCode = error instanceof AppError ? error.statusCode : 500;
 
