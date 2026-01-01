@@ -33,6 +33,7 @@
     "mysql2": "^3.14.2",
     "next": "^14.2.35",
     "postcss": "^8",
+    "posthog-js": "^1.312.0",
     "prisma": "^6.12.0",
     "react": "^18",
     "react-dom": "^18",

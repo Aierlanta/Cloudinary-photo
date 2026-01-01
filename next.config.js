@@ -79,6 +79,25 @@ const nextConfig = {
   // 优化服务器启动
   poweredByHeader: false,
   compress: true,
+  // PostHog 代理配置 - 避免广告拦截器阻止并解决网络问题
+  async rewrites() {
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/ingest/:path*",
+        destination: "https://us.i.posthog.com/:path*",
+      },
+      {
+        source: "/ingest/decide",
+        destination: "https://us.i.posthog.com/decide",
+      },
+    ];
+  },
+  // 跳过 PostHog 的请求头处理
+  skipTrailingSlashRedirect: true,
 }
 
 module.exports = nextConfig

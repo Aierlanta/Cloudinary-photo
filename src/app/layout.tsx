@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { PageErrorBoundary } from '@/components/ErrorBoundary'
 import { cookies, headers } from 'next/headers'
+import { PHProvider } from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -38,9 +39,11 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" data-theme={theme} className={theme === 'dark' ? 'dark' : undefined}>
       <body className={inter.className}>
-        <PageErrorBoundary>
-          {children}
-        </PageErrorBoundary>
+        <PHProvider>
+          <PageErrorBoundary>
+            {children}
+          </PageErrorBoundary>
+        </PHProvider>
       </body>
     </html>
   )
