@@ -53,17 +53,17 @@ function getClientIP(request: NextRequest): string {
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
-  
+
   const realIP = request.headers.get('x-real-ip');
   if (realIP) {
     return realIP;
   }
-  
+
   const cfConnectingIP = request.headers.get('cf-connecting-ip');
   if (cfConnectingIP) {
     return cfConnectingIP;
   }
-  
+
   // 回退到默认值
   return 'unknown';
 }
@@ -167,7 +167,7 @@ export function createRateLimitResponse(
   remaining: number = 0
 ): Response {
   const resetTimeSeconds = Math.ceil((resetTime - Date.now()) / 1000);
-  
+
   return new Response(
     JSON.stringify({
       success: false,
@@ -200,23 +200,27 @@ export function setSecurityHeaders(response: Response): Response {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
-  
+
   // 内容安全策略
   const tgStateBaseUrl = process.env.TGSTATE_BASE_URL || '';
   const tgStateDomain = tgStateBaseUrl ? new URL(tgStateBaseUrl).origin : '';
+
+  // PostHog 分析服务域名
+  const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || '';
+  const posthogDomain = posthogHost ? new URL(posthogHost).origin : '';
 
   response.headers.set(
     'Content-Security-Policy',
     `
       default-src 'self';
       img-src 'self' https: data:;
-      connect-src 'self' https://api.telegram.org https://res.cloudinary.com${tgStateDomain ? ` ${tgStateDomain}` : ''};
-      script-src 'self' 'unsafe-inline' 'unsafe-eval';
+      connect-src 'self' https://api.telegram.org https://res.cloudinary.com${tgStateDomain ? ` ${tgStateDomain}` : ''}${posthogDomain ? ` ${posthogDomain} https://us-assets.i.posthog.com` : ''} https://va.vercel-scripts.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval'${posthogDomain ? ` https://us-assets.i.posthog.com` : ''} https://va.vercel-scripts.com;
       style-src 'self' 'unsafe-inline';
       font-src 'self' data:;
     `.replace(/\n/g, '')
   );
-  
+
   // 严格传输安全
   if (process.env.NODE_ENV === 'production') {
     response.headers.set(
@@ -224,16 +228,16 @@ export function setSecurityHeaders(response: Response): Response {
       'max-age=31536000; includeSubDomains'
     );
   }
-  
+
   // 引用策略
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+
   // 权限策略
   response.headers.set(
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=()'
   );
-  
+
   return response;
 }
 
@@ -245,7 +249,7 @@ export function validateContentType(
   allowedTypes: string[]
 ): void {
   const contentType = request.headers.get('content-type');
-  
+
   if (!contentType) {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
@@ -253,11 +257,11 @@ export function validateContentType(
       400
     );
   }
-  
-  const isAllowed = allowedTypes.some(type => 
+
+  const isAllowed = allowedTypes.some(type =>
     contentType.toLowerCase().includes(type.toLowerCase())
   );
-  
+
   if (!isAllowed) {
     throw new AppError(
       ErrorType.VALIDATION_ERROR,
@@ -291,7 +295,7 @@ export function validateRequestSize(
   maxSizeBytes: number
 ): void {
   const contentLength = request.headers.get('content-length');
-  
+
   if (contentLength) {
     const size = parseInt(contentLength, 10);
     if (size > maxSizeBytes) {
@@ -314,7 +318,7 @@ export function withSecurity(options: {
   maxRequestSize?: number;
   enableAccessLog?: boolean; // 是否启用访问日志
 }) {
-  return function<T extends any[]>(
+  return function <T extends any[]>(
     handler: (...args: T) => Promise<Response>
   ) {
     return async (...args: T): Promise<Response> => {
@@ -452,10 +456,10 @@ export function withSecurity(options: {
           response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
           response.headers.set('Pragma', 'no-cache');
           response.headers.set('Expires', '0');
-          
+
           return setSecurityHeaders(response);
         }
-        
+
         // 兼容测试环境的检查
         if (error && typeof error === 'object' && 'type' in error && 'message' in error) {
           const appError = error as AppError;
@@ -473,10 +477,10 @@ export function withSecurity(options: {
           response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
           response.headers.set('Pragma', 'no-cache');
           response.headers.set('Expires', '0');
-          
+
           return setSecurityHeaders(response);
         }
-        
+
         // 未知错误
         const response = NextResponse.json(
           {
@@ -492,7 +496,7 @@ export function withSecurity(options: {
         response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
         response.headers.set('Pragma', 'no-cache');
         response.headers.set('Expires', '0');
-        
+
         return setSecurityHeaders(response);
       }
     };
@@ -514,7 +518,7 @@ export function getRateLimitStats(): Array<{
     resetTime: number;
     remaining: number;
   }> = [];
-  
+
   for (const [key, data] of rateLimitStore.entries()) {
     const [ip, path] = key.split(':');
     stats.push({
@@ -524,7 +528,7 @@ export function getRateLimitStats(): Array<{
       remaining: Math.max(0, DEFAULT_RATE_LIMITS.public.maxRequests - data.count)
     });
   }
-  
+
   return stats;
 }
 
