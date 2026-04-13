@@ -11,6 +11,7 @@ import { withSecurity } from '@/lib/security';
 import { AppError, ErrorType } from '@/types/errors';
 import { APIConfigUpdateRequestSchema } from '@/types/schemas';
 import { StorageProvider } from '@/lib/storage/base';
+import { createDefaultResponseParamsConfig } from '@/lib/response-params';
 import {
   APIResponse,
   APIConfigResponse
@@ -35,6 +36,7 @@ async function getAPIConfig(request: NextRequest): Promise<Response> {
         defaultScope: 'all',
         defaultGroups: [],
         allowedParameters: [],
+        responseParams: createDefaultResponseParamsConfig(),
         enableDirectResponse: false,
         apiKeyEnabled: false,
         apiKey: undefined,
@@ -103,6 +105,7 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
         defaultScope: 'all',
         defaultGroups: [],
         allowedParameters: [],
+        responseParams: createDefaultResponseParamsConfig(),
         enableDirectResponse: false,
         apiKeyEnabled: false,
         apiKey: undefined,
@@ -275,6 +278,25 @@ function generateAPIExamples(baseUrl: string, config: any) {
         description: '使用多个参数组合筛选图片'
       });
     }
+  }
+
+  if (config.responseParams?.format?.enabled) {
+    const exampleFormat = config.responseParams.format.allowedValues?.[0];
+    if (exampleFormat) {
+      examples.push({
+        title: '按指定格式返回',
+        url: `${baseUrl}/api/random?format=${exampleFormat === 'jpeg' ? 'jpg' : exampleFormat}`,
+        description: `返回 ${exampleFormat.toUpperCase()} 格式图片`
+      });
+    }
+  }
+
+  if (config.responseParams?.quality?.enabled) {
+    examples.push({
+      title: '按质量参数返回',
+      url: `${baseUrl}/api/random?quality=0.8`,
+      description: '按 80% 质量动态返回图片'
+    });
   }
   
   return examples;

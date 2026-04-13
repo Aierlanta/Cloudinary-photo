@@ -128,11 +128,37 @@ describe('DatabaseService', () => {
       expect(mockPrisma.aPIConfig.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           update: expect.objectContaining({
+            allowedParameters: JSON.stringify({
+              version: 2,
+              items: [],
+              responseParams: {
+                format: {
+                  enabled: false,
+                  allowedValues: ['jpeg', 'webp']
+                },
+                quality: {
+                  enabled: false
+                }
+              }
+            }),
             enableDirectResponse: false,
             apiKeyEnabled: false,
             apiKey: undefined
           }),
           create: expect.objectContaining({
+            allowedParameters: JSON.stringify({
+              version: 2,
+              items: [],
+              responseParams: {
+                format: {
+                  enabled: false,
+                  allowedValues: ['jpeg', 'webp']
+                },
+                quality: {
+                  enabled: false
+                }
+              }
+            }),
             enableDirectResponse: false,
             apiKeyEnabled: false,
             apiKey: undefined
@@ -310,6 +336,69 @@ describe('DatabaseService', () => {
         createdAt: expect.any(Date)
       });
     });
+
+    it('计数器不存在时应自动初始化后再保存分组', async () => {
+      const groupData = {
+        name: '自动初始化分组',
+        description: '首次建库后的分组'
+      };
+
+      mockPrisma.counter.update
+        .mockRejectedValueOnce(new Error('Record to update not found'))
+        .mockResolvedValueOnce({ id: 'groupId', value: 1 });
+
+      mockPrisma.image.findMany.mockResolvedValue([]);
+      mockPrisma.group.findMany.mockResolvedValue([]);
+      mockPrisma.counter.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockPrisma.counter.create
+        .mockResolvedValueOnce({ id: 'image_counter', value: 0 })
+        .mockResolvedValueOnce({ id: 'groupId', value: 0 });
+      mockPrisma.aPIConfig.findUnique.mockResolvedValue(null);
+      mockPrisma.aPIConfig.upsert.mockResolvedValue({
+        id: 'default',
+        isEnabled: true,
+        defaultScope: 'all',
+        defaultGroups: '[]',
+        allowedParameters: '[]',
+        enableDirectResponse: false,
+        apiKeyEnabled: false,
+        apiKey: null,
+        updatedAt: new Date()
+      });
+      mockPrisma.$transaction.mockImplementation(async (callback: any) => callback(mockPrisma));
+
+      const mockGroup = {
+        id: 'grp_000001',
+        name: groupData.name,
+        description: groupData.description,
+        imageCount: 0,
+        createdAt: new Date()
+      };
+      mockPrisma.group.create.mockResolvedValue(mockGroup);
+
+      const result = await databaseService.saveGroup(groupData);
+
+      expect(mockPrisma.counter.create).toHaveBeenCalledWith({
+        data: { id: 'groupId', value: 0 }
+      });
+      expect(mockPrisma.group.create).toHaveBeenCalledWith({
+        data: {
+          id: 'grp_000001',
+          name: groupData.name,
+          description: groupData.description,
+          imageCount: 0
+        }
+      });
+      expect(result).toEqual({
+        id: 'grp_000001',
+        name: groupData.name,
+        description: groupData.description,
+        imageCount: 0,
+        createdAt: expect.any(Date)
+      });
+    });
   });
 
   describe('API配置操作', () => {
@@ -319,15 +408,27 @@ describe('DatabaseService', () => {
         isEnabled: true,
         defaultScope: 'all',
         defaultGroups: '["grp_000001"]',
-        allowedParameters: JSON.stringify([
-          {
-            name: 'category',
-            type: 'group',
-            allowedValues: ['grp_000001'],
-            mappedGroups: ['grp_000001'],
-            isEnabled: true
+        allowedParameters: JSON.stringify({
+          version: 2,
+          items: [
+            {
+              name: 'category',
+              type: 'group',
+              allowedValues: ['grp_000001'],
+              mappedGroups: ['grp_000001'],
+              isEnabled: true
+            }
+          ],
+          responseParams: {
+            format: {
+              enabled: true,
+              allowedValues: ['webp']
+            },
+            quality: {
+              enabled: true
+            }
           }
-        ]),
+        }),
         enableDirectResponse: true,
         apiKeyEnabled: true,
         apiKey: 'secret',
@@ -356,6 +457,15 @@ describe('DatabaseService', () => {
             isEnabled: true
           }
         ],
+        responseParams: {
+          format: {
+            enabled: true,
+            allowedValues: ['webp']
+          },
+          quality: {
+            enabled: true
+          }
+        },
         enableDirectResponse: true,
         apiKeyEnabled: true,
         apiKey: 'secret',

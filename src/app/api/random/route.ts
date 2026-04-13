@@ -11,6 +11,8 @@ import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
+import { validateManagedResponseParams } from '@/lib/response-params';
+import { serveRandomResponse } from '@/app/api/random/response/service';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
 
@@ -33,14 +35,14 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     searchParams.forEach((value, key) => {
       queryParams[key] = value;
     });
-    const useResponseFlow = searchParams.get('response') === 'true';
+    const explicitResponseFlow = searchParams.get('response') === 'true';
     const orientation = parseOrientation(searchParams.get('orientation'));
 
     const requestedWidth = searchParams.get('width');
     const requestedHeight = searchParams.get('height');
     const fit = searchParams.get('fit');
 
-    if ((requestedWidth || requestedHeight || fit) && !useResponseFlow) {
+    if ((requestedWidth || requestedHeight || fit) && !explicitResponseFlow) {
       throw new AppError(
         ErrorType.VALIDATION_ERROR,
         '指定裁剪尺寸时请使用 response=true 以便服务器处理变换',
@@ -134,6 +136,9 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       });
     }
 
+    const managedResponseParams = validateManagedResponseParams(queryParams, apiConfig);
+    const autoManagedResponseFlow = managedResponseParams.hasManagedResponseParams && !explicitResponseFlow;
+
     // 验证和解析参数
     const { allowedGroupIds, allowedProviders, hasInvalidParams } = await validateAndParseParams(
       queryParams,
@@ -214,7 +219,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       // 忽略解析失败，保持原始URL
     }
 
-    if (useResponseFlow) {
+    if (explicitResponseFlow) {
       const extension = getFileExtensionFromUrl(randomImage.url) || 'jpg';
       const fileName = `${randomImage.id}.${extension}`;
       const forwardedParams = new URLSearchParams();
@@ -243,6 +248,14 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       redirectResponse.headers.set('X-Response-Time', `${duration}ms`);
       redirectResponse.headers.set('X-Image-Mode', 'direct-response');
       return redirectResponse;
+    }
+
+    if (autoManagedResponseFlow) {
+      return serveRandomResponse(request, {
+        imageId: randomImage.id,
+        requireDirectResponseEnabled: false,
+        requestPath: '/api/random'
+      });
     }
 
     // 如果是 Telegram 直连图床，则直接回传图片流，避免 302 暴露 token

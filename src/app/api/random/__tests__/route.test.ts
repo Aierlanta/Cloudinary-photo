@@ -81,12 +81,18 @@ jest.mock('@/lib/security', () => ({
   withSecurity: () => (handler: any) => handler
 }));
 
+jest.mock('@/app/api/random/response/service', () => ({
+  serveRandomResponse: jest.fn()
+}));
+
 
 const mockDatabaseService = databaseService as unknown as {
   getAPIConfig: jest.Mock,
   initialize: jest.Mock,
   getRandomImagesIncludingTelegram: jest.Mock,
 };
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { serveRandomResponse } = require('../response/service');
 
 const createMockRequest = (url: string): NextRequest => {
   return {
@@ -115,6 +121,15 @@ describe('/api/random API端点测试', () => {
         isEnabled: true,
       },
     ],
+    responseParams: {
+      format: {
+        enabled: true,
+        allowedValues: ['jpeg', 'webp']
+      },
+      quality: {
+        enabled: true
+      }
+    },
     enableDirectResponse: false,
     apiKeyEnabled: false,
     updatedAt: new Date('2024-01-01T00:00:00Z'),
@@ -133,6 +148,12 @@ describe('/api/random API端点测试', () => {
     jest.clearAllMocks();
     mockDatabaseService.getAPIConfig.mockResolvedValue(mockAPIConfig);
     mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([mockImage]);
+    serveRandomResponse.mockResolvedValue({
+      status: 200,
+      headers: new Headers({
+        'Content-Type': 'image/webp'
+      })
+    });
   });
 
   describe('基础行为', () => {
@@ -155,15 +176,27 @@ describe('/api/random API端点测试', () => {
 
     it('response=true 时应重定向到 image 路径', async () => {
       const request = createMockRequest(
-        'http://localhost:3000/api/random?response=true&opacity=80&format=png&quality=70'
+        'http://localhost:3000/api/random?response=true&opacity=80&format=webp&quality=70'
       );
       const response = await GET(request);
 
       expect(response.status).toBe(302);
       expect(response.headers.get('Location')).toBe(
-        'http://localhost:3000/image/img_000001.jpg?opacity=80&format=png&quality=70'
+        'http://localhost:3000/image/img_000001.jpg?opacity=80&format=webp&quality=70'
       );
       expect(response.headers.get('X-Image-Mode')).toBe('direct-response');
+    });
+
+    it('携带 format 时应自动进入共享处理服务', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?format=webp');
+      const response = await GET(request);
+
+      expect(serveRandomResponse).toHaveBeenCalledWith(request, {
+        imageId: 'img_000001',
+        requireDirectResponseEnabled: false,
+        requestPath: '/api/random'
+      });
+      expect(response.status).toBe(200);
     });
   });
 
@@ -190,6 +223,31 @@ describe('/api/random API端点测试', () => {
       const json = await response.json();
       expect(json.success).toBe(false);
       expect(json.error.type).toBe('VALIDATION_ERROR');
+    });
+
+    it('format 被禁用时应返回 400', async () => {
+      mockDatabaseService.getAPIConfig.mockResolvedValue({
+        ...mockAPIConfig,
+        responseParams: {
+          format: {
+            enabled: false,
+            allowedValues: ['jpeg', 'webp']
+          },
+          quality: {
+            enabled: true
+          }
+        }
+      });
+      const request = createMockRequest('http://localhost:3000/api/random?format=webp');
+      const response = await GET(request);
+      expect(response.status).toBe(400);
+    });
+
+    it('quality 支持 0-1 小数模式', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?quality=0.8');
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+      expect(serveRandomResponse).toHaveBeenCalledTimes(1);
     });
   });
 

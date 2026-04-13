@@ -62,6 +62,26 @@ export const APIParameterSchema = z.object({
   }
 });
 
+export const ManagedResponseFormatSchema = z.enum(['jpeg', 'webp']);
+
+export const ResponseParamsSchema = z.object({
+  format: z.object({
+    enabled: z.boolean().default(false),
+    allowedValues: z.array(ManagedResponseFormatSchema).default(['jpeg', 'webp'])
+  }),
+  quality: z.object({
+    enabled: z.boolean().default(false)
+  })
+}).superRefine((data, ctx) => {
+  if (data.format.enabled && data.format.allowedValues.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: '启用 format 参数时至少需要保留一个输出格式',
+      path: ['format', 'allowedValues']
+    });
+  }
+});
+
 // API配置验证模式
 export const APIConfigSchema = z.object({
   id: IdSchema,
@@ -71,6 +91,15 @@ export const APIConfigSchema = z.object({
   }).default('all'),
   defaultGroups: z.array(IdSchema).default([]),
   allowedParameters: z.array(APIParameterSchema).default([]),
+  responseParams: ResponseParamsSchema.default({
+    format: {
+      enabled: false,
+      allowedValues: ['jpeg', 'webp']
+    },
+    quality: {
+      enabled: false
+    }
+  }),
   // 新增：响应模式配置
   enableDirectResponse: z.boolean().default(false),
   // 新增：API Key 鉴权
@@ -150,6 +179,7 @@ export const APIConfigUpdateRequestSchema = z.object({
   defaultScope: z.enum(['all', 'groups']).optional(),
   defaultGroups: z.array(IdSchema).optional(),
   allowedParameters: z.array(APIParameterSchema).optional(),
+  responseParams: ResponseParamsSchema.optional(),
   enableDirectResponse: z.boolean().optional(),
   apiKeyEnabled: z.boolean().optional(),
   apiKey: z.string().optional()

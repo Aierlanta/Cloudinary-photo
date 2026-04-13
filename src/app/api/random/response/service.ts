@@ -13,10 +13,13 @@ import {
   ResizeFit
 } from '@/lib/image-processor';
 import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import {
+  getCloudinaryManagedFormat,
+  validateManagedResponseParams
+} from '@/lib/response-params';
 
 const cloudinaryService = CloudinaryService.getInstance();
 
-const SUPPORTED_FORMATS: OutputFormat[] = ['jpeg', 'png', 'webp', 'gif'];
 const MIME_TO_FORMAT: Record<string, OutputFormat> = {
   'image/jpeg': 'jpeg',
   'image/png': 'png',
@@ -24,15 +27,6 @@ const MIME_TO_FORMAT: Record<string, OutputFormat> = {
   'image/gif': 'gif'
 };
 const MAX_RESIZE_DIMENSION = 3000;
-
-function normalizeOutputFormat(format?: string): OutputFormat | null {
-  if (!format) {
-    return null;
-  }
-  const normalized = format.toLowerCase();
-  const mapped = normalized === 'jpg' ? 'jpeg' : normalized;
-  return SUPPORTED_FORMATS.includes(mapped as OutputFormat) ? (mapped as OutputFormat) : null;
-}
 
 function isCloudinaryUrl(urlStr: string): boolean {
   try {
@@ -109,34 +103,35 @@ function getClientIP(request: NextRequest): string {
   return realIP || 'unknown';
 }
 
+async function downloadBufferFromUrl(url: string): Promise<Buffer> {
+  const response = await fetch(url, buildFetchInitFor(url, { cache: 'no-store' } as RequestInit));
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 export async function serveRandomResponse(
   request: NextRequest,
-  options?: { imageId?: string }
+  options?: {
+    imageId?: string;
+    requireDirectResponseEnabled?: boolean;
+    requestPath?: string;
+  }
 ): Promise<Response> {
   const startTime = performance.now();
   const url = new URL(request.url);
   const queryParams = Object.fromEntries(url.searchParams.entries());
   const imageId = options?.imageId ?? queryParams.imageId;
-  const requestedFormat = normalizeOutputFormat(queryParams.format);
   const targetWidth = parseDimension(queryParams.width, 'width');
   const targetHeight = parseDimension(queryParams.height, 'height');
   const resizeFit = parseFit(queryParams.fit);
-
-  if (queryParams.format && !requestedFormat) {
-    throw new AppError(ErrorType.VALIDATION_ERROR, '不支持的输出格式', 400);
-  }
+  const requestPath = options?.requestPath || '/api/random/response';
+  const requireDirectResponseEnabled = options?.requireDirectResponseEnabled ?? true;
 
   if (resizeFit && !targetWidth && !targetHeight) {
     throw new AppError(ErrorType.VALIDATION_ERROR, '指定 fit 时需提供 width 或 height', 400);
-  }
-
-  let requestedQuality: number | undefined;
-  if (typeof queryParams.quality !== 'undefined') {
-    const parsedQuality = Number(queryParams.quality);
-    if (!Number.isFinite(parsedQuality) || parsedQuality < 1 || parsedQuality > 100) {
-      throw new AppError(ErrorType.VALIDATION_ERROR, '图片质量需为1-100之间的数字', 400);
-    }
-    requestedQuality = Math.round(parsedQuality);
   }
 
   if (!imageId) {
@@ -152,7 +147,7 @@ export async function serveRandomResponse(
   logger.info('收到随机响应图片请求', {
     type: 'api_request',
     method: 'GET',
-    path: '/api/random/response',
+    path: requestPath,
     params: redactedParams,
     ip: getClientIP(request),
     userAgent: request.headers.get('user-agent')
@@ -172,7 +167,7 @@ export async function serveRandomResponse(
     throw new AppError(ErrorType.FORBIDDEN, 'API服务暂时不可用', 403);
   }
 
-  if (!apiConfig.enableDirectResponse) {
+  if (requireDirectResponseEnabled && !apiConfig.enableDirectResponse) {
     throw new AppError(ErrorType.FORBIDDEN, '直接响应模式未启用，请使用 /api/random', 403);
   }
 
@@ -182,6 +177,8 @@ export async function serveRandomResponse(
       throw new AppError(ErrorType.UNAUTHORIZED, 'API Key无效', 401);
     }
   }
+
+  const { requestedFormat, requestedQuality } = validateManagedResponseParams(queryParams, apiConfig);
 
   const image = await databaseService.getImage(imageId);
   if (!image) {
@@ -206,8 +203,41 @@ export async function serveRandomResponse(
 
   const mimeType = getMimeTypeFromUrl(image.url);
   let imageBuffer: Buffer;
+  let finalMimeType = mimeType;
+  let usedCloudinaryNativeTransform = false;
+  const canUseCloudinaryNativeTransform =
+    isCloudinaryUrl(imageUrl) &&
+    !transparencyOptions &&
+    !targetWidth &&
+    !targetHeight &&
+    !resizeFit &&
+    (requestedFormat || typeof requestedQuality !== 'undefined');
 
-  if (isCloudinaryUrl(imageUrl)) {
+  if (canUseCloudinaryNativeTransform) {
+    try {
+      const transformation: Record<string, string | number> = {};
+      if (typeof requestedQuality !== 'undefined') {
+        transformation.quality = requestedQuality;
+      }
+      if (requestedFormat) {
+        transformation.fetch_format = getCloudinaryManagedFormat(requestedFormat);
+        finalMimeType = requestedFormat === 'jpeg' ? 'image/jpeg' : 'image/webp';
+      }
+
+      imageBuffer = await cloudinaryService.downloadImage(image.publicId, [transformation]);
+      finalMimeType = requestedFormat
+        ? (requestedFormat === 'jpeg' ? 'image/jpeg' : 'image/webp')
+        : finalMimeType;
+      usedCloudinaryNativeTransform = true;
+    } catch (error) {
+      logger.warn('Cloudinary原生转换失败，回退到服务端处理', {
+        type: 'api_random_response_fallback',
+        error: error instanceof Error ? error.message : 'unknown'
+      });
+      imageBuffer = await downloadBufferFromUrl(imageUrl);
+      finalMimeType = mimeType;
+    }
+  } else if (isCloudinaryUrl(imageUrl)) {
     try {
       imageBuffer = await cloudinaryService.downloadImage(image.publicId);
     } catch (error) {
@@ -215,24 +245,13 @@ export async function serveRandomResponse(
         type: 'api_random_response_fallback',
         error: error instanceof Error ? error.message : 'unknown'
       });
-      const resp = await fetch(imageUrl, buildFetchInitFor(imageUrl, { cache: 'no-store' } as RequestInit));
-      if (!resp.ok) {
-        throw error;
-      }
-      const ab = await resp.arrayBuffer();
-      imageBuffer = Buffer.from(ab);
+      imageBuffer = await downloadBufferFromUrl(imageUrl);
     }
   } else {
-    const resp = await fetch(imageUrl, buildFetchInitFor(imageUrl, { cache: 'no-store' } as RequestInit));
-    if (!resp.ok) {
-      throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-    }
-    const ab = await resp.arrayBuffer();
-    imageBuffer = Buffer.from(ab);
+    imageBuffer = await downloadBufferFromUrl(imageUrl);
   }
 
   let finalBuffer = imageBuffer;
-  let finalMimeType = mimeType;
   if (transparencyOptions) {
     const processed = await adjustImageTransparency(imageBuffer, transparencyOptions);
     finalBuffer = processed.buffer;
@@ -249,7 +268,9 @@ export async function serveRandomResponse(
     finalMimeType = resized.mimeType ?? finalMimeType;
   }
 
-  const needsFormatConversion = requestedFormat || typeof requestedQuality !== 'undefined';
+  const needsFormatConversion =
+    !usedCloudinaryNativeTransform &&
+    (requestedFormat || typeof requestedQuality !== 'undefined');
   if (needsFormatConversion) {
     const fallbackFormat = MIME_TO_FORMAT[finalMimeType] || 'jpeg';
     const targetFormat = requestedFormat ?? fallbackFormat;
@@ -264,7 +285,7 @@ export async function serveRandomResponse(
   const size = finalBuffer.length;
   const duration = Math.round(performance.now() - startTime);
 
-  logger.apiResponse('GET', '/api/random/response', 200, duration, {
+  logger.apiResponse('GET', requestPath, 200, duration, {
     imageId: image.id,
     imageSize: size,
     mimeType: finalMimeType,

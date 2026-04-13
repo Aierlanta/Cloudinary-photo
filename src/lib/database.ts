@@ -5,6 +5,10 @@
 
 import { Image, Group, APIConfig, PaginationOptions, PaginatedResult } from '@/types/models';
 import { DatabaseError, NotFoundError } from '@/types/errors';
+import {
+  createDefaultResponseParamsConfig,
+  normalizeResponseParamsConfig
+} from '@/lib/response-params';
 import { LogLevel, LogEntry } from './logger';
 import { prisma } from './prisma';
 
@@ -16,6 +20,73 @@ function normalizeOrientationValue(orientation?: string | null): Image['orientat
     return orientation;
   }
   return 'unknown';
+}
+
+function parseStoredAPIConfigPayload(raw: string | null | undefined): {
+  allowedParameters: APIConfig['allowedParameters'];
+  responseParams: NonNullable<APIConfig['responseParams']>;
+} {
+  const defaults = createDefaultResponseParamsConfig();
+
+  if (!raw) {
+    return {
+      allowedParameters: [],
+      responseParams: defaults
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (Array.isArray(parsed)) {
+      return {
+        allowedParameters: parsed,
+        responseParams: defaults
+      };
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      const container = parsed as {
+        items?: APIConfig['allowedParameters'];
+        allowedParameters?: APIConfig['allowedParameters'];
+        responseParams?: APIConfig['responseParams'];
+      };
+
+      return {
+        allowedParameters: Array.isArray(container.items)
+          ? container.items
+          : Array.isArray(container.allowedParameters)
+          ? container.allowedParameters
+          : [],
+        responseParams: normalizeResponseParamsConfig(container.responseParams)
+      };
+    }
+  } catch {
+    // ignore parse errors and fall back to defaults
+  }
+
+  return {
+    allowedParameters: [],
+    responseParams: defaults
+  };
+}
+
+function stringifyStoredAPIConfigPayload(config: APIConfig): string {
+  return JSON.stringify({
+    version: 2,
+    items: config.allowedParameters,
+    responseParams: normalizeResponseParamsConfig(config.responseParams)
+  });
+}
+
+function isCounterMissingError(error: unknown): boolean {
+  const maybeCode = (error as { code?: string })?.code;
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return (
+    maybeCode === 'P2025' ||
+    message.includes('Record to update not found') ||
+    message.includes('required but not found')
+  );
 }
 
 export class DatabaseService {
@@ -87,6 +158,7 @@ export class DatabaseService {
           defaultScope: 'all',
           defaultGroups: [],
           allowedParameters: [],
+          responseParams: createDefaultResponseParamsConfig(),
           enableDirectResponse: false, // 默认关闭直接响应模式
           apiKeyEnabled: false, // 默认关闭 API Key 鉴权
           apiKey: undefined,
@@ -214,7 +286,7 @@ export class DatabaseService {
   /**
    * 生成新的图片ID
    */
-  private async generateImageId(): Promise<string> {
+  private async generateImageId(retryOnMissingCounter: boolean = true): Promise<string> {
     try {
       const counter = await prisma.counter.update({
         where: { id: 'image_counter' },
@@ -222,6 +294,10 @@ export class DatabaseService {
       });
       return `img_${counter.value.toString().padStart(6, '0')}`;
     } catch (error) {
+      if (retryOnMissingCounter && isCounterMissingError(error)) {
+        await this.initialize();
+        return this.generateImageId(false);
+      }
       throw new DatabaseError('生成图片ID失败', error);
     }
   }
@@ -229,7 +305,7 @@ export class DatabaseService {
   /**
    * 生成新的分组ID
    */
-  private async generateGroupId(): Promise<string> {
+  private async generateGroupId(retryOnMissingCounter: boolean = true): Promise<string> {
     try {
       const counter = await prisma.counter.update({
         where: { id: 'groupId' },
@@ -237,6 +313,10 @@ export class DatabaseService {
       });
       return `grp_${counter.value.toString().padStart(6, '0')}`;
     } catch (error) {
+      if (retryOnMissingCounter && isCounterMissingError(error)) {
+        await this.initialize();
+        return this.generateGroupId(false);
+      }
       throw new DatabaseError('生成分组ID失败', error);
     }
   }
@@ -981,13 +1061,15 @@ export class DatabaseService {
       });
 
       if (!config) return null;
+      const storedConfig = parseStoredAPIConfigPayload(config.allowedParameters);
 
       return {
         id: config.id,
         isEnabled: config.isEnabled,
         defaultScope: config.defaultScope as 'all' | 'groups',
         defaultGroups: config.defaultGroups ? JSON.parse(config.defaultGroups) : [],
-        allowedParameters: config.allowedParameters ? JSON.parse(config.allowedParameters) : [],
+        allowedParameters: storedConfig.allowedParameters,
+        responseParams: storedConfig.responseParams,
         enableDirectResponse: config.enableDirectResponse || false,
         apiKeyEnabled: config.apiKeyEnabled || false,
         apiKey: config.apiKey || undefined,
@@ -1009,7 +1091,7 @@ export class DatabaseService {
           isEnabled: config.isEnabled,
           defaultScope: config.defaultScope,
           defaultGroups: JSON.stringify(config.defaultGroups),
-          allowedParameters: JSON.stringify(config.allowedParameters),
+          allowedParameters: stringifyStoredAPIConfigPayload(config),
           enableDirectResponse: config.enableDirectResponse,
           apiKeyEnabled: config.apiKeyEnabled,
           apiKey: config.apiKey,
@@ -1020,7 +1102,7 @@ export class DatabaseService {
           isEnabled: config.isEnabled,
           defaultScope: config.defaultScope,
           defaultGroups: JSON.stringify(config.defaultGroups),
-          allowedParameters: JSON.stringify(config.allowedParameters),
+          allowedParameters: stringifyStoredAPIConfigPayload(config),
           enableDirectResponse: config.enableDirectResponse,
           apiKeyEnabled: config.apiKeyEnabled || false,
           apiKey: config.apiKey,

@@ -101,6 +101,15 @@ export interface APIConfigUpdateRequest {
     mappedProviders?: string[];
     isEnabled: boolean;
   }>;
+  responseParams?: {
+    format: {
+      enabled: boolean;
+      allowedValues: Array<'jpeg' | 'webp'>;
+    };
+    quality: {
+      enabled: boolean;
+    };
+  };
   // 新增：响应模式配置
   enableDirectResponse?: boolean;
   // 新增：API Key 鉴权

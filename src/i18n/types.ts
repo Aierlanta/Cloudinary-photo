@@ -354,10 +354,13 @@ export interface Translations {
     invalidParameterType: string;
     invalidAllowedValues: string;
     invalidMappedGroups: string;
+    invalidResponseFormats: string;
     exampleRandom: string;
     exampleResponse: string;
     exampleWithParameter: string;
     exampleResponseWithParameter: string;
+    exampleManagedFormat: string;
+    exampleManagedQuality: string;
     defaultScopeDesc: string;
     parameterManagement: string;
     addParameterDesc: string;
@@ -379,6 +382,15 @@ export interface Translations {
     status: string;
     error: string;
     headers: string;
+    responseParamsTitle: string;
+    responseParamsDesc: string;
+    formatParamTitle: string;
+    formatParamDesc: string;
+    formatOptionJpeg: string;
+    formatOptionWebp: string;
+    qualityParamTitle: string;
+    qualityParamDesc: string;
+    qualityParamHint: string;
     // ParameterModal
     addApiParameter: string;
     editApiParameter: string;

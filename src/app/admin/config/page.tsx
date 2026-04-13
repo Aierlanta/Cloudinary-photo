@@ -7,6 +7,10 @@ import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
+import {
+  createDefaultResponseParamsConfig,
+  normalizeResponseParamsConfig
+} from '@/lib/response-params'
 import { 
   Settings, 
   Shield, 
@@ -39,6 +43,15 @@ interface APIConfig {
   defaultScope: 'all' | 'groups'
   defaultGroups: string[]
   allowedParameters: APIParameter[]
+  responseParams: {
+    format: {
+      enabled: boolean
+      allowedValues: Array<'jpeg' | 'webp'>
+    }
+    quality: {
+      enabled: boolean
+    }
+  }
   enableDirectResponse: boolean
   apiKeyEnabled: boolean
   apiKey?: string
@@ -88,6 +101,7 @@ const {
     defaultScope: 'all',
     defaultGroups: [],
     allowedParameters: [],
+    responseParams: createDefaultResponseParamsConfig(),
     enableDirectResponse: false,
     apiKeyEnabled: false,
     apiKey: '',
@@ -110,6 +124,7 @@ const {
         if (loadedConfig.apiKey === undefined) {
           loadedConfig.apiKey = ''
         }
+        loadedConfig.responseParams = normalizeResponseParamsConfig(loadedConfig.responseParams)
         setConfig(loadedConfig)
       } else {
         setConfig(getDefaultConfig())
@@ -178,11 +193,17 @@ const {
       }
     }
 
+    if (config.responseParams.format.enabled && config.responseParams.format.allowedValues.length === 0) {
+      showWarning(t.adminConfig.invalidResponseFormats)
+      return
+    }
+
     const requestData = {
       isEnabled: config.isEnabled,
       defaultScope: config.defaultScope,
       defaultGroups: config.defaultGroups,
       allowedParameters: config.allowedParameters,
+      responseParams: config.responseParams,
       enableDirectResponse: config.enableDirectResponse,
       apiKeyEnabled: config.apiKeyEnabled,
       apiKey: config.apiKey
@@ -284,6 +305,23 @@ const {
         }
       }
     })
+
+    if (config.responseParams.format.enabled) {
+      const exampleFormat = config.responseParams.format.allowedValues[0]
+      if (exampleFormat) {
+        examples.push({
+          label: `${t.adminConfig.exampleManagedFormat} (${exampleFormat})`,
+          url: `${randomBaseUrl}?format=${exampleFormat === 'jpeg' ? 'jpg' : exampleFormat}`
+        })
+      }
+    }
+
+    if (config.responseParams.quality.enabled) {
+      examples.push({
+        label: `${t.adminConfig.exampleManagedQuality} (quality=0.8)`,
+        url: `${randomBaseUrl}?quality=0.8`
+      })
+    }
 
     return examples
   }
@@ -601,6 +639,184 @@ const {
                 </p>
               </div>
             )}
+
+            {/* Response Params Config */}
+            <div className={cn(
+              "border p-6 space-y-6 rounded-lg",
+              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            )}>
+              <div className="flex items-center gap-3 mb-2 rounded-lg">
+                <ExternalLink className={cn(
+                  "w-5 h-5 rounded-lg",
+                  isLight ? "text-blue-500" : "text-blue-400"
+                )} />
+                <div>
+                  <h3 className={cn(
+                    "font-bold text-lg rounded-lg",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {t.adminConfig.responseParamsTitle}
+                  </h3>
+                  <p className={cn(
+                    "text-sm rounded-lg",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    {t.adminConfig.responseParamsDesc}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
+                <div className={cn(
+                  "border p-4 space-y-4 rounded-lg",
+                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                )}>
+                  <div className="flex items-center justify-between gap-3 rounded-lg">
+                    <div>
+                      <h4 className={cn(
+                        "font-semibold rounded-lg",
+                        isLight ? "text-gray-900" : "text-gray-100"
+                      )}>
+                        {t.adminConfig.formatParamTitle}
+                      </h4>
+                      <p className={cn(
+                        "text-sm rounded-lg",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
+                        {t.adminConfig.formatParamDesc}
+                      </p>
+                    </div>
+                    <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
+                      <input
+                        type="checkbox"
+                        checked={config.responseParams.format.enabled}
+                        onChange={(e) => setConfig({
+                          ...config,
+                          responseParams: {
+                            ...config.responseParams,
+                            format: {
+                              ...config.responseParams.format,
+                              enabled: e.target.checked
+                            }
+                          }
+                        })}
+                        className="sr-only"
+                      />
+                      <span className={cn(
+                        "absolute inset-0 transition-colors rounded-lg",
+                        config.responseParams.format.enabled
+                          ? isLight ? "bg-blue-500" : "bg-blue-600"
+                          : isLight ? "bg-gray-300" : "bg-gray-600"
+                      )}></span>
+                      <span className={cn(
+                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
+                        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                        config.responseParams.format.enabled ? "translate-x-6" : "translate-x-0"
+                      )}></span>
+                    </label>
+                  </div>
+
+                  <div className="space-y-3 rounded-lg">
+                    {(['jpeg', 'webp'] as const).map((format) => (
+                      <label
+                        key={format}
+                        className={cn(
+                          "flex items-center gap-3 p-3 border rounded-lg",
+                          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={config.responseParams.format.allowedValues.includes(format)}
+                          onChange={(e) => {
+                            const nextValues = e.target.checked
+                              ? [...config.responseParams.format.allowedValues, format]
+                              : config.responseParams.format.allowedValues.filter((item) => item !== format)
+
+                            setConfig({
+                              ...config,
+                              responseParams: {
+                                ...config.responseParams,
+                                format: {
+                                  ...config.responseParams.format,
+                                  allowedValues: [...new Set(nextValues)]
+                                }
+                              }
+                            })
+                          }}
+                          className={cn(
+                            "border rounded-lg",
+                            isLight ? "border-gray-300" : "border-gray-600"
+                          )}
+                        />
+                        <span className={cn(
+                          "text-sm rounded-lg",
+                          isLight ? "text-gray-900" : "text-gray-100"
+                        )}>
+                          {format === 'jpeg' ? t.adminConfig.formatOptionJpeg : t.adminConfig.formatOptionWebp}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={cn(
+                  "border p-4 space-y-4 rounded-lg",
+                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                )}>
+                  <div className="flex items-center justify-between gap-3 rounded-lg">
+                    <div>
+                      <h4 className={cn(
+                        "font-semibold rounded-lg",
+                        isLight ? "text-gray-900" : "text-gray-100"
+                      )}>
+                        {t.adminConfig.qualityParamTitle}
+                      </h4>
+                      <p className={cn(
+                        "text-sm rounded-lg",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
+                        {t.adminConfig.qualityParamDesc}
+                      </p>
+                    </div>
+                    <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
+                      <input
+                        type="checkbox"
+                        checked={config.responseParams.quality.enabled}
+                        onChange={(e) => setConfig({
+                          ...config,
+                          responseParams: {
+                            ...config.responseParams,
+                            quality: {
+                              enabled: e.target.checked
+                            }
+                          }
+                        })}
+                        className="sr-only"
+                      />
+                      <span className={cn(
+                        "absolute inset-0 transition-colors rounded-lg",
+                        config.responseParams.quality.enabled
+                          ? isLight ? "bg-blue-500" : "bg-blue-600"
+                          : isLight ? "bg-gray-300" : "bg-gray-600"
+                      )}></span>
+                      <span className={cn(
+                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
+                        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                        config.responseParams.quality.enabled ? "translate-x-6" : "translate-x-0"
+                      )}></span>
+                    </label>
+                  </div>
+
+                  <div className={cn(
+                    "text-sm border rounded-lg p-3",
+                    isLight ? "bg-white border-gray-300 text-gray-600" : "bg-gray-800 border-gray-600 text-gray-300"
+                  )}>
+                    {t.adminConfig.qualityParamHint}
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Scope Config */}
             <div className={cn(

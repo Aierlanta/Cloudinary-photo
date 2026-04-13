@@ -46,6 +46,18 @@ export interface APIParameter {
   isEnabled: boolean;
 }
 
+export type ManagedResponseFormat = 'jpeg' | 'webp';
+
+export interface ResponseParamsConfig {
+  format: {
+    enabled: boolean;
+    allowedValues: ManagedResponseFormat[];
+  };
+  quality: {
+    enabled: boolean;
+  };
+}
+
 // API配置模型
 export interface APIConfig {
   id: string;
@@ -53,6 +65,7 @@ export interface APIConfig {
   defaultScope: 'all' | 'groups';
   defaultGroups: string[];
   allowedParameters: APIParameter[];
+  responseParams?: ResponseParamsConfig;
   // 新增：响应模式配置
   enableDirectResponse: boolean; // 是否启用直接响应模式（/api/response端点）
   // 新增：API Key 鉴权
