@@ -109,6 +109,10 @@ export interface APIConfigUpdateRequest {
     quality: {
       enabled: boolean;
     };
+    defaultWebpDelivery: {
+      random: boolean;
+      response: boolean;
+    };
   };
   // 新增：响应模式配置
   enableDirectResponse?: boolean;

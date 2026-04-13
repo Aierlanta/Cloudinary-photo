@@ -136,7 +136,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       });
     }
 
-    const managedResponseParams = validateManagedResponseParams(queryParams, apiConfig);
+    const managedResponseParams = validateManagedResponseParams(queryParams, apiConfig, 'random');
     const autoManagedResponseFlow = managedResponseParams.hasManagedResponseParams && !explicitResponseFlow;
 
     // 验证和解析参数
@@ -341,7 +341,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['key', 'response', 'format', 'quality', 't', 'orientation', 'width', 'height', 'fit', 'opacity', 'bgColor']);
+  const RESERVED_PARAMS = new Set(['key', 'response', 'origin', 'format', 'quality', 't', 'orientation', 'width', 'height', 'fit', 'opacity', 'bgColor']);
 
   // 如果没有配置允许的参数，则允许所有请求
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {

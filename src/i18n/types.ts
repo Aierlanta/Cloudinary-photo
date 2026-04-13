@@ -391,6 +391,13 @@ export interface Translations {
     qualityParamTitle: string;
     qualityParamDesc: string;
     qualityParamHint: string;
+    defaultWebpDeliveryTitle: string;
+    defaultWebpDeliveryDesc: string;
+    defaultWebpDeliveryRandomTitle: string;
+    defaultWebpDeliveryRandomDesc: string;
+    defaultWebpDeliveryResponseTitle: string;
+    defaultWebpDeliveryResponseDesc: string;
+    defaultWebpDeliveryResponseDisabledDesc: string;
     // ParameterModal
     addApiParameter: string;
     editApiParameter: string;

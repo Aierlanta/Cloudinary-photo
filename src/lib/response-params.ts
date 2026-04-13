@@ -11,7 +11,10 @@ export interface ParsedManagedResponseParams {
   requestedFormat?: ManagedResponseFormat;
   requestedQuality?: number;
   hasManagedResponseParams: boolean;
+  originRequested: boolean;
 }
+
+export type ManagedResponseEndpoint = 'random' | 'response';
 
 export function createDefaultResponseParamsConfig(): ResponseParamsConfig {
   return {
@@ -21,8 +24,23 @@ export function createDefaultResponseParamsConfig(): ResponseParamsConfig {
     },
     quality: {
       enabled: false
+    },
+    defaultWebpDelivery: {
+      random: false,
+      response: false
     }
   };
+}
+
+function parseBooleanQueryValue(raw: string, name: string): boolean {
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
+  throw new AppError(
+    ErrorType.VALIDATION_ERROR,
+    `${name} 仅支持 true 或 false`,
+    400
+  );
 }
 
 export function normalizeManagedResponseFormat(
@@ -62,6 +80,10 @@ export function normalizeResponseParamsConfig(
     },
     quality: {
       enabled: value?.quality?.enabled ?? defaults.quality.enabled
+    },
+    defaultWebpDelivery: {
+      random: value?.defaultWebpDelivery?.random ?? defaults.defaultWebpDelivery.random,
+      response: value?.defaultWebpDelivery?.response ?? defaults.defaultWebpDelivery.response
     }
   };
 }
@@ -110,12 +132,18 @@ export function parseManagedQualityValue(raw: string): number {
 
 export function validateManagedResponseParams(
   queryParams: Record<string, string>,
-  apiConfig?: Pick<APIConfig, 'responseParams'> | null
+  apiConfig?: Pick<APIConfig, 'responseParams'> | null,
+  endpoint: ManagedResponseEndpoint = 'response'
 ): ParsedManagedResponseParams {
   const config = normalizeResponseParamsConfig(apiConfig?.responseParams);
+  const originRequested = typeof queryParams.origin !== 'undefined'
+    ? parseBooleanQueryValue(queryParams.origin, 'origin')
+    : false;
+  const useDefaultWebpDelivery = config.defaultWebpDelivery[endpoint];
   const hasManagedResponseParams =
     typeof queryParams.format !== 'undefined' ||
-    typeof queryParams.quality !== 'undefined';
+    typeof queryParams.quality !== 'undefined' ||
+    (useDefaultWebpDelivery && !originRequested);
 
   let requestedFormat: ManagedResponseFormat | undefined;
   if (typeof queryParams.format !== 'undefined') {
@@ -145,6 +173,8 @@ export function validateManagedResponseParams(
     }
 
     requestedFormat = normalizedFormat;
+  } else if (useDefaultWebpDelivery && !originRequested) {
+    requestedFormat = 'webp';
   }
 
   let requestedQuality: number | undefined;
@@ -163,7 +193,8 @@ export function validateManagedResponseParams(
   return {
     requestedFormat,
     requestedQuality,
-    hasManagedResponseParams
+    hasManagedResponseParams,
+    originRequested
   };
 }
 

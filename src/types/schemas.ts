@@ -71,6 +71,13 @@ export const ResponseParamsSchema = z.object({
   }),
   quality: z.object({
     enabled: z.boolean().default(false)
+  }),
+  defaultWebpDelivery: z.object({
+    random: z.boolean().default(false),
+    response: z.boolean().default(false)
+  }).default({
+    random: false,
+    response: false
   })
 }).superRefine((data, ctx) => {
   if (data.format.enabled && data.format.allowedValues.length === 0) {
@@ -98,6 +105,10 @@ export const APIConfigSchema = z.object({
     },
     quality: {
       enabled: false
+    },
+    defaultWebpDelivery: {
+      random: false,
+      response: false
     }
   }),
   // 新增：响应模式配置

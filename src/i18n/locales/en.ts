@@ -249,6 +249,13 @@ export const en: Translations = {
     qualityParamTitle: 'quality parameter',
     qualityParamDesc: 'Allow callers to specify output quality via quality',
     qualityParamHint: 'Supports both `quality=0.8` and `quality=80`, both resolve to 80% quality.',
+    defaultWebpDeliveryTitle: 'Default WebP Delivery',
+    defaultWebpDeliveryDesc: 'Control default WebP delivery separately for the random endpoint and the response endpoint.',
+    defaultWebpDeliveryRandomTitle: 'Random Endpoint Default WebP',
+    defaultWebpDeliveryRandomDesc: 'When enabled, `/api/random` returns WebP by default unless `origin=true` is passed or format is explicitly specified.',
+    defaultWebpDeliveryResponseTitle: 'Response Endpoint Default WebP',
+    defaultWebpDeliveryResponseDesc: 'When enabled, `/api/response` and `/image/...` return WebP by default unless `origin=true` is passed or format is explicitly specified.',
+    defaultWebpDeliveryResponseDisabledDesc: 'Enable direct response mode before configuring default WebP delivery for the response endpoint.',
     // ParameterModal
     addApiParameter: 'Add API Parameter',
     editApiParameter: 'Edit API Parameter',

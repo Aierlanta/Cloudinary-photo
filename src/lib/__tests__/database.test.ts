@@ -138,6 +138,10 @@ describe('DatabaseService', () => {
                 },
                 quality: {
                   enabled: false
+                },
+                defaultWebpDelivery: {
+                  random: false,
+                  response: false
                 }
               }
             }),
@@ -156,6 +160,10 @@ describe('DatabaseService', () => {
                 },
                 quality: {
                   enabled: false
+                },
+                defaultWebpDelivery: {
+                  random: false,
+                  response: false
                 }
               }
             }),
@@ -426,6 +434,10 @@ describe('DatabaseService', () => {
             },
             quality: {
               enabled: true
+            },
+            defaultWebpDelivery: {
+              random: false,
+              response: false
             }
           }
         }),
@@ -464,6 +476,10 @@ describe('DatabaseService', () => {
           },
           quality: {
             enabled: true
+          },
+          defaultWebpDelivery: {
+            random: false,
+            response: false
           }
         },
         enableDirectResponse: true,

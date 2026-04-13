@@ -15,6 +15,10 @@ describe('response-params', () => {
       },
       quality: {
         enabled: false
+      },
+      defaultWebpDelivery: {
+        random: false,
+        response: false
       }
     });
   });
@@ -48,6 +52,10 @@ describe('response-params', () => {
           },
           quality: {
             enabled: true
+          },
+          defaultWebpDelivery: {
+            random: false,
+            response: false
           }
         }
       } as any
@@ -63,9 +71,82 @@ describe('response-params', () => {
           },
           quality: {
             enabled: false
+          },
+          defaultWebpDelivery: {
+            random: false,
+            response: false
           }
         }
       } as any
     )).toThrow(AppError);
+  });
+
+  it('启用 random 默认 WebP 传输时应自动落到 webp，origin=true 可关闭该默认值', () => {
+    const resolved = validateManagedResponseParams(
+      {},
+      {
+        responseParams: {
+          format: {
+            enabled: false,
+            allowedValues: ['jpeg', 'webp']
+          },
+          quality: {
+            enabled: false
+          },
+          defaultWebpDelivery: {
+            random: true,
+            response: false
+          }
+        }
+      } as any,
+      'random'
+    );
+
+    expect(resolved.requestedFormat).toBe('webp');
+    expect(resolved.hasManagedResponseParams).toBe(true);
+
+    const originResolved = validateManagedResponseParams(
+      { origin: 'true' },
+      {
+        responseParams: {
+          format: {
+            enabled: false,
+            allowedValues: ['jpeg', 'webp']
+          },
+          quality: {
+            enabled: false
+          },
+          defaultWebpDelivery: {
+            random: true,
+            response: false
+          }
+        }
+      } as any,
+      'random'
+    );
+
+    expect(originResolved.requestedFormat).toBeUndefined();
+    expect(originResolved.originRequested).toBe(true);
+  });
+
+  it('response 默认 WebP 仅影响 response 端点，不影响 random 端点', () => {
+    const config = {
+      responseParams: {
+        format: {
+          enabled: false,
+          allowedValues: ['jpeg', 'webp']
+        },
+        quality: {
+          enabled: false
+        },
+        defaultWebpDelivery: {
+          random: false,
+          response: true
+        }
+      }
+    } as any;
+
+    expect(validateManagedResponseParams({}, config, 'response').requestedFormat).toBe('webp');
+    expect(validateManagedResponseParams({}, config, 'random').requestedFormat).toBeUndefined();
   });
 });

@@ -118,6 +118,10 @@ describe('serveRandomResponse', () => {
         },
         quality: {
           enabled: true
+        },
+        defaultWebpDelivery: {
+          random: false,
+          response: false
         }
       },
       enableDirectResponse: false,
@@ -162,6 +166,10 @@ describe('serveRandomResponse', () => {
         },
         quality: {
           enabled: true
+        },
+        defaultWebpDelivery: {
+          random: false,
+          response: false
         }
       },
       enableDirectResponse: true,
@@ -175,5 +183,45 @@ describe('serveRandomResponse', () => {
     })).rejects.toMatchObject({
       statusCode: 400
     });
+  });
+
+  it('response 默认 WebP 传输开启时，response 端点即使不传 format 也应返回 webp', async () => {
+    mockDatabaseService.getAPIConfig.mockResolvedValue({
+      id: 'default',
+      isEnabled: true,
+      defaultScope: 'all',
+      defaultGroups: [],
+      allowedParameters: [],
+      responseParams: {
+        format: {
+          enabled: false,
+          allowedValues: ['jpeg', 'webp']
+        },
+        quality: {
+          enabled: false
+        },
+        defaultWebpDelivery: {
+          random: false,
+          response: true
+        }
+      },
+      enableDirectResponse: false,
+      apiKeyEnabled: false,
+      updatedAt: new Date()
+    });
+
+    const request = createMockRequest('http://localhost:3000/api/response');
+    const response = await serveRandomResponse(request, {
+      imageId: 'img_000001',
+      requireDirectResponseEnabled: false,
+      requestPath: '/api/response'
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('image/webp');
+    expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith(
+      'cloudinary_public_id',
+      [{ fetch_format: 'webp' }]
+    );
   });
 });

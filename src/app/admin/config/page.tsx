@@ -43,15 +43,19 @@ interface APIConfig {
   defaultScope: 'all' | 'groups'
   defaultGroups: string[]
   allowedParameters: APIParameter[]
-  responseParams: {
-    format: {
-      enabled: boolean
-      allowedValues: Array<'jpeg' | 'webp'>
+    responseParams: {
+      format: {
+        enabled: boolean
+        allowedValues: Array<'jpeg' | 'webp'>
+      }
+      quality: {
+        enabled: boolean
+      }
+      defaultWebpDelivery: {
+        random: boolean
+        response: boolean
+      }
     }
-    quality: {
-      enabled: boolean
-    }
-  }
   enableDirectResponse: boolean
   apiKeyEnabled: boolean
   apiKey?: string
@@ -813,6 +817,133 @@ const {
                     isLight ? "bg-white border-gray-300 text-gray-600" : "bg-gray-800 border-gray-600 text-gray-300"
                   )}>
                     {t.adminConfig.qualityParamHint}
+                  </div>
+                </div>
+              </div>
+
+              <div className={cn(
+                "border p-4 rounded-lg space-y-4",
+                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+              )}>
+                <div>
+                  <h4 className={cn(
+                    "font-semibold rounded-lg",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {t.adminConfig.defaultWebpDeliveryTitle}
+                  </h4>
+                  <p className={cn(
+                    "text-sm rounded-lg",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    {t.adminConfig.defaultWebpDeliveryDesc}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
+                  <div className={cn(
+                    "border p-4 rounded-lg flex items-center justify-between gap-4",
+                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                  )}>
+                    <div>
+                      <h5 className={cn(
+                        "font-semibold rounded-lg",
+                        isLight ? "text-gray-900" : "text-gray-100"
+                      )}>
+                        {t.adminConfig.defaultWebpDeliveryRandomTitle}
+                      </h5>
+                      <p className={cn(
+                        "text-sm rounded-lg",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
+                        {t.adminConfig.defaultWebpDeliveryRandomDesc}
+                      </p>
+                    </div>
+                    <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
+                      <input
+                        type="checkbox"
+                        checked={config.responseParams.defaultWebpDelivery.random}
+                        onChange={(e) => setConfig({
+                          ...config,
+                          responseParams: {
+                            ...config.responseParams,
+                            defaultWebpDelivery: {
+                              ...config.responseParams.defaultWebpDelivery,
+                              random: e.target.checked
+                            }
+                          }
+                        })}
+                        className="sr-only"
+                      />
+                      <span className={cn(
+                        "absolute inset-0 transition-colors rounded-lg",
+                        config.responseParams.defaultWebpDelivery.random
+                          ? isLight ? "bg-blue-500" : "bg-blue-600"
+                          : isLight ? "bg-gray-300" : "bg-gray-600"
+                      )}></span>
+                      <span className={cn(
+                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
+                        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                        config.responseParams.defaultWebpDelivery.random ? "translate-x-6" : "translate-x-0"
+                      )}></span>
+                    </label>
+                  </div>
+
+                  <div className={cn(
+                    "border p-4 rounded-lg flex items-center justify-between gap-4",
+                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                    !config.enableDirectResponse && (isLight ? "opacity-60" : "opacity-50")
+                  )}>
+                    <div>
+                      <h5 className={cn(
+                        "font-semibold rounded-lg",
+                        isLight ? "text-gray-900" : "text-gray-100"
+                      )}>
+                        {t.adminConfig.defaultWebpDeliveryResponseTitle}
+                      </h5>
+                      <p className={cn(
+                        "text-sm rounded-lg",
+                        isLight ? "text-gray-600" : "text-gray-400"
+                      )}>
+                        {config.enableDirectResponse
+                          ? t.adminConfig.defaultWebpDeliveryResponseDesc
+                          : t.adminConfig.defaultWebpDeliveryResponseDisabledDesc}
+                      </p>
+                    </div>
+                    <label className={cn(
+                      "relative inline-block w-12 h-6 rounded-lg",
+                      config.enableDirectResponse ? "cursor-pointer" : "cursor-not-allowed"
+                    )}>
+                      <input
+                        type="checkbox"
+                        checked={config.responseParams.defaultWebpDelivery.response}
+                        disabled={!config.enableDirectResponse}
+                        onChange={(e) => setConfig({
+                          ...config,
+                          responseParams: {
+                            ...config.responseParams,
+                            defaultWebpDelivery: {
+                              ...config.responseParams.defaultWebpDelivery,
+                              response: e.target.checked
+                            }
+                          }
+                        })}
+                        className="sr-only"
+                      />
+                      <span className={cn(
+                        "absolute inset-0 transition-colors rounded-lg",
+                        config.responseParams.defaultWebpDelivery.response && config.enableDirectResponse
+                          ? isLight ? "bg-blue-500" : "bg-blue-600"
+                          : isLight ? "bg-gray-300" : "bg-gray-600"
+                      )}></span>
+                      <span className={cn(
+                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
+                        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                        config.responseParams.defaultWebpDelivery.response && config.enableDirectResponse
+                          ? "translate-x-6"
+                          : "translate-x-0"
+                      )}></span>
+                    </label>
                   </div>
                 </div>
               </div>

@@ -56,6 +56,10 @@ export interface ResponseParamsConfig {
   quality: {
     enabled: boolean;
   };
+  defaultWebpDelivery: {
+    random: boolean;
+    response: boolean;
+  };
 }
 
 // API配置模型

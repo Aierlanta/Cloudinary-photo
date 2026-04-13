@@ -249,6 +249,13 @@ export const zh: Translations = {
     qualityParamTitle: 'quality 参数',
     qualityParamDesc: '允许调用方通过 quality 指定输出质量',
     qualityParamHint: '支持 `quality=0.8` 和 `quality=80` 两种写法，都会按 80% 质量处理。',
+    defaultWebpDeliveryTitle: '默认 WebP 传输',
+    defaultWebpDeliveryDesc: '分别控制 random 端点与 response 端点是否默认使用 WebP 输出。',
+    defaultWebpDeliveryRandomTitle: 'random 端点默认 WebP',
+    defaultWebpDeliveryRandomDesc: '开启后，`/api/random` 在未传 `origin=true` 且未显式指定 format 时默认返回 WebP。',
+    defaultWebpDeliveryResponseTitle: 'response 端点默认 WebP',
+    defaultWebpDeliveryResponseDesc: '开启后，`/api/response` 与 `/image/...` 在未传 `origin=true` 且未显式指定 format 时默认返回 WebP。',
+    defaultWebpDeliveryResponseDisabledDesc: '需要先启用直接响应模式，才能配置 response 端点的默认 WebP 传输。',
     // ParameterModal
     addApiParameter: '添加API参数',
     editApiParameter: '编辑API参数',

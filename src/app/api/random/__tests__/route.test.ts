@@ -128,6 +128,10 @@ describe('/api/random API端点测试', () => {
       },
       quality: {
         enabled: true
+      },
+      defaultWebpDelivery: {
+        random: false,
+        response: false
       }
     },
     enableDirectResponse: false,
@@ -235,6 +239,10 @@ describe('/api/random API端点测试', () => {
           },
           quality: {
             enabled: true
+          },
+          defaultWebpDelivery: {
+            random: false,
+            response: false
           }
         }
       });
@@ -248,6 +256,52 @@ describe('/api/random API端点测试', () => {
       const response = await GET(request);
       expect(response.status).toBe(200);
       expect(serveRandomResponse).toHaveBeenCalledTimes(1);
+    });
+
+    it('默认 WebP 传输开启时，无需 format 参数也应进入共享处理服务', async () => {
+      mockDatabaseService.getAPIConfig.mockResolvedValue({
+        ...mockAPIConfig,
+        responseParams: {
+          format: {
+            enabled: false,
+            allowedValues: ['jpeg', 'webp']
+          },
+          quality: {
+            enabled: false
+          },
+          defaultWebpDelivery: {
+            random: true,
+            response: false
+          }
+        }
+      });
+      const request = createMockRequest('http://localhost:3000/api/random');
+      const response = await GET(request);
+      expect(response.status).toBe(200);
+      expect(serveRandomResponse).toHaveBeenCalledTimes(1);
+    });
+
+    it('默认 WebP 传输开启时，origin=true 应回到原始链路', async () => {
+      mockDatabaseService.getAPIConfig.mockResolvedValue({
+        ...mockAPIConfig,
+        responseParams: {
+          format: {
+            enabled: false,
+            allowedValues: ['jpeg', 'webp']
+          },
+          quality: {
+            enabled: false
+          },
+          defaultWebpDelivery: {
+            random: true,
+            response: false
+          }
+        }
+      });
+      const request = createMockRequest('http://localhost:3000/api/random?origin=true');
+      const response = await GET(request);
+      expect(response.status).toBe(302);
+      expect(serveRandomResponse).not.toHaveBeenCalled();
     });
   });
 

@@ -15,6 +15,7 @@ import {
 import { buildFetchInitFor } from '@/lib/telegram-proxy';
 import {
   getCloudinaryManagedFormat,
+  type ManagedResponseEndpoint,
   validateManagedResponseParams
 } from '@/lib/response-params';
 
@@ -178,7 +179,8 @@ export async function serveRandomResponse(
     }
   }
 
-  const { requestedFormat, requestedQuality } = validateManagedResponseParams(queryParams, apiConfig);
+  const endpoint: ManagedResponseEndpoint = requestPath === '/api/random' ? 'random' : 'response';
+  const { requestedFormat, requestedQuality } = validateManagedResponseParams(queryParams, apiConfig, endpoint);
 
   const image = await databaseService.getImage(imageId);
   if (!image) {

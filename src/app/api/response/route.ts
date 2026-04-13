@@ -10,10 +10,15 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
-import { adjustImageTransparency, parseTransparencyParams } from '@/lib/image-processor';
+import {
+  adjustImageTransparency,
+  parseTransparencyParams,
+  convertImageOutput
+} from '@/lib/image-processor';
 import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import type { Image } from '@/types/models';
+import { validateManagedResponseParams } from '@/lib/response-params';
 
 
 // 强制动态渲染
@@ -524,6 +529,8 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       });
     }
 
+    const { requestedFormat, requestedQuality } = validateManagedResponseParams(queryParams, apiConfig);
+
     // 验证和解析参数（复用现有逻辑）
     const { allowedGroupIds, allowedProviders, hasInvalidParams } = await validateAndParseParams(
       queryParams,
@@ -568,6 +575,16 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         const processed = await adjustImageTransparency(prefetched.buffer, transparencyOptions);
         finalBuffer = processed.buffer;
         finalMimeType = processed.mimeType;
+      }
+
+      const needsManagedConversion = requestedFormat || typeof requestedQuality !== 'undefined';
+      if (needsManagedConversion) {
+        const converted = await convertImageOutput(finalBuffer, {
+          format: requestedFormat ?? (normalizeMimeType(finalMimeType, 'image/jpeg').includes('webp') ? 'webp' : 'jpeg'),
+          quality: requestedQuality
+        });
+        finalBuffer = converted.buffer;
+        finalMimeType = converted.mimeType;
       }
 
       const finalSize = finalBuffer.length;
@@ -641,6 +658,16 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       const processed = await adjustImageTransparency(downloadResult.buffer, transparencyOptions);
       finalBuffer = processed.buffer;
       finalMimeType = processed.mimeType;
+    }
+
+    const needsManagedConversion = requestedFormat || typeof requestedQuality !== 'undefined';
+    if (needsManagedConversion) {
+      const converted = await convertImageOutput(finalBuffer, {
+        format: requestedFormat ?? (normalizeMimeType(finalMimeType, 'image/jpeg').includes('webp') ? 'webp' : 'jpeg'),
+        quality: requestedQuality
+      });
+      finalBuffer = converted.buffer;
+      finalMimeType = converted.mimeType;
     }
 
     const size = finalBuffer.length;
@@ -772,7 +799,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key']);
+  const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key', 'origin', 'format', 'quality']);
   const filteredEntries = Object.entries(queryParams).filter(([key]) => !RESERVED_PARAMS.has(key));
 
   // 如果没有配置允许的参数，直接返回
