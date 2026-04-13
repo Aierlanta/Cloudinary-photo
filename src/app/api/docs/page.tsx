@@ -276,6 +276,29 @@ function APIDocsContent() {
                   ))}
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <h3 className="font-semibold text-foreground">{t.apiDocs.outputControlTitle}</h3>
+                <p>{t.apiDocs.outputControlDesc}</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>{t.apiDocs.outputFormatNote}</li>
+                  <li>{t.apiDocs.outputQualityNote}</li>
+                </ul>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[
+                    { id: "output-webp", label: t.apiDocs.exampleFormatWebp, url: "/api/random?format=webp" },
+                    { id: "output-quality", label: t.apiDocs.exampleQuality80, url: "/api/random?quality=0.8" },
+                  ].map((ex) => (
+                    <div key={ex.id} className="bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10 flex items-center gap-2">
+                      <code className="flex-1 font-mono text-xs sm:text-sm text-slate-300 truncate">
+                        {baseUrl}
+                        {ex.url}
+                      </code>
+                      {baseUrl && <CopyButton text={`${baseUrl}${ex.url}`} id={ex.id} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </GlassCard>
 

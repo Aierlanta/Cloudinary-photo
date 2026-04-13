@@ -704,10 +704,16 @@ export interface Translations {
     resizeDesc: string;
     resizeWidthHeight: string;
     resizeFitDefault: string;
+    outputControlTitle: string;
+    outputControlDesc: string;
+    outputFormatNote: string;
+    outputQualityNote: string;
     exampleLandscapeRandom: string;
     exampleLandscapeResponse: string;
     exampleResizeCover: string;
     exampleResizeContain: string;
+    exampleFormatWebp: string;
+    exampleQuality80: string;
     transparencyAdjustment: string;
     transparencyIntro: string;
     parameterDescription: string;
