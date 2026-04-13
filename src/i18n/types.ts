@@ -715,12 +715,16 @@ export interface Translations {
     outputControlDesc: string;
     outputFormatNote: string;
     outputQualityNote: string;
+    outputDefaultWebpNote: string;
+    outputOriginNote: string;
     exampleLandscapeRandom: string;
     exampleLandscapeResponse: string;
     exampleResizeCover: string;
     exampleResizeContain: string;
     exampleFormatWebp: string;
     exampleQuality80: string;
+    exampleOriginRandom: string;
+    exampleOriginResponse: string;
     transparencyAdjustment: string;
     transparencyIntro: string;
     parameterDescription: string;

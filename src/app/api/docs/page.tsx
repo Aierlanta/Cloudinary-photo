@@ -283,11 +283,15 @@ function APIDocsContent() {
                 <ul className="list-disc list-inside space-y-1">
                   <li>{t.apiDocs.outputFormatNote}</li>
                   <li>{t.apiDocs.outputQualityNote}</li>
+                  <li>{t.apiDocs.outputDefaultWebpNote}</li>
+                  <li>{t.apiDocs.outputOriginNote}</li>
                 </ul>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {[
                     { id: "output-webp", label: t.apiDocs.exampleFormatWebp, url: "/api/random?format=webp" },
                     { id: "output-quality", label: t.apiDocs.exampleQuality80, url: "/api/random?quality=0.8" },
+                    { id: "output-origin-random", label: t.apiDocs.exampleOriginRandom, url: "/api/random?origin=true" },
+                    { id: "output-origin-response", label: t.apiDocs.exampleOriginResponse, url: "/api/response?origin=true" },
                   ].map((ex) => (
                     <div key={ex.id} className="bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10 flex items-center gap-2">
                       <code className="flex-1 font-mono text-xs sm:text-sm text-slate-300 truncate">
