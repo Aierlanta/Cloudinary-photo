@@ -3,7 +3,7 @@
  * 定义API端点的请求和响应类型
  */
 
-import { Image, Group, APIConfig, PaginatedResult } from './models';
+import { Image, Group, APIConfig, PaginatedResult, SwarmConfig } from './models';
 import { APIError } from './errors';
 
 // 基础API响应
@@ -119,6 +119,10 @@ export interface APIConfigUpdateRequest {
   // 新增：API Key 鉴权
   apiKeyEnabled?: boolean;
   apiKey?: string;
+}
+
+export interface SwarmConfigResponse {
+  config: SwarmConfig;
 }
 
 // 随机图片API请求参数

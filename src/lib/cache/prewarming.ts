@@ -31,6 +31,7 @@ interface ImageData {
   url: string;
   publicId: string;
   title?: string;
+  previewUrl?: string | null;
 }
 
 /**
@@ -81,14 +82,15 @@ export class CachePrewarmingService {
       const thumbnailUrls = imagesToPrewarm
         .map(image => {
           let url: string;
+          const usesPreviewUrl = !!image.previewUrl;
           try {
-            url = getImageUrls(image.url).thumbnail;
+            url = image.previewUrl || getImageUrls(image.url).thumbnail;
           } catch {
-            url = generateThumbnailUrl(image.url, this.config.thumbnailSize);
+            url = image.previewUrl || generateThumbnailUrl(image.url, this.config.thumbnailSize);
           }
           // 如果是跨域绝对地址，则改走本域的 Next.js 图片优化，以避免CORS
           try {
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined' && !usesPreviewUrl) {
               const u = new URL(url, window.location.origin);
               if (u.origin !== window.location.origin) {
                 const params = new URLSearchParams({

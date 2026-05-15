@@ -9,6 +9,7 @@ interface ImageData {
   url: string;
   publicId: string;
   title?: string;
+  previewUrl?: string | null;
 }
 
 interface UseImageCachePrewarmingOptions {

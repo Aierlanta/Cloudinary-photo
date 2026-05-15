@@ -67,6 +67,8 @@ interface StorageProvider {
   features: string[];
 }
 
+type UploadStrategy = "manual" | "round-robin" | "random" | "available-first";
+
 export default function ImageUpload({
   groups = [],
   onUploadSuccess,
@@ -77,7 +79,7 @@ export default function ImageUpload({
     getProvidersFailedMessage,
   } = t.adminImages;
   const isLight = useTheme();
-  const { adminFetch, selectedNodeId } = useAdminApi();
+  const { adminFetch, selectedNodeId, fetchNode, nodes, nodeStatuses } = useAdminApi();
 
   // 确保 groups 是数�?
   const safeGroups = Array.isArray(groups) ? groups : [];
@@ -91,6 +93,8 @@ export default function ImageUpload({
   const [selectedProvider, setSelectedProvider] = useState("cloudinary"); // 新增：图床选择
   const [providers, setProviders] = useState<StorageProvider[]>([]); // 新增：图床提供商列表
   const [loadingProviders, setLoadingProviders] = useState(true); // 新增：加载状�?
+  const [uploadStrategy, setUploadStrategy] = useState<UploadStrategy>("manual");
+  const [manualTargetNodeId, setManualTargetNodeId] = useState(selectedNodeId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<"txt" | "json">("txt");
   const [importContent, setImportContent] = useState("");
@@ -100,8 +104,32 @@ export default function ImageUpload({
   const customFileInputRef = useRef<HTMLInputElement | null>(null);
   const pendingFilesCount = fileStates.filter((fs) => fs.status === "pending").length;
 
+  useEffect(() => {
+    setManualTargetNodeId((current) => (
+      nodes.some((node) => node.id === current) ? current : selectedNodeId
+    ));
+  }, [nodes, selectedNodeId]);
+
   // Toast通知
   const { toasts, success, error: showError, removeToast } = useToast();
+
+  useEffect(() => {
+    const loadSwarmConfig = async () => {
+      try {
+        const response = await adminFetch("/api/admin/swarm/config");
+        if (!response.ok) return;
+        const data = await response.json();
+        const strategy = data.data?.config?.uploadStrategy;
+        if (strategy === "manual" || strategy === "round-robin" || strategy === "random" || strategy === "available-first") {
+          setUploadStrategy(strategy);
+        }
+      } catch (error) {
+        console.error("加载蜂群上传策略失败", error);
+      }
+    };
+
+    loadSwarmConfig();
+  }, [adminFetch]);
 
   // 获取图床提供商列�?
   useEffect(() => {
@@ -381,6 +409,31 @@ export default function ImageUpload({
     );
   };
 
+  const getUploadCandidateNodes = () => {
+    const availableNodes = nodes.filter((node) => {
+      const status = nodeStatuses[node.id]?.status;
+      return status === "online" || status === "degraded";
+    });
+    return availableNodes.length > 0 ? availableNodes : nodes;
+  };
+
+  const resolveTargetNodeId = (fileIndex: number): string => {
+    const candidates = getUploadCandidateNodes();
+    if (uploadStrategy === "manual") {
+      return manualTargetNodeId || selectedNodeId;
+    }
+    if (candidates.length === 0) {
+      return selectedNodeId;
+    }
+    if (uploadStrategy === "round-robin") {
+      return candidates[fileIndex % candidates.length].id;
+    }
+    if (uploadStrategy === "random") {
+      return candidates[Math.floor(Math.random() * candidates.length)].id;
+    }
+    return candidates[0].id;
+  };
+
   // 限制并发上传的函数
   const uploadWithConcurrencyLimit = async (
     fileStatesToUpload: FileUploadState[],
@@ -402,9 +455,10 @@ export default function ImageUpload({
       formData.append("provider", selectedProvider); // 新增：图床选择
       if (groupId) formData.append("groupId", groupId);
       if (tags) formData.append("tags", tags);
+      const targetNodeId = resolveTargetNodeId(fileIndex);
 
       try {
-        const response = await adminFetch("/api/admin/images", {
+        const response = await fetchNode(targetNodeId, "/api/admin/images", {
           method: "POST",
           body: formData,
         });
@@ -1025,6 +1079,77 @@ export default function ImageUpload({
             )}
           </div>
         </div>
+
+        {/* Swarm Upload Strategy */}
+        {nodes.length > 0 && selectedProvider !== "custom" && (
+          <div className={cn(
+            "grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-lg",
+            isLight ? "bg-gray-50 border-gray-300" : "bg-gray-800 border-gray-700"
+          )}>
+            <div className="space-y-2">
+              <label className={cn(
+                "block text-sm font-medium rounded-lg",
+                isLight ? "text-gray-700" : "text-gray-300"
+              )}>
+                蜂群上传策略
+              </label>
+              <select
+                value={uploadStrategy}
+                onChange={(e) => setUploadStrategy(e.target.value as UploadStrategy)}
+                disabled={uploading}
+                className={cn(
+                  "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
+                  isLight
+                    ? "bg-white border-gray-300"
+                    : "bg-gray-900 border-gray-600"
+                )}
+              >
+                <option value="manual">手动选择目标节点</option>
+                <option value="round-robin">轮询分散到可用节点</option>
+                <option value="random">随机选择可用节点</option>
+                <option value="available-first">优先选择第一个可用节点</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className={cn(
+                "block text-sm font-medium rounded-lg",
+                isLight ? "text-gray-700" : "text-gray-300"
+              )}>
+                {uploadStrategy === "manual" ? "目标 owner 节点" : "可用节点"}
+              </label>
+              {uploadStrategy === "manual" ? (
+                <select
+                  value={manualTargetNodeId}
+                  onChange={(e) => setManualTargetNodeId(e.target.value)}
+                  disabled={uploading}
+                  className={cn(
+                    "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
+                    isLight
+                      ? "bg-white border-gray-300"
+                      : "bg-gray-900 border-gray-600"
+                  )}
+                >
+                  {nodes.map((node) => (
+                    <option key={node.id} value={node.id}>
+                      {node.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className={cn(
+                  "min-h-10 px-3 py-2 border text-sm rounded-lg",
+                  isLight ? "bg-white border-gray-300 text-gray-700" : "bg-gray-900 border-gray-600 text-gray-300"
+                )}>
+                  {getUploadCandidateNodes().map((node) => node.name).join("、") || "无可用节点"}
+                </div>
+              )}
+              <p className={cn("text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
+                目标节点会成为图片 owner，后续 Cloudinary 预览和交付会回到 owner 节点处理。
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Provider Selection */}
         {providers.length > 1 && (

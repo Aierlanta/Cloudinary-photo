@@ -8,16 +8,38 @@ export interface BackendNode {
   baseUrl: string;
 }
 
+export interface NodeHealthStatus {
+  nodeId: string;
+  status: 'unknown' | 'online' | 'offline' | 'degraded';
+  latencyMs?: number;
+  version?: string;
+  message?: string;
+  checkedAt?: string;
+}
+
+export interface NodeFetchResult<T = unknown> {
+  node: BackendNode;
+  ok: boolean;
+  status: number;
+  data?: T;
+  error?: string;
+}
+
 interface AdminApiContextValue {
   nodes: BackendNode[];
   selectedNode: BackendNode;
   selectedNodeId: string;
   setSelectedNodeId: (nodeId: string) => void;
+  nodeStatuses: Record<string, NodeHealthStatus>;
+  refreshNodeStatuses: () => Promise<void>;
   authToken: string | null;
   setAuthToken: (token: string | null) => void;
   clearAuthToken: () => void;
   adminFetch: (path: string, init?: RequestInit) => Promise<Response>;
   buildAdminUrl: (path: string) => string;
+  buildNodeUrl: (nodeId: string, path: string) => string;
+  fetchNode: (nodeId: string, path: string, init?: RequestInit) => Promise<Response>;
+  fetchAllNodes: <T = unknown>(path: string, init?: RequestInit) => Promise<NodeFetchResult<T>[]>;
 }
 
 const AUTH_TOKEN_KEY = 'adminToken';
@@ -88,11 +110,24 @@ function mergeHeaders(initHeaders: HeadersInit | undefined, authToken: string | 
   return headers;
 }
 
+function createUnknownNodeStatuses(nodes: BackendNode[]): Record<string, NodeHealthStatus> {
+  return Object.fromEntries(nodes.map((node) => [
+    node.id,
+    {
+      nodeId: node.id,
+      status: 'unknown' as const
+    }
+  ]));
+}
+
 export function AdminApiProvider({ children }: { children: React.ReactNode }) {
   const nodes = useMemo(() => parseBackendNodes(), []);
-  const fallbackNode = nodes[0] || { id: 'local', name: '当前节点', baseUrl: getCurrentOrigin() };
+  const fallbackNode = useMemo(() => (
+    nodes[0] || { id: 'local', name: '当前节点', baseUrl: getCurrentOrigin() }
+  ), [nodes]);
   const [selectedNodeId, setSelectedNodeIdState] = useState(fallbackNode.id);
   const [authToken, setAuthTokenState] = useState<string | null>(null);
+  const [nodeStatuses, setNodeStatuses] = useState<Record<string, NodeHealthStatus>>(() => createUnknownNodeStatuses(nodes));
 
   useEffect(() => {
     const storedNodeId = localStorage.getItem(SELECTED_NODE_KEY);
@@ -103,6 +138,9 @@ export function AdminApiProvider({ children }: { children: React.ReactNode }) {
   }, [nodes]);
 
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || fallbackNode;
+  const nodeById = useMemo(() => {
+    return new Map(nodes.map((node) => [node.id, node]));
+  }, [nodes]);
 
   const setSelectedNodeId = useCallback((nodeId: string) => {
     setSelectedNodeIdState(nodeId);
@@ -120,40 +158,133 @@ export function AdminApiProvider({ children }: { children: React.ReactNode }) {
 
   const clearAuthToken = useCallback(() => setAuthToken(null), [setAuthToken]);
 
-  const buildAdminUrl = useCallback((path: string) => {
+  const buildNodeUrl = useCallback((nodeId: string, path: string) => {
     if (/^https?:\/\//i.test(path)) return path;
+    const node = nodeById.get(nodeId) || selectedNode || fallbackNode;
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    return `${normalizeBaseUrl(selectedNode.baseUrl)}${normalizedPath}`;
-  }, [selectedNode.baseUrl]);
+    return `${normalizeBaseUrl(node.baseUrl)}${normalizedPath}`;
+  }, [fallbackNode, nodeById, selectedNode]);
 
-  const adminFetch = useCallback((path: string, init: RequestInit = {}) => {
-    return fetch(buildAdminUrl(path), {
+  const fetchNode = useCallback((nodeId: string, path: string, init: RequestInit = {}) => {
+    return fetch(buildNodeUrl(nodeId, path), {
       ...init,
       headers: mergeHeaders(init.headers, authToken),
       credentials: 'omit'
     });
-  }, [authToken, buildAdminUrl]);
+  }, [authToken, buildNodeUrl]);
+
+  const buildAdminUrl = useCallback((path: string) => {
+    return buildNodeUrl(selectedNode.id, path);
+  }, [buildNodeUrl, selectedNode.id]);
+
+  const adminFetch = useCallback((path: string, init: RequestInit = {}) => {
+    return fetchNode(selectedNode.id, path, init);
+  }, [fetchNode, selectedNode.id]);
+
+  const fetchAllNodes = useCallback(async <T = unknown,>(path: string, init: RequestInit = {}) => {
+    return Promise.all(nodes.map(async (node) => {
+      try {
+        const response = await fetchNode(node.id, path, init);
+        let data: T | undefined;
+        try {
+          data = await response.json() as T;
+        } catch {
+          data = undefined;
+        }
+        return {
+          node,
+          ok: response.ok,
+          status: response.status,
+          data,
+          error: response.ok ? undefined : response.statusText
+        };
+      } catch (error) {
+        return {
+          node,
+          ok: false,
+          status: 0,
+          error: error instanceof Error ? error.message : '网络错误'
+        };
+      }
+    }));
+  }, [fetchNode, nodes]);
+
+  const refreshNodeStatuses = useCallback(async () => {
+    const results = await Promise.all(nodes.map(async (node) => {
+      const startedAt = performance.now();
+      try {
+        const response = await fetchNode(node.id, '/api/status');
+        const latencyMs = Math.round(performance.now() - startedAt);
+        const data = await response.json().catch(() => null);
+        const reportedStatus = data?.data?.status;
+        return [
+          node.id,
+          {
+            nodeId: node.id,
+            status: response.ok && reportedStatus === 'healthy'
+              ? 'online'
+              : response.ok
+                ? 'degraded'
+                : 'offline',
+            latencyMs,
+            version: data?.data?.version,
+            message: response.ok ? reportedStatus : response.statusText,
+            checkedAt: new Date().toISOString()
+          } satisfies NodeHealthStatus
+        ] as const;
+      } catch (error) {
+        return [
+          node.id,
+          {
+            nodeId: node.id,
+            status: 'offline',
+            message: error instanceof Error ? error.message : '网络错误',
+            checkedAt: new Date().toISOString()
+          } satisfies NodeHealthStatus
+        ] as const;
+      }
+    }));
+
+    setNodeStatuses(Object.fromEntries(results));
+  }, [fetchNode, nodes]);
+
+  useEffect(() => {
+    setNodeStatuses((previous) => ({
+      ...createUnknownNodeStatuses(nodes),
+      ...previous
+    }));
+  }, [nodes]);
 
   const value = useMemo<AdminApiContextValue>(() => ({
     nodes,
     selectedNode,
     selectedNodeId,
     setSelectedNodeId,
+    nodeStatuses,
+    refreshNodeStatuses,
     authToken,
     setAuthToken,
     clearAuthToken,
     adminFetch,
-    buildAdminUrl
+    buildAdminUrl,
+    buildNodeUrl,
+    fetchNode,
+    fetchAllNodes
   }), [
     nodes,
     selectedNode,
     selectedNodeId,
     setSelectedNodeId,
+    nodeStatuses,
+    refreshNodeStatuses,
     authToken,
     setAuthToken,
     clearAuthToken,
     adminFetch,
-    buildAdminUrl
+    buildAdminUrl,
+    buildNodeUrl,
+    fetchNode,
+    fetchAllNodes
   ]);
 
   return <AdminApiContext.Provider value={value}>{children}</AdminApiContext.Provider>;
@@ -176,10 +307,28 @@ export function useAdminApi(): AdminApiContextValue {
     selectedNode: fallbackNode,
     selectedNodeId: fallbackNode.id,
     setSelectedNodeId: () => {},
+    nodeStatuses: { [fallbackNode.id]: { nodeId: fallbackNode.id, status: 'unknown' } },
+    refreshNodeStatuses: async () => {},
     authToken: typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null,
     setAuthToken: () => {},
     clearAuthToken: () => {},
     buildAdminUrl: (path: string) => path,
-    adminFetch: (path: string, init?: RequestInit) => fetch(path, init)
+    buildNodeUrl: (_nodeId: string, path: string) => path,
+    adminFetch: (path: string, init?: RequestInit) => fetch(path, init),
+    fetchNode: (_nodeId: string, path: string, init?: RequestInit) => fetch(path, init),
+    fetchAllNodes: async <T = unknown,>(path: string, init?: RequestInit) => {
+      try {
+        const response = await fetch(path, init);
+        let data: T | undefined;
+        try {
+          data = await response.json() as T;
+        } catch {
+          data = undefined;
+        }
+        return [{ node: fallbackNode, ok: response.ok, status: response.status, data, error: response.ok ? undefined : response.statusText }];
+      } catch (error) {
+        return [{ node: fallbackNode, ok: false, status: 0, error: error instanceof Error ? error.message : '网络错误' }];
+      }
+    }
   };
 }

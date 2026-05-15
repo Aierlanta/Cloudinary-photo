@@ -40,6 +40,9 @@ interface ImageItem {
   tags?: string[];
   primaryProvider?: string;
   backupProvider?: string;
+  ownerNodeId?: string | null;
+  ownerNodeBaseUrl?: string | null;
+  previewUrl?: string | null;
   telegramFileId?: string | null;
   telegramThumbnailFileId?: string | null;
   telegramFilePath?: string | null;
@@ -202,6 +205,7 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
   if (!image) return null;
 
   const group = groups.find((g) => g.id === image.groupId);
+  const previewSrc = image.previewUrl || (isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrlForImage(image, 400));
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("zh-CN");
@@ -390,7 +394,7 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
                 isLight ? "bg-gray-100 border border-gray-300" : "bg-gray-800 border border-gray-600"
               )}>
                 <SmartImage
-                  src={isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrlForImage(image, 400)}
+                  src={previewSrc}
                   alt={image.title || image.publicId}
                   fill
                   className="object-contain"
@@ -426,6 +430,23 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
                     isLight ? "text-gray-900" : "text-gray-100"
                   )}>
                     {group ? group.name : t.adminImages.ungrouped}
+                  </p>
+                </div>
+                <div className={cn(
+                  "p-3 border",
+                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                )}>
+                  <p className={cn(
+                    "text-xs mb-1",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    蜂群归属节点
+                  </p>
+                  <p className={cn(
+                    "text-sm break-all",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {image.ownerNodeId || "unknown"}
                   </p>
                 </div>
                 {image.tags && image.tags.length > 0 && (
@@ -667,6 +688,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("zh-CN");
   const getGroupName = (groupId?: string) => groups.find((g) => g.id === groupId)?.name || t.adminImages.unassigned;
+  const getOwnerNodeLabel = (image: ImageItem) => image.ownerNodeId || "unknown";
 
   const toggleImageSelection = (imageId: string) => {
     const newSelected = new Set(selectedImages);
@@ -833,7 +855,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                   isLight ? "bg-gray-100" : "bg-gray-800"
                 )}>
                   <LazyImage
-                    src={isTgStateImage(image.url) ? getImageUrls(image.url).thumbnail : generateThumbnailUrlForImage(image, 300)}
+                    src={image.previewUrl || (isTgStateImage(image.url) ? getImageUrls(image.url).thumbnail : generateThumbnailUrlForImage(image, 300))}
                     alt={image.title || image.publicId}
                     className="w-full h-full"
                     onClick={() => {
@@ -890,6 +912,16 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                     isLight ? "text-gray-600" : "text-gray-400"
                   )}>
                     {formatDate(image.uploadedAt)}
+                  </div>
+                  <div className="mt-2">
+                    <span className={cn(
+                      "inline-flex max-w-full px-2 py-0.5 text-[11px] border rounded-lg",
+                      isLight
+                        ? "bg-blue-50 border-blue-200 text-blue-700"
+                        : "bg-blue-900/20 border-blue-700 text-blue-200"
+                    )}>
+                      <span className="truncate">节点: {getOwnerNodeLabel(image)}</span>
+                    </span>
                   </div>
                 </div>
               </div>

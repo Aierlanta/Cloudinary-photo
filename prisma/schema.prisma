@@ -114,6 +114,18 @@ model StorageConfig {
   @@map("storage_configs")
 }
 
+model SwarmConfig {
+  id                             String   @id @default("default")
+  uploadStrategy                 String   @default("manual")
+  providerDeliveryPolicy         String?  @db.Text
+  previewDeliveryEnabled         Boolean  @default(true)
+  cloudinaryNodeDeliveryRequired Boolean  @default(true)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  @@map("swarm_configs")
+}
+
 model SystemLog {
   id        String   @id @default(cuid())
   timestamp DateTime @default(now())

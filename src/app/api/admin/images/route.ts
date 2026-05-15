@@ -35,6 +35,7 @@ import {
   isProviderInEnabledList
 } from '@/lib/storage';
 import { getCurrentNode } from '@/lib/swarm-node';
+import { buildAdminPreviewUrl, getEffectiveSwarmConfig } from '@/lib/swarm-provider-policy';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -65,6 +66,7 @@ async function getImages(request: NextRequest): Promise<Response> {
     limit: validatedParams.limit,
     groupId: validatedParams.groupId,
     provider: validatedParams.provider, // 新增：图床筛选
+    ownerNodeId: validatedParams.ownerNodeId,
     search: validatedParams.search,
     dateFrom: validatedParams.dateFrom,
     dateTo: validatedParams.dateTo,
@@ -72,10 +74,16 @@ async function getImages(request: NextRequest): Promise<Response> {
     sortOrder: validatedParams.sortOrder
   });
 
+  const swarmConfig = await getEffectiveSwarmConfig();
+  const dataWithPreview = await Promise.all(images.data.map(async (image) => ({
+    ...image,
+    previewUrl: await buildAdminPreviewUrl(request, image, swarmConfig)
+  })));
+
   // 应用代理URL转换（如果配置了 tgState 代理）
   const imagesWithProxy = {
     ...images,
-    data: applyProxyToImageUrls(images.data)
+    data: applyProxyToImageUrls(dataWithPreview)
   };
 
   const response: APIResponse<ImageListResponse> = {

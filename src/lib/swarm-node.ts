@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Image } from '@/types/models';
 
-export type DeliveryMode = 'random-redirect' | 'random-response' | 'response' | 'admin-file';
+export type DeliveryMode = 'random-redirect' | 'random-response' | 'response' | 'admin-file' | 'admin-preview';
 
 const SIGNATURE_PARAM = 'signature';
 const DEFAULT_HANDOFF_TTL_SECONDS = 120;

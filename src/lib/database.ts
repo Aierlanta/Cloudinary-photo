@@ -3,7 +3,16 @@
  * 使用Prisma和MySQL进行数据存储和管理
  */
 
-import { Image, Group, APIConfig, PaginationOptions, PaginatedResult } from '@/types/models';
+import {
+  Image,
+  Group,
+  APIConfig,
+  PaginationOptions,
+  PaginatedResult,
+  ProviderDeliveryPolicy,
+  SwarmConfig,
+  UploadStrategy
+} from '@/types/models';
 import { DatabaseError, NotFoundError } from '@/types/errors';
 import {
   createDefaultResponseParamsConfig,
@@ -78,6 +87,62 @@ function stringifyStoredAPIConfigPayload(config: APIConfig): string {
     items: config.allowedParameters,
     responseParams: normalizeResponseParamsConfig(config.responseParams)
   });
+}
+
+function createDefaultProviderDeliveryPolicy(): ProviderDeliveryPolicy {
+  return {
+    cloudinary: { mode: 'owner-node', warnOnDisable: true },
+    tgstate: { mode: 'existing-chain' },
+    telegram: { mode: 'existing-chain' },
+    custom: { mode: 'existing-chain' }
+  };
+}
+
+function normalizeUploadStrategy(value?: string | null): UploadStrategy {
+  if (value === 'manual' || value === 'round-robin' || value === 'random' || value === 'available-first') {
+    return value;
+  }
+  return 'manual';
+}
+
+function normalizeProviderDeliveryPolicy(raw?: string | ProviderDeliveryPolicy | null): ProviderDeliveryPolicy {
+  const defaults = createDefaultProviderDeliveryPolicy();
+  const parsed = typeof raw === 'string'
+    ? (() => {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      })()
+    : raw;
+
+  if (!parsed || typeof parsed !== 'object') {
+    return defaults;
+  }
+
+  const result = { ...defaults };
+  for (const provider of Object.keys(defaults) as Array<keyof ProviderDeliveryPolicy>) {
+    const item = (parsed as Partial<ProviderDeliveryPolicy>)[provider];
+    if (item?.mode === 'owner-node' || item?.mode === 'existing-chain') {
+      result[provider] = {
+        mode: item.mode,
+        warnOnDisable: item.warnOnDisable ?? defaults[provider].warnOnDisable
+      };
+    }
+  }
+  return result;
+}
+
+function createDefaultSwarmConfig(): SwarmConfig {
+  return {
+    id: 'default',
+    uploadStrategy: 'manual',
+    providerDeliveryPolicy: createDefaultProviderDeliveryPolicy(),
+    previewDeliveryEnabled: true,
+    cloudinaryNodeDeliveryRequired: true,
+    updatedAt: new Date()
+  };
 }
 
 function isCounterMissingError(error: unknown): boolean {
@@ -166,6 +231,11 @@ export class DatabaseService {
           updatedAt: new Date()
         };
         await this.updateAPIConfig(defaultConfig);
+      }
+
+      const swarmConfig = await this.getSwarmConfig();
+      if (!swarmConfig) {
+        await this.updateSwarmConfig(createDefaultSwarmConfig());
       }
 
       console.log('数据库初始化完成');
@@ -436,7 +506,7 @@ export class DatabaseService {
    */
   async getImages(options: PaginationOptions): Promise<PaginatedResult<Image>> {
     try {
-      const { page = 1, limit = 20, sortBy = 'uploadedAt', sortOrder = 'desc', search, dateFrom, dateTo, groupId, provider } = options;
+      const { page = 1, limit = 20, sortBy = 'uploadedAt', sortOrder = 'desc', search, dateFrom, dateTo, groupId, provider, ownerNodeId } = options;
 
       // 构建查询条件
       const where: any = {};
@@ -454,6 +524,14 @@ export class DatabaseService {
       // 图床筛选
       if (provider) {
         where.primaryProvider = provider;
+      }
+
+      if (ownerNodeId) {
+        if (ownerNodeId === 'unknown') {
+          where.ownerNodeId = null;
+        } else {
+          where.ownerNodeId = ownerNodeId;
+        }
       }
 
       if (dateFrom || dateTo) {
@@ -1125,6 +1203,73 @@ export class DatabaseService {
       console.log('API配置已更新');
     } catch (error) {
       throw new DatabaseError('更新API配置失败', error);
+    }
+  }
+
+  /**
+   * 获取蜂群配置
+   */
+  async getSwarmConfig(): Promise<SwarmConfig | null> {
+    try {
+      const config = await prisma.swarmConfig.findUnique({
+        where: { id: 'default' }
+      });
+
+      if (!config) return null;
+
+      return {
+        id: config.id,
+        uploadStrategy: normalizeUploadStrategy(config.uploadStrategy),
+        providerDeliveryPolicy: normalizeProviderDeliveryPolicy(config.providerDeliveryPolicy),
+        previewDeliveryEnabled: config.previewDeliveryEnabled,
+        cloudinaryNodeDeliveryRequired: config.cloudinaryNodeDeliveryRequired,
+        updatedAt: config.updatedAt
+      };
+    } catch (error) {
+      throw new DatabaseError('获取蜂群配置失败', error);
+    }
+  }
+
+  /**
+   * 获取或创建蜂群配置
+   */
+  async getOrCreateSwarmConfig(): Promise<SwarmConfig> {
+    const existing = await this.getSwarmConfig();
+    if (existing) return existing;
+
+    const defaults = createDefaultSwarmConfig();
+    await this.updateSwarmConfig(defaults);
+    return (await this.getSwarmConfig()) || defaults;
+  }
+
+  /**
+   * 更新蜂群配置
+   */
+  async updateSwarmConfig(config: SwarmConfig): Promise<void> {
+    try {
+      const policy = normalizeProviderDeliveryPolicy(config.providerDeliveryPolicy);
+      await prisma.swarmConfig.upsert({
+        where: { id: 'default' },
+        update: {
+          uploadStrategy: normalizeUploadStrategy(config.uploadStrategy),
+          providerDeliveryPolicy: JSON.stringify(policy),
+          previewDeliveryEnabled: config.previewDeliveryEnabled,
+          cloudinaryNodeDeliveryRequired: config.cloudinaryNodeDeliveryRequired,
+          updatedAt: new Date()
+        },
+        create: {
+          id: 'default',
+          uploadStrategy: normalizeUploadStrategy(config.uploadStrategy),
+          providerDeliveryPolicy: JSON.stringify(policy),
+          previewDeliveryEnabled: config.previewDeliveryEnabled,
+          cloudinaryNodeDeliveryRequired: config.cloudinaryNodeDeliveryRequired,
+          updatedAt: new Date()
+        }
+      });
+
+      console.log('蜂群配置已更新');
+    } catch (error) {
+      throw new DatabaseError('更新蜂群配置失败', error);
     }
   }
 

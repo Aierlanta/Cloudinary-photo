@@ -23,6 +23,9 @@ interface Image {
   tags?: string[];
   primaryProvider?: string;
   backupProvider?: string;
+  ownerNodeId?: string | null;
+  ownerNodeBaseUrl?: string | null;
+  previewUrl?: string | null;
   telegramFileId?: string | null;
   telegramThumbnailFileId?: string | null;
   telegramFilePath?: string | null;
@@ -42,6 +45,7 @@ interface Group {
 interface FilterState {
   search: string;
   groupId: string;
+  ownerNodeId: string;
   provider: string;
   dateFrom: string;
   dateTo: string;
@@ -62,7 +66,7 @@ const itemsPerPageOptions = Array.from(
 export default function GalleryPage() {
   const { t } = useLocale();
   const isLight = useTheme();
-  const { adminFetch, selectedNodeId } = useAdminApi();
+  const { adminFetch, selectedNodeId, nodes } = useAdminApi();
   const searchParams = useSearchParams();
   const [images, setImages] = useState<Image[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -76,6 +80,7 @@ export default function GalleryPage() {
   const [filters, setFilters] = useState<FilterState>({
     search: "",
     groupId: urlGroupId,
+    ownerNodeId: "",
     provider: "",
     dateFrom: "",
     dateTo: "",
@@ -132,6 +137,7 @@ export default function GalleryPage() {
         const params = new URLSearchParams();
         if (filters.search) params.append("search", filters.search);
         if (filters.groupId) params.append("groupId", filters.groupId);
+        if (filters.ownerNodeId) params.append("ownerNodeId", filters.ownerNodeId);
         if (filters.provider) params.append("provider", filters.provider);
         if (filters.dateFrom) params.append("dateFrom", filters.dateFrom);
         if (filters.dateTo) params.append("dateTo", filters.dateTo);
@@ -377,6 +383,38 @@ export default function GalleryPage() {
           {t.adminImages.filterAndSearch}
         </h2>
         <ImageFilters filters={filters} groups={groups} onFilterChange={handleFilterChange} />
+        <div className={cn(
+          "mt-4 border-t pt-4",
+          isLight ? "border-gray-200" : "border-gray-700"
+        )}>
+          <label className={cn(
+            "block text-xs font-medium mb-2",
+            isLight ? "text-gray-700" : "text-gray-300"
+          )}>
+            蜂群归属节点
+          </label>
+          <select
+            value={filters.ownerNodeId}
+            onChange={(event) => handleFilterChange({ ownerNodeId: event.target.value })}
+            className={cn(
+              "w-full md:w-80 px-3 py-2 border text-sm outline-none focus:border-blue-500 rounded-lg",
+              isLight
+                ? "bg-white border-gray-300"
+                : "bg-gray-800 border-gray-600"
+            )}
+          >
+            <option value="">全部节点</option>
+            {nodes.map((node) => (
+              <option key={node.id} value={node.id}>
+                {node.name}
+              </option>
+            ))}
+            <option value="unknown">未知归属</option>
+          </select>
+          <p className={cn("mt-2 text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
+            当前图库为共享数据库聚合视图，筛选项按图片 owner 节点过滤。
+          </p>
+        </div>
       </div>
 
       {/* Image List */}

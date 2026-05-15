@@ -4,6 +4,11 @@ import {
   createRemoteOwnerRedirect,
   verifyHandoffParams
 } from '@/lib/swarm-node';
+import {
+  buildAdminPreviewUrl,
+  shouldImageUseOwnerNodeDelivery
+} from '@/lib/swarm-provider-policy';
+import type { SwarmConfig } from '@/types/models';
 
 const originalEnv = process.env;
 
@@ -68,5 +73,67 @@ describe('swarm node handoff', () => {
     expect(location).toContain('https://b.example.com/api/delivery/resolve');
     expect(location).toContain('imageId=img_000002');
     expect(location).not.toContain('res.cloudinary.com');
+  });
+
+  it('Cloudinary 管理端预览默认生成 owner 节点 signed preview URL', async () => {
+    const request = mockRequest('https://a.example.com/admin/gallery');
+    const config: SwarmConfig = {
+      id: 'default',
+      uploadStrategy: 'manual',
+      providerDeliveryPolicy: {
+        cloudinary: { mode: 'owner-node', warnOnDisable: true },
+        tgstate: { mode: 'existing-chain' },
+        telegram: { mode: 'existing-chain' },
+        custom: { mode: 'existing-chain' }
+      },
+      previewDeliveryEnabled: true,
+      cloudinaryNodeDeliveryRequired: true,
+      updatedAt: new Date()
+    };
+
+    const image = {
+      id: 'img_000003',
+      url: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+      primaryProvider: 'cloudinary',
+      ownerNodeId: 'node-b',
+      ownerNodeBaseUrl: 'https://b.example.com'
+    };
+
+    expect(shouldImageUseOwnerNodeDelivery(image, config)).toBe(true);
+    const previewUrl = await buildAdminPreviewUrl(request, image, config);
+
+    expect(previewUrl).toContain('https://b.example.com/api/delivery/resolve');
+    const parsed = new URL(previewUrl || '');
+    expect(parsed.searchParams.get('mode')).toBe('admin-preview');
+    expect(parsed.searchParams.get('imageId')).toBe('img_000003');
+    expect(() => verifyHandoffParams(parsed.searchParams)).not.toThrow();
+  });
+
+  it('tgState 默认沿用现有链路，不生成 owner 节点 preview URL', async () => {
+    const request = mockRequest('https://a.example.com/admin/gallery');
+    const config: SwarmConfig = {
+      id: 'default',
+      uploadStrategy: 'manual',
+      providerDeliveryPolicy: {
+        cloudinary: { mode: 'owner-node', warnOnDisable: true },
+        tgstate: { mode: 'existing-chain' },
+        telegram: { mode: 'existing-chain' },
+        custom: { mode: 'existing-chain' }
+      },
+      previewDeliveryEnabled: true,
+      cloudinaryNodeDeliveryRequired: true,
+      updatedAt: new Date()
+    };
+
+    const image = {
+      id: 'img_000004',
+      url: 'https://tgstate.example.com/d/abc',
+      primaryProvider: 'tgstate',
+      ownerNodeId: 'node-b',
+      ownerNodeBaseUrl: 'https://b.example.com'
+    };
+
+    expect(shouldImageUseOwnerNodeDelivery(image, config)).toBe(false);
+    await expect(buildAdminPreviewUrl(request, image, config)).resolves.toBeUndefined();
   });
 });

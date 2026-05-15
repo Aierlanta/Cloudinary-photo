@@ -25,7 +25,7 @@ import {
   Copy, 
   ExternalLink, 
   Play, 
-  Save 
+  Save
 } from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
 

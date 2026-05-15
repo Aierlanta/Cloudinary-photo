@@ -21,6 +21,7 @@ import {
   Sun,
   Globe,
   Palette,
+  Network,
 } from "lucide-react";
 import { useLocale } from "@/hooks/useLocale";
 import { Theme } from "@/lib/adminTheme";
@@ -48,7 +49,15 @@ export default function AdminLayoutV3({
   handleLogout,
 }: AdminLayoutV3Props) {
   const { t, locale, toggleLocale } = useLocale();
-  const { adminFetch, nodes, selectedNodeId, setSelectedNodeId, selectedNode } = useAdminApi();
+  const {
+    adminFetch,
+    nodes,
+    selectedNodeId,
+    setSelectedNodeId,
+    selectedNode,
+    nodeStatuses,
+    refreshNodeStatuses
+  } = useAdminApi();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -77,11 +86,16 @@ export default function AdminLayoutV3({
     };
   }, [adminFetch]);
 
+  useEffect(() => {
+    refreshNodeStatuses().catch(() => {});
+  }, [refreshNodeStatuses]);
+
   const navigationItems = [
     { name: t.adminNav.dashboard, href: "/admin", icon: LayoutDashboard },
     { name: t.adminNav.upload || "图片上传", href: "/admin/images", icon: Upload },
     { name: t.adminNav.gallery || "图库", href: "/admin/gallery", icon: ImageIcon },
     { name: t.adminNav.groups, href: "/admin/groups", icon: Layers },
+    { name: "蜂群", href: "/admin/swarm", icon: Network },
     { name: t.adminNav.apiConfig, href: "/admin/config", icon: Settings },
     { name: t.adminNav.status, href: "/admin/status", icon: Activity },
     { name: "Logs", href: "/admin/logs", icon: FileText },
@@ -339,7 +353,7 @@ export default function AdminLayoutV3({
       {isSettingsOpen && (
         <div
           className={cn(
-            "fixed top-4 right-4 z-50 w-80 border p-6  rounded-lg",
+            "fixed top-4 right-4 z-50 w-[28rem] max-w-[calc(100vw-2rem)] border p-6 rounded-lg",
             isLight
           ? "bg-white border-gray-300"
           : "bg-gray-800 border-gray-600"
@@ -362,25 +376,95 @@ export default function AdminLayoutV3({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">后端节点</label>
-              <select
-                value={selectedNodeId}
-                onChange={(event) => setSelectedNodeId(event.target.value)}
-                className={cn(
-                  "w-full px-3 py-2 border text-sm outline-none rounded-lg",
-                  isLight
-                    ? "bg-white border-gray-300 text-gray-700"
-                    : "bg-gray-700 border-gray-600 text-gray-200"
-                )}
-              >
-                {nodes.map((node) => (
-                  <option key={node.id} value={node.id}>
-                    {node.name}
-                  </option>
-                ))}
-              </select>
-              <p className={cn("mt-1 text-xs break-all", isLight ? "text-gray-500" : "text-gray-400")}>
-                {selectedNode.baseUrl}
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <label className="block text-sm font-medium">蜂群节点总览</label>
+                <button
+                  onClick={() => refreshNodeStatuses().catch(() => {})}
+                  className={cn(
+                    "px-2 py-1 border text-xs rounded-lg",
+                    isLight
+                      ? "bg-gray-50 border-gray-300 hover:bg-gray-100 text-gray-700"
+                      : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
+                  )}
+                >
+                  刷新
+                </button>
+              </div>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {nodes.map((node) => {
+                  const status = nodeStatuses[node.id];
+                  const statusLabel = status?.status === 'online'
+                    ? '在线'
+                    : status?.status === 'degraded'
+                      ? '降级'
+                      : status?.status === 'offline'
+                        ? '离线'
+                        : '未知';
+                  const statusClass = status?.status === 'online'
+                    ? 'bg-green-500'
+                    : status?.status === 'degraded'
+                      ? 'bg-yellow-500'
+                      : status?.status === 'offline'
+                        ? 'bg-red-500'
+                        : 'bg-gray-400';
+
+                  return (
+                    <div
+                      key={node.id}
+                      className={cn(
+                        "border p-3 rounded-lg",
+                        node.id === selectedNodeId
+                          ? isLight
+                            ? "border-blue-400 bg-blue-50"
+                            : "border-blue-500 bg-blue-900/20"
+                          : isLight
+                            ? "border-gray-300 bg-gray-50"
+                            : "border-gray-600 bg-gray-700"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("w-2 h-2 rounded-full", statusClass)} />
+                            <span className="font-medium text-sm truncate">{node.name}</span>
+                            {node.id === selectedNodeId && (
+                              <span className={cn(
+                                "text-[10px] px-1.5 py-0.5 border rounded",
+                                isLight ? "border-blue-300 text-blue-700" : "border-blue-500 text-blue-200"
+                              )}>
+                                默认操作
+                              </span>
+                            )}
+                          </div>
+                          <p className={cn("mt-1 text-xs break-all", isLight ? "text-gray-500" : "text-gray-400")}>
+                            {node.baseUrl}
+                          </p>
+                          <p className={cn("mt-1 text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
+                            {statusLabel}
+                            {status?.latencyMs !== undefined ? ` · ${status.latencyMs}ms` : ''}
+                            {status?.version ? ` · v${status.version}` : ''}
+                          </p>
+                        </div>
+                        {node.id !== selectedNodeId && (
+                          <button
+                            onClick={() => setSelectedNodeId(node.id)}
+                            className={cn(
+                              "shrink-0 px-2 py-1 border text-xs rounded-lg",
+                              isLight
+                                ? "bg-white border-gray-300 hover:bg-gray-100 text-gray-700"
+                                : "bg-gray-800 border-gray-600 hover:bg-gray-700 text-gray-200"
+                            )}
+                          >
+                            设为默认
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className={cn("mt-2 text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
+                当前默认操作节点：{selectedNode.name}。图库和蜂群策略仍按共享数据库聚合展示。
               </p>
             </div>
 

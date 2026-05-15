@@ -20,6 +20,7 @@ export interface Image {
   backupProvider?: string;  // 新增：备用图床提供商
   ownerNodeId?: string;
   ownerNodeBaseUrl?: string;
+  previewUrl?: string;
   // Telegram 相关字段
   telegramFileId?: string;
   telegramThumbnailFileId?: string;
@@ -80,6 +81,26 @@ export interface APIConfig {
   updatedAt: Date;
 }
 
+export type UploadStrategy = 'manual' | 'round-robin' | 'random' | 'available-first';
+export type ProviderDeliveryMode = 'owner-node' | 'existing-chain';
+export type SwarmProvider = 'cloudinary' | 'tgstate' | 'telegram' | 'custom';
+
+export interface ProviderDeliveryPolicyItem {
+  mode: ProviderDeliveryMode;
+  warnOnDisable?: boolean;
+}
+
+export type ProviderDeliveryPolicy = Record<SwarmProvider, ProviderDeliveryPolicyItem>;
+
+export interface SwarmConfig {
+  id: string;
+  uploadStrategy: UploadStrategy;
+  providerDeliveryPolicy: ProviderDeliveryPolicy;
+  previewDeliveryEnabled: boolean;
+  cloudinaryNodeDeliveryRequired: boolean;
+  updatedAt: Date;
+}
+
 // 分页选项
 export interface PaginationOptions {
   page: number;
@@ -91,6 +112,7 @@ export interface PaginationOptions {
   dateTo?: Date;
   groupId?: string;
   provider?: string; // 新增：图床筛选
+  ownerNodeId?: string;
 }
 
 // 分页结果

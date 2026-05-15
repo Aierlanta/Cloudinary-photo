@@ -87,6 +87,7 @@ export default function SmartImage({
         <img
           src={src}
           alt={alt}
+          referrerPolicy="no-referrer"
           className={sharedClassName}
           onClick={onClick}
           onLoad={handleLoad}
@@ -103,6 +104,7 @@ export default function SmartImage({
         <Image
           src={src}
           alt={alt}
+          referrerPolicy="no-referrer"
           fill={fill}
           width={!fill ? width : undefined}
           height={!fill ? height : undefined}

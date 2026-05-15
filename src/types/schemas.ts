@@ -119,6 +119,30 @@ export const APIConfigSchema = z.object({
   updatedAt: z.date()
 });
 
+export const UploadStrategySchema = z.enum(['manual', 'round-robin', 'random', 'available-first']);
+export const ProviderDeliveryModeSchema = z.enum(['owner-node', 'existing-chain']);
+export const SwarmProviderSchema = z.enum(['cloudinary', 'tgstate', 'telegram', 'custom']);
+export const ProviderDeliveryPolicyItemSchema = z.object({
+  mode: ProviderDeliveryModeSchema,
+  warnOnDisable: z.boolean().optional()
+});
+
+export const ProviderDeliveryPolicySchema = z.object({
+  cloudinary: ProviderDeliveryPolicyItemSchema.default({ mode: 'owner-node', warnOnDisable: true }),
+  tgstate: ProviderDeliveryPolicyItemSchema.default({ mode: 'existing-chain' }),
+  telegram: ProviderDeliveryPolicyItemSchema.default({ mode: 'existing-chain' }),
+  custom: ProviderDeliveryPolicyItemSchema.default({ mode: 'existing-chain' })
+});
+
+export const SwarmConfigSchema = z.object({
+  id: IdSchema,
+  uploadStrategy: UploadStrategySchema.default('manual'),
+  providerDeliveryPolicy: ProviderDeliveryPolicySchema,
+  previewDeliveryEnabled: z.boolean().default(true),
+  cloudinaryNodeDeliveryRequired: z.boolean().default(true),
+  updatedAt: z.date()
+});
+
 // 分页选项验证模式
 export const PaginationOptionsSchema = z.object({
   page: z.number().int().positive('页码必须为正整数').default(1),
@@ -159,6 +183,7 @@ export const ImageListRequestSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   groupId: IdSchema.optional(),
+  ownerNodeId: z.string().optional(),
   provider: z.string().optional(), // 新增：图床筛选
   search: z.string().optional(), // 搜索关键词，支持文件名和标签搜索
   dateFrom: z.coerce.date().optional(),
@@ -198,6 +223,18 @@ export const APIConfigUpdateRequestSchema = z.object({
   (data) => Object.keys(data).length > 0,
   {
     message: '至少需要提供一个要更新的字段'
+  }
+);
+
+export const SwarmConfigUpdateRequestSchema = z.object({
+  uploadStrategy: UploadStrategySchema.optional(),
+  providerDeliveryPolicy: ProviderDeliveryPolicySchema.partial().optional(),
+  previewDeliveryEnabled: z.boolean().optional(),
+  cloudinaryNodeDeliveryRequired: z.boolean().optional()
+}).refine(
+  (data) => Object.keys(data).length > 0,
+  {
+    message: '至少需要提供一个要更新的蜂群配置字段'
   }
 );
 
