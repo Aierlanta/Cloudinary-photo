@@ -27,6 +27,7 @@ import {
   Download,
   Copy
 } from "lucide-react";
+import { useAdminApi } from "@/lib/admin-api-client";
 
 interface ImageItem {
   id: string;
@@ -196,6 +197,7 @@ function LazyImage({
 function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: ImagePreviewModalProps) {
   const { t, locale } = useLocale();
   const isLight = useTheme();
+  const { adminFetch } = useAdminApi();
   
   if (!image) return null;
 
@@ -328,7 +330,9 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
 
   const downloadImage = async (url: string, fallbackFilename: string) => {
      try {
-      const response = await fetch(url);
+      const response = url.startsWith('/api/')
+        ? await adminFetch(url)
+        : await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }

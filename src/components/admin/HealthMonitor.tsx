@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
@@ -14,6 +14,7 @@ import {
   HardDrive,
   Clock
 } from 'lucide-react';
+import { useAdminApi } from '@/lib/admin-api-client';
 
 interface HealthData {
   mainDatabase: {
@@ -39,13 +40,14 @@ interface HealthData {
 export default function HealthMonitor() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch } = useAdminApi();
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchHealthData = async () => {
+  const fetchHealthData = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/health');
+      const response = await adminFetch('/api/admin/health');
       const data = await response.json();
       
       if (data.success) {
@@ -57,7 +59,7 @@ export default function HealthMonitor() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [adminFetch]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -71,7 +73,7 @@ export default function HealthMonitor() {
     const interval = setInterval(fetchHealthData, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchHealthData]);
 
   // --- V3 Layout (Flat Design) ---
   if (loading) {

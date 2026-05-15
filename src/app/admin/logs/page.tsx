@@ -13,16 +13,18 @@ import {
   Trash2, 
   ChevronDown
 } from 'lucide-react'
+import { useAdminApi } from '@/lib/admin-api-client'
 
 export default function SystemLogsPage() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch } = useAdminApi();
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const { toasts, success, error: showError, removeToast } = useToast();
 
   const handleExportLogs = async (format: 'json' | 'csv' | 'txt') => {
     try {
-      const response = await fetch('/api/admin/logs/export', {
+      const response = await adminFetch('/api/admin/logs/export', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -56,7 +58,7 @@ export default function SystemLogsPage() {
     }
 
     try {
-      const response = await fetch('/api/admin/logs/clear', {
+      const response = await adminFetch('/api/admin/logs/clear', {
         method: 'POST'
       })
 

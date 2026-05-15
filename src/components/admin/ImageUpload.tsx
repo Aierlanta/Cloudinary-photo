@@ -17,12 +17,13 @@ import type {
   ImageUrlImportRequest,
   ImageUrlImportResponse,
 } from "@/types/api";
+import { useAdminApi } from "@/lib/admin-api-client";
 
 interface Group {
   id: string;
   name: string;
   description?: string;
-  createdAt: string;
+  createdAt: string | Date;
   imageCount: number;
 }
 
@@ -76,6 +77,7 @@ export default function ImageUpload({
     getProvidersFailedMessage,
   } = t.adminImages;
   const isLight = useTheme();
+  const { adminFetch, selectedNodeId } = useAdminApi();
 
   // 确保 groups 是数�?
   const safeGroups = Array.isArray(groups) ? groups : [];
@@ -105,7 +107,7 @@ export default function ImageUpload({
   useEffect(() => {
     const fetchProviders = async () => {
       try {
-        const response = await fetch("/api/admin/storage/providers");
+        const response = await adminFetch("/api/admin/storage/providers");
         if (response.ok) {
           const data = await response.json();
           setProviders(data.data.providers);
@@ -126,7 +128,7 @@ export default function ImageUpload({
     };
 
     fetchProviders();
-  }, [showError, getProvidersFailed, getProvidersFailedMessage]);
+  }, [adminFetch, selectedNodeId, showError, getProvidersFailed, getProvidersFailedMessage]);
 
   // 确保选中的图床服务是可用的
   useEffect(() => {
@@ -402,7 +404,7 @@ export default function ImageUpload({
       if (tags) formData.append("tags", tags);
 
       try {
-        const response = await fetch("/api/admin/images", {
+        const response = await adminFetch("/api/admin/images", {
           method: "POST",
           body: formData,
         });
@@ -667,7 +669,7 @@ export default function ImageUpload({
         content: trimmedContent,
       };
 
-      const response = await fetch("/api/admin/images/import-urls", {
+      const response = await adminFetch("/api/admin/images/import-urls", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

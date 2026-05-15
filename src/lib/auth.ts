@@ -143,6 +143,11 @@ export function verifyAdminAuth(request: NextRequest): void {
     return; // session token验证通过
   }
 
+  // Bearer token 可以是跨节点共享的签名会话，也可以是直接管理员密码。
+  if (validateSessionToken(authValue)) {
+    return;
+  }
+
   // 否则验证为直接密码
   if (!validateAdminPassword(authValue)) {
     throw new AppError(

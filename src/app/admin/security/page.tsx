@@ -16,6 +16,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { IPLocationBadge } from "@/components/admin/IPLocation";
+import { useAdminApi } from "@/lib/admin-api-client";
 
 interface AccessStats {
   totalAccess: number;
@@ -58,6 +59,7 @@ const TOP_IP_RANGE_TO_HOURS: Record<TopIPRange, number | null> = {
 export default function SecurityManagement() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch } = useAdminApi();
   const [activeTab, setActiveTab] = useState<"stats" | "banned" | "limits">("stats");
   const [loading, setLoading] = useState(true);
   const statsRef = useRef<AccessStats | null>(null);
@@ -88,7 +90,7 @@ export default function SecurityManagement() {
     try {
       const params = new URLSearchParams();
       params.set("hours", hours.toString());
-      const response = await fetch(`/api/admin/security/stats?${params.toString()}`);
+      const response = await adminFetch(`/api/admin/security/stats?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setTopIPs(data.data.stats.topIPs ?? []);
@@ -98,12 +100,12 @@ export default function SecurityManagement() {
     } finally {
       setTopIPLoading(false);
     }
-  }, []);
+  }, [adminFetch]);
 
   // 加载访问统计
   const loadStats = useCallback(async (range: TopIPRange = topIPRangeRef.current) => {
     try {
-      const response = await fetch("/api/admin/security/stats?days=7");
+      const response = await adminFetch("/api/admin/security/stats?days=7");
       if (response.ok) {
         const data = await response.json();
         statsRef.current = data.data.stats;
@@ -116,11 +118,11 @@ export default function SecurityManagement() {
     } catch (error) {
       console.error("加载统计数据失败:", error);
     }
-  }, [refreshTopIPs]);
+  }, [adminFetch, refreshTopIPs]);
   // 加载封禁IP列表
   const loadBannedIPs = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/security/banned-ips");
+      const response = await adminFetch("/api/admin/security/banned-ips");
       if (response.ok) {
         const data = await response.json();
         setBannedIPs(data.data.bannedIPs);
@@ -128,12 +130,12 @@ export default function SecurityManagement() {
     } catch (error) {
       console.error("加载封禁IP列表失败:", error);
     }
-  }, []);
+  }, [adminFetch]);
 
   // 加载速率限制列表
   const loadRateLimits = useCallback(async () => {
     try {
-      const response = await fetch("/api/admin/security/rate-limits");
+      const response = await adminFetch("/api/admin/security/rate-limits");
       if (response.ok) {
         const data = await response.json();
         setRateLimits(data.data.rateLimits);
@@ -141,7 +143,7 @@ export default function SecurityManagement() {
     } catch (error) {
       console.error("加载速率限制列表失败:", error);
     }
-  }, []);
+  }, [adminFetch]);
 
   useEffect(() => {
     const loadData = async () => {

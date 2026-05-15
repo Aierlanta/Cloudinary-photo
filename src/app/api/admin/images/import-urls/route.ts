@@ -20,6 +20,7 @@ import {
   APIResponse,
   ImageUrlImportResponse,
 } from '@/types/api';
+import { getCurrentNode } from '@/lib/swarm-node';
 
 const storageDatabaseService = new StorageDatabaseService();
 
@@ -210,6 +211,7 @@ async function importUrls(request: NextRequest): Promise<Response> {
 
   const errors: ImageUrlImportResponse['errors'] = [];
   let successCount = 0;
+  const ownerNode = getCurrentNode(request);
 
   // 并发控制配置
   const CONCURRENCY_LIMIT = 5;
@@ -250,6 +252,8 @@ async function importUrls(request: NextRequest): Promise<Response> {
           tags: item.tags,
           primaryProvider: StorageProvider.CUSTOM,
           backupProvider: undefined,
+          ownerNodeId: ownerNode.id,
+          ownerNodeBaseUrl: ownerNode.baseUrl,
           storageResults: [
             {
               provider: StorageProvider.CUSTOM,

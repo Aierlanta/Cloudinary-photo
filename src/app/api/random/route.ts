@@ -13,6 +13,7 @@ import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-u
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import { validateManagedResponseParams } from '@/lib/response-params';
 import { serveRandomResponse } from '@/app/api/random/response/service';
+import { createRemoteOwnerRedirect } from '@/lib/swarm-node';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
 
@@ -199,6 +200,14 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     });
 
     const duration = Math.round(performance.now() - startTime);
+    const handoffMode = explicitResponseFlow || autoManagedResponseFlow ? 'random-response' : 'random-redirect';
+    const ownerRedirect = createRemoteOwnerRedirect(request, randomImage, handoffMode);
+    if (ownerRedirect) {
+      ownerRedirect.headers.set('X-Image-Id', randomImage.id);
+      ownerRedirect.headers.set('X-Image-PublicId', randomImage.publicId);
+      ownerRedirect.headers.set('X-Response-Time', `${duration}ms`);
+      return ownerRedirect;
+    }
 
     // 确保图片URL使用HTTPS协议
     let secureImageUrl = randomImage.url.replace(/^http:/, 'https:');
@@ -243,6 +252,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       redirectResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       redirectResponse.headers.set('Pragma', 'no-cache');
       redirectResponse.headers.set('Expires', '0');
+      redirectResponse.headers.set('Referrer-Policy', 'no-referrer');
       redirectResponse.headers.set('X-Image-Id', randomImage.id);
       redirectResponse.headers.set('X-Image-PublicId', randomImage.publicId);
       redirectResponse.headers.set('X-Response-Time', `${duration}ms`);
@@ -304,6 +314,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     redirectResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     redirectResponse.headers.set('Pragma', 'no-cache');
     redirectResponse.headers.set('Expires', '0');
+    redirectResponse.headers.set('Referrer-Policy', 'no-referrer');
     redirectResponse.headers.set('X-Image-Id', randomImage.id);
     redirectResponse.headers.set('X-Image-PublicId', randomImage.publicId);
     redirectResponse.headers.set('X-Response-Time', `${duration}ms`);

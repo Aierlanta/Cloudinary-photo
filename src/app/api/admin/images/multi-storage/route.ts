@@ -22,6 +22,7 @@ import {
   APIResponse,
   ImageUploadResponse
 } from '@/types/api';
+import { getCurrentNode } from '@/lib/swarm-node';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -134,6 +135,7 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
     }
 
     // 保存到数据库
+    const ownerNode = getCurrentNode(request);
     const savedImage = await storageDatabaseService.saveImageWithStorage({
       publicId: uploadResult.primaryResult?.publicId || uploadResult.backupResult?.publicId || '',
       url: uploadResult.primaryResult?.url || uploadResult.backupResult?.url || '',
@@ -146,6 +148,8 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
       primaryProvider: uploadResult.provider,
       backupProvider: uploadResult.backupResult ?
         (await storageDatabaseService.getStorageConfig())?.backupProvider : undefined,
+      ownerNodeId: ownerNode.id,
+      ownerNodeBaseUrl: ownerNode.baseUrl,
       storageResults
     });
 
@@ -169,7 +173,9 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
       uploadedAt: savedImage.uploadedAt,
       // 多图床特有字段
       primaryProvider: savedImage.primaryProvider,
-      backupProvider: savedImage.backupProvider
+      backupProvider: savedImage.backupProvider,
+      ownerNodeId: savedImage.ownerNodeId,
+      ownerNodeBaseUrl: savedImage.ownerNodeBaseUrl
     });
 
     const response: APIResponse<ImageUploadResponse> = {

@@ -26,6 +26,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { Theme } from "@/lib/adminTheme";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
+import { useAdminApi } from "@/lib/admin-api-client";
 
 interface AdminLayoutV3Props {
   children: React.ReactNode;
@@ -47,6 +48,7 @@ export default function AdminLayoutV3({
   handleLogout,
 }: AdminLayoutV3Props) {
   const { t, locale, toggleLocale } = useLocale();
+  const { adminFetch, nodes, selectedNodeId, setSelectedNodeId, selectedNode } = useAdminApi();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -57,7 +59,7 @@ export default function AdminLayoutV3({
 
     const loadStatus = async () => {
       try {
-        const response = await fetch("/api/status");
+        const response = await adminFetch("/api/status");
         if (!response.ok) return;
         const data = await response.json();
         if (data?.success && data.data?.version && !cancelled) {
@@ -73,7 +75,7 @@ export default function AdminLayoutV3({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [adminFetch]);
 
   const navigationItems = [
     { name: t.adminNav.dashboard, href: "/admin", icon: LayoutDashboard },
@@ -359,6 +361,29 @@ export default function AdminLayoutV3({
           </div>
 
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">后端节点</label>
+              <select
+                value={selectedNodeId}
+                onChange={(event) => setSelectedNodeId(event.target.value)}
+                className={cn(
+                  "w-full px-3 py-2 border text-sm outline-none rounded-lg",
+                  isLight
+                    ? "bg-white border-gray-300 text-gray-700"
+                    : "bg-gray-700 border-gray-600 text-gray-200"
+                )}
+              >
+                {nodes.map((node) => (
+                  <option key={node.id} value={node.id}>
+                    {node.name}
+                  </option>
+                ))}
+              </select>
+              <p className={cn("mt-1 text-xs break-all", isLight ? "text-gray-500" : "text-gray-400")}>
+                {selectedNode.baseUrl}
+              </p>
+            </div>
+
             {/* Language Toggle */}
             <div>
               <label className="block text-sm font-medium mb-2">语言</label>

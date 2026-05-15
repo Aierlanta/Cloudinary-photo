@@ -34,6 +34,7 @@ import {
   isStorageEnabled,
   isProviderInEnabledList
 } from '@/lib/storage';
+import { getCurrentNode } from '@/lib/swarm-node';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -188,6 +189,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
   }
 
   let image: Image;
+  const ownerNode = getCurrentNode(request);
 
   if (selectedProviderString === 'cloudinary') {
     // 使用原有的Cloudinary逻辑（向后兼容）
@@ -206,7 +208,9 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       title: uploadParams.title,
       description: uploadParams.description,
       groupId: uploadParams.groupId,
-      tags: uploadParams.tags || []
+      tags: uploadParams.tags || [],
+      ownerNodeId: ownerNode.id,
+      ownerNodeBaseUrl: ownerNode.baseUrl
     });
   } else {
     // 使用新的多图床架构
@@ -243,6 +247,8 @@ async function uploadImage(request: NextRequest): Promise<Response> {
         tags: uploadParams.tags,
         primaryProvider: selectedProviderString as StorageProvider,
         backupProvider: undefined,
+        ownerNodeId: ownerNode.id,
+        ownerNodeBaseUrl: ownerNode.baseUrl,
         storageResults: [{
           provider: selectedProviderString as StorageProvider,
           result: uploadResult
@@ -280,6 +286,8 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       orientation: normalizedOrientation,
       groupId: savedImage.groupId,
       uploadedAt: savedImage.uploadedAt,
+      ownerNodeId: savedImage.ownerNodeId,
+      ownerNodeBaseUrl: savedImage.ownerNodeBaseUrl,
       storageMetadata: savedImage.storageMetadata
     };
     

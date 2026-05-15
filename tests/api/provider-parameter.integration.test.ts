@@ -6,7 +6,7 @@
  * - /api/admin/config：provider 参数 schema/校验（mappedProviders 必填）
  */
 
-process.env.NODE_ENV = 'test';
+(process.env as Record<string, string | undefined>).NODE_ENV = 'test';
 process.env.ADMIN_PASSWORD = 'test-password';
 process.env.SESSION_SECRET = 'test-secret';
 

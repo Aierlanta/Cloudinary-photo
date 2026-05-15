@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { isStorageEnabled, StorageProvider } from '@/lib/storage';
+import { getCurrentNode } from '@/lib/swarm-node';
 
 interface StorageProviderInfo {
   id: string;
@@ -80,7 +81,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   const response = {
     success: true,
     data: {
-      providers
+      providers,
+      node: getCurrentNode(request)
     },
     timestamp: new Date()
   };

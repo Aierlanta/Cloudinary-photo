@@ -9,6 +9,7 @@ import { APIResponse } from '@/types/api';
 import { isStorageEnabled, StorageProvider } from '@/lib/storage';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
+import { getCurrentNode } from '@/lib/swarm-node';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -96,6 +97,7 @@ async function getAPIStatus(request: NextRequest): Promise<Response> {
         uptime: process.uptime(),
         version: await getVersion(),
         environment: process.env.NODE_ENV || 'development',
+        node: getCurrentNode(request),
         services: {
           database: dbStatus,
           cloudinary: cloudinaryStatus,

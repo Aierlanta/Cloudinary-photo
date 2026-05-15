@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRecentAdminRoutes } from "@/hooks/useAdminHistory";
+import { useAdminApi } from "@/lib/admin-api-client";
 
 interface Stats {
   totalImages: number;
@@ -40,6 +41,7 @@ interface Stats {
 export default function AdminDashboard() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch, selectedNodeId } = useAdminApi();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -58,7 +60,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const response = await fetch("/api/admin/stats");
+        const response = await adminFetch("/api/admin/stats");
         if (response.ok) {
           const data = await response.json();
           setStats(data.data);
@@ -73,7 +75,7 @@ export default function AdminDashboard() {
     };
 
     loadStats();
-  }, []);
+  }, [adminFetch, selectedNodeId]);
 
   // --- V3 Layout (Flat Design) ---
   return (

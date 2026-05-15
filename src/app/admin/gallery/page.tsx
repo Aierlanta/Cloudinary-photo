@@ -10,6 +10,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
 import { Image as ImageIcon, Filter, Grid } from "lucide-react";
+import { useAdminApi } from "@/lib/admin-api-client";
 
 interface Image {
   id: string;
@@ -61,6 +62,7 @@ const itemsPerPageOptions = Array.from(
 export default function GalleryPage() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch, selectedNodeId } = useAdminApi();
   const searchParams = useSearchParams();
   const [images, setImages] = useState<Image[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -106,7 +108,7 @@ export default function GalleryPage() {
   useEffect(() => {
     const loadGroups = async () => {
       try {
-        const response = await fetch("/api/admin/groups");
+        const response = await adminFetch("/api/admin/groups");
         if (response.ok) {
           const data = await response.json();
           const groupsData = data.data?.groups || [];
@@ -119,7 +121,7 @@ export default function GalleryPage() {
       }
     };
     loadGroups();
-  }, []);
+  }, [adminFetch, selectedNodeId]);
 
   // 加载图片列表
   useEffect(() => {
@@ -138,7 +140,7 @@ export default function GalleryPage() {
         params.append("sortBy", filters.sortBy);
         params.append("sortOrder", filters.sortOrder);
 
-        const response = await fetch(`/api/admin/images?${params}`);
+        const response = await adminFetch(`/api/admin/images?${params}`);
         if (response.ok) {
           const data = await response.json();
           const imagesData = data.data?.images;
@@ -157,7 +159,7 @@ export default function GalleryPage() {
     };
 
     loadImages();
-  }, [filters]);
+  }, [adminFetch, selectedNodeId, filters]);
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
     setFilters((prev) => ({
@@ -169,7 +171,7 @@ export default function GalleryPage() {
 
   const handleDeleteImage = async (imageId: string) => {
     try {
-      const response = await fetch(`/api/admin/images/${imageId}`, {
+      const response = await adminFetch(`/api/admin/images/${imageId}`, {
         method: "DELETE",
       });
 
@@ -186,7 +188,7 @@ export default function GalleryPage() {
 
   const handleBulkDelete = async (imageIds: string[]) => {
     try {
-      const response = await fetch("/api/admin/images", {
+      const response = await adminFetch("/api/admin/images", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -212,7 +214,7 @@ export default function GalleryPage() {
     updates: { groupId?: string; tags?: string[] }
   ) => {
     try {
-      const response = await fetch(`/api/admin/images/${imageId}`, {
+      const response = await adminFetch(`/api/admin/images/${imageId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -236,7 +238,7 @@ export default function GalleryPage() {
     updates: { groupId?: string; tags?: string[] }
   ) => {
     try {
-      const response = await fetch("/api/admin/images", {
+      const response = await adminFetch("/api/admin/images", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json"

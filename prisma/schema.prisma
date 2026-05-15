@@ -22,6 +22,8 @@ model Image {
   uploadedAt              DateTime             @default(now())
   primaryProvider         String               @default("cloudinary")
   backupProvider          String?
+  ownerNodeId             String?
+  ownerNodeBaseUrl        String?
   storageMetadata         String?              @db.Text
   // Telegram 直连相关字段
   telegramFileId          String? // 原图的 file_id
@@ -39,6 +41,7 @@ model Image {
   @@index([uploadedAt])
   @@index([groupId, uploadedAt])
   @@index([primaryProvider, uploadedAt])
+  @@index([ownerNodeId, uploadedAt])
   @@map("images")
 }
 
@@ -81,6 +84,8 @@ model ImageStorageRecord {
   provider   String
   identifier String
   url        String
+  ownerNodeId      String?
+  ownerNodeBaseUrl String?
   metadata   String?  @db.Text
   status     String   @default("active")
   createdAt  DateTime @default(now())
@@ -89,6 +94,7 @@ model ImageStorageRecord {
 
   @@index([imageId])
   @@index([provider])
+  @@index([ownerNodeId])
   @@index([status])
   @@map("image_storage_records")
 }

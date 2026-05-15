@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useCallback } from 'react'
 import { LogLevel } from '@/lib/logger'
 import { useLocale } from '@/hooks/useLocale'
+import { useAdminApi } from '@/lib/admin-api-client'
 
 interface LogEntry {
   id?: string
@@ -28,6 +29,7 @@ export default function LogViewer({
   refreshInterval = 5000
 }: LogViewerProps) {
   const { t } = useLocale();
+  const { adminFetch } = useAdminApi();
   const {
     loadFailedFormat,
     loadFailedHttp,
@@ -80,7 +82,7 @@ export default function LogViewer({
         params.append('dateTo', filter.dateTo)
       }
 
-      const response = await fetch(`/api/admin/logs?${params}`)
+      const response = await adminFetch(`/api/admin/logs?${params}`)
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
@@ -103,7 +105,7 @@ export default function LogViewer({
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.limit, filter, loadFailedFormat, loadFailedHttp, loadFailedNetwork])
+  }, [adminFetch, pagination.page, pagination.limit, filter, loadFailedFormat, loadFailedHttp, loadFailedNetwork])
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }))
@@ -135,7 +137,7 @@ export default function LogViewer({
       // 注意：API是 gte (大于等于)，所以我们需要在前端去重
       params.append('dateFrom', dateFrom);
 
-      const response = await fetch(`/api/admin/logs?${params}`);
+      const response = await adminFetch(`/api/admin/logs?${params}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data?.logs?.length > 0) {
@@ -175,7 +177,7 @@ export default function LogViewer({
     } catch (error) {
       console.error('流式获取日志失败:', error);
     }
-  }, [logs, filter, loadLogs]);
+  }, [adminFetch, logs, filter, loadLogs]);
 
   useEffect(() => {
     if (autoRefresh) {
@@ -350,7 +352,7 @@ export default function LogViewer({
             <button
               onClick={async () => {
                 try {
-                  const response = await fetch('/api/admin/logs/test', { method: 'POST' });
+                  const response = await adminFetch('/api/admin/logs/test', { method: 'POST' });
                   if (response.ok) {
                     loadLogs(); // 重新加载日志
                   }

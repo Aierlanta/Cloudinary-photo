@@ -18,6 +18,7 @@ import {
   type ManagedResponseEndpoint,
   validateManagedResponseParams
 } from '@/lib/response-params';
+import { createRemoteOwnerRedirect } from '@/lib/swarm-node';
 
 const cloudinaryService = CloudinaryService.getInstance();
 
@@ -119,6 +120,7 @@ export async function serveRandomResponse(
     imageId?: string;
     requireDirectResponseEnabled?: boolean;
     requestPath?: string;
+    skipNodeHandoff?: boolean;
   }
 ): Promise<Response> {
   const startTime = performance.now();
@@ -185,6 +187,14 @@ export async function serveRandomResponse(
   const image = await databaseService.getImage(imageId);
   if (!image) {
     throw new AppError(ErrorType.NOT_FOUND, '图片不存在', 404);
+  }
+
+  if (!options?.skipNodeHandoff) {
+    const mode = requestPath === '/api/random' ? 'random-response' : 'response';
+    const ownerRedirect = createRemoteOwnerRedirect(request, image, mode);
+    if (ownerRedirect) {
+      return ownerRedirect;
+    }
   }
 
   let imageUrl = image.url.replace(/^http:/, 'https:');

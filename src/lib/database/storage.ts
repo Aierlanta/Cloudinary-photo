@@ -5,6 +5,7 @@
 
 import { StorageProvider, StorageResult, MultiStorageConfig } from '../storage/base';
 import { prisma } from '../prisma';
+import { getCurrentNode } from '../swarm-node';
 
 // 写冲突重试配置（避免硬编码散落）
 const DEADLOCK_RETRY_ATTEMPTS = 5;
@@ -24,6 +25,8 @@ export interface ImageWithStorage {
   uploadedAt: Date;
   primaryProvider: string;
   backupProvider?: string;
+  ownerNodeId?: string;
+  ownerNodeBaseUrl?: string;
   storageMetadata?: string;
   storageRecords: ImageStorageRecord[];
 }
@@ -34,6 +37,8 @@ export interface ImageStorageRecord {
   provider: string;
   identifier: string;
   url: string;
+  ownerNodeId?: string;
+  ownerNodeBaseUrl?: string;
   metadata?: string;
   status: string;
   createdAt: Date;
@@ -52,6 +57,8 @@ export interface CreateImageData {
   tags?: string[];
   primaryProvider: StorageProvider;
   backupProvider?: StorageProvider;
+  ownerNodeId?: string;
+  ownerNodeBaseUrl?: string;
   storageResults: {
     provider: StorageProvider;
     result: StorageResult;
@@ -64,6 +71,9 @@ export class StorageDatabaseService {
    */
   async saveImageWithStorage(data: CreateImageData): Promise<ImageWithStorage> {
     const imageId = this.generateImageId();
+    const ownerNode = getCurrentNode();
+    const ownerNodeId = data.ownerNodeId || ownerNode.id;
+    const ownerNodeBaseUrl = data.ownerNodeBaseUrl || ownerNode.baseUrl;
 
     const telegramMetadata = data.storageResults.find(
       sr => sr.provider === StorageProvider.TELEGRAM
@@ -107,6 +117,8 @@ export class StorageDatabaseService {
             tags: data.tags ? JSON.stringify(data.tags) : null,
             primaryProvider: data.primaryProvider,
             backupProvider: data.backupProvider,
+            ownerNodeId,
+            ownerNodeBaseUrl,
             storageMetadata: JSON.stringify(storageMetadata),
 
             telegramFileId: telegramMetadata?.telegramFileId,
@@ -125,6 +137,8 @@ export class StorageDatabaseService {
                 provider,
                 identifier: result.publicId,
                 url: result.url,
+                ownerNodeId,
+                ownerNodeBaseUrl,
                 metadata: JSON.stringify({
                   originalResult: result,
                   uploadTime: new Date().toISOString()
@@ -160,9 +174,13 @@ export class StorageDatabaseService {
       tags: image.tags || undefined,
       groupId: image.groupId || undefined,
       backupProvider: image.backupProvider || undefined,
+      ownerNodeId: image.ownerNodeId || undefined,
+      ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
       storageMetadata: image.storageMetadata || undefined,
       storageRecords: storageRecords.map(r => ({
         ...r,
+        ownerNodeId: r.ownerNodeId || undefined,
+        ownerNodeBaseUrl: r.ownerNodeBaseUrl || undefined,
         metadata: r.metadata || undefined
       }))
     };
@@ -211,9 +229,13 @@ export class StorageDatabaseService {
       tags: image.tags || undefined,
       groupId: image.groupId || undefined,
       backupProvider: image.backupProvider || undefined,
+      ownerNodeId: image.ownerNodeId || undefined,
+      ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
       storageMetadata: image.storageMetadata || undefined,
       storageRecords: image.storageRecords.map(record => ({
         ...record,
+        ownerNodeId: record.ownerNodeId || undefined,
+        ownerNodeBaseUrl: record.ownerNodeBaseUrl || undefined,
         metadata: record.metadata || undefined
       }))
     };
@@ -268,10 +290,14 @@ export class StorageDatabaseService {
         tags: image.tags || undefined,
         groupId: image.groupId || undefined,
         backupProvider: image.backupProvider || undefined,
+        ownerNodeId: image.ownerNodeId || undefined,
+        ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
         orientation: image.orientation || undefined,
         storageMetadata: image.storageMetadata || undefined,
         storageRecords: image.storageRecords.map(record => ({
           ...record,
+          ownerNodeId: record.ownerNodeId || undefined,
+          ownerNodeBaseUrl: record.ownerNodeBaseUrl || undefined,
           metadata: record.metadata || undefined
         }))
       })),
@@ -311,12 +337,15 @@ export class StorageDatabaseService {
     provider: StorageProvider,
     result: StorageResult
   ): Promise<ImageStorageRecord> {
+    const ownerNode = getCurrentNode();
     const record = await prisma.imageStorageRecord.create({
       data: {
         imageId,
         provider,
         identifier: result.publicId,
         url: result.url,
+        ownerNodeId: ownerNode.id,
+        ownerNodeBaseUrl: ownerNode.baseUrl,
         metadata: JSON.stringify({
           originalResult: result,
           uploadTime: new Date().toISOString()
@@ -328,6 +357,8 @@ export class StorageDatabaseService {
     console.log(`添加存储记录: ${imageId} @ ${provider}`);
     return {
       ...record,
+      ownerNodeId: record.ownerNodeId || undefined,
+      ownerNodeBaseUrl: record.ownerNodeBaseUrl || undefined,
       metadata: record.metadata || undefined
     };
   }

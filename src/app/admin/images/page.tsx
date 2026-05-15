@@ -8,6 +8,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
 import { Upload, Database, Grid } from "lucide-react";
+import { useAdminApi } from "@/lib/admin-api-client";
 
 interface Image {
   id: string;
@@ -31,6 +32,7 @@ interface Group {
 export default function ImagesPage() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch, selectedNodeId } = useAdminApi();
   const [groups, setGroups] = useState<Group[]>([]);
   const [totalImages, setTotalImages] = useState(0);
 
@@ -41,7 +43,7 @@ export default function ImagesPage() {
   useEffect(() => {
     const loadGroups = async () => {
       try {
-        const response = await fetch("/api/admin/groups");
+        const response = await adminFetch("/api/admin/groups");
         if (response.ok) {
           const data = await response.json();
           const groupsData = data.data?.groups || [];
@@ -56,7 +58,7 @@ export default function ImagesPage() {
 
     const loadTotalImages = async () => {
       try {
-        const response = await fetch("/api/admin/stats");
+        const response = await adminFetch("/api/admin/stats");
         if (response.ok) {
           const data = await response.json();
           setTotalImages(data.data?.totalImages || 0);
@@ -68,13 +70,13 @@ export default function ImagesPage() {
 
     loadGroups();
     loadTotalImages();
-  }, []);
+  }, [adminFetch, selectedNodeId]);
 
   const handleUploadSuccess = () => {
     // 上传成功后可以刷新统计数据
     const loadTotalImages = async () => {
       try {
-        const response = await fetch("/api/admin/stats");
+        const response = await adminFetch("/api/admin/stats");
         if (response.ok) {
           const data = await response.json();
           setTotalImages(data.data?.totalImages || 0);

@@ -63,6 +63,7 @@ jest.mock('next/server', () => {
 });
 
 import { cookies } from 'next/headers';
+import type { NextRequest } from 'next/server';
 import { GET } from '../check/route';
 import { POST } from '../login/route';
 import { generateSessionToken } from '@/lib/auth';
@@ -87,7 +88,7 @@ describe('管理员认证路由', () => {
     process.env = { ...originalEnv };
     process.env.ADMIN_PASSWORD = 'test-password-123';
     process.env.SESSION_SECRET = 'session-secret';
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'test';
   });
 
   afterEach(() => {
@@ -110,7 +111,7 @@ describe('管理员认证路由', () => {
         get: jest.fn().mockReturnValue(undefined),
       });
 
-      const response = await GET();
+      const response = await GET(undefined as unknown as NextRequest);
       expect(response.status).toBe(401);
       const data = await response.json();
       expect(data).toEqual({ message: '未登录' });
@@ -121,7 +122,7 @@ describe('管理员认证路由', () => {
         get: jest.fn().mockReturnValue({ name: 'admin-session', value: 'invalid.token' }),
       });
 
-      const response = await GET();
+      const response = await GET(undefined as unknown as NextRequest);
       expect(response.status).toBe(401);
       const data = await response.json();
       expect(data).toEqual({ message: '未登录' });
@@ -133,7 +134,7 @@ describe('管理员认证路由', () => {
         get: jest.fn().mockReturnValue({ name: 'admin-session', value: token }),
       });
 
-      const response = await GET();
+      const response = await GET(undefined as unknown as NextRequest);
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data).toEqual({ message: '已登录' });
@@ -144,7 +145,7 @@ describe('管理员认证路由', () => {
         throw new Error('Cookies API unavailable');
       });
 
-      const response = await GET();
+      const response = await GET(undefined as unknown as NextRequest);
       expect(response.status).toBe(500);
       const data = await response.json();
       expect(data).toEqual({ message: '服务器内部错误' });
@@ -204,7 +205,11 @@ describe('管理员认证路由', () => {
       );
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toEqual({ message: '登录成功' });
+      expect(data).toEqual({
+        success: true,
+        token: expect.any(String),
+        message: '登录成功',
+      });
     });
 
     it('cookie 设置失败时应返回500', async () => {

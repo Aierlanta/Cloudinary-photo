@@ -18,6 +18,7 @@ import {
   HardDrive,
   History
 } from 'lucide-react'
+import { useAdminApi } from '@/lib/admin-api-client'
 
 interface BackupStatus {
   lastBackupTime: string | null;
@@ -31,6 +32,7 @@ interface BackupStatus {
 export default function BackupPage() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch } = useAdminApi();
   // 使用 ref 保存最新的翻译对象，避免在 useCallback 依赖中包含 t
   const tRef = useRef(t);
   useEffect(() => {
@@ -68,7 +70,7 @@ export default function BackupPage() {
   // 获取备份状态
   const fetchBackupStatus = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/backup/status');
+      const response = await adminFetch('/api/admin/backup/status');
       const data = await response.json();
 
       if (data.success) {
@@ -82,14 +84,14 @@ export default function BackupPage() {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, [adminFetch, showError]);
 
   // 创建备份
   const createBackup = async () => {
     setIsCreatingBackup(true);
     
     try {
-      const response = await fetch('/api/admin/backup/create', {
+      const response = await adminFetch('/api/admin/backup/create', {
         method: 'POST'
       });
       const data = await response.json();
@@ -116,7 +118,7 @@ export default function BackupPage() {
     setIsRestoring(true);
     
     try {
-      const response = await fetch('/api/admin/backup/restore', {
+      const response = await adminFetch('/api/admin/backup/restore', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -143,7 +145,7 @@ export default function BackupPage() {
     setIsInitializing(true);
     
     try {
-      const response = await fetch('/api/admin/backup/init', {
+      const response = await adminFetch('/api/admin/backup/init', {
         method: 'POST'
       });
       const data = await response.json();
@@ -163,7 +165,7 @@ export default function BackupPage() {
   // 更新自动备份设置
   const updateAutoBackupSetting = async (enabled: boolean) => {
     try {
-      const response = await fetch('/api/admin/backup/settings', {
+      const response = await adminFetch('/api/admin/backup/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

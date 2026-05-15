@@ -16,6 +16,7 @@ import {
   Info,
   Zap
 } from 'lucide-react'
+import { useAdminApi } from '@/lib/admin-api-client'
 
 interface SystemStatus {
   status: 'healthy' | 'degraded' | 'down'
@@ -79,6 +80,7 @@ interface SystemStatus {
 export default function SystemStatusPage() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch } = useAdminApi();
   const [status, setStatus] = useState<SystemStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +89,7 @@ export default function SystemStatusPage() {
   const loadStatus = useCallback(async () => {
     try {
       setError(null)
-      const response = await fetch('/api/status')
+      const response = await adminFetch('/api/status')
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
@@ -104,7 +106,7 @@ export default function SystemStatusPage() {
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [adminFetch, t])
 
   useEffect(() => {
     loadStatus()

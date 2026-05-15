@@ -16,6 +16,7 @@ import {
   X,
   Save
 } from 'lucide-react'
+import { useAdminApi } from '@/lib/admin-api-client'
 
 interface Group {
   id: string
@@ -33,6 +34,7 @@ interface GroupFormData {
 export default function GroupsPage() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch, selectedNodeId } = useAdminApi();
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,12 +51,13 @@ export default function GroupsPage() {
   useEffect(() => {
     loadGroups()
     loadTotalImages()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNodeId])
 
   const loadGroups = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/groups')
+      const response = await adminFetch('/api/admin/groups')
       if (response.ok) {
         const data = await response.json()
         setGroups(data.data?.groups || [])
@@ -70,7 +73,7 @@ export default function GroupsPage() {
 
   const loadTotalImages = async () => {
     try {
-      const response = await fetch('/api/admin/stats')
+      const response = await adminFetch('/api/admin/stats')
       if (response.ok) {
         const data = await response.json()
         setTotalImages(data.data?.totalImages || 0)
@@ -90,7 +93,7 @@ export default function GroupsPage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch('/api/admin/groups', {
+      const response = await adminFetch('/api/admin/groups', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +136,7 @@ export default function GroupsPage() {
 
     setSubmitting(true)
     try {
-      const response = await fetch(`/api/admin/groups/${editingGroup.id}`, {
+      const response = await adminFetch(`/api/admin/groups/${editingGroup.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -173,7 +176,7 @@ export default function GroupsPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/groups/${groupId}`, {
+      const response = await adminFetch(`/api/admin/groups/${groupId}`, {
         method: 'DELETE'
       })
 

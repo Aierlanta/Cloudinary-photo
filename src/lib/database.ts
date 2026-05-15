@@ -11,6 +11,7 @@ import {
 } from '@/lib/response-params';
 import { LogLevel, LogEntry } from './logger';
 import { prisma } from './prisma';
+import { getCurrentNode } from './swarm-node';
 
 type OrientationFilter = 'landscape' | 'portrait' | 'square';
 
@@ -338,6 +339,7 @@ export class DatabaseService {
       const resolvedWidth = imageData.width ?? null;
       const resolvedHeight = imageData.height ?? null;
       const resolvedOrientation = this.determineOrientation(resolvedWidth, resolvedHeight);
+      const ownerNode = getCurrentNode();
 
       const image = await prisma.image.create({
         data: {
@@ -353,6 +355,8 @@ export class DatabaseService {
           groupId: imageData.groupId,
           primaryProvider: imageData.primaryProvider,
           backupProvider: imageData.backupProvider,
+          ownerNodeId: imageData.ownerNodeId || ownerNode.id,
+          ownerNodeBaseUrl: imageData.ownerNodeBaseUrl || ownerNode.baseUrl,
         },
         include: {
           group: true
@@ -382,6 +386,8 @@ export class DatabaseService {
         orientation: normalizeOrientationValue(image.orientation),
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
+        ownerNodeId: image.ownerNodeId || undefined,
+        ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
         storageMetadata: image.storageMetadata || undefined
       };
     } catch (error) {
@@ -416,6 +422,8 @@ export class DatabaseService {
         uploadedAt: image.uploadedAt,
         primaryProvider: (image as any).primaryProvider || 'cloudinary',
         backupProvider: (image as any).backupProvider || undefined,
+        ownerNodeId: (image as any).ownerNodeId || undefined,
+        ownerNodeBaseUrl: (image as any).ownerNodeBaseUrl || undefined,
         storageMetadata: (image as any).storageMetadata || undefined
       };
     } catch (error) {
@@ -493,6 +501,8 @@ export class DatabaseService {
             // 并减少网络传输
             primaryProvider: true,
             backupProvider: true,
+            ownerNodeId: true,
+            ownerNodeBaseUrl: true,
             // Telegram 相关
             telegramFileId: true,
             telegramThumbnailFileId: true,
@@ -519,6 +529,8 @@ export class DatabaseService {
         uploadedAt: image.uploadedAt,
         primaryProvider: image.primaryProvider || 'cloudinary', // 新增：图床信息
         backupProvider: image.backupProvider || undefined, // 新增：备用图床信息
+        ownerNodeId: image.ownerNodeId || undefined,
+        ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
         // Telegram 相关字段
         telegramFileId: image.telegramFileId || undefined,
         telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,

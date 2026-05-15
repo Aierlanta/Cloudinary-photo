@@ -23,6 +23,7 @@ import { StorageProvider } from '@/lib/storage/base';
 import { storageServiceManager } from '@/lib/storage/factory';
 import { StorageDatabaseService } from '@/lib/database/storage';
 import { getEnabledProviders, isProviderInEnabledList } from '@/lib/storage';
+import { getCurrentNode } from '@/lib/swarm-node';
 
 const storageDatabaseService = new StorageDatabaseService();
 
@@ -119,6 +120,7 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
   });
 
   try {
+    const ownerNode = getCurrentNode(request);
     // 获取指定的图床服务
     const storageService = storageServiceManager.getService(provider as StorageProvider);
 
@@ -143,6 +145,8 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
       tags: uploadParams.tags,
       primaryProvider: provider as StorageProvider,
       backupProvider: undefined, // 单一图床上传不设置备用
+      ownerNodeId: ownerNode.id,
+      ownerNodeBaseUrl: ownerNode.baseUrl,
       storageResults: [{
         provider: provider as StorageProvider,
         result: uploadResult
@@ -180,7 +184,9 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
       groupId: savedImage.groupId,
       uploadedAt: savedImage.uploadedAt,
       primaryProvider: savedImage.primaryProvider,
-      backupProvider: savedImage.backupProvider
+      backupProvider: savedImage.backupProvider,
+      ownerNodeId: savedImage.ownerNodeId,
+      ownerNodeBaseUrl: savedImage.ownerNodeBaseUrl
     });
 
     const response: APIResponse<ImageUploadResponse> = {

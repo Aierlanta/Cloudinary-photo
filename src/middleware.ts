@@ -6,6 +6,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setSecurityHeaders } from '@/lib/security';
 
+function resolveAllowedOrigin(request: NextRequest): string {
+  const origin = request.headers.get('origin');
+  const configuredOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (!origin) {
+    return '*';
+  }
+  if (configuredOrigins.includes('*') || configuredOrigins.includes(origin)) {
+    return origin;
+  }
+  return configuredOrigins.length === 0 ? origin : configuredOrigins[0];
+}
+
 export function middleware(request: NextRequest) {
   // 创建响应
   const response = NextResponse.next();
@@ -15,10 +31,12 @@ export function middleware(request: NextRequest) {
   
   // 添加CORS头（仅对API路由）
   if (request.nextUrl.pathname.startsWith('/api/')) {
-    secureResponse.headers.set('Access-Control-Allow-Origin', '*');
+    const allowedOrigin = resolveAllowedOrigin(request);
+    secureResponse.headers.set('Access-Control-Allow-Origin', allowedOrigin);
     secureResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    secureResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    secureResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     secureResponse.headers.set('Access-Control-Max-Age', '86400');
+    secureResponse.headers.set('Vary', 'Origin');
     
     // 处理预检请求
     if (request.method === 'OPTIONS') {

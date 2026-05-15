@@ -23,6 +23,7 @@ import {
   X,
   FileImage
 } from 'lucide-react';
+import { useAdminApi } from '@/lib/admin-api-client';
 
 interface UploadResult {
   success: boolean;
@@ -61,6 +62,7 @@ export default function MultiStorageUpload({
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toasts, success, error: showError, removeToast } = useToast();
+  const { adminFetch } = useAdminApi();
 
   // 处理文件选择
   const handleFileSelect = (files: FileList | null) => {
@@ -90,12 +92,9 @@ export default function MultiStorageUpload({
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/admin/images/multi-storage', {
+      const response = await adminFetch('/api/admin/images/multi-storage', {
         method: 'POST',
         body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-        },
       });
 
       if (!response.ok) {

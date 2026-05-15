@@ -27,6 +27,7 @@ import {
   Play, 
   Save 
 } from 'lucide-react'
+import { useAdminApi } from '@/lib/admin-api-client'
 
 interface APIParameter {
   name: string
@@ -73,6 +74,7 @@ interface Group {
 export default function ConfigPage() {
   const { t } = useLocale();
   const isLight = useTheme();
+  const { adminFetch, selectedNode } = useAdminApi();
   const [config, setConfig] = useState<APIConfig | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
@@ -114,7 +116,7 @@ const {
 
   const loadConfig = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/config')
+      const response = await adminFetch('/api/admin/config')
       if (response.ok) {
         const data = await response.json()
         const loadedConfig = data.data?.config || getDefaultConfig()
@@ -139,11 +141,11 @@ const {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [adminFetch])
 
   const loadGroups = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/groups')
+      const response = await adminFetch('/api/admin/groups')
       if (response.ok) {
         const data = await response.json()
         setGroups(data.data?.groups || [])
@@ -151,7 +153,7 @@ const {
     } catch (error) {
       console.error('加载分组失败:', error)
     }
-  }, [])
+  }, [adminFetch])
 
   // 加载配置和分组
   useEffect(() => {
@@ -215,7 +217,7 @@ const {
 
     setSaving(true)
     try {
-      const response = await fetch('/api/admin/config', {
+      const response = await adminFetch('/api/admin/config', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -281,7 +283,7 @@ const {
 
   const generateApiUrl = (endpoint: 'random' | 'response' = 'random') => {
     if (typeof window === 'undefined') return ''
-    const baseUrl = `${window.location.protocol}//${window.location.host}`
+    const baseUrl = selectedNode.baseUrl
     return `${baseUrl}/api/${endpoint}`
   }
 

@@ -19,6 +19,7 @@ import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import type { Image } from '@/types/models';
 import { validateManagedResponseParams } from '@/lib/response-params';
+import { createRemoteOwnerRedirect, isImageOwnedByCurrentNode } from '@/lib/swarm-node';
 
 
 // 强制动态渲染
@@ -313,6 +314,7 @@ async function prefetchNext(key: string, groupIds: string[], providers: string[]
       // 选择下一张随机图片（与当前筛选条件一致）
       const img = await getRandomImageFromGroupsAndProviders(groupIds, providers);
       if (!img) return; // 无可用图片，跳过
+      if (!isImageOwnedByCurrentNode(img, request)) return; // 远端图片由所属节点交付，避免本节点预取暴露来源
       const baseMimeType = getMimeTypeFromUrl(img.url);
       const downloaded = await downloadImageWithCandidates(img, request, baseMimeType);
       const size = downloaded.buffer.length;
@@ -646,6 +648,13 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       groupId: randomImage.groupId,
       params: redactedParams
     });
+
+    const ownerRedirect = createRemoteOwnerRedirect(request, randomImage, 'response');
+    if (ownerRedirect) {
+      ownerRedirect.headers.set('X-Image-Id', randomImage.id);
+      ownerRedirect.headers.set('X-Image-PublicId', randomImage.publicId);
+      return ownerRedirect;
+    }
 
     // 确定图片的MIME类型
     const mimeType = getMimeTypeFromUrl(randomImage.url);

@@ -5,6 +5,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
 import { IPLocationBadge } from '@/components/admin/IPLocation';
+import { useAdminApi } from '@/lib/admin-api-client';
 
 interface BannedIP {
   ip: string;
@@ -27,6 +28,7 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
   const [banExpires, setBanExpires] = useState('');
   const [banning, setBanning] = useState(false);
   const { toasts, success, error: showError, warning, removeToast } = useToast();
+  const { adminFetch } = useAdminApi();
 
   const handleBanIP = async () => {
     if (!banIP.trim()) {
@@ -36,7 +38,7 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
 
     setBanning(true);
     try {
-      const response = await fetch('/api/admin/security/banned-ips', {
+      const response = await adminFetch('/api/admin/security/banned-ips', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -70,7 +72,7 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
     }
 
     try {
-      const response = await fetch('/api/admin/security/banned-ips', {
+      const response = await adminFetch('/api/admin/security/banned-ips', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip }),

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { generateSessionToken } from '@/lib/auth'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const { password } = await request.json()
 
@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
       maxAge: 24 * 60 * 60, // 24小时
     })
 
-    return NextResponse.json({ message: '登录成功' })
+    return NextResponse.json({
+      success: true,
+      token: sessionToken,
+      message: '登录成功'
+    })
   } catch (error) {
     console.error('登录错误:', error)
     return NextResponse.json(

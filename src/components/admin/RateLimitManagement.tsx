@@ -5,6 +5,7 @@ import { useLocale } from '@/hooks/useLocale';
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
 import { IPLocationBadge } from '@/components/admin/IPLocation';
+import { useAdminApi } from '@/lib/admin-api-client';
 
 interface RateLimit {
   ip: string;
@@ -28,6 +29,7 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
   const [maxTotal, setMaxTotal] = useState('');
   const [setting, setSetting] = useState(false);
   const { toasts, success, error: showError, warning, removeToast } = useToast();
+  const { adminFetch } = useAdminApi();
 
   const handleSetRateLimit = async () => {
     if (!ip.trim() || !maxRequests || !windowMs) {
@@ -37,7 +39,7 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
 
     setSetting(true);
     try {
-      const response = await fetch('/api/admin/security/rate-limits', {
+      const response = await adminFetch('/api/admin/security/rate-limits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,7 +75,7 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
     }
 
     try {
-      const response = await fetch('/api/admin/security/rate-limits', {
+      const response = await adminFetch('/api/admin/security/rate-limits', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip }),

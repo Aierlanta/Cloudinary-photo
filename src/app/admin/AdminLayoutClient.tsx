@@ -14,6 +14,7 @@ import {
 } from '@/lib/adminTheme'
 import AdminLayoutV3 from './AdminLayoutV3'
 import { useRecordAdminHistory } from '@/hooks/useAdminHistory'
+import { AdminApiProvider, useAdminApi } from '@/lib/admin-api-client'
 
 type AdminLayoutClientProps = {
   children: ReactNode
@@ -37,8 +38,9 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`
 }
 
-export default function AdminLayoutClient({ children, initialTheme, initialIsManual }: AdminLayoutClientProps) {
+function AdminLayoutContent({ children, initialTheme, initialIsManual }: AdminLayoutClientProps) {
   const router = useRouter()
+  const { adminFetch, setAuthToken, clearAuthToken, authToken } = useAdminApi()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [panelOpacity, setPanelOpacity] = useState(0.9)
@@ -58,7 +60,11 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/admin/auth/check')
+        if (!authToken) {
+          setIsLoading(false)
+          return
+        }
+        const response = await adminFetch('/api/admin/auth/check')
         if (response.ok) {
           setIsAuthenticated(true)
         }
@@ -75,7 +81,7 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
     if (savedOpacity) {
       setPanelOpacity(parseFloat(savedOpacity))
     }
-  }, [])
+  }, [adminFetch, authToken])
 
 
   useEffect(() => {
@@ -148,7 +154,7 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
 
   const handleLogin = async (password: string) => {
     try {
-      const response = await fetch('/api/admin/auth/login', {
+      const response = await adminFetch('/api/admin/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,6 +163,8 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
       })
 
       if (response.ok) {
+        const data = await response.json()
+        setAuthToken(data.token || password)
         setIsAuthenticated(true)
         return { success: true }
       } else {
@@ -170,7 +178,8 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/admin/auth/logout', { method: 'POST' })
+      await adminFetch('/api/admin/auth/logout', { method: 'POST' })
+      clearAuthToken()
       setIsAuthenticated(false)
       router.push('/admin')
     } catch (error) {
@@ -212,5 +221,13 @@ export default function AdminLayoutClient({ children, initialTheme, initialIsMan
         {children}
       </AdminLayoutV3>
     </LocaleProvider>
+  )
+}
+
+export default function AdminLayoutClient(props: AdminLayoutClientProps) {
+  return (
+    <AdminApiProvider>
+      <AdminLayoutContent {...props} />
+    </AdminApiProvider>
   )
 }

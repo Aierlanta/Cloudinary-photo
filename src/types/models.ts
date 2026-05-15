@@ -18,6 +18,8 @@ export interface Image {
   uploadedAt: Date;
   primaryProvider?: string; // 新增：主要图床提供商
   backupProvider?: string;  // 新增：备用图床提供商
+  ownerNodeId?: string;
+  ownerNodeBaseUrl?: string;
   // Telegram 相关字段
   telegramFileId?: string;
   telegramThumbnailFileId?: string;

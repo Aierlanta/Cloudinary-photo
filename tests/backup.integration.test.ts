@@ -1,24 +1,26 @@
 // Server-side integration-like tests with full PrismaClient mocked.
 // We do NOT touch real databases; all Prisma calls are mocked.
 
-import type { Mock } from 'jest-mock';
+export {};
+
+type AnyMock = jest.Mock<any, any[]>;
 
 // Prepare PrismaClient double-instances: main and backup
 type AnyRecord = Record<string, any>;
 
 const makePrismaMock = () => ({
-  $queryRaw: jest.fn() as Mock,
-  $queryRawUnsafe: jest.fn() as Mock,
-  $executeRawUnsafe: jest.fn() as Mock,
-  $executeRaw: jest.fn() as Mock,
-  $connect: jest.fn().mockResolvedValue(undefined) as Mock,
-  $disconnect: jest.fn().mockResolvedValue(undefined) as Mock,
+  $queryRaw: jest.fn() as AnyMock,
+  $queryRawUnsafe: jest.fn() as AnyMock,
+  $executeRawUnsafe: jest.fn() as AnyMock,
+  $executeRaw: jest.fn() as AnyMock,
+  $connect: jest.fn().mockResolvedValue(undefined) as AnyMock,
+  $disconnect: jest.fn().mockResolvedValue(undefined) as AnyMock,
   aPIConfig: {
-    findUnique: jest.fn() as Mock,
-    upsert: jest.fn() as Mock
+    findUnique: jest.fn() as AnyMock,
+    upsert: jest.fn() as AnyMock
   },
   systemLog: {
-    create: jest.fn() as Mock
+    create: jest.fn() as AnyMock
   }
 });
 
@@ -67,14 +69,14 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
 
   it('performBackup should enumerate and copy all non-system tables', async () => {
     // 1) List tables in main (filter out _prisma_migrations)
-    (mainMock.$queryRaw as Mock).mockResolvedValueOnce([
+    (mainMock.$queryRaw as AnyMock).mockResolvedValueOnce([
       { TABLE_NAME: 'groups' },
       { TABLE_NAME: 'images' },
       { TABLE_NAME: '_prisma_migrations' }
     ]);
 
     // 2) SHOW CREATE for each table from main
-    (mainMock.$queryRawUnsafe as Mock).mockImplementation((sql: string) => {
+    (mainMock.$queryRawUnsafe as AnyMock).mockImplementation((sql: string) => {
       if (sql.includes('SHOW CREATE TABLE `groups`')) {
         return Promise.resolve([{ 'Create Table': 'CREATE TABLE `groups` ( `id` varchar(191) )' }]);
       }
@@ -97,13 +99,13 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
     });
 
     // 3) backup DB executes DDL/DML
-    (backupMock.$executeRawUnsafe as Mock).mockResolvedValue(0);
-    (backupMock.$executeRaw as Mock).mockResolvedValue(0);
+    (backupMock.$executeRawUnsafe as AnyMock).mockResolvedValue(0);
+    (backupMock.$executeRaw as AnyMock).mockResolvedValue(0);
 
     // 4) Status reads/writes
-    (mainMock.aPIConfig.findUnique as Mock).mockResolvedValue(null);
-    (mainMock.aPIConfig.upsert as Mock).mockResolvedValue({ id: 'backup_status' });
-    (mainMock.systemLog.create as Mock).mockResolvedValue(undefined);
+    (mainMock.aPIConfig.findUnique as AnyMock).mockResolvedValue(null);
+    (mainMock.aPIConfig.upsert as AnyMock).mockResolvedValue({ id: 'backup_status' });
+    (mainMock.systemLog.create as AnyMock).mockResolvedValue(undefined);
 
     const ok = await backupService.performBackup();
     expect(ok).toBe(true);
@@ -112,8 +114,8 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
     expect(mainMock.$queryRaw).toHaveBeenCalledTimes(1);
     // Backup should clear tables and then create/insert (at least called)
     const backupExecCalls = [
-      ...(backupMock.$executeRawUnsafe as Mock).mock.calls.map(args => String(args[0])),
-      ...(backupMock.$executeRaw as Mock).mock.calls.map(args => String(args[0]))
+      ...(backupMock.$executeRawUnsafe as AnyMock).mock.calls.map(args => String(args[0])),
+      ...(backupMock.$executeRaw as AnyMock).mock.calls.map(args => String(args[0]))
     ];
     // Foreign key toggles
     expect(backupExecCalls.some(s => s.includes('SET FOREIGN_KEY_CHECKS = 0'))).toBe(true);
@@ -135,7 +137,7 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
 
   it('restoreFromBackup should rebuild from backup and preserve backup_status', async () => {
     // Preserve backup_status
-    (mainMock.aPIConfig.findUnique as Mock).mockResolvedValue({
+    (mainMock.aPIConfig.findUnique as AnyMock).mockResolvedValue({
       id: 'backup_status',
       isEnabled: true,
       defaultScope: 'backup',
@@ -147,21 +149,21 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
     });
 
     // Main has some tables to drop
-    (mainMock.$queryRaw as Mock).mockResolvedValueOnce([
+    (mainMock.$queryRaw as AnyMock).mockResolvedValueOnce([
       { TABLE_NAME: 'groups' },
       { TABLE_NAME: 'images' },
       { TABLE_NAME: 'api_configs' }
     ]);
 
     // Backup lists tables (includes api_configs)
-    (backupMock.$queryRaw as Mock).mockResolvedValueOnce([
+    (backupMock.$queryRaw as AnyMock).mockResolvedValueOnce([
       { TABLE_NAME: 'groups' },
       { TABLE_NAME: 'images' },
       { TABLE_NAME: 'api_configs' }
     ]);
 
     // Backup SHOW CREATE TABLE and SELECT data
-    (backupMock.$queryRawUnsafe as Mock).mockImplementation((sql: string) => {
+    (backupMock.$queryRawUnsafe as AnyMock).mockImplementation((sql: string) => {
       if (sql.includes('SHOW CREATE TABLE `groups`')) {
         return Promise.resolve([{ 'Create Table': 'CREATE TABLE `groups` ( `id` varchar(191) )' }]);
       }
@@ -186,16 +188,16 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
       return Promise.resolve([]);
     });
 
-    (mainMock.$executeRawUnsafe as Mock).mockResolvedValue(0);
-    (mainMock.$executeRaw as Mock).mockResolvedValue(0);
+    (mainMock.$executeRawUnsafe as AnyMock).mockResolvedValue(0);
+    (mainMock.$executeRaw as AnyMock).mockResolvedValue(0);
 
     const ok = await backupService.restoreFromBackup();
     expect(ok).toBe(true);
 
     // Restore 现在走“临时表导入 + RENAME TABLE 原子切换”，所以 INSERT 发生在 api_configs__tmp_restore
     const mainExecCalls = [
-      ...(mainMock.$executeRawUnsafe as Mock).mock.calls.map(args => String(args[0])),
-      ...(mainMock.$executeRaw as Mock).mock.calls.map(args => String(args[0]))
+      ...(mainMock.$executeRawUnsafe as AnyMock).mock.calls.map(args => String(args[0])),
+      ...(mainMock.$executeRaw as AnyMock).mock.calls.map(args => String(args[0]))
     ];
 
     const apiInsert = mainExecCalls.find(s => s.includes('INSERT INTO `api_configs__tmp_restore`'));
