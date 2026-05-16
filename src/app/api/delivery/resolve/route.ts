@@ -132,7 +132,8 @@ async function resolveDelivery(request: NextRequest): Promise<Response> {
       imageId,
       requireDirectResponseEnabled: false,
       requestPath: mode === 'random-response' ? '/api/random' : '/api/response',
-      skipNodeHandoff: true
+      skipNodeHandoff: true,
+      skipApiKeyAuth: true
     });
   }
 

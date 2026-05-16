@@ -36,6 +36,8 @@ interface PrefetchedItem {
   imageId: string;
   publicId: string;
   url: string;
+  ownerNodeId?: string;
+  ownerNodeBaseUrl?: string;
   createdAt: number;
 }
 
@@ -327,6 +329,8 @@ async function prefetchNext(key: string, groupIds: string[], providers: string[]
           imageId: img.id,
           publicId: img.publicId,
           url: img.url,
+          ownerNodeId: img.ownerNodeId,
+          ownerNodeBaseUrl: img.ownerNodeBaseUrl,
           createdAt: Date.now()
         },
         inflight: undefined,
@@ -570,6 +574,18 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     const cacheKey = buildFilterKey(targetGroupIds, allowedProviders);
     const prefetched = takePrefetched(cacheKey);
     if (prefetched) {
+      const ownerRedirect = createRemoteOwnerRedirect(request, {
+        id: prefetched.imageId,
+        ownerNodeId: prefetched.ownerNodeId,
+        ownerNodeBaseUrl: prefetched.ownerNodeBaseUrl
+      }, 'response');
+      if (ownerRedirect) {
+        ownerRedirect.headers.set('X-Image-Id', prefetched.imageId);
+        ownerRedirect.headers.set('X-Image-PublicId', prefetched.publicId);
+        ownerRedirect.headers.set('X-Prefetch-Owner-Recheck', 'redirected');
+        return ownerRedirect;
+      }
+
       let finalBuffer = prefetched.buffer;
       let finalMimeType = prefetched.mimeType;
 

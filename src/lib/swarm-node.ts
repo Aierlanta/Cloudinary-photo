@@ -136,7 +136,7 @@ export function buildSignedResolveUrl(
 ): URL {
   const target = new URL('/api/delivery/resolve', ownerBaseUrl);
   request.nextUrl.searchParams.forEach((value, key) => {
-    if ([SIGNATURE_PARAM, 'expires', 'imageId', 'mode', 'sourceNodeId', 'sourceNodeBaseUrl'].includes(key)) {
+    if ([SIGNATURE_PARAM, 'expires', 'imageId', 'mode', 'sourceNodeId', 'sourceNodeBaseUrl', 'key'].includes(key)) {
       return;
     }
     target.searchParams.append(key, value);

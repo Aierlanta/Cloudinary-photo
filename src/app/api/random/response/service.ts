@@ -121,6 +121,7 @@ export async function serveRandomResponse(
     requireDirectResponseEnabled?: boolean;
     requestPath?: string;
     skipNodeHandoff?: boolean;
+    skipApiKeyAuth?: boolean;
   }
 ): Promise<Response> {
   const startTime = performance.now();
@@ -174,7 +175,7 @@ export async function serveRandomResponse(
     throw new AppError(ErrorType.FORBIDDEN, '直接响应模式未启用，请使用 /api/random', 403);
   }
 
-  if (apiConfig.apiKeyEnabled) {
+  if (apiConfig.apiKeyEnabled && !options?.skipApiKeyAuth) {
     const providedKey = queryParams.key;
     if (!providedKey || providedKey !== apiConfig.apiKey) {
       throw new AppError(ErrorType.UNAUTHORIZED, 'API Key无效', 401);

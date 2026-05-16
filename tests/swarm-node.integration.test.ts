@@ -36,7 +36,7 @@ describe('swarm node handoff', () => {
     process.env = originalEnv;
   });
 
-  it('生成可验证的跨节点 resolve URL，并保留原始公开参数', () => {
+  it('生成可验证的跨节点 resolve URL，并剔除敏感原始参数', () => {
     const request = mockRequest('https://a.example.com/api/random?format=webp&key=secret-key');
     const url = buildSignedResolveUrl(
       'https://b.example.com',
@@ -50,7 +50,7 @@ describe('swarm node handoff', () => {
     expect(url.searchParams.get('imageId')).toBe('img_000001');
     expect(url.searchParams.get('mode')).toBe('random-response');
     expect(url.searchParams.get('format')).toBe('webp');
-    expect(url.searchParams.get('key')).toBe('secret-key');
+    expect(url.searchParams.get('key')).toBeNull();
 
     expect(() => verifyHandoffParams(url.searchParams)).not.toThrow();
   });

@@ -40,6 +40,7 @@ function normalizePath(path: string): string {
     url.searchParams.delete('t');
     url.searchParams.delete('signature');
     url.searchParams.delete('expires');
+    url.searchParams.delete('key');
     // 重新构建路径，保留其他参数
     const normalizedPath = url.pathname + (url.search ? url.search : '');
     return truncateAccessLogPath(normalizedPath);
@@ -52,6 +53,7 @@ function normalizePath(path: string): string {
     params.delete('t');
     params.delete('signature');
     params.delete('expires');
+    params.delete('key');
     const newSearch = params.toString();
     return truncateAccessLogPath(pathname + (newSearch ? '?' + newSearch : ''));
   }
