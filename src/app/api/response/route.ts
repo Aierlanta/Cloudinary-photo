@@ -19,7 +19,7 @@ import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import type { Image } from '@/types/models';
 import { validateManagedResponseParams } from '@/lib/response-params';
-import { createRemoteOwnerRedirect, isImageOwnedByCurrentNode } from '@/lib/swarm-node';
+import { buildRemoteOwnerResolve, isImageOwnedByCurrentNode } from '@/lib/swarm-node';
 
 
 // 强制动态渲染
@@ -117,6 +117,73 @@ function takePrefetched(key: string): PrefetchedItem | undefined {
   // 单槽语义：消费即置空
   slot.item = undefined;
   return item;
+}
+
+function copyOwnerResponseHeaders(ownerHeaders: Headers): Headers {
+  const headers = new Headers();
+  [
+    'content-type',
+    'content-disposition',
+    'cache-control',
+    'pragma',
+    'expires',
+    'x-image-id',
+    'x-image-publicid',
+    'x-image-size',
+    'x-transfer-mode'
+  ].forEach((key) => {
+    const value = ownerHeaders.get(key);
+    if (value) headers.set(key, value);
+  });
+
+  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  headers.set('Pragma', 'no-cache');
+  headers.set('Expires', '0');
+  return headers;
+}
+
+async function proxyRemoteOwnerResponse(
+  request: NextRequest,
+  image: Pick<Image, 'id' | 'publicId' | 'ownerNodeId' | 'ownerNodeBaseUrl'>,
+  mode: 'response' = 'response'
+): Promise<Response | null> {
+  const remoteResolve = buildRemoteOwnerResolve(request, image, mode);
+  if (!remoteResolve) return null;
+
+  try {
+    const ownerResponse = await fetch(remoteResolve.url, {
+      cache: 'no-store',
+      redirect: 'follow'
+    });
+    const headers = copyOwnerResponseHeaders(ownerResponse.headers);
+    headers.set('X-Image-Id', image.id);
+    headers.set('X-Image-PublicId', image.publicId);
+    headers.set('X-Swarm-Proxy', 'owner-node');
+    headers.set('X-Owner-Node-Id', remoteResolve.owner.id);
+
+    return new NextResponse(ownerResponse.body, {
+      status: ownerResponse.status,
+      statusText: ownerResponse.statusText,
+      headers
+    });
+  } catch (error) {
+    logger.warn('远端 owner 节点响应代理失败', {
+      type: 'swarm_owner_proxy',
+      imageId: image.id,
+      ownerNodeId: remoteResolve.owner.id,
+      ownerNodeBaseUrl: remoteResolve.owner.baseUrl,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    throw new AppError(
+      ErrorType.EXTERNAL_SERVICE_ERROR,
+      'owner 节点响应失败',
+      502,
+      {
+        imageId: image.id,
+        ownerNodeId: remoteResolve.owner.id
+      }
+    );
+  }
 }
 
 class HttpStatusError extends Error {
@@ -574,16 +641,15 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     const cacheKey = buildFilterKey(targetGroupIds, allowedProviders);
     const prefetched = takePrefetched(cacheKey);
     if (prefetched) {
-      const ownerRedirect = createRemoteOwnerRedirect(request, {
+      const ownerProxyResponse = await proxyRemoteOwnerResponse(request, {
         id: prefetched.imageId,
+        publicId: prefetched.publicId,
         ownerNodeId: prefetched.ownerNodeId,
         ownerNodeBaseUrl: prefetched.ownerNodeBaseUrl
-      }, 'response');
-      if (ownerRedirect) {
-        ownerRedirect.headers.set('X-Image-Id', prefetched.imageId);
-        ownerRedirect.headers.set('X-Image-PublicId', prefetched.publicId);
-        ownerRedirect.headers.set('X-Prefetch-Owner-Recheck', 'redirected');
-        return ownerRedirect;
+      });
+      if (ownerProxyResponse) {
+        ownerProxyResponse.headers.set('X-Prefetch-Owner-Recheck', 'proxied');
+        return ownerProxyResponse;
       }
 
       let finalBuffer = prefetched.buffer;
@@ -665,11 +731,9 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       params: redactedParams
     });
 
-    const ownerRedirect = createRemoteOwnerRedirect(request, randomImage, 'response');
-    if (ownerRedirect) {
-      ownerRedirect.headers.set('X-Image-Id', randomImage.id);
-      ownerRedirect.headers.set('X-Image-PublicId', randomImage.publicId);
-      return ownerRedirect;
+    const ownerProxyResponse = await proxyRemoteOwnerResponse(request, randomImage);
+    if (ownerProxyResponse) {
+      return ownerProxyResponse;
     }
 
     // 确定图片的MIME类型

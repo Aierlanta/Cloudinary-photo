@@ -14,6 +14,11 @@ export interface BackendNodeInfo {
   isCurrent?: boolean;
 }
 
+export interface RemoteOwnerResolve {
+  owner: BackendNodeInfo;
+  url: URL;
+}
+
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
@@ -151,11 +156,11 @@ export function buildSignedResolveUrl(
   return target;
 }
 
-export function createRemoteOwnerRedirect(
+export function buildRemoteOwnerResolve(
   request: NextRequest,
   image: Pick<Image, 'id' | 'ownerNodeId' | 'ownerNodeBaseUrl'>,
   mode: DeliveryMode
-): NextResponse | null {
+): RemoteOwnerResolve | null {
   if (isImageOwnedByCurrentNode(image, request)) {
     return null;
   }
@@ -166,12 +171,25 @@ export function createRemoteOwnerRedirect(
     return null;
   }
 
-  const resolveUrl = buildSignedResolveUrl(ownerBaseUrl, request, image, mode);
-  const response = NextResponse.redirect(resolveUrl.toString(), 302);
+  return {
+    owner,
+    url: buildSignedResolveUrl(ownerBaseUrl, request, image, mode)
+  };
+}
+
+export function createRemoteOwnerRedirect(
+  request: NextRequest,
+  image: Pick<Image, 'id' | 'ownerNodeId' | 'ownerNodeBaseUrl'>,
+  mode: DeliveryMode
+): NextResponse | null {
+  const remoteResolve = buildRemoteOwnerResolve(request, image, mode);
+  if (!remoteResolve) return null;
+
+  const response = NextResponse.redirect(remoteResolve.url.toString(), 302);
   response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   response.headers.set('Referrer-Policy', 'no-referrer');
   response.headers.set('X-Swarm-Redirect', 'owner-node');
-  response.headers.set('X-Owner-Node-Id', owner.id);
+  response.headers.set('X-Owner-Node-Id', remoteResolve.owner.id);
   return response;
 }
 
