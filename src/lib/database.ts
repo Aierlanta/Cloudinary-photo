@@ -494,6 +494,11 @@ export class DatabaseService {
         backupProvider: (image as any).backupProvider || undefined,
         ownerNodeId: (image as any).ownerNodeId || undefined,
         ownerNodeBaseUrl: (image as any).ownerNodeBaseUrl || undefined,
+        telegramFileId: (image as any).telegramFileId || undefined,
+        telegramThumbnailFileId: (image as any).telegramThumbnailFileId || undefined,
+        telegramFilePath: (image as any).telegramFilePath || undefined,
+        telegramThumbnailPath: (image as any).telegramThumbnailPath || undefined,
+        telegramBotToken: (image as any).telegramBotToken || undefined,
         storageMetadata: (image as any).storageMetadata || undefined
       };
     } catch (error) {

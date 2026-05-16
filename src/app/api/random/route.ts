@@ -13,9 +13,78 @@ import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-u
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import { validateManagedResponseParams } from '@/lib/response-params';
 import { serveRandomResponse } from '@/app/api/random/response/service';
-import { createRemoteOwnerRedirect } from '@/lib/swarm-node';
+import { buildRemoteOwnerResolve, createRemoteOwnerRedirect, type DeliveryMode } from '@/lib/swarm-node';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
+
+function copyOwnerResponseHeaders(ownerHeaders: Headers): Headers {
+  const headers = new Headers();
+  [
+    'content-type',
+    'content-disposition',
+    'cache-control',
+    'pragma',
+    'expires',
+    'x-image-id',
+    'x-image-publicid',
+    'x-image-size',
+    'x-transfer-mode'
+  ].forEach((key) => {
+    const value = ownerHeaders.get(key);
+    if (value) headers.set(key, value);
+  });
+
+  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  headers.set('Pragma', 'no-cache');
+  headers.set('Expires', '0');
+  return headers;
+}
+
+async function proxyRemoteOwnerImageStream(
+  request: NextRequest,
+  image: any,
+  mode: DeliveryMode,
+  duration: number
+): Promise<Response | null> {
+  const remoteResolve = buildRemoteOwnerResolve(request, image, mode);
+  if (!remoteResolve) return null;
+
+  try {
+    const ownerResponse = await fetch(remoteResolve.url, {
+      cache: 'no-store',
+      redirect: 'follow'
+    });
+    const headers = copyOwnerResponseHeaders(ownerResponse.headers);
+    headers.set('X-Image-Id', image.id);
+    headers.set('X-Image-PublicId', image.publicId);
+    headers.set('X-Owner-Node-Id', remoteResolve.owner.id);
+    headers.set('X-Swarm-Proxy', 'owner-node');
+    headers.set('X-Response-Time', `${duration}ms`);
+
+    return new NextResponse(ownerResponse.body, {
+      status: ownerResponse.status,
+      statusText: ownerResponse.statusText,
+      headers
+    });
+  } catch (error) {
+    logger.warn('远端 owner 节点随机图片代理失败', {
+      type: 'swarm_owner_proxy',
+      imageId: image.id,
+      ownerNodeId: remoteResolve.owner.id,
+      ownerNodeBaseUrl: remoteResolve.owner.baseUrl,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    throw new AppError(
+      ErrorType.EXTERNAL_SERVICE_ERROR,
+      'owner 节点响应失败',
+      502,
+      {
+        imageId: image.id,
+        ownerNodeId: remoteResolve.owner.id
+      }
+    );
+  }
+}
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -201,13 +270,6 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
 
     const duration = Math.round(performance.now() - startTime);
     const handoffMode = explicitResponseFlow || autoManagedResponseFlow ? 'random-response' : 'random-redirect';
-    const ownerRedirect = createRemoteOwnerRedirect(request, randomImage, handoffMode);
-    if (ownerRedirect) {
-      ownerRedirect.headers.set('X-Image-Id', randomImage.id);
-      ownerRedirect.headers.set('X-Image-PublicId', randomImage.publicId);
-      ownerRedirect.headers.set('X-Response-Time', `${duration}ms`);
-      return ownerRedirect;
-    }
 
     // 确保图片URL使用HTTPS协议
     let secureImageUrl = randomImage.url.replace(/^http:/, 'https:');
@@ -226,6 +288,22 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       }
     } catch {
       // 忽略解析失败，保持原始URL
+    }
+
+    const isTelegramSelectedImage = isTelegramImage(randomImage, secureImageUrl);
+    if (isTelegramSelectedImage) {
+      const ownerProxyResponse = await proxyRemoteOwnerImageStream(request, randomImage, handoffMode, duration);
+      if (ownerProxyResponse) {
+        return ownerProxyResponse;
+      }
+    }
+
+    const ownerRedirect = createRemoteOwnerRedirect(request, randomImage, handoffMode);
+    if (ownerRedirect) {
+      ownerRedirect.headers.set('X-Image-Id', randomImage.id);
+      ownerRedirect.headers.set('X-Image-PublicId', randomImage.publicId);
+      ownerRedirect.headers.set('X-Response-Time', `${duration}ms`);
+      return ownerRedirect;
     }
 
     if (explicitResponseFlow) {
@@ -269,7 +347,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     }
 
     // 如果是 Telegram 直连图床，则直接回传图片流，避免 302 暴露 token
-    if (isTelegramImage(randomImage, secureImageUrl)) {
+    if (isTelegramSelectedImage) {
       const mimeType = getMimeTypeFromUrl(randomImage.url);
       const downloaded = await downloadImageWithCandidates(randomImage, request, mimeType);
       const size = downloaded.buffer.length;
