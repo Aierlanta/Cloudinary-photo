@@ -12,7 +12,7 @@ import {
   resizeImage,
   ResizeFit
 } from '@/lib/image-processor';
-import { buildFetchInitFor } from '@/lib/telegram-proxy';
+import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import {
   getCloudinaryManagedFormat,
   type ManagedResponseEndpoint,
@@ -105,13 +105,159 @@ function getClientIP(request: NextRequest): string {
   return realIP || 'unknown';
 }
 
-async function downloadBufferFromUrl(url: string): Promise<Buffer> {
-  const response = await fetch(url, buildFetchInitFor(url, { cache: 'no-store' } as RequestInit));
+class HttpStatusError extends Error {
+  status: number;
+  statusText: string;
+  url: string;
+
+  constructor(status: number, statusText: string, url: string) {
+    super(`HTTP ${status}: ${statusText}`);
+    this.status = status;
+    this.statusText = statusText;
+    this.url = url;
+  }
+}
+
+interface DownloadCandidate {
+  url: string;
+  reason: string;
+}
+
+function normalizeMimeType(mimeType: string | null | undefined, fallback: string): string {
+  if (mimeType && mimeType.toLowerCase().startsWith('image/')) {
+    return mimeType;
+  }
+  return fallback;
+}
+
+function parseTelegramBotId(image: any): string | undefined {
+  if (image.storageMetadata) {
+    try {
+      const meta = JSON.parse(image.storageMetadata);
+      if (meta?.telegramBotId) return String(meta.telegramBotId);
+    } catch {
+      // ignore
+    }
+  }
+  if (image.telegramBotToken) {
+    const prefix = image.telegramBotToken.split(':')[0];
+    if (/^\d+$/.test(prefix)) return prefix;
+  }
+  return undefined;
+}
+
+function buildDownloadCandidates(image: any, request: NextRequest, imageUrl: string): DownloadCandidate[] {
+  const candidates: DownloadCandidate[] = [];
+  const botId = parseTelegramBotId(image);
+
+  if (image.telegramFileId) {
+    const tgUrl = new URL('/api/telegram/image', request.url);
+    tgUrl.searchParams.set('file_id', image.telegramFileId);
+    if (botId) tgUrl.searchParams.set('bot_id', botId);
+    if (image.telegramFilePath) tgUrl.searchParams.set('file_path', image.telegramFilePath);
+    candidates.push({ url: tgUrl.toString(), reason: 'telegram-file-id' });
+  }
+
+  if (image.telegramFilePath && image.telegramBotToken) {
+    candidates.push({
+      url: `https://api.telegram.org/file/bot${image.telegramBotToken}/${image.telegramFilePath}`,
+      reason: 'telegram-direct-path'
+    });
+  }
+
+  candidates.push({ url: imageUrl, reason: 'resolved-url' });
+
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    if (seen.has(candidate.url)) return false;
+    seen.add(candidate.url);
+    return true;
+  });
+}
+
+async function downloadFromCandidate(
+  candidate: DownloadCandidate,
+  baseMimeType: string
+): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
+  const response = await fetch(candidate.url, buildFetchInitFor(candidate.url, { cache: 'no-store' } as RequestInit));
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    throw new HttpStatusError(response.status, response.statusText, candidate.url);
   }
   const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  return {
+    buffer: Buffer.from(arrayBuffer),
+    mimeType: normalizeMimeType(response.headers.get('content-type'), baseMimeType),
+    usedUrl: candidate.url,
+    reason: candidate.reason
+  };
+}
+
+async function downloadImageWithCandidates(
+  image: any,
+  request: NextRequest,
+  imageUrl: string,
+  baseMimeType: string
+): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
+  const candidates = buildDownloadCandidates(image, request, imageUrl);
+  let lastStatus: number | undefined;
+  let lastUrl: string | undefined;
+  let lastError: unknown;
+
+  for (const candidate of candidates) {
+    try {
+      return await downloadFromCandidate(candidate, baseMimeType);
+    } catch (error) {
+      lastError = error;
+      if (error instanceof HttpStatusError) {
+        lastStatus = error.status;
+        lastUrl = error.url;
+        logger.warn('随机响应图片下载失败', {
+          type: 'api_random_response_download',
+          status: error.status,
+          statusText: error.statusText,
+          url: redactTelegramBotTokenInUrl(error.url),
+          reason: candidate.reason
+        });
+      } else {
+        logger.warn('随机响应图片下载异常', {
+          type: 'api_random_response_download',
+          error: redactTelegramBotTokenInUrl(error instanceof Error ? error.message : String(error)),
+          url: redactTelegramBotTokenInUrl(candidate.url),
+          reason: candidate.reason
+        });
+      }
+    }
+  }
+
+  if (lastStatus === 404 || lastStatus === 410) {
+    const safeUrl = lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : 'unknown';
+    throw new AppError(
+      ErrorType.NOT_FOUND,
+      `源图返回 ${lastStatus} (${safeUrl})`,
+      404,
+      { url: safeUrl, status: lastStatus }
+    );
+  }
+
+  if (lastStatus && lastStatus >= 500) {
+    throw new AppError(
+      ErrorType.EXTERNAL_SERVICE_ERROR,
+      `源图服务错误 (${lastStatus})`,
+      502,
+      { url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl, status: lastStatus }
+    );
+  }
+
+  throw new AppError(
+    ErrorType.INTERNAL_ERROR,
+    '下载图片失败',
+    500,
+    {
+      url: lastUrl ? redactTelegramBotTokenInUrl(lastUrl) : lastUrl,
+      status: lastStatus,
+      error: redactTelegramBotTokenInUrl(lastError instanceof Error ? lastError.message : String(lastError ?? ''))
+    }
+  );
 }
 
 export async function serveRandomResponse(
@@ -247,8 +393,9 @@ export async function serveRandomResponse(
         type: 'api_random_response_fallback',
         error: error instanceof Error ? error.message : 'unknown'
       });
-      imageBuffer = await downloadBufferFromUrl(imageUrl);
-      finalMimeType = mimeType;
+      const downloaded = await downloadImageWithCandidates(image, request, imageUrl, mimeType);
+      imageBuffer = downloaded.buffer;
+      finalMimeType = downloaded.mimeType;
     }
   } else if (isCloudinaryUrl(imageUrl)) {
     try {
@@ -258,10 +405,14 @@ export async function serveRandomResponse(
         type: 'api_random_response_fallback',
         error: error instanceof Error ? error.message : 'unknown'
       });
-      imageBuffer = await downloadBufferFromUrl(imageUrl);
+      const downloaded = await downloadImageWithCandidates(image, request, imageUrl, mimeType);
+      imageBuffer = downloaded.buffer;
+      finalMimeType = downloaded.mimeType;
     }
   } else {
-    imageBuffer = await downloadBufferFromUrl(imageUrl);
+    const downloaded = await downloadImageWithCandidates(image, request, imageUrl, mimeType);
+    imageBuffer = downloaded.buffer;
+    finalMimeType = downloaded.mimeType;
   }
 
   let finalBuffer = imageBuffer;
