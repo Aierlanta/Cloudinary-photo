@@ -44,6 +44,49 @@ const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   }
 };
 
+function collectConfiguredConnectOrigins(): string[] {
+  const origins = new Set<string>();
+
+  const addOrigin = (value?: string | null) => {
+    if (!value || value === '*') return;
+    try {
+      origins.add(new URL(value).origin);
+    } catch {
+      // 忽略非法 URL 配置
+    }
+  };
+
+  (process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .forEach(addOrigin);
+
+  addOrigin(process.env.PUBLIC_API_BASE_URL);
+  addOrigin(process.env.NEXT_PUBLIC_PUBLIC_API_BASE_URL);
+
+  const rawNodes = process.env.NEXT_PUBLIC_BACKEND_NODES;
+  if (rawNodes) {
+    try {
+      const parsed = JSON.parse(rawNodes);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((node) => {
+          if (node && typeof node.baseUrl === 'string') {
+            addOrigin(node.baseUrl);
+          }
+        });
+      }
+    } catch {
+      rawNodes.split(',').forEach((part) => {
+        const [, maybeName, maybeBaseUrl] = part.split('|').map((value) => value?.trim());
+        addOrigin(maybeBaseUrl || maybeName);
+      });
+    }
+  }
+
+  return Array.from(origins);
+}
+
 /**
  * 获取客户端IP地址
  */
@@ -204,13 +247,14 @@ export function setSecurityHeaders(response: Response): Response {
   // 内容安全策略
   const tgStateBaseUrl = process.env.TGSTATE_BASE_URL || '';
   const tgStateDomain = tgStateBaseUrl ? new URL(tgStateBaseUrl).origin : '';
+  const configuredConnectOrigins = collectConfiguredConnectOrigins();
 
   response.headers.set(
     'Content-Security-Policy',
     `
       default-src 'self';
       img-src 'self' https: data:;
-      connect-src 'self' https://api.telegram.org https://res.cloudinary.com${tgStateDomain ? ` ${tgStateDomain}` : ''};
+      connect-src 'self' https://api.telegram.org https://res.cloudinary.com${tgStateDomain ? ` ${tgStateDomain}` : ''}${configuredConnectOrigins.length ? ` ${configuredConnectOrigins.join(' ')}` : ''};
       script-src 'self' 'unsafe-inline' 'unsafe-eval';
       style-src 'self' 'unsafe-inline';
       font-src 'self' data:;

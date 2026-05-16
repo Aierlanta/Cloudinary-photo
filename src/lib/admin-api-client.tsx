@@ -56,6 +56,14 @@ function getCurrentOrigin(): string {
   return window.location.origin;
 }
 
+function getCurrentFrontendNodeId(): string {
+  return process.env.NEXT_PUBLIC_NODE_ID || 'local';
+}
+
+function getSelectedNodeStorageKey(): string {
+  return `${SELECTED_NODE_KEY}:${getCurrentFrontendNodeId()}:${getCurrentOrigin()}`;
+}
+
 function normalizeNode(input: Partial<BackendNode>, fallbackIndex: number): BackendNode | null {
   const baseUrl = typeof input.baseUrl === 'string' ? normalizeBaseUrl(input.baseUrl) : '';
   if (!baseUrl) return null;
@@ -102,6 +110,15 @@ function parseBackendNodes(): BackendNode[] {
   return nodes.length > 0 ? nodes : (currentNode ? [currentNode] : []);
 }
 
+function getPreferredDefaultNode(nodes: BackendNode[]): BackendNode {
+  const currentNodeId = getCurrentFrontendNodeId();
+  const currentOrigin = normalizeBaseUrl(getCurrentOrigin());
+  return nodes.find((node) => node.id === currentNodeId)
+    || nodes.find((node) => normalizeBaseUrl(node.baseUrl) === currentOrigin)
+    || nodes[0]
+    || { id: 'local', name: '当前节点', baseUrl: getCurrentOrigin() };
+}
+
 function mergeHeaders(initHeaders: HeadersInit | undefined, authToken: string | null): Headers {
   const headers = new Headers(initHeaders);
   if (authToken && !headers.has('Authorization')) {
@@ -123,19 +140,21 @@ function createUnknownNodeStatuses(nodes: BackendNode[]): Record<string, NodeHea
 export function AdminApiProvider({ children }: { children: React.ReactNode }) {
   const nodes = useMemo(() => parseBackendNodes(), []);
   const fallbackNode = useMemo(() => (
-    nodes[0] || { id: 'local', name: '当前节点', baseUrl: getCurrentOrigin() }
+    getPreferredDefaultNode(nodes)
   ), [nodes]);
   const [selectedNodeId, setSelectedNodeIdState] = useState(fallbackNode.id);
   const [authToken, setAuthTokenState] = useState<string | null>(null);
   const [nodeStatuses, setNodeStatuses] = useState<Record<string, NodeHealthStatus>>(() => createUnknownNodeStatuses(nodes));
 
   useEffect(() => {
-    const storedNodeId = localStorage.getItem(SELECTED_NODE_KEY);
+    const storedNodeId = localStorage.getItem(getSelectedNodeStorageKey());
     if (storedNodeId && nodes.some((node) => node.id === storedNodeId)) {
       setSelectedNodeIdState(storedNodeId);
+    } else {
+      setSelectedNodeIdState(fallbackNode.id);
     }
     setAuthTokenState(localStorage.getItem(AUTH_TOKEN_KEY));
-  }, [nodes]);
+  }, [fallbackNode.id, nodes]);
 
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || fallbackNode;
   const nodeById = useMemo(() => {
@@ -144,7 +163,7 @@ export function AdminApiProvider({ children }: { children: React.ReactNode }) {
 
   const setSelectedNodeId = useCallback((nodeId: string) => {
     setSelectedNodeIdState(nodeId);
-    localStorage.setItem(SELECTED_NODE_KEY, nodeId);
+    localStorage.setItem(getSelectedNodeStorageKey(), nodeId);
   }, []);
 
   const setAuthToken = useCallback((token: string | null) => {
