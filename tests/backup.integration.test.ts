@@ -1,18 +1,13 @@
-// Server-side integration-like tests with full PrismaClient mocked.
-// We do NOT touch real databases; all Prisma calls are mocked.
-
 export {};
 
 type AnyMock = jest.Mock<any, any[]>;
-
-// Prepare PrismaClient double-instances: main and backup
-type AnyRecord = Record<string, any>;
 
 const makePrismaMock = () => ({
   $queryRaw: jest.fn() as AnyMock,
   $queryRawUnsafe: jest.fn() as AnyMock,
   $executeRawUnsafe: jest.fn() as AnyMock,
   $executeRaw: jest.fn() as AnyMock,
+  $transaction: jest.fn((items: Promise<unknown>[]) => Promise.all(items)) as AnyMock,
   $connect: jest.fn().mockResolvedValue(undefined) as AnyMock,
   $disconnect: jest.fn().mockResolvedValue(undefined) as AnyMock,
   aPIConfig: {
@@ -33,111 +28,101 @@ jest.mock('@prisma/client', () => {
     .mockImplementationOnce(() => mainMock)
     .mockImplementationOnce(() => backupMock);
 
-  // 极简 Prisma.sql/raw/join 实现：仅用于把模板拼成可断言的字符串
   const sqlTag = (strings: TemplateStringsArray, ...values: any[]) =>
     strings.reduce((acc, s, i) => acc + s + (i < values.length ? String(values[i]) : ''), '');
-  const raw = (v: string) => v;
-  const join = (arr: any[], sep: string = ',') => arr.map(String).join(sep);
 
   return {
     PrismaClient: ctor,
     Prisma: {
       sql: sqlTag,
-      raw,
-      join,
+      raw: (value: string) => value,
+      join: (items: any[], sep: string = ',') => items.map(String).join(sep),
     },
   };
 });
 
-// Ensure env URLs are set (tests run in node env project)
-process.env.DATABASE_URL = process.env.DATABASE_URL || 'mysql://test:test@localhost:3306/test';
+process.env.DATABASE_URL = 'mysql://test:test@localhost:3306/test';
 process.env.BACKUP_DATABASE_URL = 'mysql://test:test@localhost:3306/bak';
 
-describe('BackupService dynamic backup & restore (mocked)', () => {
-  let BackupService: any;
+describe('BackupService shadow snapshot backup & restore (mocked)', () => {
   let backupService: any;
 
   beforeAll(async () => {
     const mod = await import('@/lib/backup');
-    BackupService = mod.BackupService;
-    backupService = BackupService.getInstance();
+    backupService = mod.BackupService.getInstance();
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    let lockOwner = '';
+    mainMock.aPIConfig.findUnique.mockResolvedValue(null);
+    mainMock.aPIConfig.upsert.mockResolvedValue({ id: 'backup_status' });
+    mainMock.systemLog.create.mockResolvedValue(undefined);
+    backupMock.$executeRawUnsafe.mockResolvedValue(0);
+    backupMock.$executeRaw.mockImplementation((sql: string) => {
+      const match = String(sql).match(/VALUES\s*\(\s*backup,\s*(snap_[^,\s]+)/);
+      if (match) {
+        lockOwner = match[1];
+      }
+      return Promise.resolve(0);
+    });
+    backupMock.$transaction.mockImplementation((items: Promise<unknown>[]) => Promise.all(items));
+    backupMock.$queryRaw.mockImplementation((sql: string) => {
+      if (String(sql).includes('SELECT owner')) {
+        return Promise.resolve([{ owner: lockOwner, expiresAt: new Date(Date.now() + 1000) }]);
+      }
+      return Promise.resolve([]);
+    });
   });
 
-  it('performBackup should enumerate and copy all non-system tables', async () => {
-    // 1) List tables in main (filter out _prisma_migrations)
-    (mainMock.$queryRaw as AnyMock).mockResolvedValueOnce([
+  it('performBackup creates a completed shadow snapshot and includes migration metadata', async () => {
+    mainMock.$queryRaw.mockResolvedValueOnce([
       { TABLE_NAME: 'groups' },
-      { TABLE_NAME: 'images' },
       { TABLE_NAME: '_prisma_migrations' }
     ]);
 
-    // 2) SHOW CREATE for each table from main
-    (mainMock.$queryRawUnsafe as AnyMock).mockImplementation((sql: string) => {
+    mainMock.$queryRawUnsafe.mockImplementation((sql: string) => {
       if (sql.includes('SHOW CREATE TABLE `groups`')) {
-        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `groups` ( `id` varchar(191) )' }]);
+        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `groups` (`id` varchar(191))' }]);
       }
-      if (sql.includes('SHOW CREATE TABLE `images`')) {
-        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `images` ( `id` varchar(191) )' }]);
+      if (sql.includes('SHOW CREATE TABLE `_prisma_migrations`')) {
+        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `_prisma_migrations` (`id` varchar(191))' }]);
       }
       if (sql.includes('COUNT(*) as count FROM `groups`')) {
         return Promise.resolve([{ count: 1 }]);
       }
-      if (sql.includes('COUNT(*) as count FROM `images`')) {
-        return Promise.resolve([{ count: 2 }]);
+      if (sql.includes('COUNT(*) as count FROM `_prisma_migrations`')) {
+        return Promise.resolve([{ count: 1 }]);
       }
       if (sql.startsWith('SELECT * FROM `groups`')) {
         return Promise.resolve([{ id: 'g1' }]);
       }
-      if (sql.startsWith('SELECT * FROM `images`')) {
-        return Promise.resolve([{ id: 'i1' }, { id: 'i2' }]);
+      if (sql.startsWith('SELECT * FROM `_prisma_migrations`')) {
+        return Promise.resolve([{ id: 'migration-1' }]);
       }
       return Promise.resolve([]);
     });
 
-    // 3) backup DB executes DDL/DML
-    (backupMock.$executeRawUnsafe as AnyMock).mockResolvedValue(0);
-    (backupMock.$executeRaw as AnyMock).mockResolvedValue(0);
+    backupMock.$queryRawUnsafe.mockImplementation((sql: string) => {
+      if (sql.includes('COUNT(*) as count FROM `__bk_')) {
+        return Promise.resolve([{ count: 1 }]);
+      }
+      return Promise.resolve([]);
+    });
 
-    // 4) Status reads/writes
-    (mainMock.aPIConfig.findUnique as AnyMock).mockResolvedValue(null);
-    (mainMock.aPIConfig.upsert as AnyMock).mockResolvedValue({ id: 'backup_status' });
-    (mainMock.systemLog.create as AnyMock).mockResolvedValue(undefined);
+    const result = await backupService.performBackup();
 
-    const ok = await backupService.performBackup();
-    expect(ok).toBe(true);
-
-    // Main should enumerate tables once
-    expect(mainMock.$queryRaw).toHaveBeenCalledTimes(1);
-    // Backup should clear tables and then create/insert (at least called)
-    const backupExecCalls = [
-      ...(backupMock.$executeRawUnsafe as AnyMock).mock.calls.map(args => String(args[0])),
-      ...(backupMock.$executeRaw as AnyMock).mock.calls.map(args => String(args[0]))
-    ];
-    // Foreign key toggles
-    expect(backupExecCalls.some(s => s.includes('SET FOREIGN_KEY_CHECKS = 0'))).toBe(true);
-    expect(backupExecCalls.some(s => s.includes('SET FOREIGN_KEY_CHECKS = 1'))).toBe(true);
-    // Delete on target tables
-    expect(backupExecCalls.some(s => s.includes('DELETE FROM `groups`'))).toBe(true);
-    expect(backupExecCalls.some(s => s.includes('DELETE FROM `images`'))).toBe(true);
-    // Recreate/insert traces
-    expect(backupExecCalls.some(s => s.includes('DROP TABLE IF EXISTS `groups`'))).toBe(true);
-    expect(backupExecCalls.some(s => s.includes('DROP TABLE IF EXISTS `images`'))).toBe(true);
-    expect(backupExecCalls.some(s => s.includes('CREATE TABLE'))).toBe(true);
-    expect(backupExecCalls.some(s => s.includes('INSERT INTO `groups`'))).toBe(true);
-    expect(backupExecCalls.some(s => s.includes('INSERT INTO `images`'))).toBe(true);
-
-    // Status updated
+    expect(result.success).toBe(true);
+    expect(result.copiedTables).toEqual(['groups', '_prisma_migrations']);
+    expect(result.snapshotId).toMatch(/^snap_/);
+    expect(backupMock.$executeRawUnsafe).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS `_backup_snapshots`'));
+    expect(backupMock.$executeRawUnsafe).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE `__bk_'));
     expect(mainMock.aPIConfig.upsert).toHaveBeenCalledTimes(1);
     expect(mainMock.systemLog.create).toHaveBeenCalledTimes(1);
   });
 
-  it('restoreFromBackup should rebuild from backup and preserve backup_status', async () => {
-    // Preserve backup_status
-    (mainMock.aPIConfig.findUnique as AnyMock).mockResolvedValue({
+  it('restoreFromBackup restores from active manifest and preserves backup_status', async () => {
+    mainMock.aPIConfig.findUnique.mockResolvedValue({
       id: 'backup_status',
       isEnabled: true,
       defaultScope: 'backup',
@@ -148,73 +133,50 @@ describe('BackupService dynamic backup & restore (mocked)', () => {
       apiKey: null
     });
 
-    // Main has some tables to drop
-    (mainMock.$queryRaw as AnyMock).mockResolvedValueOnce([
-      { TABLE_NAME: 'groups' },
-      { TABLE_NAME: 'images' },
-      { TABLE_NAME: 'api_configs' }
-    ]);
-
-    // Backup lists tables (includes api_configs)
-    (backupMock.$queryRaw as AnyMock).mockResolvedValueOnce([
-      { TABLE_NAME: 'groups' },
-      { TABLE_NAME: 'images' },
-      { TABLE_NAME: 'api_configs' }
-    ]);
-
-    // Backup SHOW CREATE TABLE and SELECT data
-    (backupMock.$queryRawUnsafe as AnyMock).mockImplementation((sql: string) => {
-      if (sql.includes('SHOW CREATE TABLE `groups`')) {
-        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `groups` ( `id` varchar(191) )' }]);
+    backupMock.$queryRawUnsafe.mockImplementation((sql: string) => {
+      if (sql.includes('FROM `_backup_snapshots`')) {
+        return Promise.resolve([{
+          id: 'snap_active',
+          status: 'completed',
+          isActive: true,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          tableCount: 1,
+          totalRows: 1,
+          error: null,
+          metadata: null
+        }]);
       }
-      if (sql.includes('SHOW CREATE TABLE `images`')) {
-        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `images` ( `id` varchar(191) )' }]);
+      if (sql.includes('COUNT(*) as count FROM `__bk_active_0`')) {
+        return Promise.resolve([{ count: 1 }]);
       }
-      if (sql.includes('SHOW CREATE TABLE `api_configs`')) {
-        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `api_configs` ( `id` varchar(191) )' }]);
-      }
-      if (sql.startsWith('SELECT * FROM `groups`')) {
+      if (sql.startsWith('SELECT * FROM `__bk_active_0`')) {
         return Promise.resolve([{ id: 'g1' }]);
-      }
-      if (sql.startsWith('SELECT * FROM `images`')) {
-        return Promise.resolve([{ id: 'i1' }]);
-      }
-      if (sql.startsWith('SELECT * FROM `api_configs`')) {
-        return Promise.resolve([
-          { id: 'backup_status', isEnabled: true },
-          { id: 'default', isEnabled: true }
-        ]);
       }
       return Promise.resolve([]);
     });
 
-    (mainMock.$executeRawUnsafe as AnyMock).mockResolvedValue(0);
-    (mainMock.$executeRaw as AnyMock).mockResolvedValue(0);
+    backupMock.$queryRaw.mockResolvedValue([{
+      snapshotId: 'snap_active',
+      sourceTableName: 'groups',
+      backupTableName: '__bk_active_0',
+      rowCount: 1,
+      schemaHash: 'hash',
+      createTableSql: 'CREATE TABLE `groups` (`id` varchar(191))',
+      status: 'completed',
+      error: null
+    }]);
 
-    const ok = await backupService.restoreFromBackup();
-    expect(ok).toBe(true);
+    mainMock.$queryRaw.mockResolvedValue([{ TABLE_NAME: 'groups' }]);
+    mainMock.$executeRawUnsafe.mockResolvedValue(0);
+    mainMock.$executeRaw.mockResolvedValue(0);
 
-    // Restore 现在走“临时表导入 + RENAME TABLE 原子切换”，所以 INSERT 发生在 api_configs__tmp_restore
-    const mainExecCalls = [
-      ...(mainMock.$executeRawUnsafe as AnyMock).mock.calls.map(args => String(args[0])),
-      ...(mainMock.$executeRaw as AnyMock).mock.calls.map(args => String(args[0]))
-    ];
+    const result = await backupService.restoreFromBackup();
 
-    const apiInsert = mainExecCalls.find(s => s.includes('INSERT INTO `api_configs__tmp_restore`'));
-    expect(apiInsert).toBeTruthy();
-    if (apiInsert) {
-      // api_configs 导入时应跳过 backup_status（该记录会在最后通过 upsert 恢复）
-      expect(apiInsert.includes('backup_status')).toBe(false);
-    }
-
-    // 应发生 RENAME TABLE，把临时表切换成正式表
-    expect(
-      mainExecCalls.some(
-        s => s.includes('RENAME TABLE') && s.includes('`api_configs__tmp_restore` TO `api_configs`')
-      )
-    ).toBe(true);
-
-    // backup_status should be restored via upsert
+    expect(result.success).toBe(true);
+    expect(result.snapshotId).toBe('snap_active');
+    expect(result.copiedTables).toEqual(['groups']);
+    expect(mainMock.$executeRawUnsafe).toHaveBeenCalledWith(expect.stringContaining('RENAME TABLE'));
     expect(mainMock.aPIConfig.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'backup_status' }

@@ -1,35 +1,21 @@
-/**
- * Backup/Restore 流程（模拟集成测试，无真实数据库改动）
- * 目标：
- * 1) 验证插入使用参数化（不使用 $executeRawUnsafe 进行 INSERT）
- * 2) 验证还原原子性：失败中途不进行 RENAME，且已创建的临时表被清理
- * 3) 验证 FOREIGN_KEY_CHECKS 在错误时也会在 finally 中恢复
- */
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 export {};
 
 type AnyMock = jest.Mock<any, any[]>;
 
-// 先 mock PrismaClient，确保导入 BackupService 时使用的是模拟客户端
 jest.mock('@prisma/client', () => {
   const mkClient = () => ({
     $queryRaw: jest.fn(),
     $queryRawUnsafe: jest.fn(),
     $executeRaw: jest.fn(),
     $executeRawUnsafe: jest.fn(),
+    $transaction: jest.fn((items: Promise<unknown>[]) => Promise.all(items)),
     $connect: jest.fn().mockResolvedValue(undefined),
     $disconnect: jest.fn().mockResolvedValue(undefined),
-    // 仅为向下兼容的模型接口（本测试不实际触达数据库）
     aPIConfig: {
       findUnique: jest.fn().mockResolvedValue(null),
       upsert: jest.fn().mockResolvedValue(undefined),
     },
-    image: { createMany: jest.fn() },
-    group: { createMany: jest.fn() },
-    counter: { createMany: jest.fn() },
-    systemLog: { create: jest.fn(), createMany: jest.fn() },
+    systemLog: { create: jest.fn() },
   });
 
   const instances: any[] = [];
@@ -39,7 +25,6 @@ jest.mock('@prisma/client', () => {
     return inst;
   });
 
-  // 简化版 Prisma.sql/join/raw，占位用以区分是否为参数化对象
   const Prisma = {
     sql: (strings: TemplateStringsArray, ...values: any[]) => ({ __tag: 'sql', strings, values }),
     join: (items: any[], sep?: any) => ({ __tag: 'join', items, sep }),
@@ -48,6 +33,9 @@ jest.mock('@prisma/client', () => {
 
   return { PrismaClient, Prisma };
 });
+
+process.env.DATABASE_URL = 'mysql://test:test@localhost:3306/test';
+process.env.BACKUP_DATABASE_URL = 'mysql://test:test@localhost:3306/bak';
 
 describe('BackupService restore (mocked integration)', () => {
   beforeEach(() => {
@@ -67,110 +55,135 @@ describe('BackupService restore (mocked integration)', () => {
     const { default: BackupService } = await import('@/lib/backup');
     const { main, backup } = getClients();
 
-    // 列举备份库/主库表
-    (backup.$queryRaw as AnyMock).mockResolvedValue([{ TABLE_NAME: 'users' }]);
-    (main.$queryRaw as AnyMock).mockResolvedValue([{ TABLE_NAME: 'users' }]);
-
-    // 备份库：SHOW CREATE TABLE + SELECT 数据
     (backup.$queryRawUnsafe as AnyMock).mockImplementation((sql: string) => {
-      if (typeof sql === 'string' && sql.includes('SHOW CREATE TABLE')) {
-        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `users` (`id` varchar(191), `name` text)' }]);
+      if (typeof sql === 'string' && sql.includes('FROM `_backup_snapshots`')) {
+        return Promise.resolve([{
+          id: 'snap_active',
+          status: 'completed',
+          isActive: true,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          tableCount: 1,
+          totalRows: 1,
+          error: null,
+          metadata: null
+        }]);
       }
-      if (typeof sql === 'string' && sql.includes('SELECT * FROM `users`')) {
+      if (typeof sql === 'string' && sql.includes('COUNT(*) as count FROM `__bk_users`')) {
+        return Promise.resolve([{ count: 1 }]);
+      }
+      if (typeof sql === 'string' && sql.includes('SELECT * FROM `__bk_users`')) {
         return Promise.resolve([{ id: '1', name: "Alice's Toy" }]);
       }
       return Promise.resolve([]);
     });
 
-    // 主库：所有 DDL/DML 默认成功
+    (backup.$queryRaw as AnyMock).mockResolvedValue([{
+      snapshotId: 'snap_active',
+      sourceTableName: 'users',
+      backupTableName: '__bk_users',
+      rowCount: 1,
+      schemaHash: 'hash',
+      createTableSql: 'CREATE TABLE `users` (`id` varchar(191), `name` text)',
+      status: 'completed',
+      error: null
+    }]);
+    (main.$queryRaw as AnyMock).mockResolvedValue([{ TABLE_NAME: 'users' }]);
     (main.$executeRawUnsafe as AnyMock).mockResolvedValue(0);
     (main.$executeRaw as AnyMock).mockResolvedValue(0);
 
-    const ok = await BackupService.getInstance().restoreFromBackup();
-    expect(ok).toBe(true);
+    const result = await BackupService.getInstance().restoreFromBackup();
+    expect(result.success).toBe(true);
 
-    // 验证 INSERT 使用参数化：不使用 $executeRawUnsafe 执行 INSERT
     const unsafeMainCalls = (main.$executeRawUnsafe as AnyMock).mock.calls.map(args => args[0]);
     expect(unsafeMainCalls.some((s: any) => typeof s === 'string' && /INSERT\s+INTO/i.test(s))).toBe(false);
 
-    // 应至少调用一次 $executeRaw（参数化对象）
     expect((main.$executeRaw as AnyMock).mock.calls.length).toBeGreaterThan(0);
     const firstParamCallArg = (main.$executeRaw as AnyMock).mock.calls[0][0];
     expect(typeof firstParamCallArg).not.toBe('string');
 
-    // 验证出现原子 RENAME
     expect(unsafeMainCalls.some((s: any) => typeof s === 'string' && s.includes('RENAME TABLE'))).toBe(true);
   });
 
-  it('re-enables FOREIGN_KEY_CHECKS in finally even when drop fails', async () => {
+  it('initializeBackupDatabase creates control tables only', async () => {
     const { default: BackupService } = await import('@/lib/backup');
-    const { main, backup } = getClients();
+    const { backup } = getClients();
+    (backup.$executeRawUnsafe as AnyMock).mockResolvedValue(0);
 
-    // 让 initializeBackupDatabase 能枚举出表
-    (main.$queryRaw as AnyMock).mockResolvedValue([{ TABLE_NAME: 't1' }]);
-    (backup.$queryRaw as AnyMock).mockResolvedValue([{ TABLE_NAME: 't1' }]);
+    const result = await BackupService.getInstance().initializeBackupDatabase();
 
-    // dropAllBackupTables 阶段：SET=0 成功，DROP 失败，finally 中 SET=1 必须执行
-    (backup.$executeRawUnsafe as AnyMock).mockImplementation((sql: string) => {
-      if (typeof sql === 'string' && sql.includes('SET FOREIGN_KEY_CHECKS = 0')) return Promise.resolve(0);
-      if (typeof sql === 'string' && sql.startsWith('DROP TABLE')) return Promise.reject(new Error('DB connection failed'));
-      if (typeof sql === 'string' && sql.includes('SET FOREIGN_KEY_CHECKS = 1')) return Promise.resolve(0);
-      return Promise.resolve(0);
-    });
-
-    // SHOW CREATE TABLE 主库结构
-    (main.$queryRawUnsafe as AnyMock).mockImplementation((sql: string) => {
-      if (typeof sql === 'string' && sql.includes('SHOW CREATE TABLE')) {
-        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `t1` (`id` int)' }]);
-      }
-      return Promise.resolve([]);
-    });
-
-    // 其余 DDL 默认成功
-    (backup.$executeRaw as AnyMock).mockResolvedValue(0);
-    (main.$executeRawUnsafe as AnyMock).mockResolvedValue(0);
-
-    await BackupService.getInstance().initializeBackupDatabase();
-
-    // 验证最终调用了 SET FOREIGN_KEY_CHECKS = 1
+    expect(result.success).toBe(true);
     const calls = (backup.$executeRawUnsafe as AnyMock).mock.calls.map(args => args[0]);
-    expect(calls.some((s: any) => typeof s === 'string' && s.includes('SET FOREIGN_KEY_CHECKS = 1'))).toBe(true);
+    expect(calls.some((s: any) => typeof s === 'string' && s.includes('CREATE TABLE IF NOT EXISTS `_backup_snapshots`'))).toBe(true);
+    expect(calls.some((s: any) => typeof s === 'string' && s.includes('CREATE TABLE IF NOT EXISTS `_backup_snapshot_tables`'))).toBe(true);
+    expect(calls.some((s: any) => typeof s === 'string' && s.includes('CREATE TABLE IF NOT EXISTS `_backup_locks`'))).toBe(true);
   });
 
   it('does not perform RENAME and cleans tmp tables when restore fails mid-way', async () => {
     const { default: BackupService } = await import('@/lib/backup');
     const { main, backup } = getClients();
 
-    // 两张备份表：t1 正常，t2 在读取数据时抛错
-    (backup.$queryRaw as AnyMock).mockResolvedValue([{ TABLE_NAME: 't1' }, { TABLE_NAME: 't2' }]);
-    (main.$queryRaw as AnyMock).mockResolvedValue([]); // 主库初始无业务表
-
     (backup.$queryRawUnsafe as AnyMock).mockImplementation((sql: string) => {
-      if (typeof sql === 'string' && sql.includes('SHOW CREATE TABLE')) {
-        // 针对 t1 / t2 的建表语句
-        return Promise.resolve([{ 'Create Table': 'CREATE TABLE `tX` (`id` int)' }]);
+      if (typeof sql === 'string' && sql.includes('FROM `_backup_snapshots`')) {
+        return Promise.resolve([{
+          id: 'snap_active',
+          status: 'completed',
+          isActive: true,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          tableCount: 2,
+          totalRows: 2,
+          error: null,
+          metadata: null
+        }]);
       }
-      if (typeof sql === 'string' && sql.includes('SELECT * FROM `t1`')) {
+      if (typeof sql === 'string' && sql.includes('COUNT(*) as count FROM `__bk_t1`')) {
+        return Promise.resolve([{ count: 1 }]);
+      }
+      if (typeof sql === 'string' && sql.includes('COUNT(*) as count FROM `__bk_t2`')) {
+        return Promise.resolve([{ count: 1 }]);
+      }
+      if (typeof sql === 'string' && sql.includes('SELECT * FROM `__bk_t1`')) {
         return Promise.resolve([{ id: 1 }]);
       }
-      if (typeof sql === 'string' && sql.includes('SELECT * FROM `t2`')) {
+      if (typeof sql === 'string' && sql.includes('SELECT * FROM `__bk_t2`')) {
         return Promise.reject(new Error('Something broke!'));
       }
       return Promise.resolve([]);
     });
 
-    // 主库 DDL 默认成功
+    (backup.$queryRaw as AnyMock).mockResolvedValue([
+      {
+        snapshotId: 'snap_active',
+        sourceTableName: 't1',
+        backupTableName: '__bk_t1',
+        rowCount: 1,
+        schemaHash: 'hash',
+        createTableSql: 'CREATE TABLE `t1` (`id` int)',
+        status: 'completed',
+        error: null
+      },
+      {
+        snapshotId: 'snap_active',
+        sourceTableName: 't2',
+        backupTableName: '__bk_t2',
+        rowCount: 1,
+        schemaHash: 'hash',
+        createTableSql: 'CREATE TABLE `t2` (`id` int)',
+        status: 'completed',
+        error: null
+      }
+    ]);
+    (main.$queryRaw as AnyMock).mockResolvedValue([]);
     (main.$executeRawUnsafe as AnyMock).mockResolvedValue(0);
     (main.$executeRaw as AnyMock).mockResolvedValue(0);
 
-    const ok = await BackupService.getInstance().restoreFromBackup();
-    expect(ok).toBe(false);
+    const result = await BackupService.getInstance().restoreFromBackup();
+    expect(result.success).toBe(false);
 
     const unsafeMainCalls = (main.$executeRawUnsafe as AnyMock).mock.calls.map(args => args[0] as any);
-    // 不应出现 RENAME TABLE（因为中途失败）
     expect(unsafeMainCalls.some((s: any) => typeof s === 'string' && s.includes('RENAME TABLE'))).toBe(false);
-    // 应清理已创建的临时表 t1__tmp_restore
-    expect(unsafeMainCalls.some((s: any) => typeof s === 'string' && s.includes('DROP TABLE IF EXISTS `t1__tmp_restore`'))).toBe(true);
+    expect(unsafeMainCalls.some((s: any) => typeof s === 'string' && s.includes('DROP TABLE IF EXISTS `__restore_'))).toBe(true);
   });
 });
 

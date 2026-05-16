@@ -19,9 +19,11 @@ export function initializeServer(): void {
   try {
     console.log('开始初始化服务器服务');
 
-    // 启动备份调度器
-    const backupScheduler = BackupScheduler.getInstance();
-    backupScheduler.start();
+    if (process.env.NODE_ENV !== 'production') {
+      // 生产环境使用外部 HTTP Cron 触发备份，避免多实例重复 setInterval。
+      const backupScheduler = BackupScheduler.getInstance();
+      backupScheduler.start();
+    }
 
     // 启动日志清理调度器
     const logCleanupScheduler = LogCleanupScheduler.getInstance();
@@ -45,9 +47,10 @@ export function cleanupServer(): void {
   try {
     console.log('开始清理服务器服务');
 
-    // 停止备份调度器
-    const backupScheduler = BackupScheduler.getInstance();
-    backupScheduler.stop();
+    if (process.env.NODE_ENV !== 'production') {
+      const backupScheduler = BackupScheduler.getInstance();
+      backupScheduler.stop();
+    }
 
     // 停止日志清理调度器
     const logCleanupScheduler = LogCleanupScheduler.getInstance();

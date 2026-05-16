@@ -27,6 +27,16 @@ interface BackupStatus {
   backupCount: number;
   isAutoBackupEnabled: boolean;
   isDatabaseHealthy: boolean;
+  isBackupDatabaseHealthy?: boolean;
+  backupDatabaseConfigured?: boolean;
+  activeSnapshotId?: string;
+  lastBackupDurationMs?: number;
+  lastBackupTableCount?: number;
+  lastBackupRowCount?: number;
+  lastBackupFailedTables?: Array<{
+    tableName: string;
+    error?: string;
+  }>;
 }
 
 export default function BackupPage() {
@@ -408,6 +418,70 @@ export default function BackupPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Snapshot Observability */}
+        <div className={cn(
+          "border p-6 rounded-lg",
+          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        )}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={cn(
+              "text-lg font-bold rounded-lg",
+              isLight ? "text-gray-900" : "text-gray-100"
+            )}>
+              Snapshot 状态
+            </h3>
+            <span className={cn(
+              "px-3 py-1 text-xs rounded-lg",
+              backupStatus?.backupDatabaseConfigured && backupStatus?.isBackupDatabaseHealthy
+                ? isLight ? "bg-green-100 text-green-700" : "bg-green-900 text-green-200"
+                : isLight ? "bg-red-100 text-red-700" : "bg-red-900 text-red-200"
+            )}>
+              备份库{backupStatus?.isBackupDatabaseHealthy ? '正常' : '异常或未配置'}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <p className={cn("text-xs mb-1", isLight ? "text-gray-500" : "text-gray-400")}>Active Snapshot</p>
+              <p className={cn("font-mono text-sm truncate", isLight ? "text-gray-900" : "text-gray-100")} title={backupStatus?.activeSnapshotId}>
+                {backupStatus?.activeSnapshotId || '暂无'}
+              </p>
+            </div>
+            <div>
+              <p className={cn("text-xs mb-1", isLight ? "text-gray-500" : "text-gray-400")}>表数量</p>
+              <p className={cn("text-sm font-semibold", isLight ? "text-gray-900" : "text-gray-100")}>
+                {backupStatus?.lastBackupTableCount ?? 0}
+              </p>
+            </div>
+            <div>
+              <p className={cn("text-xs mb-1", isLight ? "text-gray-500" : "text-gray-400")}>行数量</p>
+              <p className={cn("text-sm font-semibold", isLight ? "text-gray-900" : "text-gray-100")}>
+                {backupStatus?.lastBackupRowCount ?? 0}
+              </p>
+            </div>
+            <div>
+              <p className={cn("text-xs mb-1", isLight ? "text-gray-500" : "text-gray-400")}>耗时</p>
+              <p className={cn("text-sm font-semibold", isLight ? "text-gray-900" : "text-gray-100")}>
+                {backupStatus?.lastBackupDurationMs != null ? `${backupStatus.lastBackupDurationMs}ms` : '暂无'}
+              </p>
+            </div>
+          </div>
+          {backupStatus?.lastBackupFailedTables && backupStatus.lastBackupFailedTables.length > 0 && (
+            <div className={cn(
+              "mt-4 p-3 rounded-lg text-sm",
+              isLight ? "bg-red-50 text-red-700" : "bg-red-950 text-red-200"
+            )}>
+              <p className="font-semibold mb-2">失败表</p>
+              <ul className="space-y-1">
+                {backupStatus.lastBackupFailedTables.map((table) => (
+                  <li key={table.tableName} className="truncate" title={table.error}>
+                    {table.tableName}: {table.error || '未知错误'}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Operations and Settings */}

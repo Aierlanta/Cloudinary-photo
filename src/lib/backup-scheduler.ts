@@ -29,6 +29,11 @@ export class BackupScheduler {
    * 启动自动备份调度器
    */
   start(): void {
+    if (process.env.NODE_ENV === 'production') {
+      this.logger.warn('生产环境不启动进程内备份调度器，请使用外部 HTTP Cron 触发备份');
+      return;
+    }
+
     if (this.isRunning) {
       this.logger.warn('备份调度器已在运行中');
       return;
@@ -84,12 +89,18 @@ export class BackupScheduler {
       if (this.shouldPerformBackup(status.lastBackupTime)) {
         this.logger.info('开始执行计划备份');
         
-        const success = await this.backupService.performBackup();
+        const result = await this.backupService.performBackup();
         
-        if (success) {
-          this.logger.info('计划备份执行成功');
+        if (result.success) {
+          this.logger.info('计划备份执行成功', {
+            snapshotId: result.snapshotId,
+            durationMs: result.durationMs
+          });
         } else {
-          this.logger.error('计划备份执行失败');
+          this.logger.error('计划备份执行失败', undefined, {
+            status: result.status,
+            error: result.error || result.skippedReason
+          });
         }
       } else {
         this.logger.debug('距离上次备份时间不足，跳过此次备份');

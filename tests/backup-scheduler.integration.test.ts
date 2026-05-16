@@ -13,11 +13,24 @@ describe('BackupScheduler', () => {
         lastBackupTime: null,
         lastBackupSuccess: false,
         backupCount: 0,
-        isAutoBackupEnabled: true
+        isAutoBackupEnabled: true,
+        backupDatabaseConfigured: true
       });
     const performBackupSpy = jest
       .spyOn(service, 'performBackup')
-      .mockResolvedValue(true);
+      .mockResolvedValue({
+        operation: 'backup',
+        status: 'completed',
+        success: true,
+        startedAt: new Date(),
+        completedAt: new Date(),
+        durationMs: 1,
+        tableCount: 0,
+        totalRows: 0,
+        copiedTables: [],
+        failedTables: [],
+        warnings: []
+      });
 
     const scheduler = BackupScheduler.getInstance();
     scheduler.start();
