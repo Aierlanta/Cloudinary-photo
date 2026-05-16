@@ -988,15 +988,18 @@ export class BackupService {
 
     let copiedRows = 0;
     for (let offset = 0; offset < rowCount; offset += BATCH_SIZE) {
+      const limit = Math.min(BATCH_SIZE, rowCount - copiedRows);
+      if (limit <= 0) break;
+
       const rows = await mainPrisma.$queryRawUnsafe(
-        `SELECT * FROM ${quoteIdentifier(tableName)} LIMIT ${BATCH_SIZE} OFFSET ${offset}`
+        `SELECT * FROM ${quoteIdentifier(tableName)} LIMIT ${limit} OFFSET ${offset}`
       ) as Array<Record<string, unknown>>;
       copiedRows += await this.insertRows(backup, backupTableName, rows);
     }
 
     const backupRowCount = await this.getTableRowCount(backup, backupTableName);
-    if (backupRowCount !== rowCount) {
-      throw new DatabaseError(`表 ${tableName} 行数校验失败: source=${rowCount}, backup=${backupRowCount}`);
+    if (backupRowCount !== copiedRows) {
+      throw new DatabaseError(`表 ${tableName} 行数校验失败: copied=${copiedRows}, backup=${backupRowCount}`);
     }
 
     await backup.$executeRaw(
@@ -1004,14 +1007,14 @@ export class BackupService {
         INSERT INTO ${Prisma.raw(quoteIdentifier(SNAPSHOT_TABLES_TABLE))}
           (snapshotId, sourceTableName, backupTableName, rowCount, schemaHash, createTableSql, status, error)
         VALUES
-          (${snapshotId}, ${tableName}, ${backupTableName}, ${rowCount}, ${schemaHash}, ${createTableSql}, ${'completed'}, NULL)
+          (${snapshotId}, ${tableName}, ${backupTableName}, ${backupRowCount}, ${schemaHash}, ${createTableSql}, ${'completed'}, NULL)
       `
     );
 
     this.logger.debug(`表 ${tableName} 快照复制完成`, {
       snapshotId,
       backupTableName,
-      rowCount,
+      rowCount: backupRowCount,
       copiedRows
     });
 

@@ -65,6 +65,10 @@
 ```env
 # 数据库配置
 DATABASE_URL="mysql://username:password@host:port/database"
+BACKUP_DATABASE_URL="mysql://username:password@host:port/backup_database"
+BACKUP_CRON_SECRET=your_backup_cron_secret
+# 可选：外部 Cron 触发的最小成功备份间隔，默认 6 小时
+# BACKUP_CRON_MIN_INTERVAL_MS=21600000
 
 # 服务配置
 # 可选，不设置时默认为 3000
@@ -99,8 +103,15 @@ TELEGRAM_ENABLE=true
 # 管理员认证
 ADMIN_PASSWORD=your_secure_admin_password
 
-# 会话安全（可选，未设置时自动生成）
-# SESSION_SECRET=your_random_secret_key_for_session_signing
+# 会话安全，多节点部署时所有节点必须一致
+SESSION_SECRET=your_random_secret_key_for_session_signing
+
+# 蜂群/多节点配置（可选）
+NODE_ID=node-a
+NODE_NAME=Node A
+PUBLIC_API_BASE_URL=https://node-a.example.com
+NODE_HANDOFF_SECRET=your_shared_handoff_secret
+NEXT_PUBLIC_BACKEND_NODES='[{"id":"node-a","name":"Node A","baseUrl":"https://node-a.example.com"},{"id":"node-b","name":"Node B","baseUrl":"https://node-b.example.com"}]'
 ```
 
 #### 按需启用/禁用图床服务
@@ -340,9 +351,13 @@ POST   /api/admin/multi-host       # 多图床操作
 
 ```http
 GET    /api/admin/stats            # 获取系统统计
+GET    /api/admin/summary          # 获取后台首页聚合摘要
 GET    /api/admin/logs             # 获取系统日志
 GET    /api/admin/health           # 获取详细健康状态
-POST   /api/admin/backup           # 创建数据备份
+GET    /api/admin/backup/status    # 获取备份快照状态
+POST   /api/admin/backup/create    # 创建数据备份
+POST   /api/admin/backup/restore   # 从最新完整快照恢复
+POST   /api/internal/backup/run    # 外部 HTTP Cron 触发备份
 ```
 
 #### 风控管理（v1.4.0 新增）
@@ -422,6 +437,7 @@ GET    /api/admin/security/ip-info         # 获取IP信息和统计
 - **国际化**: 支持中英文双语
 - **主题系统**: 深色/浅色模式，支持系统偏好检测
 - **备份与恢复**: 自动数据库备份，一键恢复功能
+- **蜂群多节点交付**: 支持后端节点列表、签名跨节点交付，以及离线节点图片随机过滤
 
 ### 安全功能
 
@@ -530,10 +546,11 @@ GET    /api/admin/security/ip-info         # 获取IP信息和统计
 
 #### 备份系统 (`src/lib/backup.ts`)
 
-- **自动备份**: 定时数据库备份
-- **一键恢复**: 快速从备份恢复数据库
-- **原子操作** (v1.4.5): 确保恢复过程中的数据一致性
-- **错误恢复**: 增强的错误处理和回滚机制
+- **Shadow Snapshot**: 先写入新的快照表，所有表成功后才提升为 active snapshot
+- **Schema Manifest**: 每个快照记录源表名、备份表名、行数、DDL hash 和原始 `SHOW CREATE TABLE` SQL
+- **迁移元数据同步**: `_prisma_migrations` 会进入快照，避免恢复后 Prisma 迁移状态漂移
+- **严格失败判定**: 任意表失败都会得到失败结果，不再出现“部分失败但整体成功”
+- **外部 HTTP Cron**: 生产环境通过带 Bearer token 的 `POST /api/internal/backup/run` 触发；进程内 `setInterval` 仅保留给本地开发
 
 ## 开发命令
 
@@ -602,10 +619,15 @@ npx prisma studio        # 打开 Prisma Studio 数据库管理界面
 
 ### 数据备份
 
-- **自动备份**: 定时数据库备份，可配置备份间隔
-- **手动备份**: 管理面板支持一键备份
-- **恢复机制**: 快速恢复数据和配置，支持原子操作
-- **备份状态**: 实时备份状态和历史记录追踪
+- **手动备份**: 管理面板支持一键备份到 `BACKUP_DATABASE_URL`
+- **外部 Cron 备份**: 任意外部 Cron 服务只需定时请求主服务：
+  ```bash
+  curl -X POST https://your-domain.com/api/internal/backup/run \
+    -H "Authorization: Bearer $BACKUP_CRON_SECRET"
+  ```
+- **备份库保护**: `BACKUP_DATABASE_URL` 必须配置，且不能与 `DATABASE_URL` 指向同一个数据库
+- **快照恢复**: 默认恢复最新完整快照，先重建临时表，再通过 `RENAME TABLE` 切换
+- **备份状态**: 后台备份页展示 active snapshot、表数、行数、耗时、备份库健康和失败表详情
 
 ### 日志管理
 

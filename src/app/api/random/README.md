@@ -2,7 +2,7 @@
 
 ## 概述
 
-`/api/random` 是系统唯一的公开API端点，用于获取随机图片。该端点直接返回图片文件，而不是JSON数据。
+`/api/random` 是公开随机图片入口，默认返回 `302` 重定向到图片 URL。需要直接返回图片二进制时，请使用 `/api/response`，或访问 `/api/random?response=true` 由系统转到 `/api/random/response` 辅助端点。
 
 ## 基本用法
 
@@ -13,8 +13,17 @@ GET /api/random
 ```
 
 **响应:**
-- 成功时直接返回图片文件
+- 成功时默认返回 `302` 重定向
 - 失败时返回相应的HTTP状态码和错误信息
+
+### 直接返回图片
+
+```
+GET /api/response
+GET /api/random?response=true
+```
+
+`/api/response` 是直接图片响应端点，支持透明度、背景色、尺寸裁剪等服务端处理参数。`/api/random?response=true` 会走专用辅助路由，避免在“直接响应”功能关闭时误触发 `/image/[filename]` 权限限制。
 
 ### 响应头
 
@@ -42,6 +51,8 @@ GET /api/random?type=landscape
 - 只有管理员配置的参数才会被接受
 - 未配置的参数将导致400错误
 - 参数值必须在管理员设置的允许范围内
+- `orientation=landscape|portrait|square` 可按图片方向筛选
+- 当配置了蜂群节点时，系统会排除明确判定为 `offline` 的 owner 节点；`unknown` 节点仍会参与随机，避免误杀慢响应节点
 
 ## 状态码
 
@@ -101,9 +112,18 @@ curl -o nature_image.jpg "http://localhost:3000/api/random?category=nature"
 curl -I "http://localhost:3000/api/random"
 ```
 
+### 外部 Cron 不应调用公开随机端点
+
+数据库备份的外部 Cron 应调用内部备份入口，而不是随机图片 API：
+
+```bash
+curl -X POST "https://your-domain.com/api/internal/backup/run" \
+  -H "Authorization: Bearer $BACKUP_CRON_SECRET"
+```
+
 ## 缓存
 
-API响应包含缓存头，建议客户端缓存图片以提高性能：
+`/api/random` 的重定向响应会带适合图片交付的缓存头。`/api/response` 返回二进制图片时会使用更保守的缓存策略，避免 CDN 或浏览器缓存破坏随机性。
 
 - 缓存时间：1小时 (`max-age=3600`)
 - 缓存类型：公共缓存 (`public`)

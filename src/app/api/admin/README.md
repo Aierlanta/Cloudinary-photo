@@ -231,6 +231,70 @@
 }
 ```
 
+## 备份管理 API
+
+所有 `/api/admin/backup/*` 端点都需要管理员认证，并经过管理端限流与安全检查。
+
+### GET /api/admin/backup/status
+获取备份状态、主库/备份库健康、active snapshot、表数、行数、耗时和失败表信息。
+
+### POST /api/admin/backup/create
+手动创建一次数据库备份。备份使用 shadow snapshot 流程：先复制到新的快照表，所有表成功后才提升为 active snapshot。
+
+**响应示例：**
+```json
+{
+  "success": true,
+  "message": "数据库备份成功",
+  "data": {
+    "operation": "backup",
+    "status": "completed",
+    "success": true,
+    "snapshotId": "snap_xxx",
+    "tableCount": 12,
+    "totalRows": 3456,
+    "copiedTables": ["images", "groups", "_prisma_migrations"],
+    "failedTables": [],
+    "warnings": []
+  }
+}
+```
+
+### POST /api/admin/backup/restore
+从最新完整快照恢复数据库。请求体必须包含确认字段：
+
+```json
+{
+  "confirm": true
+}
+```
+
+可选传入 `snapshotId` 恢复指定完整快照。
+
+### POST /api/admin/backup/init
+初始化备份库控制表，包括 `_backup_snapshots`、`_backup_snapshot_tables` 和 `_backup_locks`。不会清空业务表。
+
+### GET /api/admin/backup/history
+获取结构化备份历史，包含 snapshotId、耗时、失败表和错误详情。
+
+### GET /api/admin/backup/settings / POST /api/admin/backup/settings
+读取或更新本地开发用的自动备份开关。生产环境建议使用外部 HTTP Cron。
+
+### GET /api/admin/backup/scheduler / POST /api/admin/backup/scheduler
+读取或控制进程内调度器。生产环境会拒绝启动进程内调度器，避免多实例重复执行。
+
+## 内部备份触发 API
+
+### POST /api/internal/backup/run
+供外部 Cron 调用的专用入口，不使用管理员 session，而使用 `BACKUP_CRON_SECRET` 校验 Bearer token。
+
+```bash
+curl -X POST https://your-domain.com/api/internal/backup/run \
+  -H "Authorization: Bearer $BACKUP_CRON_SECRET"
+```
+
+默认会跳过距离上次成功备份不足 6 小时的请求，可通过 `BACKUP_CRON_MIN_INTERVAL_MS` 调整；必要时可使用 `?force=true` 强制执行。
+
 ## 错误处理
 
 所有API端点都使用统一的错误响应格式：

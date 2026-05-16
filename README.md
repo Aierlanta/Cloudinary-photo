@@ -66,6 +66,10 @@ Create a `.env.local` file and configure the following environment variables:
 ```env
 # Database configuration
 DATABASE_URL="mysql://username:password@host:port/database"
+BACKUP_DATABASE_URL="mysql://username:password@host:port/backup_database"
+BACKUP_CRON_SECRET=your_backup_cron_secret
+# Optional: minimum interval between successful cron-triggered backups, defaults to 6 hours
+# BACKUP_CRON_MIN_INTERVAL_MS=21600000
 
 # Server configuration
 # Optional, defaults to 3000 if not set
@@ -100,8 +104,15 @@ TELEGRAM_ENABLE=true
 # Admin authentication
 ADMIN_PASSWORD=your_secure_admin_password
 
-# Session security (optional, auto-generated if not set)
-# SESSION_SECRET=your_random_secret_key_for_session_signing
+# Session security. Keep the same value across swarm nodes.
+SESSION_SECRET=your_random_secret_key_for_session_signing
+
+# Swarm / multi-node configuration (optional)
+NODE_ID=node-a
+NODE_NAME=Node A
+PUBLIC_API_BASE_URL=https://node-a.example.com
+NODE_HANDOFF_SECRET=your_shared_handoff_secret
+NEXT_PUBLIC_BACKEND_NODES='[{"id":"node-a","name":"Node A","baseUrl":"https://node-a.example.com"},{"id":"node-b","name":"Node B","baseUrl":"https://node-b.example.com"}]'
 ```
 
 #### Enable/Disable image hosts on demand (New)
@@ -331,9 +342,13 @@ POST   /api/admin/multi-host       # Multi-host operations
 
 ```http
 GET    /api/admin/stats            # Get system statistics
+GET    /api/admin/summary          # Aggregated admin dashboard summary
 GET    /api/admin/logs             # Get system logs
 GET    /api/admin/health           # Get detailed health status
-POST   /api/admin/backup           # Create data backup
+GET    /api/admin/backup/status    # Get backup snapshot status
+POST   /api/admin/backup/create    # Create data backup
+POST   /api/admin/backup/restore   # Restore from latest complete snapshot
+POST   /api/internal/backup/run    # Trigger backup from external HTTP Cron
 ```
 
 #### Security Management (New in v1.4.0)
@@ -412,6 +427,7 @@ GET    /api/admin/security/ip-info         # Get IP information and statistics
 - **Internationalization**: Support for English and Chinese languages
 - **Theme System**: Dark/light mode with system preference detection
 - **Backup & Restore**: Automated database backup with one-click restore functionality
+- **Swarm Multi-node Delivery**: Optional backend node list, signed cross-node handoff, and offline-node-aware random selection
 
 ### Security Features
 
@@ -520,10 +536,11 @@ GET    /api/admin/security/ip-info         # Get IP information and statistics
 
 #### Backup System (`src/lib/backup.ts`)
 
-- **Automated Backups**: Scheduled database backups
-- **One-click Restore**: Quick database restoration from backups
-- **Atomic Operations** (v1.4.5): Ensures data consistency during restore
-- **Error Recovery**: Enhanced error handling and rollback mechanisms
+- **Shadow Snapshot**: Backups are written to new snapshot tables first and only promoted when every table succeeds
+- **Schema Manifest**: Each snapshot records table name, backup table name, row count, DDL hash, and original `SHOW CREATE TABLE` SQL
+- **Migration Metadata**: `_prisma_migrations` is included so restores do not drift from Prisma migration state
+- **Strict Failure Semantics**: Partial table failures are reported as failed backup results instead of false success
+- **External HTTP Cron**: Production scheduling is done by POSTing `/api/internal/backup/run` with a Bearer token; in-process `setInterval` is kept for local development only
 
 ## Development Commands
 
@@ -592,10 +609,15 @@ The project supports multi-host architecture, providing higher availability and 
 
 ### Data Backup
 
-- **Automatic Backup**: Scheduled database backups with configurable intervals
-- **Manual Backup**: Admin panel supports one-click backup
-- **Recovery Mechanism**: Quick data and configuration recovery with atomic operations
-- **Backup Status**: Real-time backup status and history tracking
+- **Manual Backup**: Admin panel supports one-click backup to the configured backup database
+- **External Cron Backup**: Configure any external cron service to call:
+  ```bash
+  curl -X POST https://your-domain.com/api/internal/backup/run \
+    -H "Authorization: Bearer $BACKUP_CRON_SECRET"
+  ```
+- **Backup Database Guard**: `BACKUP_DATABASE_URL` must be set and must not point to the same database as `DATABASE_URL`
+- **Snapshot Restore**: Restore uses the latest complete snapshot, recreates temporary tables, and switches tables with `RENAME TABLE`
+- **Backup Status**: Admin backup page shows active snapshot ID, table count, row count, duration, backup database health, and failed table details
 
 ### Log Management
 

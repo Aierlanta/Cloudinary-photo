@@ -75,7 +75,7 @@ async function getAdminHealth(request: NextRequest) {
       } : null
     };
 
-    logger.info('数据库健康检查完成', {
+    logger.debug('数据库健康检查完成', {
       type: 'health_check',
       mainDbHealthy,
       backupDbHealthy,
