@@ -112,7 +112,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git tag -a "$TAG" -m "Release $TAG" "$TARGET_SHA"
+          COMMIT_TITLE="$(git log -1 --format=%s "$TARGET_SHA")"
+          COMMIT_BODY="$(git log -1 --format=%b "$TARGET_SHA")"
+          TAG_MESSAGE_FILE="$(mktemp)"
+          trap 'rm -f "$TAG_MESSAGE_FILE"' EXIT
+
+          printf '%s\n' "$COMMIT_TITLE" > "$TAG_MESSAGE_FILE"
+          if [[ -n "$COMMIT_BODY" ]]; then
+            printf '\n%s\n' "$COMMIT_BODY" >> "$TAG_MESSAGE_FILE"
+          fi
+
+          git tag -a "$TAG" -F "$TAG_MESSAGE_FILE" "$TARGET_SHA"
           git push origin "refs/tags/$TAG"
 
 
