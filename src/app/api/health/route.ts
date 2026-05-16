@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { readAppVersion } from '@/lib/app-version';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -14,12 +15,13 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET() {
   try {
+    const version = await readAppVersion();
     // 最基本的健康检查 - 只检查服务是否运行
     return NextResponse.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       service: 'random-image-api',
-      version: process.env.npm_package_version || '1.0.0'
+      version
     }, { 
       status: 200,
       headers: {

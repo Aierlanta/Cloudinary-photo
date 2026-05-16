@@ -19,7 +19,11 @@ import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import type { Image } from '@/types/models';
 import { validateManagedResponseParams } from '@/lib/response-params';
-import { buildRemoteOwnerResolve, isImageOwnedByCurrentNode } from '@/lib/swarm-node';
+import {
+  buildRemoteOwnerResolve,
+  getExplicitlyOfflineNodeIds,
+  isImageOwnedByCurrentNode
+} from '@/lib/swarm-node';
 
 
 // 强制动态渲染
@@ -943,29 +947,36 @@ async function validateAndParseParams(
  * 从指定分组中获取随机图片（复用自 /api/random）
  */
 async function getRandomImageFromGroups(groupIds: string[], provider?: string): Promise<Image | null> {
+  const selector = (databaseService as any).selectRandomImages;
+  if (typeof selector === 'function') {
+    const result = await selector.call(databaseService, {
+      count: 1,
+      groupIds,
+      providers: provider ? [provider] : undefined,
+      includeTelegram: true
+    });
+    return result.images[0] || null;
+  }
+
   if (groupIds.length === 0) {
-    // 从所有图片中选择
     const images = await databaseService.getRandomImagesIncludingTelegram(1, undefined, undefined, provider);
     return images[0] || null;
   }
 
-  // 从指定分组中选择
-  // 如果有多个分组，随机选择一个分组，然后从该分组中获取随机图片
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
-
   const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId, undefined, provider);
   const image = images[0] || null;
 
   if (!image && groupIds.length > 1) {
-    // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
-      if (groupId !== selectedGroupId) {
-        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, undefined, provider);
-        const fallbackImage = fallbackImages[0] || null;
-        if (fallbackImage) {
-          return fallbackImage;
-        }
+      if (groupId === selectedGroupId) {
+        continue;
+      }
+      const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, undefined, provider);
+      const fallbackImage = fallbackImages[0] || null;
+      if (fallbackImage) {
+        return fallbackImage;
       }
     }
   }
@@ -974,19 +985,37 @@ async function getRandomImageFromGroups(groupIds: string[], provider?: string): 
 }
 
 async function getRandomImageFromGroupsAndProviders(groupIds: string[], providers: string[]): Promise<Image | null> {
-  const uniqueProviders = [...new Set((providers || []).filter(Boolean))];
-  if (uniqueProviders.length === 0) {
-    return getRandomImageFromGroups(groupIds);
+  const excludeOwnerNodeIds = await getExplicitlyOfflineNodeIds();
+  const selector = (databaseService as any).selectRandomImages;
+  if (typeof selector === 'function') {
+    const result = await selector.call(databaseService, {
+      count: 1,
+      groupIds,
+      providers,
+      includeTelegram: true,
+      excludeOwnerNodeIds
+    });
+    return result.images[0] || null;
   }
 
-  // 2A：先均匀随机选 provider，再从该 provider 范围内取随机图；失败则回退到其它 provider
+  const uniqueProviders = [...new Set((providers || []).filter(Boolean))];
+  if (uniqueProviders.length === 0) {
+    const image = await getRandomImageFromGroups(groupIds);
+    if (image && image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId)) {
+      return null;
+    }
+    return image;
+  }
+
   const randomProviderIndex = Math.floor(Math.random() * uniqueProviders.length);
   const selectedProvider = uniqueProviders[randomProviderIndex];
-  const tryProviders = [selectedProvider, ...uniqueProviders.filter(p => p !== selectedProvider)];
+  const tryProviders = [selectedProvider, ...uniqueProviders.filter((provider) => provider !== selectedProvider)];
 
-  for (const p of tryProviders) {
-    const img = await getRandomImageFromGroups(groupIds, p);
-    if (img) return img;
+  for (const provider of tryProviders) {
+    const image = await getRandomImageFromGroups(groupIds, provider);
+    if (image && !(image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId))) {
+      return image;
+    }
   }
 
   return null;

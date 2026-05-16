@@ -28,6 +28,7 @@ export async function isIPBanned(ip: string): Promise<boolean> {
         });
         return false;
       }
+      return true;
     }
 
     return true;
@@ -194,11 +195,9 @@ export async function checkIPTotalLimit(ip: string): Promise<{
       return { exceeded: false, current: 0 };
     }
 
-    // 使用高性能的计数器表而不是扫描整个访问日志表
     const totalAccessRecord = await prisma.iPTotalAccess.findUnique({
       where: { ip },
     });
-
     const totalAccess = totalAccessRecord ? Number(totalAccessRecord.count) : 0;
 
     return {

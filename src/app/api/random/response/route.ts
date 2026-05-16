@@ -11,7 +11,9 @@ import { serveRandomResponse } from '@/app/api/random/response/service';
 export const dynamic = 'force-dynamic';
 
 async function handleRandomResponse(request: NextRequest): Promise<Response> {
-  return serveRandomResponse(request);
+  return serveRandomResponse(request, {
+    requireDirectResponseEnabled: false
+  });
 }
 
 export const GET = withErrorHandler(

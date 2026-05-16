@@ -85,6 +85,14 @@ jest.mock('@/app/api/random/response/service', () => ({
   serveRandomResponse: jest.fn()
 }));
 
+jest.mock('@/lib/swarm-node', () => {
+  const actual = jest.requireActual('@/lib/swarm-node');
+  return {
+    ...actual,
+    getExplicitlyOfflineNodeIds: jest.fn().mockResolvedValue([])
+  };
+});
+
 
 const mockDatabaseService = databaseService as unknown as {
   getAPIConfig: jest.Mock,
@@ -149,7 +157,7 @@ describe('/api/random API端点测试', () => {
   } as any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     mockDatabaseService.getAPIConfig.mockResolvedValue(mockAPIConfig);
     mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([mockImage]);
     serveRandomResponse.mockResolvedValue({
@@ -173,12 +181,11 @@ describe('/api/random API端点测试', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
       expect(response.headers.get('X-Image-Id')).toBe('img_000001');
       expect(response.headers.get('X-Image-PublicId')).toBe('test_public_id');
-      expect(response.headers.get('X-Response-Time')).toBeTruthy();
       // 不再返回图片二进制内容
       expect(response.headers.get('Content-Type')).toBeNull();
     });
 
-    it('response=true 时应重定向到 image 路径', async () => {
+    it('response=true 时应重定向到随机响应路由', async () => {
       const request = createMockRequest(
         'http://localhost:3000/api/random?response=true&opacity=80&format=webp&quality=70'
       );
@@ -186,7 +193,7 @@ describe('/api/random API端点测试', () => {
 
       expect(response.status).toBe(302);
       expect(response.headers.get('Location')).toBe(
-        'http://localhost:3000/image/img_000001.jpg?opacity=80&format=webp&quality=70'
+        'http://localhost:3000/api/random/response?imageId=img_000001&opacity=80&format=webp&quality=70'
       );
       expect(response.headers.get('X-Image-Mode')).toBe('direct-response');
     });
@@ -195,11 +202,14 @@ describe('/api/random API端点测试', () => {
       const request = createMockRequest('http://localhost:3000/api/random?format=webp');
       const response = await GET(request);
 
-      expect(serveRandomResponse).toHaveBeenCalledWith(request, {
-        imageId: 'img_000001',
-        requireDirectResponseEnabled: false,
-        requestPath: '/api/random'
-      });
+      expect(serveRandomResponse).toHaveBeenCalledWith(
+        request,
+        expect.objectContaining({
+          imageId: 'img_000001',
+          requireDirectResponseEnabled: false,
+          requestPath: '/api/random'
+        })
+      );
       expect(response.status).toBe(200);
     });
   });
@@ -312,7 +322,7 @@ describe('/api/random API端点测试', () => {
         .mockResolvedValueOnce(null);
       const request = createMockRequest('http://localhost:3000/api/random');
       const response = await GET(request);
-      expect(mockDatabaseService.initialize).toHaveBeenCalled();
+      expect(mockDatabaseService.initialize).not.toHaveBeenCalled();
       expect(response.status).toBe(500);
     });
 

@@ -60,10 +60,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const response = await adminFetch("/api/admin/stats");
+        const response = await adminFetch("/api/admin/summary");
         if (response.ok) {
           const data = await response.json();
-          setStats(data.data);
+          setStats(data.data?.stats ?? null);
         } else {
           console.error("加载统计数据失败:", response.statusText);
         }

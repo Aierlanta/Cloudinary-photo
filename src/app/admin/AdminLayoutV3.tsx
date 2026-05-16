@@ -35,6 +35,7 @@ interface AdminLayoutV3Props {
   setPanelOpacity: (opacity: number) => void;
   theme: Theme;
   isManualTheme: boolean;
+  initialVersion: string | null;
   handleThemeToggle: () => void;
   handleThemeReset: () => void;
   handleLogout: () => void;
@@ -44,13 +45,13 @@ export default function AdminLayoutV3({
   children,
   theme,
   isManualTheme,
+  initialVersion,
   handleThemeToggle,
   handleThemeReset,
   handleLogout,
 }: AdminLayoutV3Props) {
   const { t, locale, toggleLocale } = useLocale();
   const {
-    adminFetch,
     nodes,
     selectedNodeId,
     setSelectedNodeId,
@@ -61,34 +62,15 @@ export default function AdminLayoutV3({
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [systemVersion, setSystemVersion] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadStatus = async () => {
-      try {
-        const response = await adminFetch("/api/status");
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data?.success && data.data?.version && !cancelled) {
-          setSystemVersion(data.data.version as string);
-        }
-      } catch {
-        // 静默失败
-      }
-    };
-
-    loadStatus();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [adminFetch]);
-
-  useEffect(() => {
+    if (!isSettingsOpen) {
+      return;
+    }
     refreshNodeStatuses().catch(() => {});
-  }, [refreshNodeStatuses]);
+  }, [isSettingsOpen, refreshNodeStatuses]);
+
+  const systemVersion = initialVersion;
 
   const navigationItems = [
     { name: t.adminNav.dashboard, href: "/admin", icon: LayoutDashboard },

@@ -678,10 +678,10 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null);
   const { toasts, success, error: showToastError, removeToast } = useToast();
 
-  const { triggerPrewarming } = useImageCachePrewarming(images, {
+  useImageCachePrewarming(images, {
     enabled: true,
-    maxImages: 20,
-    delay: 2000,
+    maxImages: 8,
+    delay: 3000,
     onIdle: true,
     thumbnailSize: 300,
   });

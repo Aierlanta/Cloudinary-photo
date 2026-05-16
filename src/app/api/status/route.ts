@@ -4,27 +4,53 @@ import { CloudinaryService } from '@/lib/cloudinary';
 import { withErrorHandler } from '@/lib/error-handler';
 import { withSecurity } from '@/lib/security';
 import { logger } from '@/lib/logger';
-import { initializeServer } from '@/lib/server-init';
 import { APIResponse } from '@/types/api';
 import { isStorageEnabled, StorageProvider } from '@/lib/storage';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
 import { getCurrentNode } from '@/lib/swarm-node';
+import { readAppVersion } from '@/lib/app-version';
+import { attachPerfHeadersToResponse, createRequestMetrics } from '@/lib/perf';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 
-/**
- * 读取版本号
- */
-async function getVersion(): Promise<string> {
-  try {
-    const versionPath = join(process.cwd(), '.version');
-    const version = await readFile(versionPath, 'utf-8');
-    return version.trim() || '1.0.0';
-  } catch (error) {
-    logger.warn('无法读取版本文件，使用默认版本', { error: error instanceof Error ? error.message : 'Unknown error' });
-    return process.env.npm_package_version || '1.0.0';
+const STATUS_CACHE_TTL_MS = 15_000;
+
+interface CachedStatusEntry {
+  payload: APIResponse;
+  statusCode: number;
+  expiresAt: number;
+}
+
+let summaryStatusCache: CachedStatusEntry | null = null;
+let fullStatusCache: CachedStatusEntry | null = null;
+
+function getCachedStatus(mode: 'summary' | 'full'): CachedStatusEntry | null {
+  const cached = mode === 'full' ? fullStatusCache : summaryStatusCache;
+  if (!cached) {
+    return null;
+  }
+  if (Date.now() > cached.expiresAt) {
+    if (mode === 'full') {
+      fullStatusCache = null;
+    } else {
+      summaryStatusCache = null;
+    }
+    return null;
+  }
+  return cached;
+}
+
+function setCachedStatus(mode: 'summary' | 'full', payload: APIResponse, statusCode: number): void {
+  const nextValue = {
+    payload,
+    statusCode,
+    expiresAt: Date.now() + STATUS_CACHE_TTL_MS
+  };
+
+  if (mode === 'full') {
+    fullStatusCache = nextValue;
+  } else {
+    summaryStatusCache = nextValue;
   }
 }
 
@@ -33,32 +59,36 @@ async function getVersion(): Promise<string> {
  * 公开API状态检查端点
  */
 async function getAPIStatus(request: NextRequest): Promise<Response> {
-  const startTime = performance.now();
+  const metrics = createRequestMetrics('/api/status');
+  const mode = request.nextUrl.searchParams.get('mode') === 'full' ? 'full' : 'summary';
+  metrics.setMeta('mode', mode);
 
-  // 初始化服务器服务（如果尚未初始化）
-  initializeServer();
-
-  // 记录状态检查开始
-  logger.info('开始系统状态检查', {
-    type: 'api_status',
-    ip: getClientIP(request),
-    userAgent: request.headers.get('user-agent')
-  });
+  const cached = getCachedStatus(mode);
+  if (cached) {
+    return attachPerfHeadersToResponse(
+      NextResponse.json(cached.payload, { status: cached.statusCode }),
+      metrics
+    );
+  }
 
   try {
-    // 检查数据库连接
-    const dbStatus = await checkDatabaseStatus();
-    
-    // 检查Cloudinary连接
-    const cloudinaryStatus = await checkCloudinaryStatus();
-    
-    // 获取API配置状态
-    const apiConfigStatus = await checkAPIConfigStatus();
-    
-    // 获取系统统计
-    const stats = await getSystemStats();
-    
-    const duration = Math.round(performance.now() - startTime);
+    const [version, dbStatus, apiConfigStatus] = await Promise.all([
+      metrics.time('app.version', async () => readAppVersion()),
+      metrics.time('db.health', async () => checkDatabaseStatus({ detailed: mode === 'full' })),
+      metrics.time('db.api_config', async () => checkAPIConfigStatus({ initializeIfMissing: false }, metrics))
+    ]);
+
+    const [cloudinaryStatus, stats] = mode === 'full'
+      ? await Promise.all([
+          metrics.time('cloudinary.health', async () => checkCloudinaryStatus()),
+          metrics.time('db.system_stats', async () => getSystemStats(metrics))
+        ])
+      : await Promise.all([
+          Promise.resolve(getCloudinarySummaryStatus()),
+          metrics.time('db.summary_stats', async () => databaseService.getStats(metrics))
+        ]);
+
+    const duration = Math.round(metrics.finish().totalMs);
 
     // 确定整体状态
     let overallStatus: 'healthy' | 'degraded' | 'down';
@@ -81,55 +111,70 @@ async function getAPIStatus(request: NextRequest): Promise<Response> {
       statusCode = 503;
     }
     
-    // 记录状态检查
-    logger.info('API状态检查完成', {
-      type: 'api_status',
+    const baseData = {
       status: overallStatus,
-      duration,
-      ip: getClientIP(request)
-    });
-    
-    const response: APIResponse = {
-      success: true,
-      data: {
-        status: overallStatus,
-        timestamp: new Date(),
-        uptime: process.uptime(),
-        version: await getVersion(),
-        environment: process.env.NODE_ENV || 'development',
-        node: getCurrentNode(request),
-        services: {
-          database: dbStatus,
-          cloudinary: cloudinaryStatus,
-          api: apiConfigStatus
-        },
-        stats,
-        performance: {
-          responseTime: `${duration}ms`,
-          memoryUsage: {
-            used: Math.round(stats.memoryUsage.heapUsed / 1024 / 1024), // MB
-            total: Math.round(stats.memoryUsage.rss / 1024 / 1024), // MB
-            heap: Math.round(stats.memoryUsage.heapUsed / 1024 / 1024), // MB
-            external: Math.round(stats.memoryUsage.external / 1024 / 1024) // MB
-          },
-          cpuUsage: stats.cpuUsage
-        },
-        health: {
-          score: calculateHealthScore(dbStatus, cloudinaryStatus, apiConfigStatus),
-          issues: getHealthIssues(dbStatus, cloudinaryStatus, apiConfigStatus)
-        }
+      timestamp: new Date(),
+      uptime: process.uptime(),
+      version,
+      environment: process.env.NODE_ENV || 'development',
+      node: getCurrentNode(request),
+      services: {
+        database: dbStatus,
+        cloudinary: cloudinaryStatus,
+        api: apiConfigStatus
       },
-      timestamp: new Date()
+      health: {
+        score: calculateHealthScore(dbStatus, cloudinaryStatus, apiConfigStatus),
+        issues: getHealthIssues(dbStatus, cloudinaryStatus, apiConfigStatus)
+      }
     };
-    
-    return NextResponse.json(response, { status: statusCode });
-    
+
+    const response: APIResponse = mode === 'full'
+      ? (() => {
+          const fullStats = stats as Awaited<ReturnType<typeof getSystemStats>>;
+          return {
+            success: true,
+            data: {
+              ...baseData,
+              stats: fullStats,
+              performance: {
+                responseTime: `${duration}ms`,
+                memoryUsage: {
+                  used: Math.round(fullStats.memoryUsage.heapUsed / 1024 / 1024),
+                  total: Math.round(fullStats.memoryUsage.rss / 1024 / 1024),
+                  heap: Math.round(fullStats.memoryUsage.heapUsed / 1024 / 1024),
+                  external: Math.round(fullStats.memoryUsage.external / 1024 / 1024)
+                },
+                cpuUsage: fullStats.cpuUsage
+              }
+            },
+            timestamp: new Date()
+          };
+        })()
+      : (() => {
+          const summaryStats = stats as Awaited<ReturnType<typeof databaseService.getStats>>;
+          return {
+            success: true,
+            data: {
+              ...baseData,
+              stats: summaryStats,
+              performance: {
+                responseTime: `${duration}ms`
+              }
+            },
+            timestamp: new Date()
+          };
+        })();
+
+    setCachedStatus(mode, response, statusCode);
+    return attachPerfHeadersToResponse(NextResponse.json(response, { status: statusCode }), metrics);
   } catch (error) {
     logger.error('API状态检查失败', error as Error, {
       type: 'api_status',
-      duration: Math.round(performance.now() - startTime)
+      mode,
+      ip: getClientIP(request)
     });
-    
+
     throw error;
   }
 }
@@ -137,7 +182,7 @@ async function getAPIStatus(request: NextRequest): Promise<Response> {
 /**
  * 检查数据库状态
  */
-async function checkDatabaseStatus(): Promise<{
+async function checkDatabaseStatus(options: { detailed?: boolean } = {}): Promise<{
   healthy: boolean;
   responseTime?: number;
   error?: string;
@@ -175,14 +220,16 @@ async function checkDatabaseStatus(): Promise<{
 
     // 获取详细信息
     let details: any = {};
-    try {
-      // 尝试获取数据库版本信息
-      const versionResult = await databaseService.getDatabaseVersion();
-      details.version = versionResult;
-      details.connectionPool = 'active';
-    } catch (detailError) {
-      // 详细信息获取失败不影响健康状态
-      details.connectionPool = 'limited';
+    if (options.detailed) {
+      try {
+        // 尝试获取数据库版本信息
+        const versionResult = await databaseService.getDatabaseVersion();
+        details.version = versionResult;
+        details.connectionPool = 'active';
+      } catch {
+        // 详细信息获取失败不影响健康状态
+        details.connectionPool = 'limited';
+      }
     }
 
     return {
@@ -204,6 +251,45 @@ async function checkDatabaseStatus(): Promise<{
 /**
  * 检查Cloudinary状态
  */
+function getCloudinarySummaryStatus(): {
+  healthy: boolean;
+  responseTime?: number;
+  error?: string;
+  details?: {
+    configured: boolean;
+    status?: 'disabled' | 'enabled';
+    cloudName?: string;
+  };
+} {
+  const cloudinaryEnabled = isStorageEnabled(StorageProvider.CLOUDINARY);
+  if (!cloudinaryEnabled) {
+    return {
+      healthy: true,
+      responseTime: 0,
+      details: {
+        configured: false,
+        status: 'disabled'
+      }
+    };
+  }
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  const configured = !!(cloudName && apiKey && apiSecret);
+
+  return {
+    healthy: configured,
+    responseTime: 0,
+    error: configured ? undefined : 'Cloudinary配置缺失',
+    details: {
+      configured,
+      status: configured ? 'enabled' : 'disabled',
+      cloudName: cloudName || undefined
+    }
+  };
+}
+
 async function checkCloudinaryStatus(): Promise<{
   healthy: boolean;
   responseTime?: number;
@@ -316,7 +402,10 @@ async function checkCloudinaryStatus(): Promise<{
 /**
  * 检查API配置状态
  */
-async function checkAPIConfigStatus(): Promise<{
+async function checkAPIConfigStatus(
+  options: { initializeIfMissing?: boolean } = {},
+  metrics?: { addDbQueries: (count?: number) => void }
+): Promise<{
   enabled: boolean;
   configured: boolean;
   parametersCount?: number;
@@ -329,24 +418,19 @@ async function checkAPIConfigStatus(): Promise<{
   };
 }> {
   try {
-    let apiConfig = await databaseService.getAPIConfig();
+    let apiConfig = await databaseService.getAPIConfig(metrics);
+
+    if (!apiConfig && options.initializeIfMissing) {
+      await databaseService.initialize();
+      apiConfig = await databaseService.getAPIConfig(metrics);
+    }
 
     if (!apiConfig) {
-      // 如果API配置不存在，尝试初始化数据库
-      logger.info('API配置未找到，正在初始化数据库...', { type: 'api_config' });
-      await databaseService.initialize();
-
-      // 重新获取配置
-      apiConfig = await databaseService.getAPIConfig();
-
-      if (!apiConfig) {
-        logger.error('API配置未找到', new Error('API配置初始化失败'), { type: 'api_config' });
-        return {
-          enabled: false,
-          configured: false,
-          error: 'API配置初始化失败'
-        };
-      }
+      return {
+        enabled: false,
+        configured: false,
+        error: 'API配置未初始化'
+      };
     }
 
     return {
@@ -373,7 +457,7 @@ async function checkAPIConfigStatus(): Promise<{
 /**
  * 获取系统统计信息
  */
-async function getSystemStats(): Promise<{
+async function getSystemStats(metrics?: { addDbQueries: (count?: number) => void }): Promise<{
   totalImages: number;
   totalGroups: number;
   memoryUsage: NodeJS.MemoryUsage;
@@ -393,9 +477,10 @@ async function getSystemStats(): Promise<{
 }> {
   try {
     const [stats, logStats] = await Promise.all([
-      databaseService.getStats(),
+      databaseService.getStats(metrics),
       databaseService.getLogStats().catch(() => null)
     ]);
+    metrics?.addDbQueries(1);
 
     // 获取CPU使用情况
     const cpuUsage = process.cpuUsage();

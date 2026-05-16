@@ -9,11 +9,17 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
-import { convertTgStateToProxyUrl, getFileExtensionFromUrl } from '@/lib/image-utils';
+import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import { validateManagedResponseParams } from '@/lib/response-params';
 import { serveRandomResponse } from '@/app/api/random/response/service';
-import { buildRemoteOwnerResolve, createRemoteOwnerRedirect, type DeliveryMode } from '@/lib/swarm-node';
+import {
+  buildRemoteOwnerResolve,
+  createRemoteOwnerRedirect,
+  getExplicitlyOfflineNodeIds,
+  type DeliveryMode
+} from '@/lib/swarm-node';
+import { attachPerfHeadersToResponse, createRequestMetrics } from '@/lib/perf';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
 
@@ -94,7 +100,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/random[?参数]
  */
 async function getRandomImage(request: NextRequest): Promise<Response> {
-  const startTime = performance.now();
+  const metrics = createRequestMetrics('/api/random');
 
   try {
     // 解析查询参数
@@ -134,24 +140,14 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     });
 
     // 获取API配置
-    let apiConfig = await databaseService.getAPIConfig();
+    const apiConfig = await metrics.time('db.api_config', async () => databaseService.getAPIConfig(metrics));
 
     if (!apiConfig) {
-      // 如果API配置不存在，尝试初始化数据库
-      logger.info('API配置未找到，正在初始化数据库...', { type: 'api_config' });
-      await databaseService.initialize();
-
-      // 重新获取配置
-      apiConfig = await databaseService.getAPIConfig();
-
-      if (!apiConfig) {
-        logger.error('API配置未找到', new Error('API配置错误'), { type: 'api_config' });
-        throw new AppError(
-          ErrorType.INTERNAL_ERROR,
-          'API配置错误',
-          500
-        );
-      }
+      throw new AppError(
+        ErrorType.INTERNAL_ERROR,
+        'API配置未初始化',
+        500
+      );
     }
 
     if (!apiConfig.isEnabled) {
@@ -241,8 +237,18 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
-    // 获取随机图片（支持 provider 过滤）
-    const randomImage = await getRandomImageFromGroupsAndProviders(targetGroupIds, allowedProviders, orientation);
+    const selection = await metrics.time('db.random_select', async () => (
+      selectRandomImageForRequest({
+        count: 1,
+        groupIds: targetGroupIds,
+        orientation,
+        providers: allowedProviders,
+        includeTelegram: true,
+        metrics
+      })
+    ));
+    metrics.setMeta('candidate_pool', selection.candidateCount);
+    const randomImage = selection.images[0] || null;
     
     if (!randomImage) {
       logger.warn('没有找到符合条件的图片', {
@@ -268,7 +274,6 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       params: redactedParams
     });
 
-    const duration = Math.round(performance.now() - startTime);
     const handoffMode = explicitResponseFlow || autoManagedResponseFlow ? 'random-response' : 'random-redirect';
 
     // 确保图片URL使用HTTPS协议
@@ -292,35 +297,43 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
 
     const isTelegramSelectedImage = isTelegramImage(randomImage, secureImageUrl);
     if (isTelegramSelectedImage) {
-      const ownerProxyResponse = await proxyRemoteOwnerImageStream(request, randomImage, handoffMode, duration);
+      const ownerProxyResponse = await proxyRemoteOwnerImageStream(
+        request,
+        randomImage,
+        handoffMode,
+        Math.round(metrics.finish().totalMs)
+      );
       if (ownerProxyResponse) {
-        return ownerProxyResponse;
+        metrics.setMeta('mode', 'owner_proxy');
+        return attachPerfHeadersToResponse(ownerProxyResponse, metrics);
       }
     }
 
     const ownerRedirect = createRemoteOwnerRedirect(request, randomImage, handoffMode);
     if (ownerRedirect) {
+      ownerRedirect.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      ownerRedirect.headers.set('Pragma', 'no-cache');
+      ownerRedirect.headers.set('Expires', '0');
       ownerRedirect.headers.set('X-Image-Id', randomImage.id);
       ownerRedirect.headers.set('X-Image-PublicId', randomImage.publicId);
-      ownerRedirect.headers.set('X-Response-Time', `${duration}ms`);
-      return ownerRedirect;
+      metrics.setMeta('mode', 'owner_handoff');
+      return attachPerfHeadersToResponse(ownerRedirect, metrics);
     }
 
     if (explicitResponseFlow) {
-      const extension = getFileExtensionFromUrl(randomImage.url) || 'jpg';
-      const fileName = `${randomImage.id}.${extension}`;
       const forwardedParams = new URLSearchParams();
       searchParams.forEach((value, key) => {
         if (key === 'response') return;
         forwardedParams.append(key, value);
       });
 
-      const responseUrl = new URL(`/image/${fileName}`, request.url);
-      if (forwardedParams.toString()) {
-        responseUrl.search = forwardedParams.toString();
-      }
+      const responseUrl = new URL('/api/random/response', request.url);
+      responseUrl.searchParams.set('imageId', randomImage.id);
+      forwardedParams.forEach((value, key) => {
+        responseUrl.searchParams.append(key, value);
+      });
 
-      logger.apiResponse('GET', '/api/random', 302, duration, {
+      logger.apiResponse('GET', '/api/random', 302, Math.round(metrics.finish().totalMs), {
         imageId: randomImage.id,
         redirectUrl: responseUrl.toString(),
         mode: 'response-proxy'
@@ -333,26 +346,30 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       redirectResponse.headers.set('Referrer-Policy', 'no-referrer');
       redirectResponse.headers.set('X-Image-Id', randomImage.id);
       redirectResponse.headers.set('X-Image-PublicId', randomImage.publicId);
-      redirectResponse.headers.set('X-Response-Time', `${duration}ms`);
       redirectResponse.headers.set('X-Image-Mode', 'direct-response');
-      return redirectResponse;
+      metrics.setMeta('mode', 'redirect');
+      return attachPerfHeadersToResponse(redirectResponse, metrics);
     }
 
     if (autoManagedResponseFlow) {
       return serveRandomResponse(request, {
         imageId: randomImage.id,
+        image: randomImage,
         requireDirectResponseEnabled: false,
-        requestPath: '/api/random'
+        requestPath: '/api/random',
+        metrics
       });
     }
 
     // 如果是 Telegram 直连图床，则直接回传图片流，避免 302 暴露 token
     if (isTelegramSelectedImage) {
       const mimeType = getMimeTypeFromUrl(randomImage.url);
-      const downloaded = await downloadImageWithCandidates(randomImage, request, mimeType);
+      const downloaded = await metrics.time('origin.telegram_download', async () => (
+        downloadImageWithCandidates(randomImage, request, mimeType)
+      ));
       const size = downloaded.buffer.length;
 
-      logger.apiResponse('GET', '/api/random', 200, duration, {
+      logger.apiResponse('GET', '/api/random', 200, Math.round(metrics.finish().totalMs), {
         imageId: randomImage.id,
         imageSize: size,
         mimeType: downloaded.mimeType,
@@ -361,7 +378,8 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
         url: redactTelegramBotTokenInUrl(downloaded.usedUrl)
       });
 
-      return new NextResponse(bufferToStream(downloaded.buffer), {
+      metrics.setMeta('mode', 'buffer');
+      return attachPerfHeadersToResponse(new NextResponse(bufferToStream(downloaded.buffer), {
         status: 200,
         headers: {
           'Content-Type': downloaded.mimeType,
@@ -373,7 +391,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
           'X-Image-PublicId': randomImage.publicId,
           'X-Transfer-Mode': 'buffered'
         }
-      });
+      }), metrics);
     }
 
     // 重定向到图片URL（正确方式：第二个参数为状态码，额外头部手动设置）
@@ -383,7 +401,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
       : new URL(secureImageUrl, request.url).toString();
 
     // 记录成功响应（此处一定是 302 跳转路径）
-    logger.apiResponse('GET', '/api/random', 302, duration, {
+    logger.apiResponse('GET', '/api/random', 302, Math.round(metrics.finish().totalMs), {
       imageId: randomImage.id,
       redirectUrl: redactTelegramBotTokenInUrl(finalRedirectUrl)
     });
@@ -395,8 +413,8 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     redirectResponse.headers.set('Referrer-Policy', 'no-referrer');
     redirectResponse.headers.set('X-Image-Id', randomImage.id);
     redirectResponse.headers.set('X-Image-PublicId', randomImage.publicId);
-    redirectResponse.headers.set('X-Response-Time', `${duration}ms`);
-    return redirectResponse;
+    metrics.setMeta('mode', 'redirect_fast');
+    return attachPerfHeadersToResponse(redirectResponse, metrics);
 
   } catch (error) {
     // 错误会被withErrorHandler中间件处理
@@ -492,34 +510,31 @@ async function validateAndParseParams(
   };
 }
 
-/**
- * 从指定分组中获取随机图片
- */
-async function getRandomImageFromGroups(groupIds: string[], orientation?: OrientationParam, provider?: string) {
+async function legacyGetRandomImageFromGroups(
+  groupIds: string[],
+  orientation?: OrientationParam,
+  provider?: string
+) {
   const randomOptions = orientation ? { orientation } : undefined;
   if (groupIds.length === 0) {
-    // 从所有图片中选择
     const images = await databaseService.getRandomImagesIncludingTelegram(1, undefined, randomOptions, provider);
     return images[0] || null;
   }
 
-  // 从指定分组中选择
-  // 如果有多个分组，随机选择一个分组，然后从该分组中获取随机图片
   const randomGroupIndex = Math.floor(Math.random() * groupIds.length);
   const selectedGroupId = groupIds[randomGroupIndex];
-
   const images = await databaseService.getRandomImagesIncludingTelegram(1, selectedGroupId, randomOptions, provider);
   const image = images[0] || null;
 
   if (!image && groupIds.length > 1) {
-    // 如果选中的分组没有图片，尝试其他分组
     for (const groupId of groupIds) {
-      if (groupId !== selectedGroupId) {
-        const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, randomOptions, provider);
-        const fallbackImage = fallbackImages[0] || null;
-        if (fallbackImage) {
-          return fallbackImage;
-        }
+      if (groupId === selectedGroupId) {
+        continue;
+      }
+      const fallbackImages = await databaseService.getRandomImagesIncludingTelegram(1, groupId, randomOptions, provider);
+      const fallbackImage = fallbackImages[0] || null;
+      if (fallbackImage) {
+        return fallbackImage;
       }
     }
   }
@@ -527,27 +542,61 @@ async function getRandomImageFromGroups(groupIds: string[], orientation?: Orient
   return image;
 }
 
-async function getRandomImageFromGroupsAndProviders(
+async function legacyGetRandomImageFromGroupsAndProviders(
   groupIds: string[],
   providers: string[],
   orientation?: OrientationParam
 ) {
   const uniqueProviders = [...new Set((providers || []).filter(Boolean))];
   if (uniqueProviders.length === 0) {
-    return getRandomImageFromGroups(groupIds, orientation);
+    return legacyGetRandomImageFromGroups(groupIds, orientation);
   }
 
-  // 2A：先均匀随机选 provider，再从该 provider 范围内取随机图；失败则回退到其它 provider
   const randomProviderIndex = Math.floor(Math.random() * uniqueProviders.length);
   const selectedProvider = uniqueProviders[randomProviderIndex];
-  const tryProviders = [selectedProvider, ...uniqueProviders.filter(p => p !== selectedProvider)];
+  const tryProviders = [selectedProvider, ...uniqueProviders.filter((provider) => provider !== selectedProvider)];
 
-  for (const p of tryProviders) {
-    const img = await getRandomImageFromGroups(groupIds, orientation, p);
-    if (img) return img;
+  for (const provider of tryProviders) {
+    const image = await legacyGetRandomImageFromGroups(groupIds, orientation, provider);
+    if (image) {
+      return image;
+    }
   }
 
   return null;
+}
+
+async function selectRandomImageForRequest(params: {
+  count?: number;
+  groupIds?: string[];
+  orientation?: OrientationParam;
+  providers?: string[];
+  includeTelegram?: boolean;
+  metrics?: { addDbQueries: (count?: number) => void };
+}) {
+  const excludeOwnerNodeIds = await getExplicitlyOfflineNodeIds();
+  const selector = (databaseService as any).selectRandomImages;
+  if (typeof selector === 'function') {
+    return selector.call(databaseService, {
+      ...params,
+      excludeOwnerNodeIds
+    });
+  }
+
+  const image = await legacyGetRandomImageFromGroupsAndProviders(
+    params.groupIds || [],
+    params.providers || [],
+    params.orientation
+  );
+  const filteredImage = image && !(image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId))
+    ? image
+    : null;
+
+  return {
+    images: filteredImage ? [filteredImage] : [],
+    queryCount: 0,
+    candidateCount: filteredImage ? 1 : 0
+  };
 }
 
 function parseOrientation(raw: string | null): OrientationParam | undefined {

@@ -5,10 +5,44 @@
 
 import { prisma } from './prisma';
 import { NextRequest } from 'next/server';
+import type { MetricsRecorder } from './perf';
 
 const HOUR_IN_MS = 60 * 60 * 1000;
 const DAY_IN_MS = 24 * HOUR_IN_MS;
 const ACCESS_LOG_PATH_MAX_LENGTH = 191;
+const REALTIME_STATS_CACHE_TTL_MS = 15_000;
+const ACCESS_STATS_CACHE_TTL_MS = 30_000;
+
+interface CachedValue<T> {
+  value: T;
+  expiresAt: number;
+}
+
+let realtimeStatsCache: CachedValue<{ lastHour: number; last24Hours: number; total: number }> | null = null;
+const accessStatsCache = new Map<string, CachedValue<{
+  totalAccess: number;
+  uniqueIPCount: number;
+  pathStats: Array<{ path: string; count: number }>;
+  topIPs: Array<{ ip: string; count: number }>;
+  dailyStats: Array<{ date: string; count: number }>;
+}>>();
+
+function getCachedValue<T>(cached: CachedValue<T> | null): T | null {
+  if (!cached) {
+    return null;
+  }
+  if (Date.now() > cached.expiresAt) {
+    return null;
+  }
+  return cached.value;
+}
+
+function setCachedValue<T>(value: T, ttlMs: number): CachedValue<T> {
+  return {
+    value,
+    expiresAt: Date.now() + ttlMs
+  };
+}
 
 function truncateAccessLogPath(path: string): string {
   if (path.length <= ACCESS_LOG_PATH_MAX_LENGTH) return path;
@@ -116,6 +150,14 @@ export async function logAccess(
     // 动态导入避免循环依赖
     const { incrementIPTotalAccess } = await import('./ip-management');
     incrementIPTotalAccess(ip).catch(console.error);
+
+    if (realtimeStatsCache && Date.now() <= realtimeStatsCache.expiresAt) {
+      realtimeStatsCache = setCachedValue({
+        lastHour: realtimeStatsCache.value.lastHour + 1,
+        last24Hours: realtimeStatsCache.value.last24Hours + 1,
+        total: realtimeStatsCache.value.total + 1,
+      }, REALTIME_STATS_CACHE_TTL_MS);
+    }
   } catch (error) {
     // 记录失败不应该影响主流程
     console.error('Failed to log access:', error);
@@ -125,7 +167,7 @@ export async function logAccess(
 /**
  * 获取访问统计概览
  */
-export async function getAccessStats(options: AccessStatsOptions = {}) {
+export async function getAccessStats(options: AccessStatsOptions = {}, metrics?: MetricsRecorder) {
   const { days, hours } = options;
   const effectiveHours = typeof hours === 'number' && hours > 0 ? hours : undefined;
   const effectiveDays = typeof days === 'number' && days > 0 ? days : 7;
@@ -133,6 +175,12 @@ export async function getAccessStats(options: AccessStatsOptions = {}) {
     ? Date.now() - effectiveHours * HOUR_IN_MS
     : Date.now() - effectiveDays * DAY_IN_MS;
   const startDate = new Date(startTimestamp);
+  const cacheKey = `d:${effectiveDays}:h:${effectiveHours ?? 'none'}`;
+
+  const cached = accessStatsCache.get(cacheKey);
+  if (cached && Date.now() <= cached.expiresAt) {
+    return cached.value;
+  }
 
   try {
     // 总访问量
@@ -222,7 +270,9 @@ export async function getAccessStats(options: AccessStatsOptions = {}) {
       take: 10,
     });
 
-    return {
+    metrics?.addDbQueries(5);
+
+    const result = {
       totalAccess,
       uniqueIPCount: uniqueIPs.length,
       pathStats: normalizedPathStats,
@@ -235,6 +285,8 @@ export async function getAccessStats(options: AccessStatsOptions = {}) {
         count: stat._count,
       })),
     };
+    accessStatsCache.set(cacheKey, setCachedValue(result, ACCESS_STATS_CACHE_TTL_MS));
+    return result;
   } catch (error) {
     console.error('Failed to get access stats:', error);
     throw error;
@@ -295,7 +347,12 @@ export async function cleanupOldAccessLogs(daysToKeep: number = 30): Promise<num
 /**
  * 获取实时访问统计
  */
-export async function getRealtimeStats() {
+export async function getRealtimeStats(metrics?: MetricsRecorder) {
+  const cached = getCachedValue(realtimeStatsCache);
+  if (cached) {
+    return cached;
+  }
+
   const now = new Date();
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -319,11 +376,15 @@ export async function getRealtimeStats() {
       prisma.accessLog.count(),
     ]);
 
-    return {
+    metrics?.addDbQueries(3);
+
+    const result = {
       lastHour: lastHourCount,
       last24Hours: last24HoursCount,
       total: totalCount,
     };
+    realtimeStatsCache = setCachedValue(result, REALTIME_STATS_CACHE_TTL_MS);
+    return result;
   } catch (error) {
     console.error('Failed to get realtime stats:', error);
     throw error;

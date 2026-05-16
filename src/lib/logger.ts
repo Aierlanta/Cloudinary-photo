@@ -223,6 +223,16 @@ export class Logger {
    */
   private async logToDatabase(entry: LogEntry): Promise<void> {
     try {
+      const logType = entry.context?.type;
+      // 热路径的常规请求/响应日志只保留控制台，不再默认写数据库，
+      // 避免公开接口把 system_logs 放大成新的性能瓶颈。
+      if (
+        (logType === 'api_request' || logType === 'api_response' || logType === 'api_auth' || logType === 'api_status') &&
+        entry.level <= LogLevel.INFO
+      ) {
+        return;
+      }
+
       // 动态导入避免循环依赖
       const { databaseService } = await import('./database');
       await databaseService.saveLog(entry);

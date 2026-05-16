@@ -102,65 +102,40 @@ export default function SecurityManagement() {
     }
   }, [adminFetch]);
 
-  // 加载访问统计
-  const loadStats = useCallback(async (range: TopIPRange = topIPRangeRef.current) => {
+  const loadOverview = useCallback(async (range: TopIPRange = topIPRangeRef.current) => {
     try {
-      const response = await adminFetch("/api/admin/security/stats?days=7");
+      const response = await adminFetch("/api/admin/security/overview");
       if (response.ok) {
         const data = await response.json();
-        statsRef.current = data.data.stats;
-        setStats(data.data.stats);
-        setRealtimeStats(data.data.realtime);
-        await refreshTopIPs(range, data.data.stats);
+        const nextStats = data.data?.stats ?? null;
+        statsRef.current = nextStats;
+        setStats(nextStats);
+        setRealtimeStats(data.data?.realtime ?? null);
+        setBannedIPs(data.data?.bannedIPs ?? []);
+        setRateLimits(data.data?.rateLimits ?? []);
+        await refreshTopIPs(range, nextStats);
         setTopIPRange(range);
         topIPRangeRef.current = range;
       }
     } catch (error) {
-      console.error("加载统计数据失败:", error);
+      console.error("加载安全概览失败:", error);
     }
   }, [adminFetch, refreshTopIPs]);
-  // 加载封禁IP列表
-  const loadBannedIPs = useCallback(async () => {
-    try {
-      const response = await adminFetch("/api/admin/security/banned-ips");
-      if (response.ok) {
-        const data = await response.json();
-        setBannedIPs(data.data.bannedIPs);
-      }
-    } catch (error) {
-      console.error("加载封禁IP列表失败:", error);
-    }
-  }, [adminFetch]);
-
-  // 加载速率限制列表
-  const loadRateLimits = useCallback(async () => {
-    try {
-      const response = await adminFetch("/api/admin/security/rate-limits");
-      if (response.ok) {
-        const data = await response.json();
-        setRateLimits(data.data.rateLimits);
-      }
-    } catch (error) {
-      console.error("加载速率限制列表失败:", error);
-    }
-  }, [adminFetch]);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await Promise.all([loadStats(), loadBannedIPs(), loadRateLimits()]);
+        await loadOverview();
       } finally {
         setLoading(false);
       }
     };
     loadData();
-  }, [loadStats, loadBannedIPs, loadRateLimits]);
+  }, [loadOverview]);
 
   const handleRefresh = () => {
-    loadStats(topIPRangeRef.current);
-    loadBannedIPs();
-    loadRateLimits();
+    loadOverview(topIPRangeRef.current);
   };
 
   const handleTopIPCardClick = (range: TopIPRange) => {

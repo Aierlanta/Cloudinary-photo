@@ -1,6 +1,14 @@
 import { StorageDatabaseService } from '../database/storage';
 import { StorageProvider } from '../storage/base';
 
+jest.mock('../swarm-node', () => ({
+  getCurrentNode: jest.fn(() => ({
+    id: 'local',
+    name: '当前节点',
+    baseUrl: 'http://localhost:3000'
+  }))
+}));
+
 // Mock Prisma，注入可控的事务行为
 jest.mock('../prisma', () => {
   const txImageCreate = jest.fn();

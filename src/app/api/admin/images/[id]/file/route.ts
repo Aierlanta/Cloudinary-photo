@@ -672,7 +672,7 @@ export const GET = withErrorHandler(
   withSecurity({
     rateLimit: 'admin',
     allowedMethods: ['GET'],
-    enableAccessLog: true,
+    enableAccessLog: false,
   })(withAdminAuth(getAdminImageFile))
 );
 

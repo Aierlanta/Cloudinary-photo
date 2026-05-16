@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { cachePrewarmingService } from '@/lib/cache/prewarming';
-import { generateThumbnailUrl } from '@/lib/image-utils';
 
 interface ImageData {
   id: string;
@@ -45,10 +44,8 @@ export function useImageCachePrewarming(
 ) {
   const {
     enabled = true,
-    maxImages = 20,
-    delay = 2000, // 延迟2秒开始预热
-    onIdle = true,
-    thumbnailSize = 300
+    maxImages = 8,
+    delay = 3000, // 延迟更久，优先让首屏请求落稳
   } = options;
 
   const hasPrewarmed = useRef(false);
@@ -85,7 +82,7 @@ export function useImageCachePrewarming(
         clearTimeout(prewarmTimeoutRef.current);
       }
     };
-  }, [images, enabled, maxImages, delay, onIdle, thumbnailSize]);
+  }, [images, enabled, maxImages, delay]);
 
   // 组件卸载时停止预热
   useEffect(() => {
@@ -139,7 +136,7 @@ export function useGlobalImagePrewarming(
   const {
     enabled = true,
     delay = 3000, // 全局预热延迟更长
-    maxImages = 15
+    maxImages = 8
   } = options;
 
   const hasInitialized = useRef(false);
@@ -208,7 +205,6 @@ export function useSmartImagePrewarming(
   const {
     enabled = true,
     maxImages = 5, // 智能预热数量较少
-    thumbnailSize = 300
   } = options;
 
   const lastIndex = useRef(currentIndex);
@@ -252,7 +248,7 @@ export function useSmartImagePrewarming(
         }
       }, 100);
     }
-  }, [currentIndex, images, enabled, maxImages, thumbnailSize]);
+  }, [currentIndex, images, enabled, maxImages]);
 
   return {
     /**

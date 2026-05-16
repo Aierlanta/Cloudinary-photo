@@ -41,6 +41,8 @@ model Image {
   @@index([uploadedAt])
   @@index([groupId, uploadedAt])
   @@index([primaryProvider, uploadedAt])
+  @@index([primaryProvider, orientation, uploadedAt])
+  @@index([groupId, primaryProvider, orientation, uploadedAt])
   @@index([ownerNodeId, uploadedAt])
   @@map("images")
 }

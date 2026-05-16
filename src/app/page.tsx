@@ -113,7 +113,7 @@ function HomeContent() {
     const currentBaseUrl = generateBaseUrl();
     setBaseUrl(currentBaseUrl);
 
-    fetch("/api/status")
+    fetch("/api/status?mode=summary")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {

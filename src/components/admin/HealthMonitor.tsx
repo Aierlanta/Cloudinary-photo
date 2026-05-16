@@ -68,10 +68,15 @@ export default function HealthMonitor() {
 
   useEffect(() => {
     fetchHealthData();
-    
-    // 每30秒自动刷新一次
-    const interval = setInterval(fetchHealthData, 30000);
-    
+
+    // 降低自动轮询频率，并在页面隐藏时暂停，避免后台空转。
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+      fetchHealthData();
+    }, 60000);
+
     return () => clearInterval(interval);
   }, [fetchHealthData]);
 

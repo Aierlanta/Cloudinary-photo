@@ -138,6 +138,14 @@ jest.mock('@/lib/logger', () => {
   return { logger };
 });
 
+jest.mock('@/lib/swarm-node', () => {
+  const actual = jest.requireActual('@/lib/swarm-node');
+  return {
+    ...actual,
+    getExplicitlyOfflineNodeIds: jest.fn().mockResolvedValue([])
+  };
+});
+
 // Access mocks for convenience
 const { databaseService: mockDatabaseService } = require('@/lib/database');
 const { CloudinaryService } = require('@/lib/cloudinary');

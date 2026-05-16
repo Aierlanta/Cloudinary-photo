@@ -434,26 +434,7 @@ export function withSecurity(options: {
           logAccess(clientIP, pathWithQuery, method, userAgent, response.status, responseTime).catch(console.error);
         }
 
-        // 如果响应已经是NextResponse，直接设置安全头
-        if (response instanceof NextResponse) {
-          return setSecurityHeaders(response);
-        }
-
-        // 否则创建新的NextResponse
-        try {
-          const responseText = await response.text();
-          const responseData = JSON.parse(responseText);
-          return setSecurityHeaders(NextResponse.json(
-            responseData,
-            { status: response.status, headers: response.headers }
-          ));
-        } catch {
-          // 如果不是JSON响应，直接返回
-          return setSecurityHeaders(NextResponse.json(
-            { success: false, error: { type: ErrorType.INTERNAL_ERROR, message: '响应格式错误' } },
-            { status: 500 }
-          ));
-        }
+        return setSecurityHeaders(response);
 
       } catch (error) {
         // 重要：这里的异常会被“吞掉并转成 500 JSON”，外层 withErrorHandler 无法拿到 error 实例。

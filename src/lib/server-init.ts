@@ -60,6 +60,12 @@ export function cleanupServer(): void {
   }
 }
 
+export function getServerInitializationStatus(): { initialized: boolean } {
+  return {
+    initialized: isInitialized
+  };
+}
+
 // 在进程退出时清理资源
 if (typeof process !== 'undefined') {
   process.on('SIGINT', cleanupServer);

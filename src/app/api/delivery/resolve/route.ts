@@ -45,7 +45,8 @@ async function deliverRedirectMode(request: NextRequest, imageId: string): Promi
       imageId,
       requireDirectResponseEnabled: false,
       requestPath: '/api/random',
-      skipNodeHandoff: true
+      skipNodeHandoff: true,
+      skipApiKeyAuth: true
     });
   }
 

@@ -20,6 +20,8 @@ type AdminLayoutClientProps = {
   children: ReactNode
   initialTheme: Theme
   initialIsManual: boolean
+  initialIsAuthenticated: boolean
+  initialVersion: string
 }
 
 const setCookie = (name: string, value: string, maxAgeSeconds: number) => {
@@ -38,11 +40,17 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`
 }
 
-function AdminLayoutContent({ children, initialTheme, initialIsManual }: AdminLayoutClientProps) {
+function AdminLayoutContent({
+  children,
+  initialTheme,
+  initialIsManual,
+  initialIsAuthenticated,
+  initialVersion
+}: AdminLayoutClientProps) {
   const router = useRouter()
   const { adminFetch, setAuthToken, clearAuthToken, authToken } = useAdminApi()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated)
+  const [isLoading, setIsLoading] = useState(!initialIsAuthenticated)
   const [panelOpacity, setPanelOpacity] = useState(0.9)
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const [isManualTheme, setIsManualTheme] = useState(initialIsManual)
@@ -60,6 +68,10 @@ function AdminLayoutContent({ children, initialTheme, initialIsManual }: AdminLa
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        if (initialIsAuthenticated) {
+          setIsAuthenticated(true)
+          return
+        }
         if (!authToken) {
           setIsLoading(false)
           return
@@ -81,7 +93,7 @@ function AdminLayoutContent({ children, initialTheme, initialIsManual }: AdminLa
     if (savedOpacity) {
       setPanelOpacity(parseFloat(savedOpacity))
     }
-  }, [adminFetch, authToken])
+  }, [adminFetch, authToken, initialIsAuthenticated])
 
 
   useEffect(() => {
@@ -214,6 +226,7 @@ function AdminLayoutContent({ children, initialTheme, initialIsManual }: AdminLa
         setPanelOpacity={setPanelOpacity}
         theme={theme}
         isManualTheme={isManualTheme}
+        initialVersion={initialVersion}
         handleThemeToggle={handleThemeToggle}
         handleThemeReset={handleThemeReset}
         handleLogout={handleLogout}

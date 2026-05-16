@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ImageUpload from "@/components/admin/ImageUpload";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
@@ -39,53 +39,29 @@ export default function ImagesPage() {
   // Toast通知
   const { toasts, removeToast } = useToast();
 
+  const loadSummary = useCallback(async () => {
+    try {
+      const response = await adminFetch("/api/admin/summary");
+      if (response.ok) {
+        const data = await response.json();
+        const groupsData = data.data?.groups || [];
+        setGroups(Array.isArray(groupsData) ? groupsData : []);
+        setTotalImages(data.data?.stats?.totalImages || 0);
+      } else {
+        console.error("加载后台概要失败:", response.statusText);
+      }
+    } catch (error) {
+      console.error("加载后台概要失败:", error);
+    }
+  }, [adminFetch]);
+
   // 加载分组列表和总图片数
   useEffect(() => {
-    const loadGroups = async () => {
-      try {
-        const response = await adminFetch("/api/admin/groups");
-        if (response.ok) {
-          const data = await response.json();
-          const groupsData = data.data?.groups || [];
-          setGroups(Array.isArray(groupsData) ? groupsData : []);
-        } else {
-          console.error("加载分组失败:", response.statusText);
-        }
-      } catch (error) {
-        console.error("加载分组失败:", error);
-      }
-    };
-
-    const loadTotalImages = async () => {
-      try {
-        const response = await adminFetch("/api/admin/stats");
-        if (response.ok) {
-          const data = await response.json();
-          setTotalImages(data.data?.totalImages || 0);
-        }
-      } catch (error) {
-        console.error("加载总图片数失败:", error);
-      }
-    };
-
-    loadGroups();
-    loadTotalImages();
-  }, [adminFetch, selectedNodeId]);
+    loadSummary();
+  }, [loadSummary, selectedNodeId]);
 
   const handleUploadSuccess = () => {
-    // 上传成功后可以刷新统计数据
-    const loadTotalImages = async () => {
-      try {
-        const response = await adminFetch("/api/admin/stats");
-        if (response.ok) {
-          const data = await response.json();
-          setTotalImages(data.data?.totalImages || 0);
-        }
-      } catch (error) {
-        console.error("加载总图片数失败:", error);
-      }
-    };
-    loadTotalImages();
+    loadSummary();
   };
 
 

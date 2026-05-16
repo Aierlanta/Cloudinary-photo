@@ -11,6 +11,7 @@ import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { APIResponse } from '@/types/api';
 import { getRealtimeStats } from '@/lib/access-tracking';
+import { attachPerfHeadersToResponse, createRequestMetrics } from '@/lib/perf';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -37,34 +38,38 @@ interface StatsResponse {
  * GET /api/admin/stats
  * 获取系统统计信息
  */
-async function getStats(request: NextRequest): Promise<Response> {
+async function getStats(_request: NextRequest): Promise<Response> {
+  const metrics = createRequestMetrics('/api/admin/stats');
+
   // 获取基础统计
-  const stats = await databaseService.getStats();
+  const stats = await metrics.time('db.base_stats', async () => databaseService.getStats(metrics));
 
   // 获取最近7天的上传数量
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const recentImages = await databaseService.getImages({
-    page: 1,
-    limit: 1000, // 足够大的数量来获取所有最近图片
-    dateFrom: sevenDaysAgo
-  });
+  const recentUploads = await metrics.time('db.recent_uploads', async () => (
+    databaseService.countImages({ dateFrom: sevenDaysAgo }, metrics)
+  ));
 
   // 获取备份状态
   const backupService = BackupService.getInstance();
-  const backupStatus = await backupService.getBackupStatus();
-  const isDatabaseHealthy = await backupService.checkDatabaseHealth();
+  const [backupStatus, isDatabaseHealthy] = await Promise.all([
+    metrics.time('backup.status', async () => backupService.getBackupStatus()),
+    metrics.time('backup.health', async () => backupService.checkDatabaseHealth())
+  ]);
 
   // 获取访问统计
-  const accessStats = await getRealtimeStats();
+  const accessStats = await metrics.time('db.access_stats', async () => getRealtimeStats(metrics));
+
+  metrics.setMeta('mode', 'admin_home');
 
   const response: APIResponse<StatsResponse> = {
     success: true,
     data: {
       totalImages: stats.totalImages,
       totalGroups: stats.totalGroups,
-      recentUploads: recentImages.total,
+      recentUploads,
       backup: {
         lastBackupTime: backupStatus.lastBackupTime
           ? backupStatus.lastBackupTime.toLocaleString('zh-CN', {
@@ -88,7 +93,7 @@ async function getStats(request: NextRequest): Promise<Response> {
     timestamp: new Date()
   };
 
-  return NextResponse.json(response);
+  return attachPerfHeadersToResponse(NextResponse.json(response), metrics);
 }
 
 // 应用安全中间件、认证和错误处理

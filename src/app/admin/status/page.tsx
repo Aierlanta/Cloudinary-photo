@@ -89,7 +89,7 @@ export default function SystemStatusPage() {
   const loadStatus = useCallback(async () => {
     try {
       setError(null)
-      const response = await adminFetch('/api/status')
+      const response = await adminFetch('/api/status?mode=full')
       if (response.ok) {
         const data = await response.json()
         if (data.success) {

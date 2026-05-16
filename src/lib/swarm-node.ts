@@ -3,9 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { Image } from '@/types/models';
 
 export type DeliveryMode = 'random-redirect' | 'random-response' | 'response' | 'admin-file' | 'admin-preview';
+export type BackendNodeHealthStatus = 'online' | 'degraded' | 'offline' | 'unknown';
 
 const SIGNATURE_PARAM = 'signature';
 const DEFAULT_HANDOFF_TTL_SECONDS = 120;
+const NODE_STATUS_CACHE_TTL_MS = 15_000;
+const NODE_STATUS_FETCH_TIMEOUT_MS = 5_000;
 
 export interface BackendNodeInfo {
   id: string;
@@ -19,9 +22,38 @@ export interface RemoteOwnerResolve {
   url: URL;
 }
 
+interface NodeStatusCacheEntry {
+  statuses: Record<string, BackendNodeHealthStatus>;
+  expiresAt: number;
+}
+
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
+
+function normalizeNodeInput(
+  input: Partial<BackendNodeInfo> | null | undefined,
+  fallbackIndex: number
+): BackendNodeInfo | null {
+  const id = input?.id?.trim() || `node-${fallbackIndex + 1}`;
+  const baseUrl = normalizeBaseUrl(input?.baseUrl);
+  if (!baseUrl) {
+    return null;
+  }
+
+  return {
+    id,
+    name: input?.name?.trim() || id,
+    baseUrl,
+    isCurrent: Boolean(input?.isCurrent)
+  };
+}
+
+let nodeStatusCache: NodeStatusCacheEntry = {
+  statuses: {},
+  expiresAt: 0
+};
+let nodeStatusRefreshPromise: Promise<Record<string, BackendNodeHealthStatus>> | null = null;
 
 export function normalizeBaseUrl(value?: string | null): string | undefined {
   if (!value) return undefined;
@@ -67,6 +99,149 @@ export function getCurrentNode(request?: NextRequest): BackendNodeInfo {
     baseUrl: getCurrentNodeBaseUrl(request),
     isCurrent: true
   };
+}
+
+export function getConfiguredBackendNodes(request?: NextRequest): BackendNodeInfo[] {
+  const rawNodes = process.env.NEXT_PUBLIC_BACKEND_NODES;
+  const collected: BackendNodeInfo[] = [
+    getCurrentNode(request)
+  ];
+
+  if (rawNodes) {
+    try {
+      const parsed = JSON.parse(rawNodes);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((item, index) => {
+          const node = normalizeNodeInput(item, index);
+          if (node) {
+            collected.push(node);
+          }
+        });
+      }
+    } catch {
+      rawNodes.split(',').forEach((part, index) => {
+        const [id, name, baseUrl] = part.split('|').map((value) => value?.trim());
+        const node = normalizeNodeInput({
+          id,
+          name,
+          baseUrl: baseUrl || name || id
+        }, index);
+        if (node) {
+          collected.push(node);
+        }
+      });
+    }
+  }
+
+  const deduped: BackendNodeInfo[] = [];
+  const seenIds = new Set<string>();
+  const seenBaseUrls = new Set<string>();
+  for (const node of collected) {
+    const normalizedBaseUrl = normalizeBaseUrl(node.baseUrl);
+    if (!normalizedBaseUrl) {
+      continue;
+    }
+    if (seenIds.has(node.id) || seenBaseUrls.has(normalizedBaseUrl)) {
+      continue;
+    }
+    seenIds.add(node.id);
+    seenBaseUrls.add(normalizedBaseUrl);
+    deduped.push({
+      ...node,
+      baseUrl: normalizedBaseUrl
+    });
+  }
+
+  return deduped;
+}
+
+async function probeNodeHealth(node: BackendNodeInfo): Promise<BackendNodeHealthStatus> {
+  if (node.isCurrent) {
+    return 'online';
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), NODE_STATUS_FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${trimTrailingSlash(node.baseUrl)}/api/status?mode=summary`, {
+      cache: 'no-store',
+      redirect: 'follow',
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      return 'offline';
+    }
+
+    const payload = await response.json().catch(() => null) as {
+      data?: { status?: string };
+    } | null;
+    const status = payload?.data?.status;
+    if (status === 'healthy') {
+      return 'online';
+    }
+    if (status === 'degraded') {
+      return 'degraded';
+    }
+    return 'unknown';
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return 'unknown';
+    }
+    return 'offline';
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function refreshConfiguredNodeStatuses(request?: NextRequest): Promise<Record<string, BackendNodeHealthStatus>> {
+  const nodes = getConfiguredBackendNodes(request);
+  const entries = await Promise.all(nodes.map(async (node) => ([
+    node.id,
+    await probeNodeHealth(node)
+  ] as const)));
+  const statuses = Object.fromEntries(entries);
+  nodeStatusCache = {
+    statuses,
+    expiresAt: Date.now() + NODE_STATUS_CACHE_TTL_MS
+  };
+  return statuses;
+}
+
+function ensureNodeStatusRefresh(request?: NextRequest): Promise<Record<string, BackendNodeHealthStatus>> {
+  if (!nodeStatusRefreshPromise) {
+    nodeStatusRefreshPromise = refreshConfiguredNodeStatuses(request)
+      .finally(() => {
+        nodeStatusRefreshPromise = null;
+      });
+  }
+  return nodeStatusRefreshPromise;
+}
+
+function collectOfflineNodeIds(statuses: Record<string, BackendNodeHealthStatus>): string[] {
+  return Object.entries(statuses)
+    .filter(([nodeId, status]) => nodeId !== getCurrentNodeId() && status === 'offline')
+    .map(([nodeId]) => nodeId);
+}
+
+export async function getExplicitlyOfflineNodeIds(request?: NextRequest): Promise<string[]> {
+  const nodes = getConfiguredBackendNodes(request);
+  if (nodes.length <= 1) {
+    return [];
+  }
+
+  const hasCachedStatuses = Object.keys(nodeStatusCache.statuses).length > 0;
+  if (!hasCachedStatuses) {
+    const statuses = await ensureNodeStatusRefresh(request);
+    return collectOfflineNodeIds(statuses);
+  }
+
+  if (Date.now() > nodeStatusCache.expiresAt) {
+    void ensureNodeStatusRefresh(request).catch(() => {});
+  }
+
+  return collectOfflineNodeIds(nodeStatusCache.statuses);
 }
 
 export function getImageOwner(image: Pick<Image, 'ownerNodeId' | 'ownerNodeBaseUrl'>, request?: NextRequest): BackendNodeInfo {

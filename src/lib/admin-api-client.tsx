@@ -188,7 +188,7 @@ export function AdminApiProvider({ children }: { children: React.ReactNode }) {
     return fetch(buildNodeUrl(nodeId, path), {
       ...init,
       headers: mergeHeaders(init.headers, authToken),
-      credentials: 'omit'
+      credentials: 'same-origin'
     });
   }, [authToken, buildNodeUrl]);
 
@@ -232,7 +232,7 @@ export function AdminApiProvider({ children }: { children: React.ReactNode }) {
     const results = await Promise.all(nodes.map(async (node) => {
       const startedAt = performance.now();
       try {
-        const response = await fetchNode(node.id, '/api/status');
+        const response = await fetchNode(node.id, '/api/status?mode=summary');
         const latencyMs = Math.round(performance.now() - startedAt);
         const data = await response.json().catch(() => null);
         const reportedStatus = data?.data?.status;

@@ -21,8 +21,66 @@ import {
 import { LogLevel, LogEntry } from './logger';
 import { prisma } from './prisma';
 import { getCurrentNode } from './swarm-node';
+import type { MetricsRecorder } from './perf';
 
 type OrientationFilter = 'landscape' | 'portrait' | 'square';
+
+interface CachedValue<T> {
+  value: T;
+  expiresAt: number;
+}
+
+interface RandomImageRow {
+  id: string;
+  url: string;
+  publicId: string;
+  title: string | null;
+  description: string | null;
+  tags: string | null;
+  width: number | null;
+  height: number | null;
+  orientation: string | null;
+  groupId: string | null;
+  uploadedAt: Date;
+  primaryProvider: string;
+  backupProvider: string | null;
+  ownerNodeId: string | null;
+  ownerNodeBaseUrl: string | null;
+  telegramFileId: string | null;
+  telegramThumbnailFileId: string | null;
+  telegramFilePath: string | null;
+  telegramThumbnailPath: string | null;
+  telegramBotToken: string | null;
+  storageMetadata: string | null;
+}
+
+const API_CONFIG_CACHE_TTL_MS = 10_000;
+const GROUPS_CACHE_TTL_MS = 15_000;
+const STATS_CACHE_TTL_MS = 10_000;
+
+const RANDOM_IMAGE_SELECT = {
+  id: true,
+  url: true,
+  publicId: true,
+  title: true,
+  description: true,
+  tags: true,
+  width: true,
+  height: true,
+  orientation: true,
+  groupId: true,
+  uploadedAt: true,
+  primaryProvider: true,
+  backupProvider: true,
+  ownerNodeId: true,
+  ownerNodeBaseUrl: true,
+  telegramFileId: true,
+  telegramThumbnailFileId: true,
+  telegramFilePath: true,
+  telegramThumbnailPath: true,
+  telegramBotToken: true,
+  storageMetadata: true
+} as const;
 
 function normalizeOrientationValue(orientation?: string | null): Image['orientation'] {
   if (!orientation) return undefined;
@@ -160,6 +218,9 @@ export class DatabaseService {
   private isInitializing: boolean = false;
   private isInitialized: boolean = false;
   private initializationPromise: Promise<void> | null = null;
+  private apiConfigCache: CachedValue<APIConfig | null> | null = null;
+  private groupsCache: CachedValue<Group[]> | null = null;
+  private statsCache: CachedValue<{ totalImages: number; totalGroups: number }> | null = null;
 
   constructor() {
     // 构造函数为空，使用全局Prisma实例
@@ -398,6 +459,213 @@ export class DatabaseService {
     return width > height ? 'landscape' : 'portrait';
   }
 
+  private getCachedValue<T>(cached: CachedValue<T> | null): T | null {
+    if (!cached) {
+      return null;
+    }
+    if (Date.now() > cached.expiresAt) {
+      return null;
+    }
+    return cached.value;
+  }
+
+  private createCachedValue<T>(value: T, ttlMs: number): CachedValue<T> {
+    return {
+      value,
+      expiresAt: Date.now() + ttlMs
+    };
+  }
+
+  private invalidateGroupCache(): void {
+    this.groupsCache = null;
+    this.statsCache = null;
+  }
+
+  private invalidateAPIConfigCache(): void {
+    this.apiConfigCache = null;
+  }
+
+  private invalidateStatsCache(): void {
+    this.statsCache = null;
+  }
+
+  private mapRandomImageRow(image: RandomImageRow): Image {
+    return {
+      id: image.id,
+      url: image.url,
+      publicId: image.publicId,
+      title: image.title || undefined,
+      description: image.description || undefined,
+      tags: image.tags ? JSON.parse(image.tags) : undefined,
+      width: image.width || undefined,
+      height: image.height || undefined,
+      orientation: normalizeOrientationValue(image.orientation),
+      groupId: image.groupId || undefined,
+      uploadedAt: image.uploadedAt,
+      primaryProvider: image.primaryProvider || 'cloudinary',
+      backupProvider: image.backupProvider || undefined,
+      ownerNodeId: image.ownerNodeId || undefined,
+      ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
+      telegramFileId: image.telegramFileId || undefined,
+      telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
+      telegramFilePath: image.telegramFilePath || undefined,
+      telegramThumbnailPath: image.telegramThumbnailPath || undefined,
+      telegramBotToken: image.telegramBotToken || undefined,
+      storageMetadata: image.storageMetadata || undefined
+    };
+  }
+
+  private buildRandomImageWhere(params: {
+    groupIds?: string[];
+    providers?: string[];
+    includeTelegram: boolean;
+    orientation?: OrientationFilter;
+    excludeIds?: string[];
+    excludeOwnerNodeIds?: string[];
+  }) {
+    const where: any = {};
+    const groupIds = (params.groupIds || []).filter(Boolean);
+
+    if (groupIds.length > 0) {
+      const includesUnassigned = groupIds.includes('unassigned');
+      const normalGroupIds = groupIds.filter((groupId) => groupId !== 'unassigned');
+
+      if (includesUnassigned && normalGroupIds.length > 0) {
+        where.OR = [
+          { groupId: { in: normalGroupIds } },
+          { groupId: null }
+        ];
+      } else if (includesUnassigned) {
+        where.groupId = null;
+      } else if (normalGroupIds.length === 1) {
+        where.groupId = normalGroupIds[0];
+      } else {
+        where.groupId = { in: normalGroupIds };
+      }
+    }
+
+    const normalizedProviders = [...new Set((params.providers || []).filter(Boolean))];
+    if (normalizedProviders.length > 0) {
+      const providers = params.includeTelegram
+        ? normalizedProviders
+        : normalizedProviders.filter((provider) => provider !== 'telegram');
+      if (providers.length === 0) {
+        return null;
+      }
+      where.primaryProvider = providers.length === 1 ? providers[0] : { in: providers };
+    } else if (!params.includeTelegram) {
+      where.primaryProvider = {
+        not: 'telegram'
+      };
+    }
+
+    if (params.orientation) {
+      where.orientation = params.orientation;
+    }
+
+    if (params.excludeIds && params.excludeIds.length > 0) {
+      where.id = {
+        notIn: params.excludeIds
+      };
+    }
+
+    const excludeOwnerNodeIds = [...new Set((params.excludeOwnerNodeIds || []).filter(Boolean))];
+    if (excludeOwnerNodeIds.length > 0) {
+      where.NOT = {
+        ownerNodeId: {
+          in: excludeOwnerNodeIds
+        }
+      };
+    }
+
+    return where;
+  }
+
+  private async selectSingleRandomImage(where: any): Promise<{
+    image: RandomImageRow | null;
+    queryCount: number;
+    candidateCount: number;
+  }> {
+    const totalCount = await prisma.image.count({ where });
+    if (totalCount === 0) {
+      return {
+        image: null,
+        queryCount: 1,
+        candidateCount: 0
+      };
+    }
+
+    const randomOffset = Math.floor(Math.random() * totalCount);
+    const candidateRows = await prisma.image.findMany({
+      where,
+      orderBy: [
+        { uploadedAt: 'asc' },
+        { id: 'asc' }
+      ],
+      skip: randomOffset,
+      take: 1,
+      select: RANDOM_IMAGE_SELECT
+    });
+
+    return {
+      image: (candidateRows[0] as RandomImageRow | undefined) || null,
+      queryCount: 2,
+      candidateCount: totalCount
+    };
+  }
+
+  async selectRandomImages(params: {
+    count?: number;
+    groupIds?: string[];
+    orientation?: OrientationFilter;
+    providers?: string[];
+    includeTelegram?: boolean;
+    excludeOwnerNodeIds?: string[];
+    metrics?: MetricsRecorder;
+  }): Promise<{
+    images: Image[];
+    queryCount: number;
+    candidateCount: number;
+  }> {
+    const count = Math.max(1, params.count || 1);
+    const images: Image[] = [];
+    let queryCount = 0;
+    let candidateCount = 0;
+
+    for (let index = 0; index < count; index += 1) {
+      const where = this.buildRandomImageWhere({
+        groupIds: params.groupIds,
+        providers: params.providers,
+        includeTelegram: params.includeTelegram !== false,
+        orientation: params.orientation,
+        excludeIds: images.map((image) => image.id),
+        excludeOwnerNodeIds: params.excludeOwnerNodeIds
+      });
+
+      if (!where) {
+        break;
+      }
+
+      const selected = await this.selectSingleRandomImage(where);
+      queryCount += selected.queryCount;
+      candidateCount = Math.max(candidateCount, selected.candidateCount);
+
+      if (!selected.image) {
+        break;
+      }
+
+      images.push(this.mapRandomImageRow(selected.image));
+    }
+
+    params.metrics?.addDbQueries(queryCount);
+
+    return {
+      images,
+      queryCount,
+      candidateCount
+    };
+  }
+
   // ==================== 图片相关操作 ====================
 
   /**
@@ -442,6 +710,8 @@ export class DatabaseService {
       }
 
       console.log(`图片已保存: ${id}`);
+      this.invalidateGroupCache();
+      this.invalidateStatsCache();
 
       // 转换为应用层的Image类型
       return {
@@ -676,6 +946,7 @@ export class DatabaseService {
         },
         include: { group: true }
       });
+      this.invalidateGroupCache();
 
       return {
         id: image.id,
@@ -781,6 +1052,7 @@ export class DatabaseService {
         timeout: 30000 // 增加超时时间到30秒
       });
 
+      this.invalidateGroupCache();
       return { updatedIds, failedIds };
     } catch (error) {
       throw new DatabaseError('批量更新图片失败', error);
@@ -807,6 +1079,8 @@ export class DatabaseService {
 
       await prisma.image.delete({ where: { id } });
       console.log(`图片已删除: ${id}`);
+      this.invalidateGroupCache();
+      this.invalidateStatsCache();
     } catch (error) {
       if (error instanceof NotFoundError) throw error;
       throw new DatabaseError('删除图片失败', error);
@@ -824,100 +1098,14 @@ export class DatabaseService {
     provider?: string | string[]
   ): Promise<Image[]> {
     try {
-      const where: any = {};
-      if (groupId) {
-        if (groupId === 'unassigned') {
-          // 查询未分组的图片（groupId 为 null）
-          where.groupId = null;
-        } else {
-          // 查询指定分组的图片
-          where.groupId = groupId;
-        }
-      }
-
-      // provider 过滤（/api/random 语义：仍排除 telegram 直连）
-      if (provider) {
-        const providers = Array.isArray(provider) ? provider : [provider];
-        const filtered = providers.filter(p => p !== 'telegram');
-        if (filtered.length === 0) return [];
-        where.primaryProvider = filtered.length === 1 ? filtered[0] : { in: filtered };
-      } else {
-        // 过滤掉 Telegram 直连图床的图片
-        // 因为 Telegram 图床的 URL 包含敏感的 bot token,只能通过 /api/response 访问
-        where.primaryProvider = {
-          not: 'telegram'
-        };
-      }
-
-      if (options?.orientation) {
-        where.orientation = options.orientation;
-      }
-
-      // 获取总数
-      const total = await prisma.image.count({ where });
-      if (total === 0) return [];
-
-      // 生成随机偏移量
-      const randomOffsets = Array.from({ length: Math.min(count, total) }, () =>
-        Math.floor(Math.random() * total)
-      );
-
-      const images = await Promise.all(
-        randomOffsets.map(offset =>
-          prisma.image.findMany({
-            where,
-            skip: offset,
-            take: 1,
-            select: {
-              id: true,
-              url: true,
-              publicId: true,
-              title: true,
-              description: true,
-              tags: true,
-              width: true,
-              height: true,
-              orientation: true,
-              groupId: true,
-              uploadedAt: true,
-              primaryProvider: true,
-              backupProvider: true,
-              ownerNodeId: true,
-              ownerNodeBaseUrl: true,
-              telegramFileId: true,
-              telegramThumbnailFileId: true,
-              telegramFilePath: true,
-              telegramThumbnailPath: true,
-              telegramBotToken: true
-            }
-          })
-        )
-      );
-
-      return images
-        .flat()
-        .map(image => ({
-          id: image.id,
-          url: image.url,
-          publicId: image.publicId,
-          title: image.title || undefined,
-          description: image.description || undefined,
-          tags: image.tags ? JSON.parse(image.tags) : undefined,
-          width: image.width || undefined,
-          height: image.height || undefined,
-          orientation: normalizeOrientationValue(image.orientation),
-          groupId: image.groupId || undefined,
-          uploadedAt: image.uploadedAt,
-          primaryProvider: image.primaryProvider || 'cloudinary',
-          backupProvider: image.backupProvider || undefined,
-          ownerNodeId: image.ownerNodeId || undefined,
-          ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
-          telegramFileId: image.telegramFileId || undefined,
-          telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
-          telegramFilePath: image.telegramFilePath || undefined,
-          telegramThumbnailPath: image.telegramThumbnailPath || undefined,
-          telegramBotToken: image.telegramBotToken || undefined
-        }));
+      const result = await this.selectRandomImages({
+        count,
+        groupIds: groupId ? [groupId] : undefined,
+        orientation: options?.orientation,
+        providers: provider ? (Array.isArray(provider) ? provider : [provider]) : undefined,
+        includeTelegram: false
+      });
+      return result.images;
     } catch (error) {
       throw new DatabaseError('获取随机图片失败', error);
     }
@@ -934,91 +1122,14 @@ export class DatabaseService {
     provider?: string | string[]
   ): Promise<Image[]> {
     try {
-      const where: any = {};
-      if (groupId) {
-        if (groupId === 'unassigned') {
-          where.groupId = null;
-        } else {
-          where.groupId = groupId;
-        }
-      }
-
-      if (options?.orientation) {
-        where.orientation = options.orientation;
-      }
-
-      // provider 过滤（包含 Telegram）
-      if (provider) {
-        where.primaryProvider = Array.isArray(provider) ? { in: provider } : provider;
-      }
-
-      // 不排除 Telegram
-
-      // 获取总数
-      const total = await prisma.image.count({ where });
-      if (total === 0) return [];
-
-      // 生成随机偏移量
-      const randomOffsets = Array.from({ length: Math.min(count, total) }, () =>
-        Math.floor(Math.random() * total)
-      );
-
-      const images = await Promise.all(
-        randomOffsets.map(offset =>
-          prisma.image.findMany({
-            where,
-            skip: offset,
-            take: 1,
-            select: {
-              id: true,
-              url: true,
-              publicId: true,
-              title: true,
-              description: true,
-              tags: true,
-              width: true,
-              height: true,
-              orientation: true,
-              groupId: true,
-              uploadedAt: true,
-              primaryProvider: true,
-              backupProvider: true,
-              ownerNodeId: true,
-              ownerNodeBaseUrl: true,
-              telegramFileId: true,
-              telegramThumbnailFileId: true,
-              telegramFilePath: true,
-              telegramThumbnailPath: true,
-              telegramBotToken: true
-            }
-          })
-        )
-      );
-
-      return images
-        .flat()
-        .map(image => ({
-          id: image.id,
-          url: image.url,
-          publicId: image.publicId,
-          title: image.title || undefined,
-          description: image.description || undefined,
-          tags: image.tags ? JSON.parse(image.tags) : undefined,
-          width: image.width || undefined,
-          height: image.height || undefined,
-          orientation: normalizeOrientationValue(image.orientation),
-          groupId: image.groupId || undefined,
-          uploadedAt: image.uploadedAt,
-          primaryProvider: image.primaryProvider || 'cloudinary',
-          backupProvider: image.backupProvider || undefined,
-          ownerNodeId: image.ownerNodeId || undefined,
-          ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
-          telegramFileId: image.telegramFileId || undefined,
-          telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
-          telegramFilePath: image.telegramFilePath || undefined,
-          telegramThumbnailPath: image.telegramThumbnailPath || undefined,
-          telegramBotToken: image.telegramBotToken || undefined
-        }));
+      const result = await this.selectRandomImages({
+        count,
+        groupIds: groupId ? [groupId] : undefined,
+        orientation: options?.orientation,
+        providers: provider ? (Array.isArray(provider) ? provider : [provider]) : undefined,
+        includeTelegram: true
+      });
+      return result.images;
     } catch (error) {
       throw new DatabaseError('获取随机图片失败', error);
     }
@@ -1043,6 +1154,8 @@ export class DatabaseService {
       });
 
       console.log(`分组已保存: ${id}`);
+      this.invalidateGroupCache();
+      this.invalidateStatsCache();
 
       return {
         id: group.id,
@@ -1085,6 +1198,11 @@ export class DatabaseService {
    */
   async getGroups(): Promise<Group[]> {
     try {
+      const cached = this.getCachedValue(this.groupsCache);
+      if (cached) {
+        return cached;
+      }
+
       const groups = await prisma.group.findMany({
         orderBy: { createdAt: 'desc' },
         select: {
@@ -1096,13 +1214,15 @@ export class DatabaseService {
         }
       });
 
-      return groups.map(group => ({
+      const mappedGroups = groups.map(group => ({
         id: group.id,
         name: group.name,
         description: group.description || undefined,
         imageCount: group.imageCount,
         createdAt: group.createdAt
       }));
+      this.groupsCache = this.createCachedValue(mappedGroups, GROUPS_CACHE_TTL_MS);
+      return mappedGroups;
     } catch (error) {
       throw new DatabaseError('获取分组列表失败', error);
     }
@@ -1121,6 +1241,7 @@ export class DatabaseService {
         },
         include: { _count: { select: { images: true } } }
       });
+      this.invalidateGroupCache();
 
       return {
         id: group.id,
@@ -1147,6 +1268,8 @@ export class DatabaseService {
 
       await prisma.group.delete({ where: { id } });
       console.log(`分组已删除: ${id}`);
+      this.invalidateGroupCache();
+      this.invalidateStatsCache();
     } catch (error) {
       throw new DatabaseError('删除分组失败', error);
     }
@@ -1157,16 +1280,24 @@ export class DatabaseService {
   /**
    * 获取API配置
    */
-  async getAPIConfig(): Promise<APIConfig | null> {
+  async getAPIConfig(metrics?: MetricsRecorder): Promise<APIConfig | null> {
     try {
+      if (this.apiConfigCache && Date.now() <= this.apiConfigCache.expiresAt) {
+        return this.apiConfigCache.value;
+      }
+
       const config = await prisma.aPIConfig.findUnique({
         where: { id: 'default' }
       });
+      metrics?.addDbQueries(1);
 
-      if (!config) return null;
+      if (!config) {
+        this.apiConfigCache = this.createCachedValue(null, API_CONFIG_CACHE_TTL_MS);
+        return null;
+      }
       const storedConfig = parseStoredAPIConfigPayload(config.allowedParameters);
 
-      return {
+      const mappedConfig = {
         id: config.id,
         isEnabled: config.isEnabled,
         defaultScope: config.defaultScope as 'all' | 'groups',
@@ -1178,6 +1309,8 @@ export class DatabaseService {
         apiKey: config.apiKey || undefined,
         updatedAt: config.updatedAt
       };
+      this.apiConfigCache = this.createCachedValue(mappedConfig, API_CONFIG_CACHE_TTL_MS);
+      return mappedConfig;
     } catch (error) {
       throw new DatabaseError('获取API配置失败', error);
     }
@@ -1214,6 +1347,7 @@ export class DatabaseService {
       });
 
       console.log('API配置已更新');
+      this.invalidateAPIConfigCache();
     } catch (error) {
       throw new DatabaseError('更新API配置失败', error);
     }
@@ -1291,16 +1425,72 @@ export class DatabaseService {
   /**
    * 获取数据库统计信息
    */
-  async getStats(): Promise<{ totalImages: number; totalGroups: number }> {
+  async getStats(metrics?: MetricsRecorder): Promise<{ totalImages: number; totalGroups: number }> {
     try {
+      const cached = this.getCachedValue(this.statsCache);
+      if (cached) {
+        return cached;
+      }
+
       const [totalImages, totalGroups] = await Promise.all([
         prisma.image.count(),
         prisma.group.count()
       ]);
+      metrics?.addDbQueries(2);
 
-      return { totalImages, totalGroups };
+      const stats = { totalImages, totalGroups };
+      this.statsCache = this.createCachedValue(stats, STATS_CACHE_TTL_MS);
+      return stats;
     } catch (error) {
       throw new DatabaseError('获取统计信息失败', error);
+    }
+  }
+
+  async countImages(filters?: {
+    dateFrom?: Date;
+    dateTo?: Date;
+    groupId?: string;
+    provider?: string;
+    ownerNodeId?: string;
+  }, metrics?: MetricsRecorder): Promise<number> {
+    try {
+      const where: any = {};
+
+      if (filters?.groupId) {
+        if (filters.groupId === 'unassigned') {
+          where.groupId = null;
+        } else {
+          where.groupId = filters.groupId;
+        }
+      }
+
+      if (filters?.provider) {
+        where.primaryProvider = filters.provider;
+      }
+
+      if (filters?.ownerNodeId) {
+        if (filters.ownerNodeId === 'unknown') {
+          where.ownerNodeId = null;
+        } else {
+          where.ownerNodeId = filters.ownerNodeId;
+        }
+      }
+
+      if (filters?.dateFrom || filters?.dateTo) {
+        where.uploadedAt = {};
+        if (filters.dateFrom) {
+          where.uploadedAt.gte = filters.dateFrom;
+        }
+        if (filters.dateTo) {
+          where.uploadedAt.lte = filters.dateTo;
+        }
+      }
+
+      const total = await prisma.image.count({ where });
+      metrics?.addDbQueries(1);
+      return total;
+    } catch (error) {
+      throw new DatabaseError('获取图片总数失败', error);
     }
   }
 

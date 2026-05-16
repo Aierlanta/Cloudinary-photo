@@ -19,6 +19,8 @@ import {
   validateManagedResponseParams
 } from '@/lib/response-params';
 import { createRemoteOwnerRedirect } from '@/lib/swarm-node';
+import { attachPerfHeadersToResponse, createRequestMetrics } from '@/lib/perf';
+import type { RequestMetrics } from '@/lib/perf';
 
 const cloudinaryService = CloudinaryService.getInstance();
 
@@ -103,6 +105,17 @@ function getClientIP(request: NextRequest): string {
     return forwarded.split(',')[0].trim();
   }
   return realIP || 'unknown';
+}
+
+function buildManagedCacheControl(image: any, requestPath: string): string {
+  const isDeterministicPath = requestPath !== '/api/random';
+  const isTelegramSource = image?.primaryProvider === 'telegram' || !!image?.telegramBotToken;
+
+  if (!isDeterministicPath || isTelegramSource) {
+    return 'no-cache, no-store, must-revalidate';
+  }
+
+  return 'public, max-age=300, s-maxage=900, stale-while-revalidate=86400';
 }
 
 class HttpStatusError extends Error {
@@ -264,13 +277,14 @@ export async function serveRandomResponse(
   request: NextRequest,
   options?: {
     imageId?: string;
+    image?: Awaited<ReturnType<typeof databaseService.getImage>> | null;
     requireDirectResponseEnabled?: boolean;
     requestPath?: string;
     skipNodeHandoff?: boolean;
     skipApiKeyAuth?: boolean;
+    metrics?: RequestMetrics;
   }
 ): Promise<Response> {
-  const startTime = performance.now();
   const url = new URL(request.url);
   const queryParams = Object.fromEntries(url.searchParams.entries());
   const imageId = options?.imageId ?? queryParams.imageId;
@@ -279,6 +293,7 @@ export async function serveRandomResponse(
   const resizeFit = parseFit(queryParams.fit);
   const requestPath = options?.requestPath || '/api/random/response';
   const requireDirectResponseEnabled = options?.requireDirectResponseEnabled ?? true;
+  const metrics = options?.metrics ?? createRequestMetrics(requestPath);
 
   if (resizeFit && !targetWidth && !targetHeight) {
     throw new AppError(ErrorType.VALIDATION_ERROR, '指定 fit 时需提供 width 或 height', 400);
@@ -303,14 +318,9 @@ export async function serveRandomResponse(
     userAgent: request.headers.get('user-agent')
   });
 
-  let apiConfig = await databaseService.getAPIConfig();
-
+  const apiConfig = await metrics.time('db.api_config', async () => databaseService.getAPIConfig(metrics));
   if (!apiConfig) {
-    await databaseService.initialize();
-    apiConfig = await databaseService.getAPIConfig();
-    if (!apiConfig) {
-      throw new AppError(ErrorType.INTERNAL_ERROR, 'API配置错误', 500);
-    }
+    throw new AppError(ErrorType.INTERNAL_ERROR, 'API配置未初始化', 500);
   }
 
   if (!apiConfig.isEnabled) {
@@ -330,8 +340,10 @@ export async function serveRandomResponse(
 
   const endpoint: ManagedResponseEndpoint = requestPath === '/api/random' ? 'random' : 'response';
   const { requestedFormat, requestedQuality } = validateManagedResponseParams(queryParams, apiConfig, endpoint);
-
-  const image = await databaseService.getImage(imageId);
+  const image = options?.image ?? await metrics.time('db.image_lookup', async () => databaseService.getImage(imageId));
+  if (!options?.image) {
+    metrics.addDbQueries(1);
+  }
   if (!image) {
     throw new AppError(ErrorType.NOT_FOUND, '图片不存在', 404);
   }
@@ -340,7 +352,8 @@ export async function serveRandomResponse(
     const mode = requestPath === '/api/random' ? 'random-response' : 'response';
     const ownerRedirect = createRemoteOwnerRedirect(request, image, mode);
     if (ownerRedirect) {
-      return ownerRedirect;
+      metrics.setMeta('mode', 'owner_handoff');
+      return attachPerfHeadersToResponse(ownerRedirect, metrics);
     }
   }
 
@@ -367,14 +380,20 @@ export async function serveRandomResponse(
   const canUseCloudinaryNativeTransform =
     isCloudinaryUrl(imageUrl) &&
     !transparencyOptions &&
-    !targetWidth &&
-    !targetHeight &&
-    !resizeFit &&
-    (requestedFormat || typeof requestedQuality !== 'undefined');
+    (targetWidth || targetHeight || resizeFit || requestedFormat || typeof requestedQuality !== 'undefined');
 
   if (canUseCloudinaryNativeTransform) {
     try {
       const transformation: Record<string, string | number> = {};
+      if (targetWidth) {
+        transformation.width = targetWidth;
+      }
+      if (targetHeight) {
+        transformation.height = targetHeight;
+      }
+      if (targetWidth || targetHeight) {
+        transformation.crop = resizeFit === 'contain' ? 'fit' : 'fill';
+      }
       if (typeof requestedQuality !== 'undefined') {
         transformation.quality = requestedQuality;
       }
@@ -383,7 +402,9 @@ export async function serveRandomResponse(
         finalMimeType = requestedFormat === 'jpeg' ? 'image/jpeg' : 'image/webp';
       }
 
-      imageBuffer = await cloudinaryService.downloadImage(image.publicId, [transformation]);
+      imageBuffer = await metrics.time('origin.cloudinary_transform', async () => (
+        cloudinaryService.downloadImage(image.publicId, [transformation])
+      ));
       finalMimeType = requestedFormat
         ? (requestedFormat === 'jpeg' ? 'image/jpeg' : 'image/webp')
         : finalMimeType;
@@ -393,41 +414,53 @@ export async function serveRandomResponse(
         type: 'api_random_response_fallback',
         error: error instanceof Error ? error.message : 'unknown'
       });
-      const downloaded = await downloadImageWithCandidates(image, request, imageUrl, mimeType);
+      const downloaded = await metrics.time('origin.download_fallback', async () => (
+        downloadImageWithCandidates(image, request, imageUrl, mimeType)
+      ));
       imageBuffer = downloaded.buffer;
       finalMimeType = downloaded.mimeType;
     }
   } else if (isCloudinaryUrl(imageUrl)) {
     try {
-      imageBuffer = await cloudinaryService.downloadImage(image.publicId);
+      imageBuffer = await metrics.time('origin.cloudinary_download', async () => (
+        cloudinaryService.downloadImage(image.publicId)
+      ));
     } catch (error) {
       logger.warn('Cloudinary下载失败，使用URL回退获取', {
         type: 'api_random_response_fallback',
         error: error instanceof Error ? error.message : 'unknown'
       });
-      const downloaded = await downloadImageWithCandidates(image, request, imageUrl, mimeType);
+      const downloaded = await metrics.time('origin.download_fallback', async () => (
+        downloadImageWithCandidates(image, request, imageUrl, mimeType)
+      ));
       imageBuffer = downloaded.buffer;
       finalMimeType = downloaded.mimeType;
     }
   } else {
-    const downloaded = await downloadImageWithCandidates(image, request, imageUrl, mimeType);
+    const downloaded = await metrics.time('origin.download', async () => (
+      downloadImageWithCandidates(image, request, imageUrl, mimeType)
+    ));
     imageBuffer = downloaded.buffer;
     finalMimeType = downloaded.mimeType;
   }
 
   let finalBuffer = imageBuffer;
   if (transparencyOptions) {
-    const processed = await adjustImageTransparency(imageBuffer, transparencyOptions);
+    const processed = await metrics.time('transform.transparency', async () => (
+      adjustImageTransparency(imageBuffer, transparencyOptions)
+    ));
     finalBuffer = processed.buffer;
     finalMimeType = processed.mimeType;
   }
 
-  if (targetWidth || targetHeight) {
-    const resized = await resizeImage(finalBuffer, {
-      width: targetWidth,
-      height: targetHeight,
-      fit: resizeFit
-    });
+  if ((targetWidth || targetHeight) && !usedCloudinaryNativeTransform) {
+    const resized = await metrics.time('transform.resize', async () => (
+      resizeImage(finalBuffer, {
+        width: targetWidth,
+        height: targetHeight,
+        fit: resizeFit
+      })
+    ));
     finalBuffer = resized.buffer;
     finalMimeType = resized.mimeType ?? finalMimeType;
   }
@@ -438,18 +471,24 @@ export async function serveRandomResponse(
   if (needsFormatConversion) {
     const fallbackFormat = MIME_TO_FORMAT[finalMimeType] || 'jpeg';
     const targetFormat = requestedFormat ?? fallbackFormat;
-    const converted = await convertImageOutput(finalBuffer, {
-      format: targetFormat,
-      quality: requestedQuality
-    });
+    const converted = await metrics.time('transform.output', async () => (
+      convertImageOutput(finalBuffer, {
+        format: targetFormat,
+        quality: requestedQuality
+      })
+    ));
     finalBuffer = converted.buffer;
     finalMimeType = converted.mimeType;
   }
 
   const size = finalBuffer.length;
-  const duration = Math.round(performance.now() - startTime);
+  const responseMode =
+    transparencyOptions || targetWidth || targetHeight || requestedFormat || typeof requestedQuality !== 'undefined'
+      ? 'transform'
+      : 'buffer';
+  metrics.setMeta('mode', responseMode);
 
-  logger.apiResponse('GET', requestPath, 200, duration, {
+  logger.apiResponse('GET', requestPath, 200, Math.round(metrics.finish().totalMs), {
     imageId: image.id,
     imageSize: size,
     mimeType: finalMimeType,
@@ -458,19 +497,24 @@ export async function serveRandomResponse(
     outputQuality: requestedQuality ?? 'original'
   });
 
-  return new NextResponse(new Uint8Array(finalBuffer), {
+  const cacheControl = buildManagedCacheControl(image, requestPath);
+  const response = new NextResponse(new Uint8Array(finalBuffer), {
     status: 200,
     headers: {
       'Content-Type': finalMimeType,
       'Content-Length': size.toString(),
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
+      'Cache-Control': cacheControl,
+      ...(cacheControl.includes('no-store')
+        ? {
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        : {}),
       'X-Image-Id': image.id,
       'X-Image-PublicId': image.publicId,
-      'X-Response-Time': `${duration}ms`,
-      'X-Transfer-Mode': transparencyOptions ? 'processed' : 'original'
+      'X-Transfer-Mode': responseMode
     }
   });
+  return attachPerfHeadersToResponse(response, metrics);
 }
 

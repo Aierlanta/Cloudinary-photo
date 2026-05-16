@@ -6,6 +6,14 @@ import { DatabaseService } from '../database';
 import { Image, Group, APIConfig } from '@/types/models';
 import { DatabaseError, NotFoundError } from '@/types/errors';
 
+jest.mock('../swarm-node', () => ({
+  getCurrentNode: jest.fn(() => ({
+    id: 'local',
+    name: '当前节点',
+    baseUrl: 'http://localhost:3000'
+  }))
+}));
+
 // Mock Prisma Client
 jest.mock('@prisma/client', () => {
   const mockPrisma = {
@@ -39,6 +47,10 @@ jest.mock('@prisma/client', () => {
       findMany: jest.fn(),
       deleteMany: jest.fn(),
       count: jest.fn()
+    },
+    swarmConfig: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
     },
     counter: {
       findUnique: jest.fn(),
@@ -82,6 +94,20 @@ describe('DatabaseService', () => {
     databaseService = new DatabaseService();
 
     mockPrisma.systemLog.create.mockResolvedValue({});
+    mockPrisma.swarmConfig.findUnique.mockResolvedValue({
+      id: 'default',
+      uploadStrategy: 'manual',
+      providerDeliveryPolicy: JSON.stringify({
+        cloudinary: { mode: 'owner-node', warnOnDisable: true },
+        tgstate: { mode: 'existing-chain' },
+        telegram: { mode: 'existing-chain' },
+        custom: { mode: 'existing-chain' }
+      }),
+      previewDeliveryEnabled: true,
+      cloudinaryNodeDeliveryRequired: true,
+      updatedAt: new Date()
+    });
+    mockPrisma.swarmConfig.upsert.mockResolvedValue({});
   });
 
   describe('初始化', () => {
@@ -203,6 +229,8 @@ describe('DatabaseService', () => {
         groupId: imageData.groupId,
         primaryProvider: imageData.primaryProvider,
         backupProvider: imageData.backupProvider,
+        ownerNodeId: 'local',
+        ownerNodeBaseUrl: 'http://localhost:3000',
         uploadedAt: new Date(),
         group: { id: 'grp_000001', name: '测试分组' }
       };
@@ -231,7 +259,9 @@ describe('DatabaseService', () => {
           tags: JSON.stringify(imageData.tags),
           groupId: imageData.groupId,
           primaryProvider: imageData.primaryProvider,
-          backupProvider: imageData.backupProvider
+          backupProvider: imageData.backupProvider,
+          ownerNodeId: 'local',
+          ownerNodeBaseUrl: 'http://localhost:3000'
         },
         include: { group: true }
       });
@@ -241,7 +271,7 @@ describe('DatabaseService', () => {
         data: { imageCount: { increment: 1 } }
       });
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         id: 'img_000001',
         url: imageData.url,
         publicId: imageData.publicId,
@@ -249,7 +279,9 @@ describe('DatabaseService', () => {
         description: imageData.description,
         tags: imageData.tags,
         groupId: imageData.groupId,
-        uploadedAt: expect.any(Date)
+        uploadedAt: expect.any(Date),
+        ownerNodeId: 'local',
+        ownerNodeBaseUrl: 'http://localhost:3000'
       });
     });
 
@@ -277,7 +309,7 @@ describe('DatabaseService', () => {
         include: { group: true }
       });
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         id: 'img_000001',
         url: 'https://example.com/image.jpg',
         publicId: 'test_image',

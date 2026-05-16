@@ -50,6 +50,16 @@ function createJsonResponse(data: any, ok = true, status = 200): Response {
   } as unknown as Response;
 }
 
+function createSwarmConfigResponse(strategy = "manual"): Response {
+  return createJsonResponse({
+    data: {
+      config: {
+        uploadStrategy: strategy,
+      },
+    },
+  });
+}
+
 // 为测试准备一个固定的分组数据，模拟后端返回的分组列表
 const groups: Group[] = [
   {
@@ -115,6 +125,10 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
           return createJsonResponse(providersResponse);
         }
 
+        if (url === "/api/admin/swarm/config") {
+          return createSwarmConfigResponse();
+        }
+
         if (url === "/api/admin/images/import-urls") {
           const body =
             init && typeof init.body === "string"
@@ -143,7 +157,13 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
 
     await waitFor(() => {
       const selects = screen.getAllByRole("combobox");
-      expect(selects.length).toBeGreaterThan(1);
+      expect(
+        selects.some((select) =>
+          Array.from((select as HTMLSelectElement).options).some(
+            (opt) => opt.value === "custom"
+          )
+        )
+      ).toBe(true);
     });
     const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
     const provider = selects.find((select) =>
@@ -158,8 +178,8 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
     fireEvent.change(providerSelect, { target: { value: "custom" } });
 
     // 选择分组（其余的下拉框）
-    const groupSelect = selects.find(
-      (select) => select !== providerSelect
+    const groupSelect = selects.find((select) =>
+      Array.from(select.options).some((opt) => opt.value === groups[0].id)
     ) as HTMLSelectElement;
     fireEvent.change(groupSelect, { target: { value: groups[0].id } });
 
@@ -234,6 +254,10 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
           return createJsonResponse(providersResponse);
         }
 
+        if (url === "/api/admin/swarm/config") {
+          return createSwarmConfigResponse();
+        }
+
         if (url === "/api/admin/images/import-urls") {
           const body =
             init && typeof init.body === "string"
@@ -262,7 +286,13 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
 
     await waitFor(() => {
       const selects = screen.getAllByRole("combobox");
-      expect(selects.length).toBeGreaterThan(1);
+      expect(
+        selects.some((select) =>
+          Array.from((select as HTMLSelectElement).options).some(
+            (opt) => opt.value === "custom"
+          )
+        )
+      ).toBe(true);
     });
     const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
     const provider = selects.find((select) =>
@@ -277,8 +307,8 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
     fireEvent.change(providerSelect, { target: { value: "custom" } });
 
     // 选择分组（其余的下拉框）
-    const groupSelect = selects.find(
-      (select) => select !== providerSelect
+    const groupSelect = selects.find((select) =>
+      Array.from(select.options).some((opt) => opt.value === groups[0].id)
     ) as HTMLSelectElement;
     fireEvent.change(groupSelect, { target: { value: groups[0].id } });
 
@@ -348,6 +378,10 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
         return createJsonResponse(providersResponse);
       }
 
+      if (url === "/api/admin/swarm/config") {
+        return createSwarmConfigResponse();
+      }
+
       if (url === "/api/admin/images/import-urls") {
         return createJsonResponse(
           { error: { message: serverErrorMessage } },
@@ -367,7 +401,13 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
 
     await waitFor(() => {
       const selects = screen.getAllByRole("combobox");
-      expect(selects.length).toBeGreaterThan(1);
+      expect(
+        selects.some((select) =>
+          Array.from((select as HTMLSelectElement).options).some(
+            (opt) => opt.value === "custom"
+          )
+        )
+      ).toBe(true);
     });
     const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
     const provider = selects.find((select) =>

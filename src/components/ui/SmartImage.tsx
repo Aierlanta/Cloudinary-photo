@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 interface SmartImageProps {
@@ -35,8 +35,14 @@ export default function SmartImage({
   height,
 }: SmartImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [useNativeImage, setUseNativeImage] = useState(false);
+  const [useNativeImage, setUseNativeImage] = useState(() => shouldUseNativeImage(src));
   const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+    setUseNativeImage(shouldUseNativeImage(src));
+  }, [src]);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -44,11 +50,21 @@ export default function SmartImage({
     onLoad?.();
   };
 
-  const handleError = () => {
+  const handleOptimizedError = () => {
     if (!useNativeImage) {
       // 如果 Next.js Image 加载失败，回退到原生 img
       setUseNativeImage(true);
       setIsLoaded(false);
+    } else {
+      setHasError(true);
+      setIsLoaded(true); // 停止加载动画，显示错误或空白
+      onError?.();
+    }
+  };
+
+  const handleNativeError = () => {
+    if (!useNativeImage) {
+      setUseNativeImage(true);
     } else {
       setHasError(true);
       setIsLoaded(true); // 停止加载动画，显示错误或空白
@@ -91,7 +107,7 @@ export default function SmartImage({
           className={sharedClassName}
           onClick={onClick}
           onLoad={handleLoad}
-          onError={onError}
+          onError={handleNativeError}
           style={
             fill
               ? { objectFit: "cover", width: "100%", height: "100%" }
@@ -111,11 +127,40 @@ export default function SmartImage({
           className={sharedClassName}
           onClick={onClick}
           onLoad={handleLoad}
-          onError={handleError}
+          onError={handleOptimizedError}
           sizes={sizes || "100vw"}
-          unoptimized
         />
       )}
     </>
   );
+}
+
+function shouldUseNativeImage(src: string): boolean {
+  if (!src) {
+    return true;
+  }
+
+  if (src.startsWith("/_next/image")) {
+    return true;
+  }
+
+  try {
+    const parsedUrl = src.startsWith("http")
+      ? new URL(src)
+      : new URL(src, "http://localhost");
+    const pathname = parsedUrl.pathname.toLowerCase();
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    if (pathname.startsWith("/api/telegram/image")) {
+      return true;
+    }
+
+    if (hostname === "api.telegram.org") {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
 }

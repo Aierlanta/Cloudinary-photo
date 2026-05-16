@@ -6,14 +6,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { BackupService } from '@/lib/backup';
 import { databaseService } from '@/lib/database';
 import { Logger } from '@/lib/logger';
-import { handleApiError } from '@/lib/error-handler';
+import { withErrorHandler } from '@/lib/error-handler';
+import { withAdminAuth } from '@/lib/auth';
+import { withSecurity } from '@/lib/security';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 
 const logger = Logger.getInstance();
 
-export async function GET(request: NextRequest) {
+async function getAdminHealth(request: NextRequest) {
   try {
     logger.info('API GET /api/admin/health', {
       type: 'api_request',
@@ -85,6 +87,14 @@ export async function GET(request: NextRequest) {
       data: healthData
     });
   } catch (error) {
-    return handleApiError(error, '健康检查失败');
+    throw error;
   }
 }
+
+export const GET = withErrorHandler(
+  withSecurity({
+    rateLimit: 'admin',
+    allowedMethods: ['GET'],
+    enableAccessLog: false
+  })(withAdminAuth(getAdminHealth))
+);
