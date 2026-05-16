@@ -8,6 +8,23 @@ import { NextRequest } from 'next/server';
 
 const HOUR_IN_MS = 60 * 60 * 1000;
 const DAY_IN_MS = 24 * HOUR_IN_MS;
+const ACCESS_LOG_PATH_MAX_LENGTH = 191;
+
+function truncateAccessLogPath(path: string): string {
+  if (path.length <= ACCESS_LOG_PATH_MAX_LENGTH) return path;
+  return `${path.slice(0, ACCESS_LOG_PATH_MAX_LENGTH - 3)}...`;
+}
+
+function normalizeDeliveryResolvePath(url: URL): string {
+  const compactParams = new URLSearchParams();
+  ['imageId', 'mode', 'sourceNodeId'].forEach((key) => {
+    const value = url.searchParams.get(key);
+    if (value) compactParams.set(key, value);
+  });
+
+  const search = compactParams.toString();
+  return url.pathname + (search ? `?${search}` : '');
+}
 
 /**
  * 规范化路径，移除 t 参数（时间戳参数，用于缓存破坏）
@@ -15,20 +32,28 @@ const DAY_IN_MS = 24 * HOUR_IN_MS;
 function normalizePath(path: string): string {
   try {
     const url = new URL(path, 'http://localhost');
+    if (url.pathname === '/api/delivery/resolve') {
+      return truncateAccessLogPath(normalizeDeliveryResolvePath(url));
+    }
+
     // 移除 t 参数
     url.searchParams.delete('t');
+    url.searchParams.delete('signature');
+    url.searchParams.delete('expires');
     // 重新构建路径，保留其他参数
     const normalizedPath = url.pathname + (url.search ? url.search : '');
-    return normalizedPath;
+    return truncateAccessLogPath(normalizedPath);
   } catch {
     // 如果解析失败，尝试手动处理
     const [pathname, search] = path.split('?');
-    if (!search) return pathname;
+    if (!search) return truncateAccessLogPath(pathname);
     
     const params = new URLSearchParams(search);
     params.delete('t');
+    params.delete('signature');
+    params.delete('expires');
     const newSearch = params.toString();
-    return pathname + (newSearch ? '?' + newSearch : '');
+    return truncateAccessLogPath(pathname + (newSearch ? '?' + newSearch : ''));
   }
 }
 
