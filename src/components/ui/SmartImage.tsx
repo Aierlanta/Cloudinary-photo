@@ -151,6 +151,10 @@ function shouldUseNativeImage(src: string): boolean {
     const pathname = parsedUrl.pathname.toLowerCase();
     const hostname = parsedUrl.hostname.toLowerCase();
 
+    if (pathname.startsWith("/api/delivery/resolve")) {
+      return true;
+    }
+
     if (pathname.startsWith("/api/telegram/image")) {
       return true;
     }
