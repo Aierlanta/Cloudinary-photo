@@ -24,7 +24,6 @@ interface Image {
   primaryProvider?: string;
   backupProvider?: string;
   ownerNodeId?: string | null;
-  ownerNodeBaseUrl?: string | null;
   previewUrl?: string | null;
   telegramFileId?: string | null;
   telegramThumbnailFileId?: string | null;

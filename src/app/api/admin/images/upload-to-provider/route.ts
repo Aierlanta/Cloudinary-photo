@@ -146,7 +146,6 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
       primaryProvider: provider as StorageProvider,
       backupProvider: undefined, // 单一图床上传不设置备用
       ownerNodeId: ownerNode.id,
-      ownerNodeBaseUrl: ownerNode.baseUrl,
       storageResults: [{
         provider: provider as StorageProvider,
         result: uploadResult
@@ -185,8 +184,7 @@ async function uploadToProvider(request: NextRequest): Promise<Response> {
       uploadedAt: savedImage.uploadedAt,
       primaryProvider: savedImage.primaryProvider,
       backupProvider: savedImage.backupProvider,
-      ownerNodeId: savedImage.ownerNodeId,
-      ownerNodeBaseUrl: savedImage.ownerNodeBaseUrl
+      ownerNodeId: savedImage.ownerNodeId
     });
 
     const response: APIResponse<ImageUploadResponse> = {

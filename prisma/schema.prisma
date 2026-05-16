@@ -23,7 +23,6 @@ model Image {
   primaryProvider         String               @default("cloudinary")
   backupProvider          String?
   ownerNodeId             String?
-  ownerNodeBaseUrl        String?
   storageMetadata         String?              @db.Text
   // Telegram 直连相关字段
   telegramFileId          String? // 原图的 file_id
@@ -87,7 +86,6 @@ model ImageStorageRecord {
   identifier String
   url        String
   ownerNodeId      String?
-  ownerNodeBaseUrl String?
   metadata   String?  @db.Text
   status     String   @default("active")
   createdAt  DateTime @default(now())

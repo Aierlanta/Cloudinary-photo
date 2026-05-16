@@ -29,6 +29,10 @@ describe('swarm node handoff', () => {
     process.env = { ...originalEnv };
     process.env.NODE_ID = 'node-a';
     process.env.PUBLIC_API_BASE_URL = 'https://a.example.com';
+    process.env.NEXT_PUBLIC_BACKEND_NODES = JSON.stringify([
+      { id: 'node-a', name: 'Node A', baseUrl: 'https://a.example.com' },
+      { id: 'node-b', name: 'Node B', baseUrl: 'https://b.example.com' }
+    ]);
     process.env.NODE_HANDOFF_SECRET = 'handoff-secret';
   });
 
@@ -62,7 +66,6 @@ describe('swarm node handoff', () => {
       {
         id: 'img_000002',
         ownerNodeId: 'node-b',
-        ownerNodeBaseUrl: 'https://b.example.com',
       },
       'random-redirect'
     );
@@ -95,8 +98,7 @@ describe('swarm node handoff', () => {
       id: 'img_000003',
       url: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
       primaryProvider: 'cloudinary',
-      ownerNodeId: 'node-b',
-      ownerNodeBaseUrl: 'https://b.example.com'
+      ownerNodeId: 'node-b'
     };
 
     expect(shouldImageUseOwnerNodeDelivery(image, config)).toBe(true);
@@ -129,8 +131,7 @@ describe('swarm node handoff', () => {
       id: 'img_000004',
       url: 'https://tgstate.example.com/d/abc',
       primaryProvider: 'tgstate',
-      ownerNodeId: 'node-b',
-      ownerNodeBaseUrl: 'https://b.example.com'
+      ownerNodeId: 'node-b'
     };
 
     expect(shouldImageUseOwnerNodeDelivery(image, config)).toBe(false);

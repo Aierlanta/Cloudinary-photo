@@ -217,8 +217,7 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       description: uploadParams.description,
       groupId: uploadParams.groupId,
       tags: uploadParams.tags || [],
-      ownerNodeId: ownerNode.id,
-      ownerNodeBaseUrl: ownerNode.baseUrl
+      ownerNodeId: ownerNode.id
     });
   } else {
     // 使用新的多图床架构
@@ -256,7 +255,6 @@ async function uploadImage(request: NextRequest): Promise<Response> {
         primaryProvider: selectedProviderString as StorageProvider,
         backupProvider: undefined,
         ownerNodeId: ownerNode.id,
-        ownerNodeBaseUrl: ownerNode.baseUrl,
         storageResults: [{
           provider: selectedProviderString as StorageProvider,
           result: uploadResult
@@ -295,7 +293,6 @@ async function uploadImage(request: NextRequest): Promise<Response> {
       groupId: savedImage.groupId,
       uploadedAt: savedImage.uploadedAt,
       ownerNodeId: savedImage.ownerNodeId,
-      ownerNodeBaseUrl: savedImage.ownerNodeBaseUrl,
       storageMetadata: savedImage.storageMetadata
     };
     

@@ -45,7 +45,6 @@ interface RandomImageRow {
   primaryProvider: string;
   backupProvider: string | null;
   ownerNodeId: string | null;
-  ownerNodeBaseUrl: string | null;
   telegramFileId: string | null;
   telegramThumbnailFileId: string | null;
   telegramFilePath: string | null;
@@ -73,7 +72,6 @@ const RANDOM_IMAGE_SELECT = {
   primaryProvider: true,
   backupProvider: true,
   ownerNodeId: true,
-  ownerNodeBaseUrl: true,
   telegramFileId: true,
   telegramThumbnailFileId: true,
   telegramFilePath: true,
@@ -505,7 +503,6 @@ export class DatabaseService {
       primaryProvider: image.primaryProvider || 'cloudinary',
       backupProvider: image.backupProvider || undefined,
       ownerNodeId: image.ownerNodeId || undefined,
-      ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
       telegramFileId: image.telegramFileId || undefined,
       telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,
       telegramFilePath: image.telegramFilePath || undefined,
@@ -694,7 +691,6 @@ export class DatabaseService {
           primaryProvider: imageData.primaryProvider,
           backupProvider: imageData.backupProvider,
           ownerNodeId: imageData.ownerNodeId || ownerNode.id,
-          ownerNodeBaseUrl: imageData.ownerNodeBaseUrl || ownerNode.baseUrl,
         },
         include: {
           group: true
@@ -727,7 +723,6 @@ export class DatabaseService {
         groupId: image.groupId || undefined,
         uploadedAt: image.uploadedAt,
         ownerNodeId: image.ownerNodeId || undefined,
-        ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
         storageMetadata: image.storageMetadata || undefined
       };
     } catch (error) {
@@ -763,7 +758,6 @@ export class DatabaseService {
         primaryProvider: (image as any).primaryProvider || 'cloudinary',
         backupProvider: (image as any).backupProvider || undefined,
         ownerNodeId: (image as any).ownerNodeId || undefined,
-        ownerNodeBaseUrl: (image as any).ownerNodeBaseUrl || undefined,
         telegramFileId: (image as any).telegramFileId || undefined,
         telegramThumbnailFileId: (image as any).telegramThumbnailFileId || undefined,
         telegramFilePath: (image as any).telegramFilePath || undefined,
@@ -855,7 +849,6 @@ export class DatabaseService {
             primaryProvider: true,
             backupProvider: true,
             ownerNodeId: true,
-            ownerNodeBaseUrl: true,
             // Telegram 相关
             telegramFileId: true,
             telegramThumbnailFileId: true,
@@ -883,7 +876,6 @@ export class DatabaseService {
         primaryProvider: image.primaryProvider || 'cloudinary', // 新增：图床信息
         backupProvider: image.backupProvider || undefined, // 新增：备用图床信息
         ownerNodeId: image.ownerNodeId || undefined,
-        ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
         // Telegram 相关字段
         telegramFileId: image.telegramFileId || undefined,
         telegramThumbnailFileId: image.telegramThumbnailFileId || undefined,

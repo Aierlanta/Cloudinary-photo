@@ -244,15 +244,29 @@ export async function getExplicitlyOfflineNodeIds(request?: NextRequest): Promis
   return collectOfflineNodeIds(nodeStatusCache.statuses);
 }
 
-export function getImageOwner(image: Pick<Image, 'ownerNodeId' | 'ownerNodeBaseUrl'>, request?: NextRequest): BackendNodeInfo {
+function getConfiguredNodeById(nodeId: string | undefined, request?: NextRequest): BackendNodeInfo | null {
+  if (!nodeId) return null;
+  return getConfiguredBackendNodes(request).find((node) => node.id === nodeId) || null;
+}
+
+export function getImageOwner(image: Pick<Image, 'ownerNodeId'>, request?: NextRequest): BackendNodeInfo {
+  if (!image.ownerNodeId || image.ownerNodeId === getCurrentNodeId()) {
+    return getCurrentNode(request);
+  }
+
+  const configuredOwner = getConfiguredNodeById(image.ownerNodeId, request);
+  if (configuredOwner) {
+    return configuredOwner;
+  }
+
   return {
-    id: image.ownerNodeId || getCurrentNodeId(),
-    name: image.ownerNodeId || getCurrentNodeName(),
-    baseUrl: normalizeBaseUrl(image.ownerNodeBaseUrl) || getCurrentNodeBaseUrl(request)
+    id: image.ownerNodeId,
+    name: image.ownerNodeId,
+    baseUrl: ''
   };
 }
 
-export function isImageOwnedByCurrentNode(image: Pick<Image, 'ownerNodeId' | 'ownerNodeBaseUrl'>, request?: NextRequest): boolean {
+export function isImageOwnedByCurrentNode(image: Pick<Image, 'ownerNodeId'>, request?: NextRequest): boolean {
   const owner = getImageOwner(image, request);
   const currentId = getCurrentNodeId();
   if (owner.id && owner.id === currentId) return true;
@@ -333,7 +347,7 @@ export function buildSignedResolveUrl(
 
 export function buildRemoteOwnerResolve(
   request: NextRequest,
-  image: Pick<Image, 'id' | 'ownerNodeId' | 'ownerNodeBaseUrl'>,
+  image: Pick<Image, 'id' | 'ownerNodeId'>,
   mode: DeliveryMode
 ): RemoteOwnerResolve | null {
   if (isImageOwnedByCurrentNode(image, request)) {
@@ -354,7 +368,7 @@ export function buildRemoteOwnerResolve(
 
 export function createRemoteOwnerRedirect(
   request: NextRequest,
-  image: Pick<Image, 'id' | 'ownerNodeId' | 'ownerNodeBaseUrl'>,
+  image: Pick<Image, 'id' | 'ownerNodeId'>,
   mode: DeliveryMode
 ): NextResponse | null {
   const remoteResolve = buildRemoteOwnerResolve(request, image, mode);

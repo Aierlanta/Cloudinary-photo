@@ -64,7 +64,7 @@ export function buildSwarmConfigWarnings(config: SwarmConfig): string[] {
 
 export async function buildAdminPreviewUrl(
   request: NextRequest,
-  image: Pick<Image, 'id' | 'url' | 'primaryProvider' | 'ownerNodeId' | 'ownerNodeBaseUrl'>,
+  image: Pick<Image, 'id' | 'url' | 'primaryProvider' | 'ownerNodeId'>,
   config?: SwarmConfig
 ): Promise<string | undefined> {
   const effectiveConfig = config || await getEffectiveSwarmConfig();

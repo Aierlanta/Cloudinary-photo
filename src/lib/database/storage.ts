@@ -26,7 +26,6 @@ export interface ImageWithStorage {
   primaryProvider: string;
   backupProvider?: string;
   ownerNodeId?: string;
-  ownerNodeBaseUrl?: string;
   storageMetadata?: string;
   storageRecords: ImageStorageRecord[];
 }
@@ -38,7 +37,6 @@ export interface ImageStorageRecord {
   identifier: string;
   url: string;
   ownerNodeId?: string;
-  ownerNodeBaseUrl?: string;
   metadata?: string;
   status: string;
   createdAt: Date;
@@ -58,7 +56,6 @@ export interface CreateImageData {
   primaryProvider: StorageProvider;
   backupProvider?: StorageProvider;
   ownerNodeId?: string;
-  ownerNodeBaseUrl?: string;
   storageResults: {
     provider: StorageProvider;
     result: StorageResult;
@@ -73,7 +70,6 @@ export class StorageDatabaseService {
     const imageId = this.generateImageId();
     const ownerNode = getCurrentNode();
     const ownerNodeId = data.ownerNodeId || ownerNode.id;
-    const ownerNodeBaseUrl = data.ownerNodeBaseUrl || ownerNode.baseUrl;
 
     const telegramMetadata = data.storageResults.find(
       sr => sr.provider === StorageProvider.TELEGRAM
@@ -118,7 +114,6 @@ export class StorageDatabaseService {
             primaryProvider: data.primaryProvider,
             backupProvider: data.backupProvider,
             ownerNodeId,
-            ownerNodeBaseUrl,
             storageMetadata: JSON.stringify(storageMetadata),
 
             telegramFileId: telegramMetadata?.telegramFileId,
@@ -138,7 +133,6 @@ export class StorageDatabaseService {
                 identifier: result.publicId,
                 url: result.url,
                 ownerNodeId,
-                ownerNodeBaseUrl,
                 metadata: JSON.stringify({
                   originalResult: result,
                   uploadTime: new Date().toISOString()
@@ -175,12 +169,10 @@ export class StorageDatabaseService {
       groupId: image.groupId || undefined,
       backupProvider: image.backupProvider || undefined,
       ownerNodeId: image.ownerNodeId || undefined,
-      ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
       storageMetadata: image.storageMetadata || undefined,
       storageRecords: storageRecords.map(r => ({
         ...r,
         ownerNodeId: r.ownerNodeId || undefined,
-        ownerNodeBaseUrl: r.ownerNodeBaseUrl || undefined,
         metadata: r.metadata || undefined
       }))
     };
@@ -230,12 +222,10 @@ export class StorageDatabaseService {
       groupId: image.groupId || undefined,
       backupProvider: image.backupProvider || undefined,
       ownerNodeId: image.ownerNodeId || undefined,
-      ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
       storageMetadata: image.storageMetadata || undefined,
       storageRecords: image.storageRecords.map(record => ({
         ...record,
         ownerNodeId: record.ownerNodeId || undefined,
-        ownerNodeBaseUrl: record.ownerNodeBaseUrl || undefined,
         metadata: record.metadata || undefined
       }))
     };
@@ -291,13 +281,11 @@ export class StorageDatabaseService {
         groupId: image.groupId || undefined,
         backupProvider: image.backupProvider || undefined,
         ownerNodeId: image.ownerNodeId || undefined,
-        ownerNodeBaseUrl: image.ownerNodeBaseUrl || undefined,
         orientation: image.orientation || undefined,
         storageMetadata: image.storageMetadata || undefined,
         storageRecords: image.storageRecords.map(record => ({
           ...record,
           ownerNodeId: record.ownerNodeId || undefined,
-          ownerNodeBaseUrl: record.ownerNodeBaseUrl || undefined,
           metadata: record.metadata || undefined
         }))
       })),
@@ -345,7 +333,6 @@ export class StorageDatabaseService {
         identifier: result.publicId,
         url: result.url,
         ownerNodeId: ownerNode.id,
-        ownerNodeBaseUrl: ownerNode.baseUrl,
         metadata: JSON.stringify({
           originalResult: result,
           uploadTime: new Date().toISOString()
@@ -358,7 +345,6 @@ export class StorageDatabaseService {
     return {
       ...record,
       ownerNodeId: record.ownerNodeId || undefined,
-      ownerNodeBaseUrl: record.ownerNodeBaseUrl || undefined,
       metadata: record.metadata || undefined
     };
   }

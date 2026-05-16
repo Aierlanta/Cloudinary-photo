@@ -253,7 +253,6 @@ async function importUrls(request: NextRequest): Promise<Response> {
           primaryProvider: StorageProvider.CUSTOM,
           backupProvider: undefined,
           ownerNodeId: ownerNode.id,
-          ownerNodeBaseUrl: ownerNode.baseUrl,
           storageResults: [
             {
               provider: StorageProvider.CUSTOM,

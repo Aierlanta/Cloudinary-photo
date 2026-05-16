@@ -230,7 +230,6 @@ describe('DatabaseService', () => {
         primaryProvider: imageData.primaryProvider,
         backupProvider: imageData.backupProvider,
         ownerNodeId: 'local',
-        ownerNodeBaseUrl: 'http://localhost:3000',
         uploadedAt: new Date(),
         group: { id: 'grp_000001', name: '测试分组' }
       };
@@ -260,8 +259,7 @@ describe('DatabaseService', () => {
           groupId: imageData.groupId,
           primaryProvider: imageData.primaryProvider,
           backupProvider: imageData.backupProvider,
-          ownerNodeId: 'local',
-          ownerNodeBaseUrl: 'http://localhost:3000'
+          ownerNodeId: 'local'
         },
         include: { group: true }
       });
@@ -280,8 +278,7 @@ describe('DatabaseService', () => {
         tags: imageData.tags,
         groupId: imageData.groupId,
         uploadedAt: expect.any(Date),
-        ownerNodeId: 'local',
-        ownerNodeBaseUrl: 'http://localhost:3000'
+        ownerNodeId: 'local'
       });
     });
 

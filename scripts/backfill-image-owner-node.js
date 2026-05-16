@@ -33,18 +33,6 @@ function hasFlag(name) {
   return process.argv.includes(`--${name}`);
 }
 
-function resolveBaseUrl(value) {
-  try {
-    const url = new URL(value);
-    url.pathname = url.pathname.replace(/\/+$/, '');
-    url.search = '';
-    url.hash = '';
-    return url.toString().replace(/\/+$/, '');
-  } catch {
-    throw new Error(`无效的节点 Base URL: ${value}`);
-  }
-}
-
 function resolveScope(value) {
   if (value === 'all' || value === 'missing') return value;
   throw new Error(`无效的 scope: ${value}，只能是 all 或 missing`);
@@ -52,19 +40,15 @@ function resolveScope(value) {
 
 async function main() {
   const apply = hasFlag('apply');
-  const nodeId = readArg('node-id', '0').trim();
-  const baseUrl = resolveBaseUrl(readArg('base-url', 'http://localhost:3000').trim());
+  const nodeId = readArg('node-id', process.env.NODE_ID || '').trim();
   const scope = resolveScope(readArg('scope', 'all').trim());
 
   if (!nodeId) {
-    throw new Error('node-id 不能为空');
+    throw new Error('node-id 不能为空，请传入 --node-id 或配置 NODE_ID');
   }
 
   const missingOwnerWhere = {
-    OR: [
-      { ownerNodeId: null },
-      { ownerNodeBaseUrl: null }
-    ]
+    ownerNodeId: null
   };
   const where = scope === 'missing' ? missingOwnerWhere : {};
 
@@ -75,7 +59,6 @@ async function main() {
 
   console.log('图片归属节点回填');
   console.log(`目标节点: ${nodeId}`);
-  console.log(`目标 Base URL: ${baseUrl}`);
   console.log(`范围: ${scope === 'all' ? '全部记录' : '仅缺失归属节点的记录'}`);
   console.log(`待更新 images: ${imageCount}`);
   console.log(`待更新 image_storage_records: ${storageRecordCount}`);
@@ -90,15 +73,13 @@ async function main() {
     prisma.image.updateMany({
       where,
       data: {
-        ownerNodeId: nodeId,
-        ownerNodeBaseUrl: baseUrl
+        ownerNodeId: nodeId
       }
     }),
     prisma.imageStorageRecord.updateMany({
       where,
       data: {
-        ownerNodeId: nodeId,
-        ownerNodeBaseUrl: baseUrl
+        ownerNodeId: nodeId
       }
     })
   ]);

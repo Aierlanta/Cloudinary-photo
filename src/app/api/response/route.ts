@@ -41,7 +41,6 @@ interface PrefetchedItem {
   publicId: string;
   url: string;
   ownerNodeId?: string;
-  ownerNodeBaseUrl?: string;
   createdAt: number;
 }
 
@@ -148,7 +147,7 @@ function copyOwnerResponseHeaders(ownerHeaders: Headers): Headers {
 
 async function proxyRemoteOwnerResponse(
   request: NextRequest,
-  image: Pick<Image, 'id' | 'publicId' | 'ownerNodeId' | 'ownerNodeBaseUrl'>,
+  image: Pick<Image, 'id' | 'publicId' | 'ownerNodeId'>,
   mode: 'response' = 'response'
 ): Promise<Response | null> {
   const remoteResolve = buildRemoteOwnerResolve(request, image, mode);
@@ -175,7 +174,7 @@ async function proxyRemoteOwnerResponse(
       type: 'swarm_owner_proxy',
       imageId: image.id,
       ownerNodeId: remoteResolve.owner.id,
-      ownerNodeBaseUrl: remoteResolve.owner.baseUrl,
+      ownerNodeResolvedBaseUrl: remoteResolve.owner.baseUrl,
       error: error instanceof Error ? error.message : String(error)
     });
     throw new AppError(
@@ -401,7 +400,6 @@ async function prefetchNext(key: string, groupIds: string[], providers: string[]
           publicId: img.publicId,
           url: img.url,
           ownerNodeId: img.ownerNodeId,
-          ownerNodeBaseUrl: img.ownerNodeBaseUrl,
           createdAt: Date.now()
         },
         inflight: undefined,
@@ -648,8 +646,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       const ownerProxyResponse = await proxyRemoteOwnerResponse(request, {
         id: prefetched.imageId,
         publicId: prefetched.publicId,
-        ownerNodeId: prefetched.ownerNodeId,
-        ownerNodeBaseUrl: prefetched.ownerNodeBaseUrl
+        ownerNodeId: prefetched.ownerNodeId
       });
       if (ownerProxyResponse) {
         ownerProxyResponse.headers.set('X-Prefetch-Owner-Recheck', 'proxied');

@@ -80,4 +80,23 @@ describe('swarm-node offline filtering', () => {
     const { getExplicitlyOfflineNodeIds } = loadModule();
     await expect(getExplicitlyOfflineNodeIds()).resolves.toEqual([]);
   });
+
+  it('图片 owner 优先通过节点 ID 从运行时配置解析域名', () => {
+    process.env.NODE_ID = '0';
+    process.env.PUBLIC_API_BASE_URL = 'https://img.aierlanta.net';
+    process.env.NEXT_PUBLIC_BACKEND_NODES = JSON.stringify([
+      { id: '0', name: 'NODE 0', baseUrl: 'https://img.aierlanta.net' },
+      { id: '1', name: 'NODE 1', baseUrl: 'https://image.aliceeee.com' }
+    ]);
+
+    const { getImageOwner } = loadModule();
+    const owner = getImageOwner({
+      ownerNodeId: '1'
+    });
+
+    expect(owner).toMatchObject({
+      id: '1',
+      baseUrl: 'https://image.aliceeee.com'
+    });
+  });
 });

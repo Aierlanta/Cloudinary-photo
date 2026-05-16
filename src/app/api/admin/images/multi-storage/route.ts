@@ -149,7 +149,6 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
       backupProvider: uploadResult.backupResult ?
         (await storageDatabaseService.getStorageConfig())?.backupProvider : undefined,
       ownerNodeId: ownerNode.id,
-      ownerNodeBaseUrl: ownerNode.baseUrl,
       storageResults
     });
 
@@ -174,8 +173,7 @@ async function uploadImageMultiStorage(request: NextRequest): Promise<Response> 
       // 多图床特有字段
       primaryProvider: savedImage.primaryProvider,
       backupProvider: savedImage.backupProvider,
-      ownerNodeId: savedImage.ownerNodeId,
-      ownerNodeBaseUrl: savedImage.ownerNodeBaseUrl
+      ownerNodeId: savedImage.ownerNodeId
     });
 
     const response: APIResponse<ImageUploadResponse> = {

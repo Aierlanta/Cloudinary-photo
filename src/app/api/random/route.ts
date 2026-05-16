@@ -77,7 +77,7 @@ async function proxyRemoteOwnerImageStream(
       type: 'swarm_owner_proxy',
       imageId: image.id,
       ownerNodeId: remoteResolve.owner.id,
-      ownerNodeBaseUrl: remoteResolve.owner.baseUrl,
+      ownerNodeResolvedBaseUrl: remoteResolve.owner.baseUrl,
       error: error instanceof Error ? error.message : String(error)
     });
     throw new AppError(
