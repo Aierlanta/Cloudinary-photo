@@ -614,6 +614,7 @@ export const en: Translations = {
     getProvidersFailedMessage: 'Please refresh the page and try again',
     retrySuccess: 'Retry Success',
     retrySuccessMessage: '{name} uploaded',
+    retryAllFailed: 'Retry All ({count})',
     retryAllSuccess: 'All Retries Success',
     retryAllSuccessMessage: 'Successfully uploaded {count} images',
     uploadPartialFailed: 'Partial Upload Failed',

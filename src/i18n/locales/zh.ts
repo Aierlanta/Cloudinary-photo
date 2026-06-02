@@ -612,6 +612,7 @@ export const zh: Translations = {
     getProvidersFailedMessage: '请刷新页面重试',
     retrySuccess: '重试成功',
     retrySuccessMessage: '{name} 已上传',
+    retryAllFailed: '全部重试 ({count})',
     retryAllSuccess: '全部重试成功',
     retryAllSuccessMessage: '成功上传 {count} 张图片',
     uploadPartialFailed: '部分上传失败',

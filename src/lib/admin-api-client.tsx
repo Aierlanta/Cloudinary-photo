@@ -75,12 +75,12 @@ function normalizeNode(input: Partial<BackendNode>, fallbackIndex: number): Back
   };
 }
 
-function parseBackendNodes(): BackendNode[] {
+function parseBackendNodes(currentOrigin: string): BackendNode[] {
   const raw = process.env.NEXT_PUBLIC_BACKEND_NODES;
   const currentNode = normalizeNode({
     id: process.env.NEXT_PUBLIC_NODE_ID || 'local',
     name: process.env.NEXT_PUBLIC_NODE_NAME || '当前节点',
-    baseUrl: process.env.NEXT_PUBLIC_PUBLIC_API_BASE_URL || getCurrentOrigin()
+    baseUrl: process.env.NEXT_PUBLIC_PUBLIC_API_BASE_URL || currentOrigin
   }, 0);
 
   if (!raw) {
@@ -110,13 +110,13 @@ function parseBackendNodes(): BackendNode[] {
   return nodes.length > 0 ? nodes : (currentNode ? [currentNode] : []);
 }
 
-function getPreferredDefaultNode(nodes: BackendNode[]): BackendNode {
+function getPreferredDefaultNode(nodes: BackendNode[], currentOrigin: string): BackendNode {
   const currentNodeId = getCurrentFrontendNodeId();
-  const currentOrigin = normalizeBaseUrl(getCurrentOrigin());
+  const normalizedCurrentOrigin = normalizeBaseUrl(currentOrigin);
   return nodes.find((node) => node.id === currentNodeId)
-    || nodes.find((node) => normalizeBaseUrl(node.baseUrl) === currentOrigin)
+    || nodes.find((node) => normalizeBaseUrl(node.baseUrl) === normalizedCurrentOrigin)
     || nodes[0]
-    || { id: 'local', name: '当前节点', baseUrl: getCurrentOrigin() };
+    || { id: 'local', name: '当前节点', baseUrl: currentOrigin };
 }
 
 function mergeHeaders(initHeaders: HeadersInit | undefined, authToken: string | null): Headers {
@@ -138,13 +138,18 @@ function createUnknownNodeStatuses(nodes: BackendNode[]): Record<string, NodeHea
 }
 
 export function AdminApiProvider({ children }: { children: React.ReactNode }) {
-  const nodes = useMemo(() => parseBackendNodes(), []);
+  const [clientOrigin, setClientOrigin] = useState('');
+  const nodes = useMemo(() => parseBackendNodes(clientOrigin), [clientOrigin]);
   const fallbackNode = useMemo(() => (
-    getPreferredDefaultNode(nodes)
-  ), [nodes]);
+    getPreferredDefaultNode(nodes, clientOrigin)
+  ), [clientOrigin, nodes]);
   const [selectedNodeId, setSelectedNodeIdState] = useState(fallbackNode.id);
   const [authToken, setAuthTokenState] = useState<string | null>(null);
   const [nodeStatuses, setNodeStatuses] = useState<Record<string, NodeHealthStatus>>(() => createUnknownNodeStatuses(nodes));
+
+  useEffect(() => {
+    setClientOrigin(getCurrentOrigin());
+  }, []);
 
   useEffect(() => {
     const storedNodeId = localStorage.getItem(getSelectedNodeStorageKey());

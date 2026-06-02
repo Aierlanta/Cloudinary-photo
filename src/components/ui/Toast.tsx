@@ -134,7 +134,13 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
 
 // Toast容器组件
 export function ToastContainer({ toasts }: { toasts: ToastProps[] }) {
-  if (typeof window === 'undefined') return null
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
 
   return createPortal(
     <div className="fixed top-0 right-0 z-50 p-4 space-y-4 pointer-events-none">

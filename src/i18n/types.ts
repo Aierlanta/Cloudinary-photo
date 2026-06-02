@@ -283,6 +283,7 @@ export interface Translations {
     getProvidersFailedMessage: string;
     retrySuccess: string;
     retrySuccessMessage: string;
+    retryAllFailed: string;
     retryAllSuccess: string;
     retryAllSuccessMessage: string;
     uploadPartialFailed: string;

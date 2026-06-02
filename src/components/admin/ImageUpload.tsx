@@ -54,6 +54,11 @@ interface FileUploadState {
   retryCount: number;
 }
 
+interface UploadQueueItem {
+  fileState: FileUploadState;
+  index: number;
+}
+
 interface ImageUploadProps {
   groups: Group[];
   onUploadSuccess?: (image?: Image) => void;
@@ -68,6 +73,7 @@ interface StorageProvider {
 }
 
 type UploadStrategy = "manual" | "round-robin" | "random" | "available-first";
+const UPLOAD_CONCURRENCY_LIMIT = 3;
 
 export default function ImageUpload({
   groups = [],
@@ -103,6 +109,7 @@ export default function ImageUpload({
     useState<ImageUrlImportResponse | null>(null);
   const customFileInputRef = useRef<HTMLInputElement | null>(null);
   const pendingFilesCount = fileStates.filter((fs) => fs.status === "pending").length;
+  const failedFilesCount = fileStates.filter((fs) => fs.status === "failed").length;
 
   useEffect(() => {
     setManualTargetNodeId((current) => (
@@ -436,11 +443,13 @@ export default function ImageUpload({
 
   // 限制并发上传的函数
   const uploadWithConcurrencyLimit = async (
-    fileStatesToUpload: FileUploadState[],
-    startIndex: number = 0,
-    maxConcurrency: number = 5
-  ) => {
-    const results: any[] = [];
+    uploadItems: UploadQueueItem[],
+    maxConcurrency: number = UPLOAD_CONCURRENCY_LIMIT
+  ): Promise<Image[]> => {
+    if (uploadItems.length === 0) return [];
+
+    const successfulResults: Image[] = [];
+    const errors: string[] = [];
     let completedCount = 0;
 
     // 上传单个文件的函数（带重试机制）
@@ -465,8 +474,6 @@ export default function ImageUpload({
 
         if (response.ok) {
           const data = await response.json();
-          completedCount++;
-          setUploadProgress((completedCount / fileStatesToUpload.length) * 100);
 
           // 更新文件状态为成功
           updateFileState(fileIndex, {
@@ -541,66 +548,42 @@ export default function ImageUpload({
     };
 
     // 使用更保守的并发控制，避免触发限流
-    const semaphore = new Array(maxConcurrency).fill(null);
+    const workerCount = Math.min(maxConcurrency, uploadItems.length);
     let currentIndex = 0;
 
-    const processFile = async (): Promise<any> => {
-      if (currentIndex >= fileStatesToUpload.length) return null;
+    const processFile = async (): Promise<void> => {
+      while (currentIndex < uploadItems.length) {
+        const uploadItem = uploadItems[currentIndex++];
+        const { fileState, index: realIndex } = uploadItem;
 
-      const arrayIndex = currentIndex++;
-      const fileState = fileStatesToUpload[arrayIndex];
-      const realIndex = startIndex + arrayIndex;
+        // 更新为上传中状态
+        updateFileState(realIndex, { status: "uploading" });
 
-      // 更新为上传中状态
-      updateFileState(realIndex, { status: "uploading" });
-
-      try {
-        const result = await uploadSingleFile(fileState, realIndex);
-
-        // 继续处理下一个文件
-        const nextResult = await processFile();
-        return nextResult ? [result, nextResult].flat() : result;
-      } catch (error) {
-        // 即使单个文件失败，也继续处理其他文件
-        console.error(`文件 ${fileState.file.name} 上传失败:`, error);
-        const nextResult = await processFile();
-        throw error; // 重新抛出错误，但不阻止其他文件的处理
+        try {
+          const result = await uploadSingleFile(fileState, realIndex);
+          successfulResults.push(result);
+        } catch (error) {
+          // 即使单个文件失败，也继续处理其他文件
+          console.error(`文件 ${fileState.file.name} 上传失败:`, error);
+          errors.push(error instanceof Error ? error.message : "上传失败");
+        } finally {
+          completedCount++;
+          setUploadProgress((completedCount / uploadItems.length) * 100);
+        }
       }
     };
 
     // 启动并发上传
-    const uploadPromises = semaphore.map(() => processFile());
+    await Promise.all(Array.from({ length: workerCount }, () => processFile()));
 
-    try {
-      const allResults = await Promise.allSettled(uploadPromises);
-
-      // 收集成功的结果
-      const successfulResults: any[] = [];
-      const errors: string[] = [];
-
-      allResults.forEach((result, index) => {
-        if (result.status === "fulfilled" && result.value) {
-          const values = Array.isArray(result.value)
-            ? result.value
-            : [result.value];
-          successfulResults.push(...values.filter((v) => v !== null));
-        } else if (result.status === "rejected") {
-          errors.push(result.reason?.message || `上传失败`);
-        }
-      });
-
-      // 如果有错误但也有成功的上传，显示部分成功的消息
-      if (errors.length > 0 && successfulResults.length > 0) {
-        console.warn("部分文件上传失败:", errors);
-      } else if (errors.length > 0) {
-        throw new Error(`所有文件上传失败: ${errors.join(", ")}`);
-      }
-
-      return successfulResults;
-    } catch (error) {
-      // 如果所有上传都失败了，重新抛出错误
-      throw error;
+    // 如果有错误但也有成功的上传，显示部分成功的消息
+    if (errors.length > 0 && successfulResults.length > 0) {
+      console.warn("部分文件上传失败:", errors);
+    } else if (errors.length > 0) {
+      throw new Error(`所有文件上传失败: ${errors.join(", ")}`);
     }
+
+    return successfulResults;
   };
 
   // 重试单个文件
@@ -615,7 +598,8 @@ export default function ImageUpload({
     });
 
     try {
-      await uploadWithConcurrencyLimit([fileState], index, 1);
+      const uploadedImages = await uploadWithConcurrencyLimit([{ fileState, index }], 1);
+      uploadedImages.forEach((image: Image) => onUploadSuccess?.(image));
       success(t.adminImages.retrySuccess, t.adminImages.retrySuccessMessage.replace('{name}', fileState.file.name), 3000);
     } catch (error) {
       showError(
@@ -628,40 +612,35 @@ export default function ImageUpload({
 
   // 重试所有失败的文件
   const retryAllFailed = async () => {
-    const failedFiles = fileStates.filter((fs) => fs.status === "failed");
-    if (failedFiles.length === 0) return;
+    const failedItems = fileStates
+      .map((fs, idx) => ({ fileState: fs, index: idx }))
+      .filter(({ fileState }) => fileState.status === "failed");
+    if (failedItems.length === 0) return;
 
+    setCurrentBatchTotal(failedItems.length);
     setUploading(true);
     setUploadProgress(0);
 
-    try {
-      const failedIndices = fileStates
-        .map((fs, idx) => ({ fs, idx }))
-        .filter(({ fs }) => fs.status === "failed");
+    let uploadedImages: Image[] = [];
 
+    try {
       // 更新所有失败文件的状态
-      failedIndices.forEach(({ idx }) => {
-        updateFileState(idx, { status: "uploading", error: undefined });
+      failedItems.forEach(({ fileState, index }) => {
+        updateFileState(index, {
+          status: "uploading",
+          error: undefined,
+          retryCount: fileState.retryCount + 1,
+        });
       });
 
-      // 并发上传所有失败的文件
-      let retrySuccessCount = 0;
-      let retryFailCount = 0;
+      uploadedImages = await uploadWithConcurrencyLimit(
+        failedItems,
+        UPLOAD_CONCURRENCY_LIMIT
+      );
+      uploadedImages.forEach((image: Image) => onUploadSuccess?.(image));
 
-      for (const { fs, idx } of failedIndices) {
-        try {
-          const res = await uploadWithConcurrencyLimit([fs], idx, 1);
-          const count = Array.isArray(res) ? res.length : res ? 1 : 0;
-          if (count > 0) {
-            retrySuccessCount += count;
-          } else {
-            retryFailCount += 1;
-          }
-        } catch (error) {
-          console.error(`重试 ${fs.file.name} 失败:`, error);
-          retryFailCount += 1;
-        }
-      }
+      const retrySuccessCount = uploadedImages.length;
+      const retryFailCount = failedItems.length - retrySuccessCount;
 
       if (retryFailCount > 0) {
         showError(
@@ -674,14 +653,20 @@ export default function ImageUpload({
       }
     } catch (error) {
       console.error("重试失败:", error);
+      const retrySuccessCount = uploadedImages.length;
+      const retryFailCount = Math.max(failedItems.length - retrySuccessCount, 0);
+
       showError(
         "重试失败",
-        error instanceof Error ? error.message : "未知错误",
+        retrySuccessCount > 0
+          ? `成功: ${retrySuccessCount} 张，失败: ${retryFailCount} 张`
+          : error instanceof Error ? error.message : "未知错误",
         6000
       );
     } finally {
       setUploading(false);
       setUploadProgress(0);
+      setCurrentBatchTotal(0);
     }
   };
 
@@ -798,11 +783,9 @@ export default function ImageUpload({
         .map((fs, idx) => ({ fs, idx }))
         .filter(({ fs }) => fs.status === "pending");
 
-      const startIdx = pendingIndices.length > 0 ? pendingIndices[0].idx : 0;
       uploadedImages = await uploadWithConcurrencyLimit(
-        pendingFiles,
-        startIdx,
-        3
+        pendingIndices.map(({ fs, idx }) => ({ fileState: fs, index: idx })),
+        UPLOAD_CONCURRENCY_LIMIT
       );
 
       // 通知父组件上传成功
@@ -1320,7 +1303,24 @@ export default function ImageUpload({
 
         {/* File List Actions */}
         {fileStates.length > 0 && (
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            {failedFilesCount > 0 && (
+              <button
+                type="button"
+                onClick={retryAllFailed}
+                disabled={uploading}
+                className={cn(
+                  "text-xs px-2 py-1 border rounded-lg flex items-center gap-1 transition-colors",
+                  isLight
+                    ? "bg-white border-gray-300 text-blue-600 hover:bg-blue-50 hover:border-blue-200"
+                    : "bg-gray-800 border-gray-600 text-blue-400 hover:bg-blue-900/20 hover:border-blue-800",
+                  uploading && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <RefreshCw className={cn("w-3 h-3", uploading && "animate-spin")} />
+                {t.adminImages.retryAllFailed.replace("{count}", String(failedFilesCount))}
+              </button>
+            )}
             {fileStates.some((fs) => fs.status === "success") && (
               <button
                 type="button"
