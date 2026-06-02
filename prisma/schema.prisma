@@ -33,7 +33,6 @@ model Image {
   storageRecords          ImageStorageRecord[]
   group                   Group?               @relation(fields: [groupId], references: [id])
 
-  @@index([groupId], map: "images_groupId_fkey")
   @@index([width, height])
   @@index([orientation])
   @@index([telegramFileId])
