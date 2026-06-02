@@ -64,6 +64,12 @@ export interface ResponseParamsConfig {
   };
 }
 
+export interface SelectionParamsConfig {
+  timeWeighting: {
+    enabled: boolean;
+  };
+}
+
 // API配置模型
 export interface APIConfig {
   id: string;
@@ -72,6 +78,7 @@ export interface APIConfig {
   defaultGroups: string[];
   allowedParameters: APIParameter[];
   responseParams?: ResponseParamsConfig;
+  selectionParams?: SelectionParamsConfig;
   // 新增：响应模式配置
   enableDirectResponse: boolean; // 是否启用直接响应模式（/api/response端点）
   // 新增：API Key 鉴权

@@ -12,6 +12,7 @@ import { AppError, ErrorType } from '@/types/errors';
 import { APIConfigUpdateRequestSchema } from '@/types/schemas';
 import { StorageProvider } from '@/lib/storage/base';
 import { createDefaultResponseParamsConfig } from '@/lib/response-params';
+import { createDefaultSelectionParamsConfig } from '@/lib/selection-params';
 import {
   APIResponse,
   APIConfigResponse
@@ -37,6 +38,7 @@ async function getAPIConfig(request: NextRequest): Promise<Response> {
         defaultGroups: [],
         allowedParameters: [],
         responseParams: createDefaultResponseParamsConfig(),
+        selectionParams: createDefaultSelectionParamsConfig(),
         enableDirectResponse: false,
         apiKeyEnabled: false,
         apiKey: undefined,
@@ -106,6 +108,7 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
         defaultGroups: [],
         allowedParameters: [],
         responseParams: createDefaultResponseParamsConfig(),
+        selectionParams: createDefaultSelectionParamsConfig(),
         enableDirectResponse: false,
         apiKeyEnabled: false,
         apiKey: undefined,
@@ -296,6 +299,14 @@ function generateAPIExamples(baseUrl: string, config: any) {
       title: '按质量参数返回',
       url: `${baseUrl}/api/random?quality=0.8`,
       description: '按 80% 质量动态返回图片'
+    });
+  }
+
+  if (config.selectionParams?.timeWeighting?.enabled) {
+    examples.push({
+      title: '时间窗口加权随机',
+      url: `${baseUrl}/api/random?timeWindow=7d&timeWeight=3`,
+      description: '最近 7 天上传的图片按 3 倍权重参与随机'
     });
   }
   

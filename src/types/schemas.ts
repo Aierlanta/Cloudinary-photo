@@ -89,6 +89,18 @@ export const ResponseParamsSchema = z.object({
   }
 });
 
+export const SelectionParamsSchema = z.object({
+  timeWeighting: z.object({
+    enabled: z.boolean().default(false)
+  }).default({
+    enabled: false
+  })
+}).default({
+  timeWeighting: {
+    enabled: false
+  }
+});
+
 // API配置验证模式
 export const APIConfigSchema = z.object({
   id: IdSchema,
@@ -111,6 +123,7 @@ export const APIConfigSchema = z.object({
       response: false
     }
   }),
+  selectionParams: SelectionParamsSchema,
   // 新增：响应模式配置
   enableDirectResponse: z.boolean().default(false),
   // 新增：API Key 鉴权
@@ -216,6 +229,7 @@ export const APIConfigUpdateRequestSchema = z.object({
   defaultGroups: z.array(IdSchema).optional(),
   allowedParameters: z.array(APIParameterSchema).optional(),
   responseParams: ResponseParamsSchema.optional(),
+  selectionParams: SelectionParamsSchema.optional(),
   enableDirectResponse: z.boolean().optional(),
   apiKeyEnabled: z.boolean().optional(),
   apiKey: z.string().optional()

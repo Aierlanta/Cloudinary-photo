@@ -11,6 +11,10 @@ import {
   createDefaultResponseParamsConfig,
   normalizeResponseParamsConfig
 } from '@/lib/response-params'
+import {
+  createDefaultSelectionParamsConfig,
+  normalizeSelectionParamsConfig
+} from '@/lib/selection-params'
 import { 
   Settings, 
   Shield, 
@@ -44,19 +48,24 @@ interface APIConfig {
   defaultScope: 'all' | 'groups'
   defaultGroups: string[]
   allowedParameters: APIParameter[]
-    responseParams: {
-      format: {
-        enabled: boolean
-        allowedValues: Array<'jpeg' | 'webp'>
-      }
-      quality: {
-        enabled: boolean
-      }
-      defaultWebpDelivery: {
-        random: boolean
-        response: boolean
-      }
+  responseParams: {
+    format: {
+      enabled: boolean
+      allowedValues: Array<'jpeg' | 'webp'>
     }
+    quality: {
+      enabled: boolean
+    }
+    defaultWebpDelivery: {
+      random: boolean
+      response: boolean
+    }
+  }
+  selectionParams: {
+    timeWeighting: {
+      enabled: boolean
+    }
+  }
   enableDirectResponse: boolean
   apiKeyEnabled: boolean
   apiKey?: string
@@ -108,6 +117,7 @@ const {
     defaultGroups: [],
     allowedParameters: [],
     responseParams: createDefaultResponseParamsConfig(),
+    selectionParams: createDefaultSelectionParamsConfig(),
     enableDirectResponse: false,
     apiKeyEnabled: false,
     apiKey: '',
@@ -131,6 +141,7 @@ const {
           loadedConfig.apiKey = ''
         }
         loadedConfig.responseParams = normalizeResponseParamsConfig(loadedConfig.responseParams)
+        loadedConfig.selectionParams = normalizeSelectionParamsConfig(loadedConfig.selectionParams)
         setConfig(loadedConfig)
       } else {
         setConfig(getDefaultConfig())
@@ -210,6 +221,7 @@ const {
       defaultGroups: config.defaultGroups,
       allowedParameters: config.allowedParameters,
       responseParams: config.responseParams,
+      selectionParams: config.selectionParams,
       enableDirectResponse: config.enableDirectResponse,
       apiKeyEnabled: config.apiKeyEnabled,
       apiKey: config.apiKey
@@ -327,6 +339,19 @@ const {
         label: `${t.adminConfig.exampleManagedQuality} (quality=0.8)`,
         url: `${randomBaseUrl}?quality=0.8`
       })
+    }
+
+    if (config.selectionParams.timeWeighting.enabled) {
+      examples.push({
+        label: `${t.adminConfig.exampleTimeWeighting} (timeWindow=7d, timeWeight=3)`,
+        url: `${randomBaseUrl}?timeWindow=7d&timeWeight=3`
+      })
+      if (config.enableDirectResponse) {
+        examples.push({
+          label: `${t.adminConfig.exampleResponseTimeWeighting} (timeWindow=7d, timeWeight=3)`,
+          url: `${responseBaseUrl}?timeWindow=7d&timeWeight=3`
+        })
+      }
     }
 
     return examples
@@ -948,6 +973,86 @@ const {
                     </label>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Selection Params Config */}
+            <div className={cn(
+              "border p-6 space-y-6 rounded-lg",
+              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            )}>
+              <div className="flex items-center gap-3 mb-2 rounded-lg">
+                <Settings className={cn(
+                  "w-5 h-5 rounded-lg",
+                  isLight ? "text-blue-500" : "text-blue-400"
+                )} />
+                <div>
+                  <h3 className={cn(
+                    "font-bold text-lg rounded-lg",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {t.adminConfig.selectionParamsTitle}
+                  </h3>
+                  <p className={cn(
+                    "text-sm rounded-lg",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    {t.adminConfig.selectionParamsDesc}
+                  </p>
+                </div>
+              </div>
+
+              <div className={cn(
+                "border p-4 rounded-lg flex items-center justify-between gap-4",
+                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+              )}>
+                <div>
+                  <h4 className={cn(
+                    "font-semibold rounded-lg",
+                    isLight ? "text-gray-900" : "text-gray-100"
+                  )}>
+                    {t.adminConfig.timeWeightingParamTitle}
+                  </h4>
+                  <p className={cn(
+                    "text-sm rounded-lg",
+                    isLight ? "text-gray-600" : "text-gray-400"
+                  )}>
+                    {t.adminConfig.timeWeightingParamDesc}
+                  </p>
+                  <p className={cn(
+                    "text-xs mt-2 rounded-lg",
+                    isLight ? "text-gray-500" : "text-gray-400"
+                  )}>
+                    {t.adminConfig.timeWeightingParamHint}
+                  </p>
+                </div>
+                <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={config.selectionParams.timeWeighting.enabled}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      selectionParams: {
+                        ...config.selectionParams,
+                        timeWeighting: {
+                          enabled: e.target.checked
+                        }
+                      }
+                    })}
+                    className="sr-only"
+                  />
+                  <span className={cn(
+                    "absolute inset-0 transition-colors rounded-lg",
+                    config.selectionParams.timeWeighting.enabled
+                      ? isLight ? "bg-blue-500" : "bg-blue-600"
+                      : isLight ? "bg-gray-300" : "bg-gray-600"
+                  )}></span>
+                  <span className={cn(
+                    "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
+                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                    config.selectionParams.timeWeighting.enabled ? "translate-x-6" : "translate-x-0"
+                  )}></span>
+                </label>
               </div>
             </div>
 

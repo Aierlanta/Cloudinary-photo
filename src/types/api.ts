@@ -114,6 +114,11 @@ export interface APIConfigUpdateRequest {
       response: boolean;
     };
   };
+  selectionParams?: {
+    timeWeighting: {
+      enabled: boolean;
+    };
+  };
   // 新增：响应模式配置
   enableDirectResponse?: boolean;
   // 新增：API Key 鉴权

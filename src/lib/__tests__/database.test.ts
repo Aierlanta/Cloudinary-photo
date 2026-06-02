@@ -155,7 +155,7 @@ describe('DatabaseService', () => {
         expect.objectContaining({
           update: expect.objectContaining({
             allowedParameters: JSON.stringify({
-              version: 2,
+              version: 3,
               items: [],
               responseParams: {
                 format: {
@@ -169,6 +169,11 @@ describe('DatabaseService', () => {
                   random: false,
                   response: false
                 }
+              },
+              selectionParams: {
+                timeWeighting: {
+                  enabled: false
+                }
               }
             }),
             enableDirectResponse: false,
@@ -177,7 +182,7 @@ describe('DatabaseService', () => {
           }),
           create: expect.objectContaining({
             allowedParameters: JSON.stringify({
-              version: 2,
+              version: 3,
               items: [],
               responseParams: {
                 format: {
@@ -190,6 +195,11 @@ describe('DatabaseService', () => {
                 defaultWebpDelivery: {
                   random: false,
                   response: false
+                }
+              },
+              selectionParams: {
+                timeWeighting: {
+                  enabled: false
                 }
               }
             }),
@@ -327,6 +337,115 @@ describe('DatabaseService', () => {
 
       expect(result).toBeNull();
     });
+
+    it('应该按时间窗口权重选择窗口内图片', async () => {
+      const start = new Date('2026-05-01T00:00:00.000Z');
+      const end = new Date('2026-05-31T23:59:59.000Z');
+      const insideRow = {
+        id: 'img_weighted',
+        url: 'https://example.com/weighted.jpg',
+        publicId: 'weighted',
+        title: null,
+        description: null,
+        tags: null,
+        width: null,
+        height: null,
+        orientation: null,
+        groupId: null,
+        uploadedAt: new Date('2026-05-15T00:00:00.000Z'),
+        primaryProvider: 'cloudinary',
+        backupProvider: null,
+        ownerNodeId: null,
+        telegramFileId: null,
+        telegramThumbnailFileId: null,
+        telegramFilePath: null,
+        telegramThumbnailPath: null,
+        telegramBotToken: null,
+        storageMetadata: null
+      };
+
+      mockPrisma.image.count
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(10);
+      mockPrisma.image.findMany.mockResolvedValueOnce([insideRow]);
+      const randomSpy = jest.spyOn(Math, 'random')
+        .mockReturnValueOnce(0.2)
+        .mockReturnValueOnce(0.5);
+
+      const result = await databaseService.selectRandomImages({
+        count: 1,
+        includeTelegram: true,
+        timeWeighting: {
+          start,
+          end,
+          weight: 5,
+          source: 'fixed',
+          cacheKey: 'fixed:test'
+        }
+      });
+
+      expect(mockPrisma.image.count).toHaveBeenNthCalledWith(1, {
+        where: {
+          AND: [
+            {},
+            {
+              uploadedAt: {
+                gte: start,
+                lte: end
+              }
+            }
+          ]
+        }
+      });
+      expect(mockPrisma.image.count).toHaveBeenNthCalledWith(2, {
+        where: {
+          AND: [
+            {},
+            {
+              OR: [
+                {
+                  uploadedAt: {
+                    lt: start
+                  }
+                },
+                {
+                  uploadedAt: {
+                    gt: end
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      });
+      expect(mockPrisma.image.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          AND: [
+            {},
+            {
+              uploadedAt: {
+                gte: start,
+                lte: end
+              }
+            }
+          ]
+        },
+        skip: 1,
+        take: 1
+      }));
+      expect(result).toMatchObject({
+        images: [
+          {
+            id: 'img_weighted',
+            publicId: 'weighted'
+          }
+        ],
+        queryCount: 3,
+        candidateCount: 12
+      });
+
+      randomSpy.mockRestore();
+    });
   });
 
   describe('分组操作', () => {
@@ -446,7 +565,7 @@ describe('DatabaseService', () => {
         defaultScope: 'all',
         defaultGroups: '["grp_000001"]',
         allowedParameters: JSON.stringify({
-          version: 2,
+          version: 3,
           items: [
             {
               name: 'category',
@@ -467,6 +586,11 @@ describe('DatabaseService', () => {
             defaultWebpDelivery: {
               random: false,
               response: false
+            }
+          },
+          selectionParams: {
+            timeWeighting: {
+              enabled: true
             }
           }
         }),
@@ -509,6 +633,11 @@ describe('DatabaseService', () => {
           defaultWebpDelivery: {
             random: false,
             response: false
+          }
+        },
+        selectionParams: {
+          timeWeighting: {
+            enabled: true
           }
         },
         enableDirectResponse: true,

@@ -20,6 +20,11 @@ import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-p
 import type { Image } from '@/types/models';
 import { validateManagedResponseParams } from '@/lib/response-params';
 import {
+  getTimeWeightingCacheKey,
+  parseSelectionParams,
+  type TimeWeightingOptions
+} from '@/lib/selection-params';
+import {
   buildRemoteOwnerResolve,
   getExplicitlyOfflineNodeIds,
   isImageOwnedByCurrentNode
@@ -91,16 +96,20 @@ interface PrefetchSlot {
 const PREFETCH_TTL_MS = Number(process.env.RESPONSE_PREFETCH_TTL_MS ?? '120000'); // 预取缓存TTL（毫秒），默认2分钟
 const prefetchCache = new Map<string, PrefetchSlot>();
 
-function buildFilterKey(groupIds: string[], providers: string[]): string {
+function buildFilterKey(groupIds: string[], providers: string[], timeWeighting?: TimeWeightingOptions): string {
   const parts: string[] = [];
   const uniqueProviders = Array.from(new Set((providers || []).filter(Boolean))).sort();
   const uniqueGroups = Array.from(new Set((groupIds || []).filter(Boolean))).sort();
+  const timeWeightingKey = getTimeWeightingCacheKey(timeWeighting);
 
   if (uniqueProviders.length > 0) {
     parts.push(`providers:${uniqueProviders.join(',')}`);
   }
   if (uniqueGroups.length > 0) {
     parts.push(`groups:${uniqueGroups.join(',')}`);
+  }
+  if (timeWeightingKey) {
+    parts.push(`timeWeighting:${timeWeightingKey}`);
   }
 
   if (parts.length === 0) return 'all';
@@ -376,7 +385,13 @@ async function downloadImageWithCandidates(
   );
 }
 
-async function prefetchNext(key: string, groupIds: string[], providers: string[], request?: NextRequest): Promise<void> {
+async function prefetchNext(
+  key: string,
+  groupIds: string[],
+  providers: string[],
+  timeWeighting?: TimeWeightingOptions,
+  request?: NextRequest
+): Promise<void> {
   // 已有进行中的预取则复用
   const existing = prefetchCache.get(key);
   if (existing?.inflight) return existing.inflight;
@@ -384,7 +399,7 @@ async function prefetchNext(key: string, groupIds: string[], providers: string[]
   const inflight = (async () => {
     try {
       // 选择下一张随机图片（与当前筛选条件一致）
-      const img = await getRandomImageFromGroupsAndProviders(groupIds, providers);
+      const img = await getRandomImageFromGroupsAndProviders(groupIds, providers, timeWeighting);
       if (!img) return; // 无可用图片，跳过
       if (!isImageOwnedByCurrentNode(img, request)) return; // 远端图片由所属节点交付，避免本节点预取暴露来源
       const baseMimeType = getMimeTypeFromUrl(img.url);
@@ -605,6 +620,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     }
 
     const { requestedFormat, requestedQuality } = validateManagedResponseParams(queryParams, apiConfig);
+    const selectionParams = parseSelectionParams(queryParams, apiConfig);
 
     // 验证和解析参数（复用现有逻辑）
     const { allowedGroupIds, allowedProviders, hasInvalidParams } = await validateAndParseParams(
@@ -640,7 +656,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
 
     // 预取命中优先：若存在相同筛选条件的预取结果，直接返回并异步预取下一张
     // 透明度处理会在预取的原始图片上完成，避免重复拉取源图
-    const cacheKey = buildFilterKey(targetGroupIds, allowedProviders);
+    const cacheKey = buildFilterKey(targetGroupIds, allowedProviders, selectionParams.timeWeighting);
     const prefetched = takePrefetched(cacheKey);
     if (prefetched) {
       const ownerProxyResponse = await proxyRemoteOwnerResponse(request, {
@@ -684,7 +700,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       });
 
       // 异步预取下一张（不阻塞响应）
-      prefetchNext(cacheKey, targetGroupIds, allowedProviders, request).catch(() => {});
+      prefetchNext(cacheKey, targetGroupIds, allowedProviders, selectionParams.timeWeighting, request).catch(() => {});
 
       return new NextResponse(bufferToStream(finalBuffer), {
         status: 200,
@@ -706,7 +722,11 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
 
 
     // 获取随机图片（复用现有逻辑）
-    const randomImage = await getRandomImageFromGroupsAndProviders(targetGroupIds, allowedProviders);
+    const randomImage = await getRandomImageFromGroupsAndProviders(
+      targetGroupIds,
+      allowedProviders,
+      selectionParams.timeWeighting
+    );
 
     if (!randomImage) {
       logger.warn('没有找到符合条件的图片', {
@@ -775,7 +795,7 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     });
 
     // 异步预取下一张（不阻塞响应；透明度请求同样复用原图预取流程）
-    prefetchNext(cacheKey, targetGroupIds, allowedProviders, request).catch(() => {});
+    prefetchNext(cacheKey, targetGroupIds, allowedProviders, selectionParams.timeWeighting, request).catch(() => {});
 
     // 返回缓冲响应
     return new NextResponse(bufferToStream(finalBuffer), {
@@ -889,7 +909,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key', 'origin', 'format', 'quality']);
+  const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key', 'origin', 'format', 'quality', 'timeWindow', 'timeWeight', 'timeStart', 'timeEnd']);
   const filteredEntries = Object.entries(queryParams).filter(([key]) => !RESERVED_PARAMS.has(key));
 
   // 如果没有配置允许的参数，直接返回
@@ -943,16 +963,29 @@ async function validateAndParseParams(
 /**
  * 从指定分组中获取随机图片（复用自 /api/random）
  */
-async function getRandomImageFromGroups(groupIds: string[], provider?: string): Promise<Image | null> {
+async function getRandomImageFromGroups(
+  groupIds: string[],
+  provider?: string,
+  timeWeighting?: TimeWeightingOptions
+): Promise<Image | null> {
   const selector = (databaseService as any).selectRandomImages;
   if (typeof selector === 'function') {
     const result = await selector.call(databaseService, {
       count: 1,
       groupIds,
       providers: provider ? [provider] : undefined,
-      includeTelegram: true
+      includeTelegram: true,
+      timeWeighting
     });
     return result.images[0] || null;
+  }
+
+  if (timeWeighting) {
+    throw new AppError(
+      ErrorType.INTERNAL_ERROR,
+      '当前数据库服务不支持时间窗口加权随机',
+      500
+    );
   }
 
   if (groupIds.length === 0) {
@@ -981,7 +1014,11 @@ async function getRandomImageFromGroups(groupIds: string[], provider?: string): 
   return image;
 }
 
-async function getRandomImageFromGroupsAndProviders(groupIds: string[], providers: string[]): Promise<Image | null> {
+async function getRandomImageFromGroupsAndProviders(
+  groupIds: string[],
+  providers: string[],
+  timeWeighting?: TimeWeightingOptions
+): Promise<Image | null> {
   const excludeOwnerNodeIds = await getExplicitlyOfflineNodeIds();
   const selector = (databaseService as any).selectRandomImages;
   if (typeof selector === 'function') {
@@ -990,9 +1027,18 @@ async function getRandomImageFromGroupsAndProviders(groupIds: string[], provider
       groupIds,
       providers,
       includeTelegram: true,
-      excludeOwnerNodeIds
+      excludeOwnerNodeIds,
+      timeWeighting
     });
     return result.images[0] || null;
+  }
+
+  if (timeWeighting) {
+    throw new AppError(
+      ErrorType.INTERNAL_ERROR,
+      '当前数据库服务不支持时间窗口加权随机',
+      500
+    );
   }
 
   const uniqueProviders = [...new Set((providers || []).filter(Boolean))];

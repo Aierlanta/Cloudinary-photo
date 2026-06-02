@@ -15,6 +15,7 @@ import {
   FileJson,
   ArrowLeft,
   Image as ImageIcon,
+  Clock,
 } from "lucide-react";
 import { useLocale, LocaleProvider } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
@@ -299,6 +300,39 @@ function APIDocsContent() {
                         {ex.url}
                       </code>
                       {baseUrl && <CopyButton text={`${baseUrl}${ex.url}`} id={ex.id} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-semibold text-foreground">{t.apiDocs.timeWeightingTitle}</h3>
+                <p>{t.apiDocs.timeWeightingDesc}</p>
+                <p className="text-xs text-muted-foreground">{t.apiDocs.timeWeightingEnableNote}</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>{t.apiDocs.timeWeightingRollingWindow}</li>
+                  <li>{t.apiDocs.timeWeightingFixedWindow}</li>
+                  <li>{t.apiDocs.timeWeightingWeight}</li>
+                  <li>{t.apiDocs.timeWeightingErrors}</li>
+                </ul>
+                <div className="grid gap-2">
+                  {[
+                    { id: "time-weight-random", label: t.apiDocs.exampleTimeWindowRandom, url: "/api/random?timeWindow=7d&timeWeight=3" },
+                    { id: "time-weight-response", label: t.apiDocs.exampleTimeWindowResponse, url: "/api/response?timeWindow=24h&timeWeight=5" },
+                    { id: "time-weight-fixed", label: t.apiDocs.exampleFixedTimeWindow, url: "/api/random?timeStart=2026-05-01T00%3A00%3A00Z&timeEnd=2026-05-31T23%3A59%3A59Z&timeWeight=4" },
+                  ].map((ex) => (
+                    <div key={ex.id}>
+                      <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {ex.label}
+                      </p>
+                      <div className="bg-slate-950/50 rounded-xl p-2 pl-4 border border-white/10 flex items-center gap-2">
+                        <code className="flex-1 font-mono text-xs sm:text-sm text-slate-300 truncate">
+                          {baseUrl}
+                          {ex.url}
+                        </code>
+                        {baseUrl && <CopyButton text={`${baseUrl}${ex.url}`} id={ex.id} />}
+                      </div>
                     </div>
                   ))}
                 </div>

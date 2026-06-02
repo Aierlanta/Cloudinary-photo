@@ -98,6 +98,7 @@ const mockDatabaseService = databaseService as unknown as {
   getAPIConfig: jest.Mock,
   initialize: jest.Mock,
   getRandomImagesIncludingTelegram: jest.Mock,
+  selectRandomImages?: jest.Mock,
 };
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { serveRandomResponse } = require('../response/service');
@@ -158,6 +159,7 @@ describe('/api/random API端点测试', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    delete (mockDatabaseService as any).selectRandomImages;
     mockDatabaseService.getAPIConfig.mockResolvedValue(mockAPIConfig);
     mockDatabaseService.getRandomImagesIncludingTelegram.mockResolvedValue([mockImage]);
     serveRandomResponse.mockResolvedValue({
@@ -367,6 +369,48 @@ describe('/api/random API端点测试', () => {
       const request = createMockRequest('http://localhost:3000/api/random?orientation=wide');
       const response = await GET(request);
       expect(response.status).toBe(400);
+    });
+
+    it('时间窗口加权启用时将 timeWeighting 传递到随机选择器', async () => {
+      const selectRandomImages = jest.fn().mockResolvedValue({
+        images: [mockImage],
+        queryCount: 3,
+        candidateCount: 12
+      });
+      (mockDatabaseService as any).selectRandomImages = selectRandomImages;
+      mockDatabaseService.getAPIConfig.mockResolvedValue({
+        ...mockAPIConfig,
+        selectionParams: {
+          timeWeighting: {
+            enabled: true
+          }
+        }
+      });
+
+      const request = createMockRequest('http://localhost:3000/api/random?timeWindow=7d&timeWeight=3');
+      const response = await GET(request);
+
+      expect(response.status).toBe(302);
+      expect(selectRandomImages).toHaveBeenCalledWith(expect.objectContaining({
+        count: 1,
+        groupIds: [],
+        providers: [],
+        includeTelegram: true,
+        timeWeighting: expect.objectContaining({
+          weight: 3,
+          source: 'rolling',
+          cacheKey: 'rolling:7d:weight:3'
+        })
+      }));
+    });
+
+    it('时间窗口加权未启用时返回 400', async () => {
+      const request = createMockRequest('http://localhost:3000/api/random?timeWindow=7d&timeWeight=3');
+      const response = await GET(request);
+
+      expect(response.status).toBe(400);
+      const json = await response.json();
+      expect(json.error.type).toBe('VALIDATION_ERROR');
     });
   });
 });

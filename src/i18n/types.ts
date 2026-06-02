@@ -361,6 +361,8 @@ export interface Translations {
     exampleResponseWithParameter: string;
     exampleManagedFormat: string;
     exampleManagedQuality: string;
+    exampleTimeWeighting: string;
+    exampleResponseTimeWeighting: string;
     defaultScopeDesc: string;
     parameterManagement: string;
     addParameterDesc: string;
@@ -398,6 +400,11 @@ export interface Translations {
     defaultWebpDeliveryResponseTitle: string;
     defaultWebpDeliveryResponseDesc: string;
     defaultWebpDeliveryResponseDisabledDesc: string;
+    selectionParamsTitle: string;
+    selectionParamsDesc: string;
+    timeWeightingParamTitle: string;
+    timeWeightingParamDesc: string;
+    timeWeightingParamHint: string;
     // ParameterModal
     addApiParameter: string;
     editApiParameter: string;
@@ -725,6 +732,16 @@ export interface Translations {
     exampleQuality80: string;
     exampleOriginRandom: string;
     exampleOriginResponse: string;
+    timeWeightingTitle: string;
+    timeWeightingDesc: string;
+    timeWeightingEnableNote: string;
+    timeWeightingRollingWindow: string;
+    timeWeightingFixedWindow: string;
+    timeWeightingWeight: string;
+    timeWeightingErrors: string;
+    exampleTimeWindowRandom: string;
+    exampleTimeWindowResponse: string;
+    exampleFixedTimeWindow: string;
     transparencyAdjustment: string;
     transparencyIntro: string;
     parameterDescription: string;

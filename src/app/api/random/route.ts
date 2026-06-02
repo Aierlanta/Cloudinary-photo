@@ -12,6 +12,7 @@ import { AppError, ErrorType } from '@/types/errors';
 import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import { validateManagedResponseParams } from '@/lib/response-params';
+import { parseSelectionParams, type TimeWeightingOptions } from '@/lib/selection-params';
 import { serveRandomResponse } from '@/app/api/random/response/service';
 import {
   buildRemoteOwnerResolve,
@@ -204,6 +205,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
 
     const managedResponseParams = validateManagedResponseParams(queryParams, apiConfig, 'random');
     const autoManagedResponseFlow = managedResponseParams.hasManagedResponseParams && !explicitResponseFlow;
+    const selectionParams = parseSelectionParams(queryParams, apiConfig);
 
     // 验证和解析参数
     const { allowedGroupIds, allowedProviders, hasInvalidParams } = await validateAndParseParams(
@@ -243,6 +245,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
         groupIds: targetGroupIds,
         orientation,
         providers: allowedProviders,
+        timeWeighting: selectionParams.timeWeighting,
         includeTelegram: true,
         metrics
       })
@@ -448,7 +451,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['key', 'response', 'origin', 'format', 'quality', 't', 'orientation', 'width', 'height', 'fit', 'opacity', 'bgColor']);
+  const RESERVED_PARAMS = new Set(['key', 'response', 'origin', 'format', 'quality', 't', 'orientation', 'width', 'height', 'fit', 'opacity', 'bgColor', 'timeWindow', 'timeWeight', 'timeStart', 'timeEnd']);
 
   // 如果没有配置允许的参数，则允许所有请求
   if (!apiConfig.allowedParameters || apiConfig.allowedParameters.length === 0) {
@@ -572,6 +575,7 @@ async function selectRandomImageForRequest(params: {
   orientation?: OrientationParam;
   providers?: string[];
   includeTelegram?: boolean;
+  timeWeighting?: TimeWeightingOptions;
   metrics?: { addDbQueries: (count?: number) => void };
 }) {
   const excludeOwnerNodeIds = await getExplicitlyOfflineNodeIds();
@@ -581,6 +585,14 @@ async function selectRandomImageForRequest(params: {
       ...params,
       excludeOwnerNodeIds
     });
+  }
+
+  if (params.timeWeighting) {
+    throw new AppError(
+      ErrorType.INTERNAL_ERROR,
+      '当前数据库服务不支持时间窗口加权随机',
+      500
+    );
   }
 
   const image = await legacyGetRandomImageFromGroupsAndProviders(

@@ -536,6 +536,35 @@ function HomeContent() {
                       </div>
                     </div>
 
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
+                        <span>Weighted Random</span>
+                        <span className="text-blue-400">optional</span>
+                      </div>
+                      <div className="relative group">
+                        <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-slate-300 break-all hover:border-primary/50 transition-colors cursor-text">
+                          {baseUrl}/api/random
+                          <span className="text-blue-300">
+                            ?timeWindow=7d&amp;timeWeight=3
+                          </span>
+                        </div>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(
+                              `${baseUrl}/api/random?timeWindow=7d&timeWeight=3`
+                            )
+                          }
+                          className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          {copied ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="mt-auto pt-6 border-t border-white/5">
                       <Link
                         href="/api/docs"

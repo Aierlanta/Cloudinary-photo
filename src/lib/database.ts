@@ -18,6 +18,11 @@ import {
   createDefaultResponseParamsConfig,
   normalizeResponseParamsConfig
 } from '@/lib/response-params';
+import {
+  createDefaultSelectionParamsConfig,
+  normalizeSelectionParamsConfig,
+  type TimeWeightingOptions
+} from '@/lib/selection-params';
 import { LogLevel, LogEntry } from './logger';
 import { prisma } from './prisma';
 import { getCurrentNode } from './swarm-node';
@@ -91,13 +96,16 @@ function normalizeOrientationValue(orientation?: string | null): Image['orientat
 function parseStoredAPIConfigPayload(raw: string | null | undefined): {
   allowedParameters: APIConfig['allowedParameters'];
   responseParams: NonNullable<APIConfig['responseParams']>;
+  selectionParams: NonNullable<APIConfig['selectionParams']>;
 } {
-  const defaults = createDefaultResponseParamsConfig();
+  const defaultResponseParams = createDefaultResponseParamsConfig();
+  const defaultSelectionParams = createDefaultSelectionParamsConfig();
 
   if (!raw) {
     return {
       allowedParameters: [],
-      responseParams: defaults
+      responseParams: defaultResponseParams,
+      selectionParams: defaultSelectionParams
     };
   }
 
@@ -107,7 +115,8 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
     if (Array.isArray(parsed)) {
       return {
         allowedParameters: parsed,
-        responseParams: defaults
+        responseParams: defaultResponseParams,
+        selectionParams: defaultSelectionParams
       };
     }
 
@@ -116,6 +125,7 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
         items?: APIConfig['allowedParameters'];
         allowedParameters?: APIConfig['allowedParameters'];
         responseParams?: APIConfig['responseParams'];
+        selectionParams?: APIConfig['selectionParams'];
       };
 
       return {
@@ -124,7 +134,8 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
           : Array.isArray(container.allowedParameters)
           ? container.allowedParameters
           : [],
-        responseParams: normalizeResponseParamsConfig(container.responseParams)
+        responseParams: normalizeResponseParamsConfig(container.responseParams),
+        selectionParams: normalizeSelectionParamsConfig(container.selectionParams)
       };
     }
   } catch {
@@ -133,15 +144,17 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
 
   return {
     allowedParameters: [],
-    responseParams: defaults
+    responseParams: defaultResponseParams,
+    selectionParams: defaultSelectionParams
   };
 }
 
 function stringifyStoredAPIConfigPayload(config: APIConfig): string {
   return JSON.stringify({
-    version: 2,
+    version: 3,
     items: config.allowedParameters,
-    responseParams: normalizeResponseParamsConfig(config.responseParams)
+    responseParams: normalizeResponseParamsConfig(config.responseParams),
+    selectionParams: normalizeSelectionParamsConfig(config.selectionParams)
   });
 }
 
@@ -284,6 +297,7 @@ export class DatabaseService {
           defaultGroups: [],
           allowedParameters: [],
           responseParams: createDefaultResponseParamsConfig(),
+          selectionParams: createDefaultSelectionParamsConfig(),
           enableDirectResponse: false, // 默认关闭直接响应模式
           apiKeyEnabled: false, // 默认关闭 API Key 鉴权
           apiKey: undefined,
@@ -611,6 +625,99 @@ export class DatabaseService {
     };
   }
 
+  private buildTimeWeightedWhere(
+    where: any,
+    timeWeighting: Pick<TimeWeightingOptions, 'start' | 'end'>,
+    insideWindow: boolean
+  ) {
+    const timeCondition = insideWindow
+      ? {
+          uploadedAt: {
+            gte: timeWeighting.start,
+            lte: timeWeighting.end
+          }
+        }
+      : {
+          OR: [
+            {
+              uploadedAt: {
+                lt: timeWeighting.start
+              }
+            },
+            {
+              uploadedAt: {
+                gt: timeWeighting.end
+              }
+            }
+          ]
+        };
+
+    return {
+      AND: [
+        where,
+        timeCondition
+      ]
+    };
+  }
+
+  private async findRandomImageByOffset(where: any, totalCount: number): Promise<RandomImageRow | null> {
+    if (totalCount <= 0) {
+      return null;
+    }
+
+    const randomOffset = Math.floor(Math.random() * totalCount);
+    const candidateRows = await prisma.image.findMany({
+      where,
+      orderBy: [
+        { uploadedAt: 'asc' },
+        { id: 'asc' }
+      ],
+      skip: randomOffset,
+      take: 1,
+      select: RANDOM_IMAGE_SELECT
+    });
+
+    return (candidateRows[0] as RandomImageRow | undefined) || null;
+  }
+
+  private async selectSingleTimeWeightedRandomImage(
+    where: any,
+    timeWeighting: TimeWeightingOptions
+  ): Promise<{
+    image: RandomImageRow | null;
+    queryCount: number;
+    candidateCount: number;
+  }> {
+    const insideWhere = this.buildTimeWeightedWhere(where, timeWeighting, true);
+    const outsideWhere = this.buildTimeWeightedWhere(where, timeWeighting, false);
+    const [insideCount, outsideCount] = await Promise.all([
+      prisma.image.count({ where: insideWhere }),
+      prisma.image.count({ where: outsideWhere })
+    ]);
+
+    const candidateCount = insideCount + outsideCount;
+    if (candidateCount === 0) {
+      return {
+        image: null,
+        queryCount: 2,
+        candidateCount: 0
+      };
+    }
+
+    const insideWeightedCount = insideCount * timeWeighting.weight;
+    const weightedTotal = insideWeightedCount + outsideCount;
+    const selectedInsideWindow = Math.random() * weightedTotal < insideWeightedCount;
+    const selectedWhere = selectedInsideWindow ? insideWhere : outsideWhere;
+    const selectedCount = selectedInsideWindow ? insideCount : outsideCount;
+    const image = await this.findRandomImageByOffset(selectedWhere, selectedCount);
+
+    return {
+      image,
+      queryCount: 3,
+      candidateCount
+    };
+  }
+
   async selectRandomImages(params: {
     count?: number;
     groupIds?: string[];
@@ -618,6 +725,7 @@ export class DatabaseService {
     providers?: string[];
     includeTelegram?: boolean;
     excludeOwnerNodeIds?: string[];
+    timeWeighting?: TimeWeightingOptions;
     metrics?: MetricsRecorder;
   }): Promise<{
     images: Image[];
@@ -643,7 +751,9 @@ export class DatabaseService {
         break;
       }
 
-      const selected = await this.selectSingleRandomImage(where);
+      const selected = params.timeWeighting
+        ? await this.selectSingleTimeWeightedRandomImage(where, params.timeWeighting)
+        : await this.selectSingleRandomImage(where);
       queryCount += selected.queryCount;
       candidateCount = Math.max(candidateCount, selected.candidateCount);
 
@@ -1296,6 +1406,7 @@ export class DatabaseService {
         defaultGroups: config.defaultGroups ? JSON.parse(config.defaultGroups) : [],
         allowedParameters: storedConfig.allowedParameters,
         responseParams: storedConfig.responseParams,
+        selectionParams: storedConfig.selectionParams,
         enableDirectResponse: config.enableDirectResponse || false,
         apiKeyEnabled: config.apiKeyEnabled || false,
         apiKey: config.apiKey || undefined,

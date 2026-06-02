@@ -161,6 +161,7 @@ describe('/api/response', () => {
     if (typeof resetPrefetchCache === 'function') {
       resetPrefetchCache();
     }
+    delete (mockDatabaseService as any).selectRandomImages;
 
     // 默认配置
     mockDatabaseService.getAPIConfig.mockResolvedValue({
@@ -406,6 +407,63 @@ describe('/api/response', () => {
       });
 
       const request = createMockRequest('http://localhost:3000/api/response?category=invalid');
+      const response = await GET(request);
+
+      expect(response.status).toBe(400);
+    });
+
+    it('时间窗口加权启用时应传递 timeWeighting 并隔离预取缓存 key', async () => {
+      const img = {
+        id: 'img_weighted_response',
+        publicId: 'weighted_response',
+        url: 'https://res.cloudinary.com/test/image/upload/weighted_response.jpg',
+        groupId: null,
+        uploadedAt: new Date()
+      };
+      const selectRandomImages = jest.fn().mockResolvedValue({
+        images: [img],
+        queryCount: 3,
+        candidateCount: 12
+      });
+      (mockDatabaseService as any).selectRandomImages = selectRandomImages;
+      mockDatabaseService.getAPIConfig.mockResolvedValue({
+        id: 'default',
+        isEnabled: true,
+        enableDirectResponse: true,
+        defaultScope: 'all',
+        defaultGroups: [],
+        allowedParameters: [],
+        selectionParams: {
+          timeWeighting: {
+            enabled: true
+          }
+        },
+        updatedAt: new Date()
+      });
+
+      const request = createMockRequest('http://localhost:3000/api/response?timeWindow=7d&timeWeight=3');
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      expect(selectRandomImages.mock.calls[0][0]).toEqual(expect.objectContaining({
+        count: 1,
+        groupIds: [],
+        providers: [],
+        includeTelegram: true,
+        excludeOwnerNodeIds: [],
+        timeWeighting: expect.objectContaining({
+          weight: 3,
+          source: 'rolling',
+          cacheKey: 'rolling:7d:weight:3'
+        })
+      }));
+
+      const getPrefetchKeys = (globalThis as any).__getPrefetchKeysForTests;
+      expect(getPrefetchKeys()).toContain('timeWeighting:rolling:7d:weight:3');
+    });
+
+    it('时间窗口加权未启用时应返回 400', async () => {
+      const request = createMockRequest('http://localhost:3000/api/response?timeWindow=7d&timeWeight=3');
       const response = await GET(request);
 
       expect(response.status).toBe(400);
