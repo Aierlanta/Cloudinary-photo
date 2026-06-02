@@ -178,20 +178,29 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
     }
   };
 
-  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) => (
+  const Toggle = ({
+    checked,
+    onChange,
+    label
+  }: {
+    checked: boolean;
+    onChange: (value: boolean) => void;
+    label: string;
+  }) => (
     <button
       type="button"
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative h-6 w-11 rounded-lg transition-colors',
+        'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900',
         checked ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
       )}
       aria-pressed={checked}
+      aria-label={label}
     >
       <span
         className={cn(
-          'absolute top-0.5 h-5 w-5 rounded-lg bg-white transition-transform',
-          checked ? 'translate-x-5' : 'translate-x-0.5'
+          'pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-sm transition-transform',
+          checked ? 'translate-x-5' : 'translate-x-0'
         )}
       />
     </button>
@@ -222,32 +231,44 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 min-h-28">
+            <div className="flex h-full items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
                 <h4 className="font-semibold panel-text">{t.adminSecurity.guardStatus}</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t.adminSecurity.guardStatusDesc}</p>
+                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">{t.adminSecurity.guardStatusDesc}</p>
               </div>
-              <Toggle checked={form.guardEnabled} onChange={(value) => updateForm({ guardEnabled: value })} />
+              <Toggle
+                checked={form.guardEnabled}
+                onChange={(value) => updateForm({ guardEnabled: value })}
+                label={t.adminSecurity.guardStatus}
+              />
             </div>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 min-h-28">
+            <div className="flex h-full items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
                 <h4 className="font-semibold panel-text">{t.adminSecurity.autoGuard}</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t.adminSecurity.autoGuardDesc}</p>
+                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">{t.adminSecurity.autoGuardDesc}</p>
               </div>
-              <Toggle checked={form.guardAutoEnabled} onChange={(value) => updateForm({ guardAutoEnabled: value })} />
+              <Toggle
+                checked={form.guardAutoEnabled}
+                onChange={(value) => updateForm({ guardAutoEnabled: value })}
+                label={t.adminSecurity.autoGuard}
+              />
             </div>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 min-h-28">
+            <div className="flex h-full items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
                 <h4 className="font-semibold panel-text">{t.adminSecurity.whitelistOnlyMode}</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t.adminSecurity.whitelistOnlyModeDesc}</p>
+                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">{t.adminSecurity.whitelistOnlyModeDesc}</p>
               </div>
-              <Toggle checked={form.whitelistOnlyEnabled} onChange={(value) => updateForm({ whitelistOnlyEnabled: value })} />
+              <Toggle
+                checked={form.whitelistOnlyEnabled}
+                onChange={(value) => updateForm({ whitelistOnlyEnabled: value })}
+                label={t.adminSecurity.whitelistOnlyMode}
+              />
             </div>
           </div>
         </div>
