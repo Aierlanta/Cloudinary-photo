@@ -107,20 +107,41 @@ export function isIPWhitelisted(ip: string, whitelist: Pick<IPWhitelistEntry, 'c
   return whitelist.some((entry) => entry.isEnabled && isIPInCidr(ip, entry.cidr));
 }
 
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+  return typeof error === 'object'
+    && error !== null
+    && 'code' in error
+    && (error as { code?: unknown }).code === 'P2002';
+}
+
 export async function getOrCreateSecurityConfig(): Promise<SecurityConfig> {
-  const config = await prisma.securityConfig.upsert({
-    where: { id: SECURITY_CONFIG_ID },
-    update: {},
-    create: {
-      id: SECURITY_CONFIG_ID,
-      guardEnabled: false,
-      guardAutoEnabled: false,
-      guardTriggerWindowMinutes: DEFAULT_GUARD_WINDOW_MINUTES,
-      guardTriggerUniqueIpThreshold: DEFAULT_GUARD_UNIQUE_IP_THRESHOLD,
-      whitelistOnlyEnabled: false
+  try {
+    const config = await prisma.securityConfig.upsert({
+      where: { id: SECURITY_CONFIG_ID },
+      update: {},
+      create: {
+        id: SECURITY_CONFIG_ID,
+        guardEnabled: false,
+        guardAutoEnabled: false,
+        guardTriggerWindowMinutes: DEFAULT_GUARD_WINDOW_MINUTES,
+        guardTriggerUniqueIpThreshold: DEFAULT_GUARD_UNIQUE_IP_THRESHOLD,
+        whitelistOnlyEnabled: false
+      }
+    });
+    return normalizeSecurityConfig(config);
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) {
+      throw error;
     }
-  });
-  return normalizeSecurityConfig(config);
+
+    const existing = await prisma.securityConfig.findUnique({
+      where: { id: SECURITY_CONFIG_ID }
+    });
+    if (!existing) {
+      throw error;
+    }
+    return normalizeSecurityConfig(existing);
+  }
 }
 
 export async function updateSecurityConfig(input: Partial<Pick<

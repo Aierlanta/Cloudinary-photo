@@ -46,6 +46,7 @@ describe('risk-control', () => {
       createdAt: new Date('2026-06-02T00:00:00Z'),
       updatedAt: new Date('2026-06-02T00:00:00Z')
     });
+    mockPrisma.securityConfig.findUnique.mockResolvedValue(null);
   });
 
   it('应支持 IPv4、IPv6、localhost 和 CIDR 匹配', () => {
@@ -76,6 +77,36 @@ describe('risk-control', () => {
       })
     });
     expect(config.id).toBe('default');
+  });
+
+  it('默认风控配置并发创建主键冲突时应回读已有配置', async () => {
+    const existingConfig = {
+      id: 'default',
+      guardEnabled: false,
+      guardAutoEnabled: false,
+      guardTriggerWindowMinutes: 5,
+      guardTriggerUniqueIpThreshold: 50,
+      whitelistOnlyEnabled: false,
+      guardTriggeredAt: null,
+      guardTriggeredReason: null,
+      createdAt: new Date('2026-06-02T00:00:00Z'),
+      updatedAt: new Date('2026-06-02T00:00:01Z')
+    };
+    mockPrisma.securityConfig.upsert.mockRejectedValue({
+      code: 'P2002',
+      message: 'Unique constraint failed on the constraint: PRIMARY'
+    });
+    mockPrisma.securityConfig.findUnique.mockResolvedValue(existingConfig);
+
+    const config = await getOrCreateSecurityConfig();
+
+    expect(mockPrisma.securityConfig.findUnique).toHaveBeenCalledWith({
+      where: { id: 'default' }
+    });
+    expect(config).toEqual(expect.objectContaining({
+      id: 'default',
+      guardEnabled: false
+    }));
   });
 
   it('白名单模式应阻止非白名单 IP', async () => {
