@@ -3,6 +3,8 @@
  * /api/response 端点测试
  */
 
+export {};
+
 // Mock Next.js server module to avoid global Request dependency in tests
 jest.mock('next/server', () => {
   const G: any = (typeof globalThis !== 'undefined') ? globalThis : global;

@@ -3,6 +3,8 @@
  */
 
 import { NextRequest } from 'next/server';
+import { isIPBanned, getIPRateLimit, checkIPTotalLimit } from '../ip-management';
+import { evaluatePublicRiskControl } from '../risk-control';
 import { 
   rateLimit, 
   createRateLimitResponse, 
@@ -15,6 +17,29 @@ import {
   getRateLimitStats
 } from '../security';
 import { AppError, ErrorType } from '@/types/errors';
+
+jest.mock('../ip-management', () => ({
+  isIPBanned: jest.fn().mockResolvedValue(false),
+  getIPRateLimit: jest.fn().mockResolvedValue(null),
+  checkIPTotalLimit: jest.fn().mockResolvedValue({ exceeded: false, current: 0 })
+}));
+
+jest.mock('../risk-control', () => ({
+  GUARD_RATE_LIMIT: {
+    windowMs: 60000,
+    maxRequests: 1,
+    message: '当前处于警戒状态，非白名单 IP 每分钟仅允许 1 次请求'
+  },
+  evaluatePublicRiskControl: jest.fn().mockResolvedValue({
+    isWhitelisted: false,
+    whitelistOnlyBlocked: false,
+    guardLimited: false
+  })
+}));
+
+jest.mock('../access-tracking', () => ({
+  logAccess: jest.fn().mockResolvedValue(undefined)
+}));
 
 // 模拟全局Response对象
 global.Response = class MockResponse {
@@ -51,10 +76,23 @@ jest.mock('next/server', () => ({
 }));
 
 describe('安全中间件测试', () => {
+  const mockIsIPBanned = isIPBanned as jest.MockedFunction<typeof isIPBanned>;
+  const mockGetIPRateLimit = getIPRateLimit as jest.MockedFunction<typeof getIPRateLimit>;
+  const mockCheckIPTotalLimit = checkIPTotalLimit as jest.MockedFunction<typeof checkIPTotalLimit>;
+  const mockEvaluatePublicRiskControl = evaluatePublicRiskControl as jest.MockedFunction<typeof evaluatePublicRiskControl>;
+
   beforeEach(() => {
     // 清理限流存储
     clearRateLimitStore();
     jest.clearAllMocks();
+    mockIsIPBanned.mockResolvedValue(false);
+    mockGetIPRateLimit.mockResolvedValue(null);
+    mockCheckIPTotalLimit.mockResolvedValue({ exceeded: false, current: 0 });
+    mockEvaluatePublicRiskControl.mockResolvedValue({
+      isWhitelisted: false,
+      whitelistOnlyBlocked: false,
+      guardLimited: false
+    });
   });
 
   describe('限流功能', () => {
@@ -123,6 +161,79 @@ describe('安全中间件测试', () => {
       // 新的请求应该被允许
       const result3 = await rateLimitFn(mockRequest);
       expect(result3.allowed).toBe(true);
+    });
+
+    it('警戒状态应将公开请求收紧为每分钟1次', async () => {
+      mockEvaluatePublicRiskControl.mockResolvedValue({
+        isWhitelisted: false,
+        whitelistOnlyBlocked: false,
+        guardLimited: true,
+        reason: '当前处于警戒状态，非白名单 IP 每分钟仅允许 1 次请求'
+      });
+      const mockRequest = {
+        nextUrl: { pathname: '/api/random' },
+        headers: new Map([['x-forwarded-for', '192.168.1.2']])
+      } as any;
+
+      const rateLimitFn = rateLimit({
+        windowMs: 60000,
+        maxRequests: 60,
+        message: '请求过于频繁'
+      }, { enableRiskControl: true });
+
+      expect((await rateLimitFn(mockRequest)).allowed).toBe(true);
+      const blocked = await rateLimitFn(mockRequest);
+      expect(blocked.allowed).toBe(false);
+      expect(blocked.reason).toContain('警戒状态');
+    });
+
+    it('警戒状态应与自定义限流取更严格者', async () => {
+      mockEvaluatePublicRiskControl.mockResolvedValue({
+        isWhitelisted: false,
+        whitelistOnlyBlocked: false,
+        guardLimited: true
+      });
+      mockGetIPRateLimit.mockResolvedValue({
+        ip: '192.168.1.3',
+        maxRequests: 10,
+        windowMs: 60000,
+        maxTotal: null
+      } as any);
+      const mockRequest = {
+        nextUrl: { pathname: '/api/random' },
+        headers: new Map([['x-forwarded-for', '192.168.1.3']])
+      } as any;
+      const rateLimitFn = rateLimit({
+        windowMs: 60000,
+        maxRequests: 60,
+        message: '请求过于频繁'
+      }, { enableRiskControl: true });
+
+      expect((await rateLimitFn(mockRequest)).allowed).toBe(true);
+      expect((await rateLimitFn(mockRequest)).allowed).toBe(false);
+    });
+
+    it('封禁优先级应高于白名单', async () => {
+      mockIsIPBanned.mockResolvedValue(true);
+      mockEvaluatePublicRiskControl.mockResolvedValue({
+        isWhitelisted: true,
+        whitelistOnlyBlocked: false,
+        guardLimited: false
+      });
+      const mockRequest = {
+        nextUrl: { pathname: '/api/random' },
+        headers: new Map([['x-forwarded-for', '192.168.1.4']])
+      } as any;
+
+      const result = await rateLimit({
+        windowMs: 60000,
+        maxRequests: 60,
+        message: '请求过于频繁'
+      }, { enableRiskControl: true })(mockRequest);
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('IP已被封禁');
+      expect(mockEvaluatePublicRiskControl).not.toHaveBeenCalled();
     });
   });
 
@@ -235,6 +346,30 @@ describe('安全中间件测试', () => {
 
       expect(mockHandler).not.toHaveBeenCalled();
       expect(response.status).toBe(400);
+    });
+
+    it('白名单模式应阻止非白名单公开请求并返回403', async () => {
+      mockEvaluatePublicRiskControl.mockResolvedValue({
+        isWhitelisted: false,
+        whitelistOnlyBlocked: true,
+        guardLimited: false,
+        reason: '当前处于白名单模式，仅白名单 IP 可以访问公开 API'
+      });
+      const mockHandler = jest.fn();
+      const secureHandler = withSecurity({
+        rateLimit: 'public',
+        allowedMethods: ['GET']
+      })(mockHandler);
+      const mockRequest = {
+        method: 'GET',
+        nextUrl: { pathname: '/api/random' },
+        headers: new Map([['x-forwarded-for', '192.168.1.5']])
+      } as any;
+
+      const response = await secureHandler(mockRequest);
+
+      expect(mockHandler).not.toHaveBeenCalled();
+      expect(response.status).toBe(403);
     });
   });
 

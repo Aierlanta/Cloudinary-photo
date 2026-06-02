@@ -188,6 +188,34 @@ model IPRateLimit {
   @@map("ip_rate_limits")
 }
 
+model SecurityConfig {
+  id                            String    @id @default("default")
+  guardEnabled                  Boolean   @default(false)
+  guardAutoEnabled              Boolean   @default(false)
+  guardTriggerWindowMinutes     Int       @default(5)
+  guardTriggerUniqueIpThreshold Int       @default(50)
+  whitelistOnlyEnabled          Boolean   @default(false)
+  guardTriggeredAt              DateTime?
+  guardTriggeredReason          String?   @db.Text
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
+
+  @@map("security_configs")
+}
+
+model IPWhitelistEntry {
+  id        String   @id @default(cuid())
+  cidr      String   @unique
+  note      String?  @db.Text
+  isEnabled Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cidr])
+  @@index([isEnabled])
+  @@map("ip_whitelist_entries")
+}
+
 // IP总访问计数表 - 用于高性能的总访问量限制检查
 model IPTotalAccess {
   ip        String   @id

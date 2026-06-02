@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
 import BannedIPManagement from "@/components/admin/BannedIPManagement";
 import RateLimitManagement from "@/components/admin/RateLimitManagement";
+import RiskControlManagement from "@/components/admin/RiskControlManagement";
 import { 
   Shield, 
   Ban, 
@@ -48,6 +49,25 @@ interface RateLimit {
   createdAt: Date;
 }
 
+interface SecurityConfig {
+  id: string;
+  guardEnabled: boolean;
+  guardAutoEnabled: boolean;
+  guardTriggerWindowMinutes: number;
+  guardTriggerUniqueIpThreshold: number;
+  whitelistOnlyEnabled: boolean;
+  guardTriggeredAt?: Date | string | null;
+  guardTriggeredReason?: string | null;
+}
+
+interface IPWhitelistEntry {
+  id: string;
+  cidr: string;
+  note?: string | null;
+  isEnabled: boolean;
+  createdAt: Date | string;
+}
+
 type TopIPRange = "default" | "lastHour" | "last24Hours";
 
 const TOP_IP_RANGE_TO_HOURS: Record<TopIPRange, number | null> = {
@@ -60,7 +80,7 @@ export default function SecurityManagement() {
   const { t } = useLocale();
   const isLight = useTheme();
   const { adminFetch } = useAdminApi();
-  const [activeTab, setActiveTab] = useState<"stats" | "banned" | "limits">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "risk" | "banned" | "limits">("stats");
   const [loading, setLoading] = useState(true);
   const statsRef = useRef<AccessStats | null>(null);
   const topIPRangeRef = useRef<TopIPRange>("default");
@@ -77,6 +97,8 @@ export default function SecurityManagement() {
 
   // 速率限制数据
   const [rateLimits, setRateLimits] = useState<RateLimit[]>([]);
+  const [riskConfig, setRiskConfig] = useState<SecurityConfig | null>(null);
+  const [whitelist, setWhitelist] = useState<IPWhitelistEntry[]>([]);
 
   const refreshTopIPs = useCallback(async (range: TopIPRange, latestStats?: AccessStats | null) => {
     const hours = TOP_IP_RANGE_TO_HOURS[range];
@@ -113,6 +135,8 @@ export default function SecurityManagement() {
         setRealtimeStats(data.data?.realtime ?? null);
         setBannedIPs(data.data?.bannedIPs ?? []);
         setRateLimits(data.data?.rateLimits ?? []);
+        setRiskConfig(data.data?.riskControl?.config ?? null);
+        setWhitelist(data.data?.riskControl?.whitelist ?? []);
         await refreshTopIPs(range, nextStats);
         setTopIPRange(range);
         topIPRangeRef.current = range;
@@ -188,7 +212,7 @@ export default function SecurityManagement() {
       </div>
 
       {/* Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 rounded-lg">
         <div
           className={cn(
             "border p-4 cursor-pointer transition-colors rounded-lg",
@@ -228,6 +252,49 @@ export default function SecurityManagement() {
                 activeTab === 'stats' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
               )}>
                 {realtimeStats?.total || 0} {t.adminSecurity.requests}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "border p-4 cursor-pointer transition-colors rounded-lg",
+            activeTab === 'risk'
+              ? isLight
+                ? "bg-indigo-500 border-indigo-600"
+                : "bg-indigo-600 border-indigo-500"
+              : isLight
+              ? "bg-white border-gray-300 hover:bg-gray-50"
+              : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+          )}
+          onClick={() => setActiveTab('risk')}
+        >
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-12 h-12 flex items-center justify-center rounded-lg",
+              activeTab === 'risk'
+                ? "bg-white/20"
+                : isLight
+                ? "bg-indigo-500"
+                : "bg-indigo-600"
+            )}>
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className={cn(
+                "font-bold rounded-lg",
+                activeTab === 'risk' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
+              )}>
+                {t.adminSecurity.riskControl}
+              </h3>
+              <p className={cn(
+                "text-xs rounded-lg",
+                activeTab === 'risk' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
+              )}>
+                {riskConfig?.guardEnabled || riskConfig?.whitelistOnlyEnabled
+                  ? t.adminSecurity.enabled
+                  : t.adminSecurity.disabled}
               </p>
             </div>
           </div>
@@ -591,6 +658,19 @@ export default function SecurityManagement() {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'risk' && (
+              <div className={cn(
+                "border p-6 rounded-lg",
+                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              )}>
+                <RiskControlManagement
+                  config={riskConfig}
+                  whitelist={whitelist}
+                  onRefresh={handleRefresh}
+                />
               </div>
             )}
 

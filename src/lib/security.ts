@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AppError, ErrorType } from '@/types/errors';
 import { isIPBanned, getIPRateLimit, checkIPTotalLimit } from './ip-management';
 import { logAccess } from './access-tracking';
+import { evaluatePublicRiskControl, GUARD_RATE_LIMIT } from './risk-control';
 
 // 限流存储 (内存存储，生产环境建议使用Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -18,6 +19,14 @@ interface RateLimitConfig {
   windowMs: number; // 时间窗口（毫秒）
   maxRequests: number; // 最大请求数
   message?: string; // 限流消息
+}
+
+interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetTime: number;
+  reason?: string;
+  statusCode?: number;
 }
 
 /**
@@ -123,11 +132,23 @@ function cleanupExpiredEntries(): void {
   }
 }
 
+function chooseStricterRateLimit(base: RateLimitConfig, candidate: RateLimitConfig): RateLimitConfig {
+  const baseRate = base.maxRequests / base.windowMs;
+  const candidateRate = candidate.maxRequests / candidate.windowMs;
+  if (candidateRate < baseRate) {
+    return candidate;
+  }
+  if (candidateRate === baseRate && candidate.maxRequests < base.maxRequests) {
+    return candidate;
+  }
+  return base;
+}
+
 /**
  * API限流中间件 (支持自定义IP限制)
  */
-export function rateLimit(config: RateLimitConfig) {
-  return async (request: NextRequest): Promise<{ allowed: boolean; remaining: number; resetTime: number; reason?: string }> => {
+export function rateLimit(config: RateLimitConfig, options?: { enableRiskControl?: boolean }) {
+  return async (request: NextRequest): Promise<RateLimitResult> => {
     const clientIP = getClientIP(request);
 
     // 检查IP是否被封禁
@@ -152,13 +173,29 @@ export function rateLimit(config: RateLimitConfig) {
       };
     }
 
+    const riskControl = options?.enableRiskControl
+      ? await evaluatePublicRiskControl(clientIP)
+      : null;
+    if (riskControl?.whitelistOnlyBlocked) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: Date.now() + 60000,
+        reason: riskControl.reason || '当前处于白名单模式，仅白名单 IP 可以访问公开 API',
+        statusCode: 403
+      };
+    }
+
     // 获取IP的自定义速率限制
     const customLimit = await getIPRateLimit(clientIP);
-    const effectiveConfig = customLimit ? {
+    let effectiveConfig = customLimit ? {
       windowMs: customLimit.windowMs,
       maxRequests: customLimit.maxRequests,
       message: config.message
     } : config;
+    if (riskControl?.guardLimited) {
+      effectiveConfig = chooseStricterRateLimit(effectiveConfig, GUARD_RATE_LIMIT);
+    }
 
     const key = `${clientIP}:${request.nextUrl.pathname}`;
     const now = Date.now();
@@ -185,7 +222,7 @@ export function rateLimit(config: RateLimitConfig) {
         allowed: false,
         remaining: 0,
         resetTime: existing.resetTime,
-        reason: '请求过于频繁'
+        reason: effectiveConfig.message || '请求过于频繁'
       };
     }
 
@@ -391,17 +428,21 @@ export function withSecurity(options: {
           const config = typeof options.rateLimit === 'string'
             ? DEFAULT_RATE_LIMITS[options.rateLimit]
             : options.rateLimit;
+          const enableRiskControl = options.rateLimit === 'public';
 
-          const rateLimitResult = await rateLimit(config)(request);
+          const rateLimitResult = await rateLimit(config, { enableRiskControl })(request);
 
           if (!rateLimitResult.allowed) {
             // 记录被限流的访问
             if (options.enableAccessLog !== false) {
               const responseTime = Date.now() - startTime;
-              logAccess(clientIP, pathWithQuery, method, userAgent, 429, responseTime).catch(console.error);
+              logAccess(clientIP, pathWithQuery, method, userAgent, rateLimitResult.statusCode || 429, responseTime).catch(console.error);
             }
 
             const message = rateLimitResult.reason || config.message || '请求过于频繁';
+            if (rateLimitResult.statusCode === 403) {
+              return setSecurityHeaders(createSecurityBlockResponse(message, 403));
+            }
             const rateLimitResp = createRateLimitResponse(
               message,
               rateLimitResult.resetTime,
@@ -558,4 +599,26 @@ export function getRateLimitStats(): Array<{
  */
 export function clearRateLimitStore(): void {
   rateLimitStore.clear();
+}
+
+export function createSecurityBlockResponse(message: string, statusCode: number = 403): Response {
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: {
+        type: ErrorType.FORBIDDEN,
+        message,
+        timestamp: new Date()
+      }
+    }),
+    {
+      status: statusCode,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    }
+  );
 }

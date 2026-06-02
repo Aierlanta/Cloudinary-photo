@@ -107,6 +107,28 @@ export interface SwarmConfig {
   updatedAt: Date;
 }
 
+export interface SecurityConfig {
+  id: string;
+  guardEnabled: boolean;
+  guardAutoEnabled: boolean;
+  guardTriggerWindowMinutes: number;
+  guardTriggerUniqueIpThreshold: number;
+  whitelistOnlyEnabled: boolean;
+  guardTriggeredAt?: Date | null;
+  guardTriggeredReason?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IPWhitelistEntry {
+  id: string;
+  cidr: string;
+  note?: string | null;
+  isEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // 分页选项
 export interface PaginationOptions {
   page: number;
