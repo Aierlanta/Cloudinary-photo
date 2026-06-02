@@ -211,7 +211,6 @@ model IPWhitelistEntry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([cidr])
   @@index([isEnabled])
   @@map("ip_whitelist_entries")
 }

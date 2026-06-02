@@ -24,7 +24,6 @@ CREATE TABLE `ip_whitelist_entries` (
     `updatedAt` DATETIME(3) NOT NULL,
 
     UNIQUE INDEX `ip_whitelist_entries_cidr_key`(`cidr`),
-    INDEX `ip_whitelist_entries_cidr_idx`(`cidr`),
     INDEX `ip_whitelist_entries_isEnabled_idx`(`isEnabled`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

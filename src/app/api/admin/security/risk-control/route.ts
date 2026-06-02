@@ -4,6 +4,7 @@ import { withAdminAuth } from '@/lib/auth';
 import { withSecurity } from '@/lib/security';
 import { withErrorHandler } from '@/lib/error-handler';
 import { APIResponse } from '@/types/api';
+import { AppError, ErrorType } from '@/types/errors';
 import {
   createIPWhitelistEntry,
   deleteIPWhitelistEntry,
@@ -44,6 +45,24 @@ const WhitelistDeleteSchema = z.object({
   id: z.string().min(1)
 });
 
+function parseRequestBody<T>(schema: z.ZodSchema<T>, body: unknown): T {
+  const result = schema.safeParse(body);
+  if (result.success) {
+    return result.data;
+  }
+
+  const message = result.error.issues
+    .map((issue) => issue.message)
+    .filter(Boolean)
+    .join('; ') || '请求参数无效';
+  throw new AppError(
+    ErrorType.VALIDATION_ERROR,
+    message,
+    400,
+    { issues: result.error.issues }
+  );
+}
+
 async function getRiskControl(_request: NextRequest): Promise<Response> {
   const snapshot = await getRiskControlSnapshot(true);
   const response: APIResponse<{
@@ -59,7 +78,7 @@ async function getRiskControl(_request: NextRequest): Promise<Response> {
 
 async function putRiskControl(request: NextRequest): Promise<Response> {
   const body = await request.json();
-  const data = SecurityConfigUpdateSchema.parse(body);
+  const data = parseRequestBody(SecurityConfigUpdateSchema, body);
   const config = await updateSecurityConfig(data);
   const response: APIResponse<{ config: SecurityConfig }> = {
     success: true,
@@ -71,7 +90,7 @@ async function putRiskControl(request: NextRequest): Promise<Response> {
 
 async function postWhitelistEntry(request: NextRequest): Promise<Response> {
   const body = await request.json();
-  const data = WhitelistCreateSchema.parse(body);
+  const data = parseRequestBody(WhitelistCreateSchema, body);
   const entry = await createIPWhitelistEntry(data);
   const response: APIResponse<{ entry: IPWhitelistEntry }> = {
     success: true,
@@ -83,7 +102,7 @@ async function postWhitelistEntry(request: NextRequest): Promise<Response> {
 
 async function patchWhitelistEntry(request: NextRequest): Promise<Response> {
   const body = await request.json();
-  const data = WhitelistUpdateSchema.parse(body);
+  const data = parseRequestBody(WhitelistUpdateSchema, body);
   const entry = await updateIPWhitelistEntry(data);
   const response: APIResponse<{ entry: IPWhitelistEntry }> = {
     success: true,
@@ -95,7 +114,7 @@ async function patchWhitelistEntry(request: NextRequest): Promise<Response> {
 
 async function deleteWhitelistEntry(request: NextRequest): Promise<Response> {
   const body = await request.json();
-  const data = WhitelistDeleteSchema.parse(body);
+  const data = parseRequestBody(WhitelistDeleteSchema, body);
   await deleteIPWhitelistEntry(data.id);
   const response: APIResponse<{ id: string }> = {
     success: true,

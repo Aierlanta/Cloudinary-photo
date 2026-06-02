@@ -108,15 +108,10 @@ export function isIPWhitelisted(ip: string, whitelist: Pick<IPWhitelistEntry, 'c
 }
 
 export async function getOrCreateSecurityConfig(): Promise<SecurityConfig> {
-  const config = await prisma.securityConfig.findUnique({
-    where: { id: SECURITY_CONFIG_ID }
-  });
-  if (config) {
-    return normalizeSecurityConfig(config);
-  }
-
-  const created = await prisma.securityConfig.create({
-    data: {
+  const config = await prisma.securityConfig.upsert({
+    where: { id: SECURITY_CONFIG_ID },
+    update: {},
+    create: {
       id: SECURITY_CONFIG_ID,
       guardEnabled: false,
       guardAutoEnabled: false,
@@ -125,7 +120,7 @@ export async function getOrCreateSecurityConfig(): Promise<SecurityConfig> {
       whitelistOnlyEnabled: false
     }
   });
-  return normalizeSecurityConfig(created);
+  return normalizeSecurityConfig(config);
 }
 
 export async function updateSecurityConfig(input: Partial<Pick<

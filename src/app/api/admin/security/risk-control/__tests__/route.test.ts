@@ -34,9 +34,43 @@ jest.mock('@/lib/security', () => ({
   withSecurity: () => (handler: any) => handler
 }));
 
-jest.mock('@/lib/error-handler', () => ({
-  withErrorHandler: (handler: any) => handler
-}));
+jest.mock('@/lib/error-handler', () => {
+  class JsonResponse {
+    status: number;
+    headers: Map<string, string>;
+    private body: string;
+
+    constructor(body: string, init?: { status?: number; headers?: Record<string, string> }) {
+      this.status = init?.status ?? 200;
+      this.headers = new Map(Object.entries(init?.headers || {}));
+      this.body = body;
+    }
+
+    async json() {
+      return JSON.parse(this.body);
+    }
+  }
+
+  return {
+    withErrorHandler: (handler: any) => async (...args: any[]) => {
+      try {
+        return await handler(...args);
+      } catch (error: any) {
+        return new JsonResponse(JSON.stringify({
+          success: false,
+          error: {
+            type: error?.type,
+            message: error?.message,
+            timestamp: new Date()
+          }
+        }), {
+          status: error?.statusCode ?? 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+  };
+});
 
 jest.mock('@/lib/risk-control', () => ({
   getRiskControlSnapshot: jest.fn(),
@@ -127,6 +161,18 @@ describe('/api/admin/security/risk-control', () => {
     }));
   });
 
+  it('PUT 参数非法时应返回 400', async () => {
+    const response = await PUT(createRequest({
+      guardTriggerWindowMinutes: 0
+    }));
+    const json = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(json.success).toBe(false);
+    expect(json.error.type).toBe('VALIDATION_ERROR');
+    expect(updateSecurityConfig).not.toHaveBeenCalled();
+  });
+
   it('POST 应新增白名单条目', async () => {
     const response = await POST(createRequest({
       cidr: '203.0.113.0/24',
@@ -140,6 +186,18 @@ describe('/api/admin/security/risk-control', () => {
       note: 'office',
       isEnabled: true
     });
+  });
+
+  it('POST 参数非法时应返回 400', async () => {
+    const response = await POST(createRequest({
+      note: 'missing cidr'
+    }));
+    const json = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(json.success).toBe(false);
+    expect(json.error.type).toBe('VALIDATION_ERROR');
+    expect(createIPWhitelistEntry).not.toHaveBeenCalled();
   });
 
   it('PATCH 应更新白名单条目', async () => {

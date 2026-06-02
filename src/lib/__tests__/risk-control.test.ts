@@ -1,18 +1,20 @@
 import {
   clearRiskControlCache,
   evaluatePublicRiskControl,
+  getOrCreateSecurityConfig,
   isIPInCidr,
   validateWhitelistCidr
 } from '../risk-control';
 import { prisma } from '../prisma';
 
 jest.mock('../prisma', () => ({
-  prisma: {
-    securityConfig: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn()
-    },
+    prisma: {
+      securityConfig: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        upsert: jest.fn(),
+        update: jest.fn()
+      },
     iPWhitelistEntry: {
       findMany: jest.fn(),
       create: jest.fn(),
@@ -32,7 +34,7 @@ describe('risk-control', () => {
     jest.clearAllMocks();
     clearRiskControlCache();
     mockPrisma.iPWhitelistEntry.findMany.mockResolvedValue([]);
-    mockPrisma.securityConfig.findUnique.mockResolvedValue({
+    mockPrisma.securityConfig.upsert.mockResolvedValue({
       id: 'default',
       guardEnabled: false,
       guardAutoEnabled: false,
@@ -58,8 +60,26 @@ describe('risk-control', () => {
     expect(() => validateWhitelistCidr('')).toThrow('白名单 IP/CIDR 不能为空');
   });
 
+  it('默认风控配置应通过 upsert 原子创建或读取', async () => {
+    const config = await getOrCreateSecurityConfig();
+
+    expect(mockPrisma.securityConfig.upsert).toHaveBeenCalledWith({
+      where: { id: 'default' },
+      update: {},
+      create: expect.objectContaining({
+        id: 'default',
+        guardEnabled: false,
+        guardAutoEnabled: false,
+        guardTriggerWindowMinutes: 5,
+        guardTriggerUniqueIpThreshold: 50,
+        whitelistOnlyEnabled: false
+      })
+    });
+    expect(config.id).toBe('default');
+  });
+
   it('白名单模式应阻止非白名单 IP', async () => {
-    mockPrisma.securityConfig.findUnique.mockResolvedValue({
+    mockPrisma.securityConfig.upsert.mockResolvedValue({
       id: 'default',
       guardEnabled: false,
       guardAutoEnabled: false,
@@ -79,7 +99,7 @@ describe('risk-control', () => {
   });
 
   it('白名单 IP 应豁免白名单模式和警戒限流', async () => {
-    mockPrisma.securityConfig.findUnique.mockResolvedValue({
+    mockPrisma.securityConfig.upsert.mockResolvedValue({
       id: 'default',
       guardEnabled: true,
       guardAutoEnabled: false,
@@ -110,7 +130,7 @@ describe('risk-control', () => {
   });
 
   it('自动警戒达到阈值时应开启警戒状态', async () => {
-    mockPrisma.securityConfig.findUnique.mockResolvedValue({
+    mockPrisma.securityConfig.upsert.mockResolvedValue({
       id: 'default',
       guardEnabled: false,
       guardAutoEnabled: true,
