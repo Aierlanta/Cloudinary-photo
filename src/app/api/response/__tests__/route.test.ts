@@ -282,7 +282,11 @@ describe('/api/response', () => {
 
         // 等待预取完成后再进入下一轮，确保后台任务结束
         if (typeof waitPrefetch === 'function') {
-          await waitPrefetch('all', 1000);
+          const getPrefetchKeys = (globalThis as any).__getPrefetchKeysForTests;
+          const key = typeof getPrefetchKeys === 'function' ? getPrefetchKeys()[0] : undefined;
+          if (key) {
+            await waitPrefetch(key, 1000);
+          }
         }
 
         expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith(`test_image_${i}`);
@@ -296,13 +300,91 @@ describe('/api/response', () => {
       const r1 = await GET(createMockRequest(url));
       expect(r1.headers.get('X-Transfer-Mode')).toBe('buffered');
       const waitPrefetch = (globalThis as any).__waitForPrefetchForTests;
+      const getPrefetchKeys = (globalThis as any).__getPrefetchKeysForTests;
       if (typeof waitPrefetch === 'function') {
-        await waitPrefetch('all', 1000);
+        const key = typeof getPrefetchKeys === 'function' ? getPrefetchKeys()[0] : undefined;
+        if (key) {
+          await waitPrefetch(key, 1000);
+        }
       } else {
         await new Promise((r) => setTimeout(r, 30));
       }
       const r2 = await GET(createMockRequest(url));
       expect(r2.headers.get('X-Transfer-Mode')).toBe('prefetch');
+    });
+
+    it('10 分钟间隔内再次请求普通随机条件仍应命中预取缓存', async () => {
+      const url = 'http://localhost:3000/api/response';
+      const baseNow = Date.now();
+      const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(baseNow);
+
+      try {
+        const r1 = await GET(createMockRequest(url));
+        expect(r1.headers.get('X-Transfer-Mode')).toBe('buffered');
+      } finally {
+        nowSpy.mockRestore();
+      }
+
+      const waitPrefetch = (globalThis as any).__waitForPrefetchForTests;
+      const getPrefetchKeys = (globalThis as any).__getPrefetchKeysForTests;
+      const key = typeof getPrefetchKeys === 'function' ? getPrefetchKeys()[0] : undefined;
+      expect(key).toBeTruthy();
+      if (typeof waitPrefetch === 'function' && key) {
+        await waitPrefetch(key, 1000);
+      }
+
+      const laterSpy = jest.spyOn(Date, 'now').mockReturnValue(baseNow + 10 * 60 * 1000);
+      try {
+        const r2 = await GET(createMockRequest(url));
+        expect(r2.headers.get('X-Transfer-Mode')).toBe('prefetch');
+      } finally {
+        laterSpy.mockRestore();
+      }
+    });
+
+    it('滚动窗口 30m 的预取 TTL 应短于默认 1200s', async () => {
+      const img = {
+        id: 'img_rolling_30m',
+        publicId: 'rolling_30m',
+        url: 'https://res.cloudinary.com/test/image/upload/rolling_30m.jpg',
+        groupId: null,
+        uploadedAt: new Date()
+      };
+      (mockDatabaseService as any).selectRandomImages = jest.fn().mockResolvedValue({
+        images: [img],
+        queryCount: 3,
+        candidateCount: 12
+      });
+      mockDatabaseService.getAPIConfig.mockResolvedValue({
+        id: 'default',
+        isEnabled: true,
+        enableDirectResponse: true,
+        defaultScope: 'all',
+        defaultGroups: [],
+        allowedParameters: [],
+        selectionParams: {
+          timeWeighting: {
+            enabled: true
+          }
+        },
+        updatedAt: new Date()
+      });
+
+      const baseNow = Date.UTC(2026, 0, 1, 0, 0, 0);
+      const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(baseNow);
+      try {
+        const response = await GET(createMockRequest('http://localhost:3000/api/response?timeWindow=30m&timeWeight=5'));
+        expect(response.status).toBe(200);
+
+        const getPrefetchKeys = (globalThis as any).__getPrefetchKeysForTests;
+        const getPrefetchState = (globalThis as any).__getPrefetchStateForTests;
+        const key = getPrefetchKeys().find((item: string) => item.includes('rolling:30m:weight:5'));
+        expect(key).toContain('bucket:18000');
+        const state = getPrefetchState(key);
+        expect(state.expiresAt - baseNow).toBe(180_000);
+      } finally {
+        nowSpy.mockRestore();
+      }
     });
 
     it('应清理过期预取槽位并限制最大槽位数量', () => {
@@ -482,10 +564,11 @@ describe('/api/response', () => {
 
       const getPrefetchKeys = (globalThis as any).__getPrefetchKeysForTests;
       const timeWeighting = selectRandomImages.mock.calls[0][0].timeWeighting;
-      const toSecond = (date: Date) => new Date(Math.floor(date.getTime() / 1000) * 1000).toISOString();
-      expect(getPrefetchKeys()).toContain(
-        `timeWeighting:rolling:7d:weight:3:window:${toSecond(timeWeighting.start)}:${toSecond(timeWeighting.end)}`
-      );
+      const bucketStart = new Date(Math.floor(timeWeighting.end.getTime() / 60000) * 60000).toISOString();
+      expect(getPrefetchKeys().some((key: string) => (
+        key.includes(`timeWeighting:rolling:7d:weight:3:bucket:60000:${bucketStart}`) &&
+        key.includes('output:format:origin')
+      ))).toBe(true);
     });
 
     it('时间窗口加权未启用时应返回 400', async () => {

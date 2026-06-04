@@ -21,6 +21,11 @@ import {
 import { createRemoteOwnerRedirect } from '@/lib/swarm-node';
 import { attachPerfHeadersToResponse, createRequestMetrics } from '@/lib/perf';
 import type { RequestMetrics } from '@/lib/perf';
+import {
+  buildFinalResponseCacheKey,
+  finalResponseCache,
+  type ResponseOutputVariant
+} from '@/lib/response-cache';
 
 const cloudinaryService = CloudinaryService.getInstance();
 
@@ -357,6 +362,46 @@ export async function serveRandomResponse(
     }
   }
 
+  const outputVariant: ResponseOutputVariant = {
+    format: requestedFormat,
+    quality: requestedQuality,
+    transparency: transparencyOptions,
+    width: targetWidth,
+    height: targetHeight,
+    fit: resizeFit
+  };
+  const finalCacheKey = buildFinalResponseCacheKey(image as any, outputVariant);
+  const cacheControl = buildManagedCacheControl(image, requestPath);
+  const cached = finalResponseCache.get(finalCacheKey);
+  if (cached) {
+    metrics.setMeta('mode', 'final-cache');
+    logger.apiResponse('GET', requestPath, 200, Math.round(metrics.finish().totalMs), {
+      imageId: image.id,
+      imageSize: cached.size,
+      mimeType: cached.mimeType,
+      cache: 'final-hit'
+    });
+
+    const response = new NextResponse(new Uint8Array(cached.buffer), {
+      status: 200,
+      headers: {
+        'Content-Type': cached.mimeType,
+        'Content-Length': cached.size.toString(),
+        'Cache-Control': cacheControl,
+        ...(cacheControl.includes('no-store')
+          ? {
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          : {}),
+        'X-Image-Id': image.id,
+        'X-Image-PublicId': image.publicId,
+        'X-Transfer-Mode': 'final-cache'
+      }
+    });
+    return attachPerfHeadersToResponse(response, metrics);
+  }
+
   let imageUrl = image.url.replace(/^http:/, 'https:');
   imageUrl = convertTgStateToProxyUrl(imageUrl);
 
@@ -487,6 +532,15 @@ export async function serveRandomResponse(
       ? 'transform'
       : 'buffer';
   metrics.setMeta('mode', responseMode);
+  finalResponseCache.set(finalCacheKey, {
+    buffer: finalBuffer,
+    mimeType: finalMimeType,
+    size,
+    imageId: image.id,
+    publicId: image.publicId,
+    ownerNodeId: image.ownerNodeId,
+    createdAt: Date.now()
+  });
 
   logger.apiResponse('GET', requestPath, 200, Math.round(metrics.finish().totalMs), {
     imageId: image.id,
@@ -497,7 +551,6 @@ export async function serveRandomResponse(
     outputQuality: requestedQuality ?? 'original'
   });
 
-  const cacheControl = buildManagedCacheControl(image, requestPath);
   const response = new NextResponse(new Uint8Array(finalBuffer), {
     status: 200,
     headers: {

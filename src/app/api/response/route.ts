@@ -13,17 +13,26 @@ import { AppError, ErrorType } from '@/types/errors';
 import {
   adjustImageTransparency,
   parseTransparencyParams,
-  convertImageOutput
+  convertImageOutput,
+  resizeImage,
+  type ResizeFit,
+  type TransparencyOptions
 } from '@/lib/image-processor';
 import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
 import type { Image } from '@/types/models';
 import { validateManagedResponseParams } from '@/lib/response-params';
 import {
-  getTimeWeightingCacheKey,
   parseSelectionParams,
   type TimeWeightingOptions
 } from '@/lib/selection-params';
+import {
+  buildRandomPrefetchCacheKey,
+  getRandomPrefetchTtlMs,
+  randomPrefetchCache,
+  type CachedImageResponse,
+  type ResponseOutputVariant
+} from '@/lib/response-cache';
 import {
   buildRemoteOwnerResolve,
   getExplicitlyOfflineNodeIds,
@@ -34,19 +43,76 @@ import {
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 const cloudinaryService = CloudinaryService.getInstance();
+const MAX_RESIZE_DIMENSION = 3000;
 
-// ---------------- 预缓存（内存）实现 ----------------
-// 以参数筛选结果为维度的单槽预取缓存：同一筛选条件维持一个“下一张”的缓冲
-// key 规则：无筛选时使用 'all'；否则拼接 providers/groups 的排序结果
-interface PrefetchedItem {
-  buffer: Buffer;
-  mimeType: string;
-  size: number;
-  imageId: string;
-  publicId: string;
-  url: string;
-  ownerNodeId?: string;
-  createdAt: number;
+interface ResponseResizeOptions {
+  width?: number;
+  height?: number;
+  fit?: ResizeFit;
+}
+
+interface ResponseProcessingOptions {
+  transparencyOptions: TransparencyOptions | null;
+  requestedFormat?: 'jpeg' | 'webp';
+  requestedQuality?: number;
+  resizeOptions: ResponseResizeOptions;
+}
+
+function parseDimension(raw: string | undefined, name: string): number | undefined {
+  if (typeof raw === 'undefined' || raw === '') return undefined;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0 || value > MAX_RESIZE_DIMENSION) {
+    throw new AppError(
+      ErrorType.VALIDATION_ERROR,
+      `${name} 必须在 1-${MAX_RESIZE_DIMENSION} 之间`,
+      400
+    );
+  }
+  return Math.round(value);
+}
+
+function parseFit(raw?: string): ResizeFit | undefined {
+  if (!raw) return undefined;
+  const normalized = raw.toLowerCase();
+  if (normalized === 'cover' || normalized === 'contain') {
+    return normalized;
+  }
+  throw new AppError(ErrorType.VALIDATION_ERROR, 'fit 仅支持 cover 或 contain', 400);
+}
+
+function parseResizeOptions(queryParams: Record<string, string>): ResponseResizeOptions {
+  const resizeOptions = {
+    width: parseDimension(queryParams.width, 'width'),
+    height: parseDimension(queryParams.height, 'height'),
+    fit: parseFit(queryParams.fit)
+  };
+
+  if (resizeOptions.fit && !resizeOptions.width && !resizeOptions.height) {
+    throw new AppError(ErrorType.VALIDATION_ERROR, '指定 fit 时需提供 width 或 height', 400);
+  }
+
+  return resizeOptions;
+}
+
+function buildOutputVariant(options: ResponseProcessingOptions): ResponseOutputVariant {
+  return {
+    format: options.requestedFormat,
+    quality: options.requestedQuality,
+    transparency: options.transparencyOptions,
+    width: options.resizeOptions.width,
+    height: options.resizeOptions.height,
+    fit: options.resizeOptions.fit
+  };
+}
+
+function hasOutputTransform(options: ResponseProcessingOptions): boolean {
+  return Boolean(
+    options.transparencyOptions ||
+    options.requestedFormat ||
+    typeof options.requestedQuality !== 'undefined' ||
+    options.resizeOptions.width ||
+    options.resizeOptions.height
+  );
 }
 
 /**
@@ -84,111 +150,6 @@ function isCloudinaryUrl(urlStr: string): boolean {
   } catch {
     return false;
   }
-}
-
-// 仅用于日志/错误详情：对 Telegram bot token 做脱敏（不影响实际请求/响应）
-interface PrefetchSlot {
-  item?: PrefetchedItem;
-  inflight?: Promise<void>;
-  expiresAt?: number;
-}
-
-function parsePositiveIntegerEnv(raw: string | undefined, fallback: number): number {
-  const parsed = Number(raw);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-const PREFETCH_TTL_MS = parsePositiveIntegerEnv(process.env.RESPONSE_PREFETCH_TTL_MS, 120000); // 预取缓存TTL（毫秒），默认2分钟
-const PREFETCH_MAX_SLOTS = parsePositiveIntegerEnv(process.env.RESPONSE_PREFETCH_MAX_SLOTS, 128);
-const prefetchCache = new Map<string, PrefetchSlot>();
-
-function toSecondPrecisionISOString(date: Date): string {
-  return new Date(Math.floor(date.getTime() / 1000) * 1000).toISOString();
-}
-
-function buildTimeWeightingFilterKey(timeWeighting?: TimeWeightingOptions): string | undefined {
-  const timeWeightingKey = getTimeWeightingCacheKey(timeWeighting);
-  if (!timeWeightingKey) {
-    return undefined;
-  }
-
-  if (timeWeighting?.source === 'rolling') {
-    return [
-      timeWeightingKey,
-      'window',
-      toSecondPrecisionISOString(timeWeighting.start),
-      toSecondPrecisionISOString(timeWeighting.end)
-    ].join(':');
-  }
-
-  return timeWeightingKey;
-}
-
-function buildFilterKey(groupIds: string[], providers: string[], timeWeighting?: TimeWeightingOptions): string {
-  const parts: string[] = [];
-  const uniqueProviders = Array.from(new Set((providers || []).filter(Boolean))).sort();
-  const uniqueGroups = Array.from(new Set((groupIds || []).filter(Boolean))).sort();
-  const timeWeightingKey = buildTimeWeightingFilterKey(timeWeighting);
-
-  if (uniqueProviders.length > 0) {
-    parts.push(`providers:${uniqueProviders.join(',')}`);
-  }
-  if (uniqueGroups.length > 0) {
-    parts.push(`groups:${uniqueGroups.join(',')}`);
-  }
-  if (timeWeightingKey) {
-    parts.push(`timeWeighting:${timeWeightingKey}`);
-  }
-
-  if (parts.length === 0) return 'all';
-  return parts.join('|');
-}
-
-function pruneExpiredPrefetchSlots(now: number = Date.now()): void {
-  for (const [key, slot] of prefetchCache.entries()) {
-    if (slot.inflight) {
-      continue;
-    }
-
-    if (!slot.item || (slot.expiresAt && slot.expiresAt <= now)) {
-      prefetchCache.delete(key);
-    }
-  }
-}
-
-function enforcePrefetchCacheLimit(now: number = Date.now()): void {
-  pruneExpiredPrefetchSlots(now);
-  if (prefetchCache.size <= PREFETCH_MAX_SLOTS) {
-    return;
-  }
-
-  const removable = Array.from(prefetchCache.entries())
-    .filter(([, slot]) => !slot.inflight)
-    .sort(([, left], [, right]) => (left.expiresAt ?? 0) - (right.expiresAt ?? 0));
-
-  for (const [key] of removable) {
-    if (prefetchCache.size <= PREFETCH_MAX_SLOTS) {
-      break;
-    }
-    prefetchCache.delete(key);
-  }
-}
-
-function takePrefetched(key: string): PrefetchedItem | undefined {
-  pruneExpiredPrefetchSlots();
-
-  const slot = prefetchCache.get(key);
-  if (!slot) return undefined;
-
-  if (slot.expiresAt && slot.expiresAt <= Date.now()) {
-    prefetchCache.delete(key);
-    return undefined;
-  }
-  if (!slot.item) return undefined;
-  const item = slot.item;
-  // 单槽语义：消费即置空
-  slot.item = undefined;
-  return item;
 }
 
 function copyOwnerResponseHeaders(ownerHeaders: Headers): Headers {
@@ -445,53 +406,92 @@ async function downloadImageWithCandidates(
   );
 }
 
+async function buildFinalResponsePayload(
+  image: Image,
+  request: NextRequest | undefined,
+  options: ResponseProcessingOptions
+): Promise<CachedImageResponse & { via: string; usedUrl: string }> {
+  const baseMimeType = getMimeTypeFromUrl(image.url);
+  const downloaded = await downloadImageWithCandidates(image, request, baseMimeType);
+
+  let finalBuffer = downloaded.buffer;
+  let finalMimeType = downloaded.mimeType;
+
+  if (options.transparencyOptions) {
+    const processed = await adjustImageTransparency(finalBuffer, options.transparencyOptions);
+    finalBuffer = processed.buffer;
+    finalMimeType = processed.mimeType;
+  }
+
+  if (options.resizeOptions.width || options.resizeOptions.height) {
+    const resized = await resizeImage(finalBuffer, {
+      width: options.resizeOptions.width,
+      height: options.resizeOptions.height,
+      fit: options.resizeOptions.fit
+    });
+    finalBuffer = resized.buffer;
+    finalMimeType = resized.mimeType ?? finalMimeType;
+  }
+
+  const needsManagedConversion = options.requestedFormat || typeof options.requestedQuality !== 'undefined';
+  if (needsManagedConversion) {
+    const converted = await convertImageOutput(finalBuffer, {
+      format: options.requestedFormat ?? (normalizeMimeType(finalMimeType, 'image/jpeg').includes('webp') ? 'webp' : 'jpeg'),
+      quality: options.requestedQuality
+    });
+    finalBuffer = converted.buffer;
+    finalMimeType = converted.mimeType;
+  }
+
+  return {
+    buffer: finalBuffer,
+    mimeType: finalMimeType,
+    size: finalBuffer.length,
+    imageId: image.id,
+    publicId: image.publicId,
+    ownerNodeId: image.ownerNodeId,
+    createdAt: Date.now(),
+    via: downloaded.reason,
+    usedUrl: downloaded.usedUrl
+  };
+}
+
 async function prefetchNext(
   key: string,
   groupIds: string[],
   providers: string[],
+  processingOptions: ResponseProcessingOptions,
   timeWeighting?: TimeWeightingOptions,
   request?: NextRequest
 ): Promise<void> {
-  pruneExpiredPrefetchSlots();
-
-  // 已有进行中的预取则复用
-  const existing = prefetchCache.get(key);
-  if (existing?.inflight) return existing.inflight;
+  const ttlMs = getRandomPrefetchTtlMs(timeWeighting);
+  const existingInflight = randomPrefetchCache.getInflight(key);
+  if (existingInflight) return existingInflight;
 
   const inflight = (async () => {
     try {
-      // 选择下一张随机图片（与当前筛选条件一致）
-      const img = await getRandomImageFromGroupsAndProviders(groupIds, providers, timeWeighting);
-      if (!img) return; // 无可用图片，跳过
-      if (!isImageOwnedByCurrentNode(img, request)) return; // 远端图片由所属节点交付，避免本节点预取暴露来源
-      const baseMimeType = getMimeTypeFromUrl(img.url);
-      const downloaded = await downloadImageWithCandidates(img, request, baseMimeType);
-      const size = downloaded.buffer.length;
+      let attempts = 0;
+      const maxAttempts = Math.max(randomPrefetchCache.getPerKey() * 3, 3);
 
-      prefetchCache.set(key, {
-        item: {
-          buffer: downloaded.buffer,
-          mimeType: downloaded.mimeType,
-          size,
+      while (randomPrefetchCache.getItemCount(key) < randomPrefetchCache.getPerKey() && attempts < maxAttempts) {
+        attempts += 1;
+        const img = await getRandomImageFromGroupsAndProviders(groupIds, providers, timeWeighting);
+        if (!img) return;
+        if (!isImageOwnedByCurrentNode(img, request)) continue;
+
+        const payload = await buildFinalResponsePayload(img, request, processingOptions);
+        randomPrefetchCache.enqueue(key, payload, ttlMs);
+
+        logger.info('预取完成', {
+          type: 'api_prefetch',
+          key,
           imageId: img.id,
-          publicId: img.publicId,
-          url: img.url,
-          ownerNodeId: img.ownerNodeId,
-          createdAt: Date.now()
-        },
-        inflight: undefined,
-        expiresAt: Date.now() + PREFETCH_TTL_MS
-      });
-      enforcePrefetchCacheLimit();
-
-      logger.info('预取完成', {
-        type: 'api_prefetch',
-        key,
-        imageId: img.id,
-        size,
-        via: downloaded.reason,
-        url: redactTelegramBotTokenInUrl(downloaded.usedUrl)
-      });
+          size: payload.size,
+          ttlMs,
+          via: payload.via,
+          url: redactTelegramBotTokenInUrl(payload.usedUrl)
+        });
+      }
     } catch (err) {
       // 失败不影响主流程
       logger.warn('预取失败', {
@@ -501,31 +501,30 @@ async function prefetchNext(
         status: err instanceof AppError ? err.statusCode : undefined
       });
     } finally {
-      const s = prefetchCache.get(key);
-      if (s) s.inflight = undefined;
+      randomPrefetchCache.clearInflight(key);
     }
   })();
 
-  prefetchCache.set(key, { ...(existing || {}), inflight, expiresAt: Date.now() + PREFETCH_TTL_MS });
-  enforcePrefetchCacheLimit();
-  await inflight; // 注意：调用方通常不 await；这里确保返回的是相同Promise
+  randomPrefetchCache.setInflight(key, inflight, ttlMs);
+  await inflight;
 }
 
 // 测试辅助：重置预取缓存（仅测试调用）
 function resetPrefetchCacheForTests() {
-  prefetchCache.clear();
+  randomPrefetchCache.reset();
 }
 
 // 测试辅助：等待指定 key 的预取完成（仅测试调用）
 async function waitForPrefetchForTests(key: string, timeoutMs: number = 500): Promise<void> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const slot = prefetchCache.get(key);
-    if (slot?.item) return;
+  const start = performance.now();
+  while (performance.now() - start < timeoutMs) {
+    const state = randomPrefetchCache.getState(key);
+    if (state.itemCount > 0 && !state.hasInflight) return;
 
-    if (slot?.inflight) {
+    const inflight = randomPrefetchCache.getInflight(key);
+    if (inflight) {
       try {
-        await slot.inflight;
+        await inflight;
       } catch {
         // ignore
       }
@@ -536,48 +535,41 @@ async function waitForPrefetchForTests(key: string, timeoutMs: number = 500): Pr
 }
 
 function getPrefetchKeysForTests(): string[] {
-  pruneExpiredPrefetchSlots();
-  return Array.from(prefetchCache.keys());
+  return randomPrefetchCache.keys();
 }
 
 function getPrefetchStateForTests(key: string): {
   hasSlot: boolean;
   hasItem: boolean;
+  itemCount: number;
   hasInflight: boolean;
   expiresAt?: number;
 } {
-  const slot = prefetchCache.get(key);
-  return {
-    hasSlot: !!slot,
-    hasItem: !!slot?.item,
-    hasInflight: !!slot?.inflight,
-    expiresAt: slot?.expiresAt,
-  };
+  return randomPrefetchCache.getState(key);
 }
 
 function setPrefetchSlotForTests(key: string, expiresAt: number, hasItem: boolean = true) {
-  prefetchCache.set(key, {
-    item: hasItem
+  randomPrefetchCache.setSlotForTests(
+    key,
+    expiresAt,
+    hasItem
       ? {
           buffer: Buffer.from('test'),
           mimeType: 'image/jpeg',
           size: 4,
           imageId: key,
           publicId: key,
-          url: 'https://example.com/test.jpg',
           createdAt: Date.now()
         }
-      : undefined,
-    expiresAt
-  });
-  enforcePrefetchCacheLimit();
+      : undefined
+  );
 }
 
 if (process.env.NODE_ENV === 'test') {
   (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[] }).__resetPrefetchCacheForTests = resetPrefetchCacheForTests;
   (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[] }).__waitForPrefetchForTests = waitForPrefetchForTests;
-  (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[]; __getPrefetchStateForTests?: (key: string) => { hasSlot: boolean; hasItem: boolean; hasInflight: boolean; expiresAt?: number } }).__getPrefetchKeysForTests = getPrefetchKeysForTests;
-  (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[]; __getPrefetchStateForTests?: (key: string) => { hasSlot: boolean; hasItem: boolean; hasInflight: boolean; expiresAt?: number } }).__getPrefetchStateForTests = getPrefetchStateForTests;
+  (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[]; __getPrefetchStateForTests?: (key: string) => { hasSlot: boolean; hasItem: boolean; itemCount: number; hasInflight: boolean; expiresAt?: number } }).__getPrefetchKeysForTests = getPrefetchKeysForTests;
+  (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[]; __getPrefetchStateForTests?: (key: string) => { hasSlot: boolean; hasItem: boolean; itemCount: number; hasInflight: boolean; expiresAt?: number } }).__getPrefetchStateForTests = getPrefetchStateForTests;
   (globalThis as { __setPrefetchSlotForTests?: (key: string, expiresAt: number, hasItem?: boolean) => void }).__setPrefetchSlotForTests = setPrefetchSlotForTests;
 }
 
@@ -705,6 +697,14 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
 
     const { requestedFormat, requestedQuality } = validateManagedResponseParams(queryParams, apiConfig);
     const selectionParams = parseSelectionParams(queryParams, apiConfig);
+    const resizeOptions = parseResizeOptions(queryParams);
+    const processingOptions: ResponseProcessingOptions = {
+      transparencyOptions,
+      requestedFormat,
+      requestedQuality,
+      resizeOptions
+    };
+    const outputVariant = buildOutputVariant(processingOptions);
 
     // 验证和解析参数（复用现有逻辑）
     const { allowedGroupIds, allowedProviders, hasInvalidParams } = await validateAndParseParams(
@@ -738,10 +738,14 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
-    // 预取命中优先：若存在相同筛选条件的预取结果，直接返回并异步预取下一张
-    // 透明度处理会在预取的原始图片上完成，避免重复拉取源图
-    const cacheKey = buildFilterKey(targetGroupIds, allowedProviders, selectionParams.timeWeighting);
-    const prefetched = takePrefetched(cacheKey);
+    // 预取命中优先：队列项已经完成输出处理，命中后直接消费并异步补齐
+    const cacheKey = buildRandomPrefetchCacheKey({
+      groupIds: targetGroupIds,
+      providers: allowedProviders,
+      timeWeighting: selectionParams.timeWeighting,
+      output: outputVariant
+    });
+    const prefetched = randomPrefetchCache.take(cacheKey);
     if (prefetched) {
       const ownerProxyResponse = await proxyRemoteOwnerResponse(request, {
         id: prefetched.imageId,
@@ -753,56 +757,35 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         return ownerProxyResponse;
       }
 
-      let finalBuffer = prefetched.buffer;
-      let finalMimeType = prefetched.mimeType;
-
-      if (transparencyOptions) {
-        const processed = await adjustImageTransparency(prefetched.buffer, transparencyOptions);
-        finalBuffer = processed.buffer;
-        finalMimeType = processed.mimeType;
-      }
-
-      const needsManagedConversion = requestedFormat || typeof requestedQuality !== 'undefined';
-      if (needsManagedConversion) {
-        const converted = await convertImageOutput(finalBuffer, {
-          format: requestedFormat ?? (normalizeMimeType(finalMimeType, 'image/jpeg').includes('webp') ? 'webp' : 'jpeg'),
-          quality: requestedQuality
-        });
-        finalBuffer = converted.buffer;
-        finalMimeType = converted.mimeType;
-      }
-
-      const finalSize = finalBuffer.length;
       const duration = Math.round(performance.now() - startTime);
 
       logger.info('预取命中，直接返回', {
         type: 'api_prefetch',
         key: cacheKey,
         imageId: prefetched.imageId,
-        size: finalSize,
-        transparency: transparencyOptions ? 'processed' : 'original'
+        size: prefetched.size,
+        outputTransform: hasOutputTransform(processingOptions)
       });
 
-      // 异步预取下一张（不阻塞响应）
-      prefetchNext(cacheKey, targetGroupIds, allowedProviders, selectionParams.timeWeighting, request).catch(() => {});
+      prefetchNext(cacheKey, targetGroupIds, allowedProviders, processingOptions, selectionParams.timeWeighting, request).catch(() => {});
 
-      return new NextResponse(bufferToStream(finalBuffer), {
+      return new NextResponse(bufferToStream(prefetched.buffer), {
         status: 200,
         headers: {
-          'Content-Type': finalMimeType,
-          'Content-Length': finalSize.toString(),
+          'Content-Type': prefetched.mimeType,
+          'Content-Length': prefetched.size.toString(),
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'X-Image-Id': prefetched.imageId,
-        'X-Image-PublicId': prefetched.publicId,
-        'X-Image-Size': finalSize.toString(),
-        'X-Response-Time': `${duration}ms`,
-        'X-Transfer-Mode': transparencyOptions ? 'prefetch-processed' : 'prefetch',
-        'Content-Disposition': `inline; filename="${buildFilename(prefetched.imageId, finalMimeType)}"`
-      }
-    });
-  }
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Image-Id': prefetched.imageId,
+          'X-Image-PublicId': prefetched.publicId,
+          'X-Image-Size': prefetched.size.toString(),
+          'X-Response-Time': `${duration}ms`,
+          'X-Transfer-Mode': hasOutputTransform(processingOptions) ? 'prefetch-processed' : 'prefetch',
+          'Content-Disposition': `inline; filename="${buildFilename(prefetched.imageId, prefetched.mimeType)}"`
+        }
+      });
+    }
 
 
     // 获取随机图片（复用现有逻辑）
@@ -841,51 +824,30 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
       return ownerProxyResponse;
     }
 
-    // 确定图片的MIME类型
-    const mimeType = getMimeTypeFromUrl(randomImage.url);
-    const downloadResult = await downloadImageWithCandidates(randomImage, request, mimeType);
-
-    // 应用透明度处理（如果需要）
-    let finalBuffer = downloadResult.buffer;
-    let finalMimeType = downloadResult.mimeType;
-    if (transparencyOptions) {
-      const processed = await adjustImageTransparency(downloadResult.buffer, transparencyOptions);
-      finalBuffer = processed.buffer;
-      finalMimeType = processed.mimeType;
-    }
-
-    const needsManagedConversion = requestedFormat || typeof requestedQuality !== 'undefined';
-    if (needsManagedConversion) {
-      const converted = await convertImageOutput(finalBuffer, {
-        format: requestedFormat ?? (normalizeMimeType(finalMimeType, 'image/jpeg').includes('webp') ? 'webp' : 'jpeg'),
-        quality: requestedQuality
-      });
-      finalBuffer = converted.buffer;
-      finalMimeType = converted.mimeType;
-    }
-
-    const size = finalBuffer.length;
+    const payload = await buildFinalResponsePayload(randomImage, request, processingOptions);
+    const size = payload.size;
     const duration = Math.round(performance.now() - startTime);
 
     // 记录成功响应
     logger.apiResponse('GET', '/api/response', 200, duration, {
       imageId: randomImage.id,
       imageSize: size,
-      mimeType: finalMimeType,
+      mimeType: payload.mimeType,
       mode: 'buffered',
       transparency: transparencyOptions ? 'processed' : 'original',
-      via: downloadResult.reason,
-      url: redactTelegramBotTokenInUrl(downloadResult.usedUrl)
+      outputTransform: hasOutputTransform(processingOptions),
+      via: payload.via,
+      url: redactTelegramBotTokenInUrl(payload.usedUrl)
     });
 
-    // 异步预取下一张（不阻塞响应；透明度请求同样复用原图预取流程）
-    prefetchNext(cacheKey, targetGroupIds, allowedProviders, selectionParams.timeWeighting, request).catch(() => {});
+    // 异步补齐预取队列（不阻塞响应）
+    prefetchNext(cacheKey, targetGroupIds, allowedProviders, processingOptions, selectionParams.timeWeighting, request).catch(() => {});
 
     // 返回缓冲响应
-    return new NextResponse(bufferToStream(finalBuffer), {
+    return new NextResponse(bufferToStream(payload.buffer), {
       status: 200,
       headers: {
-        'Content-Type': finalMimeType,
+        'Content-Type': payload.mimeType,
         'Content-Length': size.toString(),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
@@ -894,8 +856,8 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         'X-Image-PublicId': randomImage.publicId,
         'X-Response-Time': `${duration}ms`,
         'X-Image-Size': size.toString(),
-        'X-Transfer-Mode': transparencyOptions ? 'buffered-processed' : 'buffered',
-        'Content-Disposition': `inline; filename="${buildFilename(randomImage.id, finalMimeType)}"`
+        'X-Transfer-Mode': hasOutputTransform(processingOptions) ? 'buffered-processed' : 'buffered',
+        'Content-Disposition': `inline; filename="${buildFilename(randomImage.id, payload.mimeType)}"`
       }
     });
 
@@ -993,7 +955,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key', 'origin', 'format', 'quality', 'timeWindow', 'timeWeight', 'timeStart', 'timeEnd', 'timeZone']);
+  const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key', 'origin', 'format', 'quality', 'width', 'height', 'fit', 'timeWindow', 'timeWeight', 'timeStart', 'timeEnd', 'timeZone']);
   const filteredEntries = Object.entries(queryParams).filter(([key]) => !RESERVED_PARAMS.has(key));
 
   // 如果没有配置允许的参数，直接返回

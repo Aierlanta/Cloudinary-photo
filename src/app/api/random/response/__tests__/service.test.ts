@@ -83,6 +83,7 @@ jest.mock('@/lib/telegram-proxy', () => ({
 import { serveRandomResponse } from '../service';
 import { databaseService } from '@/lib/database';
 import { CloudinaryService } from '@/lib/cloudinary';
+import { finalResponseCache } from '@/lib/response-cache';
 
 const mockDatabaseService = databaseService as unknown as {
   getAPIConfig: jest.Mock;
@@ -105,6 +106,7 @@ function createMockRequest(url: string): NextRequest {
 describe('serveRandomResponse', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    finalResponseCache.reset();
     mockDatabaseService.getAPIConfig.mockResolvedValue({
       id: 'default',
       isEnabled: true,
@@ -222,6 +224,88 @@ describe('serveRandomResponse', () => {
     expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith(
       'cloudinary_public_id',
       [{ fetch_format: 'webp' }]
+    );
+  });
+
+  it('指定 imageId 的最终响应缓存可重复命中且不消费', async () => {
+    mockDatabaseService.getAPIConfig.mockResolvedValue({
+      id: 'default',
+      isEnabled: true,
+      defaultScope: 'all',
+      defaultGroups: [],
+      allowedParameters: [],
+      responseParams: {
+        format: {
+          enabled: true,
+          allowedValues: ['jpeg', 'webp']
+        },
+        quality: {
+          enabled: true
+        },
+        defaultWebpDelivery: {
+          random: false,
+          response: false
+        }
+      },
+      enableDirectResponse: true,
+      apiKeyEnabled: false,
+      updatedAt: new Date()
+    });
+
+    const request = createMockRequest('http://localhost:3000/api/random/response?imageId=img_000001');
+    const first = await serveRandomResponse(request);
+    const second = await serveRandomResponse(request);
+    const third = await serveRandomResponse(request);
+
+    expect(first.headers.get('X-Transfer-Mode')).toBe('buffer');
+    expect(second.headers.get('X-Transfer-Mode')).toBe('final-cache');
+    expect(third.headers.get('X-Transfer-Mode')).toBe('final-cache');
+    expect(mockCloudinaryService.downloadImage).toHaveBeenCalledTimes(1);
+  });
+
+  it('不同输出参数不会串用最终响应缓存', async () => {
+    mockDatabaseService.getAPIConfig.mockResolvedValue({
+      id: 'default',
+      isEnabled: true,
+      defaultScope: 'all',
+      defaultGroups: [],
+      allowedParameters: [],
+      responseParams: {
+        format: {
+          enabled: true,
+          allowedValues: ['jpeg', 'webp']
+        },
+        quality: {
+          enabled: true
+        },
+        defaultWebpDelivery: {
+          random: false,
+          response: false
+        }
+      },
+      enableDirectResponse: true,
+      apiKeyEnabled: false,
+      updatedAt: new Date()
+    });
+
+    const webpRequest = createMockRequest('http://localhost:3000/api/random/response?imageId=img_000001&format=webp');
+    const jpegRequest = createMockRequest('http://localhost:3000/api/random/response?imageId=img_000001&format=jpeg');
+
+    const webp = await serveRandomResponse(webpRequest);
+    const jpeg = await serveRandomResponse(jpegRequest);
+    const webpAgain = await serveRandomResponse(webpRequest);
+
+    expect(webp.headers.get('Content-Type')).toBe('image/webp');
+    expect(jpeg.headers.get('Content-Type')).toBe('image/jpeg');
+    expect(webpAgain.headers.get('X-Transfer-Mode')).toBe('final-cache');
+    expect(mockCloudinaryService.downloadImage).toHaveBeenCalledTimes(2);
+    expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith(
+      'cloudinary_public_id',
+      [{ fetch_format: 'webp' }]
+    );
+    expect(mockCloudinaryService.downloadImage).toHaveBeenCalledWith(
+      'cloudinary_public_id',
+      [{ fetch_format: 'jpg' }]
     );
   });
 });
