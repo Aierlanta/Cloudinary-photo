@@ -83,6 +83,32 @@ jest.mock('@prisma/client', () => {
 const { PrismaClient } = require('@prisma/client');
 const mockPrisma = new PrismaClient();
 
+function createRandomImageRow(overrides: Record<string, any> = {}) {
+  return {
+    id: 'img_test',
+    url: 'https://example.com/test.jpg',
+    publicId: 'test',
+    title: null,
+    description: null,
+    tags: null,
+    width: null,
+    height: null,
+    orientation: null,
+    groupId: null,
+    uploadedAt: new Date('2026-05-15T00:00:00.000Z'),
+    primaryProvider: 'cloudinary',
+    backupProvider: null,
+    ownerNodeId: null,
+    telegramFileId: null,
+    telegramThumbnailFileId: null,
+    telegramFilePath: null,
+    telegramThumbnailPath: null,
+    telegramBotToken: null,
+    storageMetadata: null,
+    ...overrides
+  };
+}
+
 describe('DatabaseService', () => {
   let databaseService: DatabaseService;
 
@@ -341,28 +367,12 @@ describe('DatabaseService', () => {
     it('应该按时间窗口权重选择窗口内图片', async () => {
       const start = new Date('2026-05-01T00:00:00.000Z');
       const end = new Date('2026-05-31T23:59:59.000Z');
-      const insideRow = {
+      const insideRow = createRandomImageRow({
         id: 'img_weighted',
         url: 'https://example.com/weighted.jpg',
         publicId: 'weighted',
-        title: null,
-        description: null,
-        tags: null,
-        width: null,
-        height: null,
-        orientation: null,
-        groupId: null,
-        uploadedAt: new Date('2026-05-15T00:00:00.000Z'),
-        primaryProvider: 'cloudinary',
-        backupProvider: null,
-        ownerNodeId: null,
-        telegramFileId: null,
-        telegramThumbnailFileId: null,
-        telegramFilePath: null,
-        telegramThumbnailPath: null,
-        telegramBotToken: null,
-        storageMetadata: null
-      };
+        uploadedAt: new Date('2026-05-15T00:00:00.000Z')
+      });
 
       mockPrisma.image.count
         .mockResolvedValueOnce(2)
@@ -442,6 +452,183 @@ describe('DatabaseService', () => {
         ],
         queryCount: 3,
         candidateCount: 12
+      });
+
+      randomSpy.mockRestore();
+    });
+
+    it('应该按时间窗口权重选择窗口外图片', async () => {
+      const start = new Date('2026-05-01T00:00:00.000Z');
+      const end = new Date('2026-05-31T23:59:59.000Z');
+      const outsideRow = createRandomImageRow({
+        id: 'img_outside_weighted',
+        publicId: 'outside_weighted',
+        uploadedAt: new Date('2026-04-15T00:00:00.000Z')
+      });
+
+      mockPrisma.image.count
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(10);
+      mockPrisma.image.findMany.mockResolvedValueOnce([outsideRow]);
+      const randomSpy = jest.spyOn(Math, 'random')
+        .mockReturnValueOnce(0.75)
+        .mockReturnValueOnce(0.3);
+
+      const result = await databaseService.selectRandomImages({
+        count: 1,
+        includeTelegram: true,
+        timeWeighting: {
+          start,
+          end,
+          weight: 5,
+          source: 'fixed',
+          cacheKey: 'fixed:test'
+        }
+      });
+
+      expect(mockPrisma.image.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          AND: [
+            {},
+            {
+              OR: [
+                {
+                  uploadedAt: {
+                    lt: start
+                  }
+                },
+                {
+                  uploadedAt: {
+                    gt: end
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        skip: 3,
+        take: 1
+      }));
+      expect(result).toMatchObject({
+        images: [
+          {
+            id: 'img_outside_weighted',
+            publicId: 'outside_weighted'
+          }
+        ],
+        queryCount: 3,
+        candidateCount: 12
+      });
+
+      randomSpy.mockRestore();
+    });
+
+    it('时间窗口外为空时应只从窗口内选择', async () => {
+      const start = new Date('2026-05-01T00:00:00.000Z');
+      const end = new Date('2026-05-31T23:59:59.000Z');
+      const insideRow = createRandomImageRow({
+        id: 'img_inside_only',
+        publicId: 'inside_only'
+      });
+
+      mockPrisma.image.count
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(0);
+      mockPrisma.image.findMany.mockResolvedValueOnce([insideRow]);
+      const randomSpy = jest.spyOn(Math, 'random')
+        .mockReturnValueOnce(0.99)
+        .mockReturnValueOnce(0.5);
+
+      const result = await databaseService.selectRandomImages({
+        count: 1,
+        includeTelegram: true,
+        timeWeighting: {
+          start,
+          end,
+          weight: 5,
+          source: 'fixed',
+          cacheKey: 'fixed:test'
+        }
+      });
+
+      expect(mockPrisma.image.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          AND: [
+            {},
+            {
+              uploadedAt: {
+                gte: start,
+                lte: end
+              }
+            }
+          ]
+        },
+        skip: 1,
+        take: 1
+      }));
+      expect(result.images[0]).toMatchObject({
+        id: 'img_inside_only',
+        publicId: 'inside_only'
+      });
+
+      randomSpy.mockRestore();
+    });
+
+    it('时间窗口内为空时应只从窗口外选择', async () => {
+      const start = new Date('2026-05-01T00:00:00.000Z');
+      const end = new Date('2026-05-31T23:59:59.000Z');
+      const outsideRow = createRandomImageRow({
+        id: 'img_outside_only',
+        publicId: 'outside_only',
+        uploadedAt: new Date('2026-06-15T00:00:00.000Z')
+      });
+
+      mockPrisma.image.count
+        .mockResolvedValueOnce(0)
+        .mockResolvedValueOnce(3);
+      mockPrisma.image.findMany.mockResolvedValueOnce([outsideRow]);
+      const randomSpy = jest.spyOn(Math, 'random')
+        .mockReturnValueOnce(0.01)
+        .mockReturnValueOnce(0.7);
+
+      const result = await databaseService.selectRandomImages({
+        count: 1,
+        includeTelegram: true,
+        timeWeighting: {
+          start,
+          end,
+          weight: 5,
+          source: 'fixed',
+          cacheKey: 'fixed:test'
+        }
+      });
+
+      expect(mockPrisma.image.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          AND: [
+            {},
+            {
+              OR: [
+                {
+                  uploadedAt: {
+                    lt: start
+                  }
+                },
+                {
+                  uploadedAt: {
+                    gt: end
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        skip: 2,
+        take: 1
+      }));
+      expect(result.images[0]).toMatchObject({
+        id: 'img_outside_only',
+        publicId: 'outside_only'
       });
 
       randomSpy.mockRestore();

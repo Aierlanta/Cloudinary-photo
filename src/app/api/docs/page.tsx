@@ -313,13 +313,16 @@ function APIDocsContent() {
                   <li>{t.apiDocs.timeWeightingRollingWindow}</li>
                   <li>{t.apiDocs.timeWeightingFixedWindow}</li>
                   <li>{t.apiDocs.timeWeightingWeight}</li>
+                  <li>{t.apiDocs.timeWeightingFormula}</li>
+                  <li>{t.apiDocs.timeWeightingProbabilityNote}</li>
+                  <li>{t.apiDocs.timeWeightingInsideRandom}</li>
                   <li>{t.apiDocs.timeWeightingErrors}</li>
                 </ul>
                 <div className="grid gap-2">
                   {[
                     { id: "time-weight-random", label: t.apiDocs.exampleTimeWindowRandom, url: "/api/random?timeWindow=7d&timeWeight=3" },
                     { id: "time-weight-response", label: t.apiDocs.exampleTimeWindowResponse, url: "/api/response?timeWindow=24h&timeWeight=5" },
-                    { id: "time-weight-fixed", label: t.apiDocs.exampleFixedTimeWindow, url: "/api/random?timeStart=2026-05-01T00%3A00%3A00Z&timeEnd=2026-05-31T23%3A59%3A59Z&timeWeight=4" },
+                    { id: "time-weight-fixed", label: t.apiDocs.exampleFixedTimeWindow, url: "/api/random?timeStart=2026-05-01T00%3A00%3A00&timeEnd=2026-05-31T23%3A59%3A59&timeZone=Asia%2FShanghai&timeWeight=4" },
                   ].map((ex) => (
                     <div key={ex.id}>
                       <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">

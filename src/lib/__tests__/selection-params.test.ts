@@ -77,6 +77,46 @@ describe('selection-params', () => {
     });
   });
 
+  it('应按 timeZone 解析不带时区的固定时间窗口', () => {
+    const parsed = parseSelectionParams(
+      {
+        timeStart: '2026-05-01T00:00:00',
+        timeEnd: '2026-05-31T23:59:59',
+        timeZone: 'Asia/Shanghai',
+        timeWeight: '4'
+      },
+      enabledConfig
+    );
+
+    expect(parsed.timeWeighting).toEqual({
+      start: new Date('2026-04-30T16:00:00.000Z'),
+      end: new Date('2026-05-31T15:59:59.000Z'),
+      weight: 4,
+      source: 'fixed',
+      cacheKey: 'fixed:2026-04-30T16:00:00.000Z:2026-05-31T15:59:59.000Z:weight:4'
+    });
+  });
+
+  it('应支持 UTC 偏移量形式的 timeZone', () => {
+    const parsed = parseSelectionParams(
+      {
+        timeStart: '2026-05-01T00:00:00',
+        timeEnd: '2026-05-01T01:00:00',
+        timeZone: '+08:00',
+        timeWeight: '4'
+      },
+      enabledConfig
+    );
+
+    expect(parsed.timeWeighting).toEqual({
+      start: new Date('2026-04-30T16:00:00.000Z'),
+      end: new Date('2026-04-30T17:00:00.000Z'),
+      weight: 4,
+      source: 'fixed',
+      cacheKey: 'fixed:2026-04-30T16:00:00.000Z:2026-04-30T17:00:00.000Z:weight:4'
+    });
+  });
+
   it('应拒绝冲突、缺失和越界参数', () => {
     expect(() => parseSelectionParams(
       { timeWindow: '7d', timeStart: '2026-05-01T00:00:00Z', timeEnd: '2026-05-02T00:00:00Z', timeWeight: '3' },
@@ -88,6 +128,26 @@ describe('selection-params', () => {
     expect(() => parseSelectionParams({ timeWindow: '7d', timeWeight: '101' }, enabledConfig)).toThrow(AppError);
     expect(() => parseSelectionParams(
       { timeStart: '2026-06-01T00:00:00Z', timeEnd: '2026-05-01T00:00:00Z', timeWeight: '3' },
+      enabledConfig
+    )).toThrow(AppError);
+    expect(() => parseSelectionParams(
+      { timeStart: '2026-02-31T00:00:00Z', timeEnd: '2026-03-05T00:00:00Z', timeWeight: '3' },
+      enabledConfig
+    )).toThrow(AppError);
+    expect(() => parseSelectionParams(
+      { timeStart: '2026-05-01T24:00:00Z', timeEnd: '2026-05-02T00:00:00Z', timeWeight: '3' },
+      enabledConfig
+    )).toThrow(AppError);
+    expect(() => parseSelectionParams(
+      { timeWindow: '7d', timeZone: 'Asia/Shanghai', timeWeight: '3' },
+      enabledConfig
+    )).toThrow(AppError);
+    expect(() => parseSelectionParams(
+      { timeStart: '2026-05-01T00:00:00', timeEnd: '2026-05-02T00:00:00', timeZone: 'Mars/Base', timeWeight: '3' },
+      enabledConfig
+    )).toThrow(AppError);
+    expect(() => parseSelectionParams(
+      { timeStart: '2026-05-01T00:00:00Z', timeEnd: '2026-05-02T00:00:00Z', timeZone: 'Asia/Shanghai', timeWeight: '3' },
       enabledConfig
     )).toThrow(AppError);
   });

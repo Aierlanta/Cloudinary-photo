@@ -304,6 +304,26 @@ describe('/api/response', () => {
       const r2 = await GET(createMockRequest(url));
       expect(r2.headers.get('X-Transfer-Mode')).toBe('prefetch');
     });
+
+    it('应清理过期预取槽位并限制最大槽位数量', () => {
+      const setPrefetchSlot = (globalThis as any).__setPrefetchSlotForTests;
+      const getPrefetchKeys = (globalThis as any).__getPrefetchKeysForTests;
+      expect(typeof setPrefetchSlot).toBe('function');
+      expect(typeof getPrefetchKeys).toBe('function');
+
+      const now = Date.now();
+      setPrefetchSlot('expired-slot', now - 1);
+      expect(getPrefetchKeys()).not.toContain('expired-slot');
+
+      for (let index = 0; index < 131; index += 1) {
+        setPrefetchSlot(`slot-${index}`, now + 1000 + index);
+      }
+
+      const keys = getPrefetchKeys();
+      expect(keys.length).toBeLessThanOrEqual(128);
+      expect(keys).not.toContain('slot-0');
+      expect(keys).toContain('slot-130');
+    });
   });
 
 
@@ -461,7 +481,11 @@ describe('/api/response', () => {
       }));
 
       const getPrefetchKeys = (globalThis as any).__getPrefetchKeysForTests;
-      expect(getPrefetchKeys()).toContain('timeWeighting:rolling:7d:weight:3');
+      const timeWeighting = selectRandomImages.mock.calls[0][0].timeWeighting;
+      const toSecond = (date: Date) => new Date(Math.floor(date.getTime() / 1000) * 1000).toISOString();
+      expect(getPrefetchKeys()).toContain(
+        `timeWeighting:rolling:7d:weight:3:window:${toSecond(timeWeighting.start)}:${toSecond(timeWeighting.end)}`
+      );
     });
 
     it('时间窗口加权未启用时应返回 400', async () => {

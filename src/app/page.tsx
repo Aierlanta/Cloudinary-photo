@@ -534,6 +534,9 @@ function HomeContent() {
                           )}
                         </button>
                       </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        timeWeight multiplies each in-window image; it is not a guaranteed hit percentage.
+                      </p>
                     </div>
 
                     <div className="space-y-3">
@@ -552,6 +555,35 @@ function HomeContent() {
                           onClick={() =>
                             copyToClipboard(
                               `${baseUrl}/api/random?timeWindow=7d&timeWeight=3`
+                            )
+                          }
+                          className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          {copied ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
+                        <span>Fixed Window</span>
+                        <span className="text-blue-400">timezone</span>
+                      </div>
+                      <div className="relative group">
+                        <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-slate-300 break-all hover:border-primary/50 transition-colors cursor-text">
+                          {baseUrl}/api/random
+                          <span className="text-blue-300">
+                            ?timeStart=2026-05-01T00:00:00&amp;timeEnd=2026-05-31T23:59:59&amp;timeZone=Asia/Shanghai&amp;timeWeight=4
+                          </span>
+                        </div>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(
+                              `${baseUrl}/api/random?timeStart=2026-05-01T00:00:00&timeEnd=2026-05-31T23:59:59&timeZone=Asia/Shanghai&timeWeight=4`
                             )
                           }
                           className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"

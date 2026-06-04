@@ -93,14 +93,42 @@ interface PrefetchSlot {
   expiresAt?: number;
 }
 
-const PREFETCH_TTL_MS = Number(process.env.RESPONSE_PREFETCH_TTL_MS ?? '120000'); // 预取缓存TTL（毫秒），默认2分钟
+function parsePositiveIntegerEnv(raw: string | undefined, fallback: number): number {
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const PREFETCH_TTL_MS = parsePositiveIntegerEnv(process.env.RESPONSE_PREFETCH_TTL_MS, 120000); // 预取缓存TTL（毫秒），默认2分钟
+const PREFETCH_MAX_SLOTS = parsePositiveIntegerEnv(process.env.RESPONSE_PREFETCH_MAX_SLOTS, 128);
 const prefetchCache = new Map<string, PrefetchSlot>();
+
+function toSecondPrecisionISOString(date: Date): string {
+  return new Date(Math.floor(date.getTime() / 1000) * 1000).toISOString();
+}
+
+function buildTimeWeightingFilterKey(timeWeighting?: TimeWeightingOptions): string | undefined {
+  const timeWeightingKey = getTimeWeightingCacheKey(timeWeighting);
+  if (!timeWeightingKey) {
+    return undefined;
+  }
+
+  if (timeWeighting?.source === 'rolling') {
+    return [
+      timeWeightingKey,
+      'window',
+      toSecondPrecisionISOString(timeWeighting.start),
+      toSecondPrecisionISOString(timeWeighting.end)
+    ].join(':');
+  }
+
+  return timeWeightingKey;
+}
 
 function buildFilterKey(groupIds: string[], providers: string[], timeWeighting?: TimeWeightingOptions): string {
   const parts: string[] = [];
   const uniqueProviders = Array.from(new Set((providers || []).filter(Boolean))).sort();
   const uniqueGroups = Array.from(new Set((groupIds || []).filter(Boolean))).sort();
-  const timeWeightingKey = getTimeWeightingCacheKey(timeWeighting);
+  const timeWeightingKey = buildTimeWeightingFilterKey(timeWeighting);
 
   if (uniqueProviders.length > 0) {
     parts.push(`providers:${uniqueProviders.join(',')}`);
@@ -116,7 +144,39 @@ function buildFilterKey(groupIds: string[], providers: string[], timeWeighting?:
   return parts.join('|');
 }
 
+function pruneExpiredPrefetchSlots(now: number = Date.now()): void {
+  for (const [key, slot] of prefetchCache.entries()) {
+    if (slot.inflight) {
+      continue;
+    }
+
+    if (!slot.item || (slot.expiresAt && slot.expiresAt <= now)) {
+      prefetchCache.delete(key);
+    }
+  }
+}
+
+function enforcePrefetchCacheLimit(now: number = Date.now()): void {
+  pruneExpiredPrefetchSlots(now);
+  if (prefetchCache.size <= PREFETCH_MAX_SLOTS) {
+    return;
+  }
+
+  const removable = Array.from(prefetchCache.entries())
+    .filter(([, slot]) => !slot.inflight)
+    .sort(([, left], [, right]) => (left.expiresAt ?? 0) - (right.expiresAt ?? 0));
+
+  for (const [key] of removable) {
+    if (prefetchCache.size <= PREFETCH_MAX_SLOTS) {
+      break;
+    }
+    prefetchCache.delete(key);
+  }
+}
+
 function takePrefetched(key: string): PrefetchedItem | undefined {
+  pruneExpiredPrefetchSlots();
+
   const slot = prefetchCache.get(key);
   if (!slot) return undefined;
 
@@ -392,6 +452,8 @@ async function prefetchNext(
   timeWeighting?: TimeWeightingOptions,
   request?: NextRequest
 ): Promise<void> {
+  pruneExpiredPrefetchSlots();
+
   // 已有进行中的预取则复用
   const existing = prefetchCache.get(key);
   if (existing?.inflight) return existing.inflight;
@@ -420,6 +482,7 @@ async function prefetchNext(
         inflight: undefined,
         expiresAt: Date.now() + PREFETCH_TTL_MS
       });
+      enforcePrefetchCacheLimit();
 
       logger.info('预取完成', {
         type: 'api_prefetch',
@@ -444,6 +507,7 @@ async function prefetchNext(
   })();
 
   prefetchCache.set(key, { ...(existing || {}), inflight, expiresAt: Date.now() + PREFETCH_TTL_MS });
+  enforcePrefetchCacheLimit();
   await inflight; // 注意：调用方通常不 await；这里确保返回的是相同Promise
 }
 
@@ -472,6 +536,7 @@ async function waitForPrefetchForTests(key: string, timeoutMs: number = 500): Pr
 }
 
 function getPrefetchKeysForTests(): string[] {
+  pruneExpiredPrefetchSlots();
   return Array.from(prefetchCache.keys());
 }
 
@@ -490,11 +555,30 @@ function getPrefetchStateForTests(key: string): {
   };
 }
 
+function setPrefetchSlotForTests(key: string, expiresAt: number, hasItem: boolean = true) {
+  prefetchCache.set(key, {
+    item: hasItem
+      ? {
+          buffer: Buffer.from('test'),
+          mimeType: 'image/jpeg',
+          size: 4,
+          imageId: key,
+          publicId: key,
+          url: 'https://example.com/test.jpg',
+          createdAt: Date.now()
+        }
+      : undefined,
+    expiresAt
+  });
+  enforcePrefetchCacheLimit();
+}
+
 if (process.env.NODE_ENV === 'test') {
   (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[] }).__resetPrefetchCacheForTests = resetPrefetchCacheForTests;
   (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[] }).__waitForPrefetchForTests = waitForPrefetchForTests;
   (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[]; __getPrefetchStateForTests?: (key: string) => { hasSlot: boolean; hasItem: boolean; hasInflight: boolean; expiresAt?: number } }).__getPrefetchKeysForTests = getPrefetchKeysForTests;
   (globalThis as { __resetPrefetchCacheForTests?: () => void; __waitForPrefetchForTests?: (key: string, timeoutMs?: number) => Promise<void>; __getPrefetchKeysForTests?: () => string[]; __getPrefetchStateForTests?: (key: string) => { hasSlot: boolean; hasItem: boolean; hasInflight: boolean; expiresAt?: number } }).__getPrefetchStateForTests = getPrefetchStateForTests;
+  (globalThis as { __setPrefetchSlotForTests?: (key: string, expiresAt: number, hasItem?: boolean) => void }).__setPrefetchSlotForTests = setPrefetchSlotForTests;
 }
 
 
@@ -909,7 +993,7 @@ async function validateAndParseParams(
   let hasInvalidParams = false;
 
   // 保留查询参数（不参与业务参数校验）
-  const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key', 'origin', 'format', 'quality', 'timeWindow', 'timeWeight', 'timeStart', 'timeEnd']);
+  const RESERVED_PARAMS = new Set(['opacity', 'bgColor', 'key', 'origin', 'format', 'quality', 'timeWindow', 'timeWeight', 'timeStart', 'timeEnd', 'timeZone']);
   const filteredEntries = Object.entries(queryParams).filter(([key]) => !RESERVED_PARAMS.has(key));
 
   // 如果没有配置允许的参数，直接返回

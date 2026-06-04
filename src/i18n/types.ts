@@ -739,6 +739,9 @@ export interface Translations {
     timeWeightingRollingWindow: string;
     timeWeightingFixedWindow: string;
     timeWeightingWeight: string;
+    timeWeightingFormula: string;
+    timeWeightingProbabilityNote: string;
+    timeWeightingInsideRandom: string;
     timeWeightingErrors: string;
     exampleTimeWindowRandom: string;
     exampleTimeWindowResponse: string;
