@@ -22,6 +22,9 @@ export const en: Translations = {
   home: {
     title: 'Random Image API Service',
     subtitle: 'Simple and easy-to-use random image API with parameter filtering, perfectly suited for various application scenarios. Get high-quality random images directly via HTTP requests.',
+    heroTaglineA: 'One request, one ',
+    heroTaglineHighlight: 'illustration',
+    heroTaglineB: '!',
     apiStatus: 'API Status',
     statusHealthy: 'Healthy',
     statusPartial: 'Partially Available',

@@ -24,6 +24,9 @@ export interface Translations {
   home: {
     title: string;
     subtitle: string;
+    heroTaglineA: string;
+    heroTaglineHighlight: string;
+    heroTaglineB: string;
     apiStatus: string;
     statusHealthy: string;
     statusPartial: string;

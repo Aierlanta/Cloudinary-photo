@@ -141,7 +141,7 @@ body {
 
   /* 奶油底波点（浅色：樱花粉点 / 深色：雾白点） */
   .bg-polka {
-    background-image: radial-gradient(rgb(var(--primary-rgb) / 0.14) 1.6px, transparent 1.6px);
+    background-image: radial-gradient(rgb(var(--primary-rgb) / 0.18) 1.8px, transparent 1.8px);
     background-size: 26px 26px;
   }
   .dark .bg-polka,
@@ -154,7 +154,7 @@ body {
     background: var(--card);
     border: 4px solid rgb(var(--card-rgb));
     outline: 1px solid rgb(var(--border-rgb));
-    border-radius: 2rem;
+    border-radius: 2.5rem;
     box-shadow: var(--soft-shadow);
   }
 
@@ -193,8 +193,8 @@ body {
   .lace-edge {
     --lace-color: var(--card);
     background-image:
-      radial-gradient(circle at 10px -4px, transparent 13px, var(--lace-color) 13.5px);
-    background-size: 22px 12px;
+      radial-gradient(circle at 17px -7px, transparent 21px, var(--lace-color) 21.5px);
+    background-size: 34px 16px;
     background-repeat: repeat-x;
     background-position: bottom left;
   }

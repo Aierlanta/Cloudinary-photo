@@ -163,7 +163,6 @@ function HomeContent() {
   };
 
   const versionLabel = apiStatus?.version;
-  const titleParts = t.home.title.split(/(API)/);
 
   return (
     <div className="min-h-screen relative overflow-x-hidden bg-polka font-body">
@@ -190,7 +189,7 @@ function HomeContent() {
                 <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center shadow-soft ring-2 ring-white/70 ring-inset group-hover:rotate-12 transition-transform">
                   <Star className="w-5 h-5 text-white" fill="currentColor" />
                 </div>
-                <span className="font-display font-bold text-xl tracking-tight text-foreground">
+                <span className="font-display font-bold text-xl tracking-tight text-primary-strong">
                   {t.home.title}
                 </span>
               </Link>
@@ -261,21 +260,24 @@ function HomeContent() {
               </div>
             </motion.div>
 
-            <motion.h1
-              variants={itemVariants}
-              className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-foreground leading-[1.05] select-none"
-            >
-              {titleParts.map((part, i) =>
-                part === "API" ? (
-                  <span key={i} className="text-primary-strong relative inline-block">
-                    API
-                    <Sparkles className="absolute -top-3 -right-6 w-6 h-6 text-secondary animate-sparkle" />
-                  </span>
-                ) : (
-                  <span key={i}>{part}</span>
-                )
-              )}
-            </motion.h1>
+            <motion.div variants={itemVariants} className="relative inline-block">
+              {/* 标题周围漂浮的小装饰 */}
+              <Heart className="hidden sm:block absolute -left-14 top-2 w-8 h-8 text-primary animate-float-soft" fill="currentColor" aria-hidden />
+              <Star className="hidden sm:block absolute -right-12 -top-4 w-7 h-7 text-secondary animate-sparkle" fill="currentColor" aria-hidden />
+              <Sparkles className="hidden sm:block absolute -right-16 bottom-4 w-6 h-6 text-primary-strong/70 animate-sparkle" aria-hidden />
+              <Star className="hidden sm:block absolute -left-10 bottom-0 w-5 h-5 text-accent animate-sparkle" fill="currentColor" aria-hidden />
+              <motion.h1
+                className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-foreground leading-[1.15] select-none"
+              >
+                {t.home.heroTaglineA}
+                <span className="relative inline-block text-primary-strong">
+                  <span className="absolute inset-x-[-0.15em] inset-y-[0.05em] -z-10 rounded-[0.6em] bg-primary/20 -rotate-1" aria-hidden />
+                  {t.home.heroTaglineHighlight}
+                  <Heart className="absolute -top-4 -right-6 w-6 h-6 text-primary animate-sparkle" fill="currentColor" aria-hidden />
+                </span>
+                {t.home.heroTaglineB}
+              </motion.h1>
+            </motion.div>
 
             <motion.p
               variants={itemVariants}
@@ -557,53 +559,61 @@ function HomeContent() {
             </div>
           </motion.section>
 
-          {/* 统计：软糖计数 */}
+          {/* 统计：独立软糖芯片 */}
           {apiStatus && (
             <motion.section
               variants={itemVariants}
-              className="w-full max-w-4xl mx-auto"
+              className="w-full max-w-5xl mx-auto"
             >
-              <div className="dialogue-box px-6 py-8 sm:px-10">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-                  {[
-                    {
-                      value: apiStatus.stats.totalImages,
-                      label: t.stats.totalImages,
-                      color: "text-primary-strong",
-                    },
-                    {
-                      value: apiStatus.stats.totalGroups,
-                      label: t.stats.imageGroups,
-                      color: "text-purple-500 dark:text-purple-300",
-                    },
-                    {
-                      value: apiStatus.services.api.enabled ? "100%" : "ERR",
-                      label: t.stats.apiStatus,
-                      color: apiStatus.services.api.enabled
-                        ? "text-emerald-500"
-                        : "text-red-400",
-                    },
-                    {
-                      value: "99.9%",
-                      label: t.stats.serviceTime,
-                      color: "text-amber-500",
-                    },
-                  ].map((stat) => (
-                    <div key={stat.label} className="space-y-1.5">
-                      <div
-                        className={cn(
-                          "font-display text-4xl lg:text-5xl font-bold tracking-tight",
-                          stat.color
-                        )}
-                      >
-                        {stat.value}
-                      </div>
-                      <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                        {stat.label}
-                      </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                {[
+                  {
+                    value: apiStatus.stats.totalImages,
+                    label: t.stats.totalImages,
+                    icon: ImageIcon,
+                    blob: "bg-primary/20 text-primary-strong",
+                  },
+                  {
+                    value: apiStatus.stats.totalGroups,
+                    label: t.stats.imageGroups,
+                    icon: Star,
+                    blob: "bg-secondary/25 text-purple-500 dark:text-purple-300",
+                  },
+                  {
+                    value: apiStatus.services.api.enabled ? "100%" : "ERR",
+                    label: t.stats.apiStatus,
+                    icon: Zap,
+                    blob: apiStatus.services.api.enabled
+                      ? "bg-accent/25 text-emerald-500"
+                      : "bg-red-100 text-red-400",
+                  },
+                  {
+                    value: "99.9%",
+                    label: t.stats.serviceTime,
+                    icon: Heart,
+                    blob: "bg-amber-100 text-amber-500 dark:bg-amber-400/20",
+                  },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="bg-card border-2 border-border rounded-3xl shadow-soft px-5 py-6 flex flex-col items-center gap-3 text-center hover:-translate-y-1 hover:shadow-lift transition-all"
+                  >
+                    <div
+                      className={cn(
+                        "w-11 h-11 rounded-full flex items-center justify-center",
+                        stat.blob
+                      )}
+                    >
+                      <stat.icon className="w-5 h-5" />
                     </div>
-                  ))}
-                </div>
+                    <div className="font-display text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
+                      {stat.value}
+                    </div>
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
               </div>
             </motion.section>
           )}

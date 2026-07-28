@@ -22,6 +22,9 @@ export const zh: Translations = {
   home: {
     title: '随机图片API服务',
     subtitle: '简单易用的随机图片API，支持参数筛选，完美适配各种应用场景。直接通过HTTP请求获取高质量随机图片。',
+    heroTaglineA: '一次请求，一张',
+    heroTaglineHighlight: '插画',
+    heroTaglineB: '！',
     apiStatus: 'API状态',
     statusHealthy: '正常',
     statusPartial: '部分可用',
