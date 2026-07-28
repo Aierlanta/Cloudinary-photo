@@ -760,7 +760,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
             {bulkMode && selectedImages.size > 0 && (
               <>
                 <button
-                  onClick={() => onBulkDelete && onBulkDelete(Array.from(selectedImages))}
+                  onClick={handleBulkDelete}
                   className={cn(
                     "px-4 py-2 border transition-colors",
                     isLight
@@ -789,11 +789,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                 </select>
                 {bulkGroupId && (
                   <button
-                    onClick={() => {
-                      onBulkUpdate && onBulkUpdate(Array.from(selectedImages), { groupId: bulkGroupId });
-                      setBulkGroupId("");
-                      setSelectedImages(new Set());
-                    }}
+                    onClick={handleBulkUpdateGroup}
                     className={cn(
                       "px-4 py-2 border transition-colors",
                       isLight
