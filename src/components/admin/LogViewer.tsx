@@ -348,7 +348,7 @@ export default function LogViewer({
           >
             {t.adminLogs.refresh}
           </button>
-          {(process.env.NODE_ENV === 'development' || true) && (
+          {process.env.NODE_ENV === 'development' && (
             <button
               onClick={async () => {
                 try {

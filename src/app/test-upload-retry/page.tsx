@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { notFound } from 'next/navigation';
 import ImageUpload from '@/components/admin/ImageUpload';
 
 interface Image {
@@ -20,6 +21,11 @@ interface Image {
 }
 
 export default function TestUploadRetryPage() {
+  // 开发调试页面：生产构建直接 404，避免暴露测试面
+  if (process.env.NODE_ENV === 'production') {
+    notFound();
+  }
+
   const [uploadedImages, setUploadedImages] = useState<Image[]>([]);
 
   const handleUploadSuccess = (image?: Image) => {

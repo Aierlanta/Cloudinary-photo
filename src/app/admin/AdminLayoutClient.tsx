@@ -176,7 +176,11 @@ function AdminLayoutContent({
 
       if (response.ok) {
         const data = await response.json()
-        setAuthToken(data.token || password)
+        // 只保存服务端签发的会话 token；绝不把明文密码写入 localStorage。
+        // 没有 token 时依赖登录接口设置的 httpOnly cookie 完成同节点认证。
+        if (data.token) {
+          setAuthToken(data.token)
+        }
         setIsAuthenticated(true)
         return { success: true }
       } else {
@@ -201,8 +205,8 @@ function AdminLayoutContent({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-polka">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/30 border-t-primary"></div>
       </div>
     )
   }
@@ -210,7 +214,7 @@ function AdminLayoutContent({
   if (!isAuthenticated) {
     return (
       <LocaleProvider>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="min-h-screen bg-polka">
           <div className="min-h-screen flex items-center justify-center p-4">
             <LoginForm onLogin={handleLogin} />
           </div>
