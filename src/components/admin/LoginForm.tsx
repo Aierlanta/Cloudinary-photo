@@ -3,9 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useLocale } from '@/hooks/useLocale'
-import { useTheme } from '@/hooks/useTheme'
-import { cn } from '@/lib/utils'
-import { Home } from 'lucide-react'
+import { Home, Lock, Star } from 'lucide-react'
 
 interface LoginFormProps {
   onLogin: (password: string) => Promise<{ success: boolean; error?: string }>
@@ -13,7 +11,6 @@ interface LoginFormProps {
 
 export default function LoginForm({ onLogin }: LoginFormProps) {
   const { t, locale } = useLocale()
-  const isLight = useTheme()
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -47,31 +44,21 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
   return (
     <div className="w-full max-w-md">
-      <div className={cn(
-        "border rounded-lg p-8",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
+      <div className="dialogue-box relative p-8 pt-10">
+        {/* 名牌 */}
+        <div className="name-plate absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-1.5 text-sm font-bold tracking-wider uppercase whitespace-nowrap">
+          Login
+        </div>
+
         {/* 标题 */}
         <div className="text-center mb-8">
-          <div className={cn(
-            "mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4",
-            isLight ? "bg-blue-500 bg-opacity-20" : "bg-blue-600 bg-opacity-20"
-          )}>
-            <svg className={cn(
-              "w-8 h-8",
-              isLight ? "text-blue-600" : "text-blue-400"
-            )} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+          <div className="mx-auto w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
+            <Lock className="w-7 h-7 text-primary-strong" />
           </div>
-          <h2 className={cn(
-            "text-2xl font-bold",
-            isLight ? "text-gray-900" : "text-gray-100"
-          )}>{t.adminLogin.title}</h2>
-          <p className={cn(
-            "mt-2",
-            isLight ? "text-gray-600" : "text-gray-400"
-          )}>
+          <h2 className="font-display text-2xl font-bold text-foreground">
+            {t.adminLogin.title}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
             {t.adminLogin.description}
           </p>
         </div>
@@ -79,10 +66,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         {/* 登录表单 */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="password" className={cn(
-              "block text-sm font-medium mb-2",
-              isLight ? "text-gray-700" : "text-gray-300"
-            )}>
+            <label htmlFor="password" className="block text-sm font-bold mb-2 text-foreground">
               {t.adminLogin.passwordLabel}
             </label>
             <input
@@ -90,32 +74,19 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={cn(
-                "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                isLight
-                  ? "bg-white border-gray-300 text-gray-900"
-                  : "bg-gray-800 border-gray-600 text-gray-100"
-              )}
+              className="w-full px-4 py-3 rounded-2xl border-2 border-border bg-background text-foreground focus:outline-none focus:border-primary transition-colors"
               placeholder={t.adminLogin.passwordPlaceholder}
               disabled={isLoading}
             />
           </div>
 
           {error && (
-            <div className={cn(
-              "border rounded-lg p-3",
-              isLight
-                ? "bg-red-50 border-red-200"
-                : "bg-red-900 bg-opacity-20 border-red-800"
-            )}>
+            <div className="rounded-2xl border-2 border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 p-3">
               <div className="flex items-center">
-                <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className={cn(
-                  "text-sm",
-                  isLight ? "text-red-700" : "text-red-300"
-                )}>{error}</span>
+                <span className="text-sm text-red-600 dark:text-red-300">{error}</span>
               </div>
             </div>
           )}
@@ -123,12 +94,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <button
             type="submit"
             disabled={isLoading}
-            className={cn(
-              "w-full text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border",
-              isLight
-                ? "bg-blue-500 border-blue-600 hover:bg-blue-600 disabled:bg-blue-400"
-                : "bg-blue-600 border-blue-500 hover:bg-blue-700 disabled:bg-blue-500"
-            )}
+            className="w-full bg-primary text-white font-bold py-3 px-4 rounded-full shadow-soft ring-2 ring-white/70 ring-inset transition-all hover:bg-primary-strong disabled:opacity-60"
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
@@ -145,15 +111,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         </form>
 
         {/* 返回首页按钮 */}
-        <div className="mt-6">
+        <div className="mt-5">
           <Link
             href="/"
-            className={cn(
-              "w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-colors border",
-              isLight
-                ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
-                : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
-            )}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full bg-card border-2 border-border hover:border-primary text-muted-foreground hover:text-primary-strong transition-colors font-bold text-sm"
           >
             <Home className="w-4 h-4" />
             {locale === 'zh' ? '返回首页' : 'Back to Home'}
@@ -162,10 +123,8 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
         {/* 提示信息 */}
         <div className="mt-6 text-center">
-          <p className={cn(
-            "text-xs",
-            isLight ? "text-gray-500" : "text-gray-400"
-          )}>
+          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+            <Star className="w-3 h-3 text-secondary" fill="currentColor" />
             {t.adminLogin.forgotPasswordHint}
           </p>
         </div>

@@ -96,6 +96,8 @@ export const zh: Translations = {
     status: '系统状态',
     storage: '存储管理',
     security: '风控管理',
+    swarm: '蜂群',
+    logs: '日志',
     logout: '退出登录',
   },
 

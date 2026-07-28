@@ -103,6 +103,8 @@ export interface Translations {
     status: string;
     storage: string;
     security: string;
+    swarm: string;
+    logs: string;
     logout: string;
   };
   

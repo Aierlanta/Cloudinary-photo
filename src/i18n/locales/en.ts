@@ -96,6 +96,8 @@ export const en: Translations = {
     status: 'Status',
     storage: 'Storage',
     security: 'Security',
+    swarm: 'Swarm',
+    logs: 'Logs',
     logout: 'Logout',
   },
 
