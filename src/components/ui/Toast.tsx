@@ -96,13 +96,13 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   return (
     <div
       className={`
-        fixed top-4 right-4 z-50 max-w-sm w-full
+        relative max-w-sm w-full
         transform transition-all duration-300 ease-in-out
         ${isVisible && !isLeaving ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
       `}
     >
       <div className={`
-        rounded-lg border p-4 shadow-lg backdrop-blur-sm
+        rounded-2xl border-2 p-4 shadow-soft
         ${getColorClasses()}
       `}>
         <div className="flex items-start">
