@@ -1,11 +1,33 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Baloo_2, Nunito, ZCOOL_KuaiLe, DM_Mono } from 'next/font/google'
 import './globals.css'
 import { PageErrorBoundary } from '@/components/ErrorBoundary'
 import { cookies, headers } from 'next/headers'
 import { PHProvider } from './providers'
 
-const inter = Inter({ subsets: ['latin'] })
+const displayFont = Baloo_2({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-display',
+})
+
+const bodyFont = Nunito({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
+  variable: '--font-body',
+})
+
+const displayZhFont = ZCOOL_KuaiLe({
+  weight: '400',
+  variable: '--font-display-zh',
+  preload: false,
+})
+
+const monoFont = DM_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-mono',
+})
 
 export const metadata: Metadata = {
   title: '随机图片API',
@@ -38,7 +60,7 @@ export default function RootLayout({
 
   return (
     <html lang="zh-CN" data-theme={theme} className={theme === 'dark' ? 'dark' : undefined}>
-      <body className={inter.className}>
+      <body className={`${displayFont.variable} ${displayZhFont.variable} ${bodyFont.variable} ${monoFont.variable} font-body`}>
         <PHProvider>
           <PageErrorBoundary>
             {children}

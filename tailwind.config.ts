@@ -13,13 +13,32 @@ const config: Config = {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
         primary: 'var(--primary)',
+        'primary-strong': 'var(--primary-strong)',
         secondary: 'var(--secondary)',
         accent: 'var(--accent)',
+        card: 'var(--card)',
+        'muted-foreground': 'var(--muted-foreground)',
+        border: 'var(--border)',
+      },
+      fontFamily: {
+        display: ['var(--font-display)', 'var(--font-display-zh)', 'ui-rounded', 'PingFang SC', 'Microsoft YaHei', 'cursive', 'sans-serif'],
+        body: ['var(--font-body)', 'ui-rounded', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+      },
+      borderRadius: {
+        '4xl': '2rem',
+        '5xl': '2.5rem',
+      },
+      boxShadow: {
+        soft: 'var(--soft-shadow)',
+        lift: 'var(--lift-shadow)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float-soft': 'float-soft 6s ease-in-out infinite',
+        sparkle: 'sparkle-pulse 3.2s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -30,10 +49,6 @@ const config: Config = {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-      },
-      backgroundImage: {
-        'glass-gradient': 'linear-gradient(to bottom right, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
-        'glass-gradient-dark': 'linear-gradient(to bottom right, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.05))',
       },
     },
   },

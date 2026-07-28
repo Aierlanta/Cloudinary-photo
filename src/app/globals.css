@@ -2,245 +2,256 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================
+   Galgame UI —— 视觉小说风格设计令牌
+   主题：奶油底 + 樱花粉 + 薰衣草 + 薄荷，圆角与柔和投影
+   ========================================================== */
+
 :root {
-  /* Modern Glassmorphism Palette (Light) */
-  --background: #f0f2f5;
-  --foreground: #1a1a1a;
-  --primary: #6366f1; /* Indigo 500 */
-  --secondary: #a855f7; /* Purple 500 */
-  --accent: #ec4899; /* Pink 500 */
-  
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-  
+  --background: #fff6ee;
+  --foreground: #4a342c;
+  --primary: #ff9ec7;
+  --primary-strong: #f06ba8;
+  --secondary: #b9a7f2;
+  --accent: #7eddb4;
+  --card: #ffffff;
+  --muted-foreground: #a08a7e;
+  --border: #f4d3e0;
+
+  /* RGB 三元组，供 rgba() 使用（修复 rgba(var(--x)) 非法写法） */
+  --background-rgb: 255 246 238;
+  --foreground-rgb: 74 52 44;
+  --primary-rgb: 255 158 199;
+  --primary-strong-rgb: 240 107 168;
+  --secondary-rgb: 185 167 242;
+  --accent-rgb: 126 221 180;
+  --card-rgb: 255 255 255;
+  --border-rgb: 244 211 224;
+
+  --soft-shadow: 0 10px 30px -8px rgba(240, 107, 168, 0.18), 0 4px 10px -4px rgba(74, 52, 44, 0.08);
+  --lift-shadow: 0 18px 40px -12px rgba(240, 107, 168, 0.28), 0 6px 14px -6px rgba(74, 52, 44, 0.10);
+
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Modern Glassmorphism Palette (Dark) */
-    --background: #0f172a; /* Slate 900 */
-    --foreground: #f8fafc;
-    --primary: #818cf8; /* Indigo 400 */
-    --secondary: #c084fc; /* Purple 400 */
-    --accent: #f472b6; /* Pink 400 */
+    --background: #2a2138;
+    --foreground: #f7ebe2;
+    --primary: #ffa8ce;
+    --primary-strong: #ff8fbe;
+    --secondary: #9d8bd4;
+    --accent: #6bc7a3;
+    --card: #372b4a;
+    --muted-foreground: #b9a8c9;
+    --border: #4a3d5e;
 
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-bg: rgba(15, 23, 42, 0.6);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    
+    --background-rgb: 42 33 56;
+    --foreground-rgb: 247 235 226;
+    --primary-rgb: 255 168 206;
+    --primary-strong-rgb: 255 143 190;
+    --secondary-rgb: 157 139 212;
+    --accent-rgb: 107 199 163;
+    --card-rgb: 55 43 74;
+    --border-rgb: 74 61 94;
+
+    --soft-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.45);
+    --lift-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55);
+
     color-scheme: dark;
   }
 }
 
 html[data-theme='light'] {
-  --background: #f0f2f5;
-  --foreground: #1a1a1a;
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --background: #fff6ee;
+  --foreground: #4a342c;
+  --primary: #ff9ec7;
+  --primary-strong: #f06ba8;
+  --secondary: #b9a7f2;
+  --accent: #7eddb4;
+  --card: #ffffff;
+  --muted-foreground: #a08a7e;
+  --border: #f4d3e0;
+  --background-rgb: 255 246 238;
+  --foreground-rgb: 74 52 44;
+  --primary-rgb: 255 158 199;
+  --primary-strong-rgb: 240 107 168;
+  --secondary-rgb: 185 167 242;
+  --accent-rgb: 126 221 180;
+  --card-rgb: 255 255 255;
+  --border-rgb: 244 211 224;
+  --soft-shadow: 0 10px 30px -8px rgba(240, 107, 168, 0.18), 0 4px 10px -4px rgba(74, 52, 44, 0.08);
+  --lift-shadow: 0 18px 40px -12px rgba(240, 107, 168, 0.28), 0 6px 14px -6px rgba(74, 52, 44, 0.10);
   color-scheme: light;
 }
 
 html[data-theme='dark'] {
-  --background: #0f172a;
-  --foreground: #f8fafc;
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-bg: rgba(15, 23, 42, 0.6);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --background: #2a2138;
+  --foreground: #f7ebe2;
+  --primary: #ffa8ce;
+  --primary-strong: #ff8fbe;
+  --secondary: #9d8bd4;
+  --accent: #6bc7a3;
+  --card: #372b4a;
+  --muted-foreground: #b9a8c9;
+  --border: #4a3d5e;
+  --background-rgb: 42 33 56;
+  --foreground-rgb: 247 235 226;
+  --primary-rgb: 255 168 206;
+  --primary-strong-rgb: 255 143 190;
+  --secondary-rgb: 157 139 212;
+  --accent-rgb: 107 199 163;
+  --card-rgb: 55 43 74;
+  --border-rgb: 74 61 94;
+  --soft-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.45);
+  --lift-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(var(--primary), 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(var(--secondary), 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(var(--accent), 0.15) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(var(--primary), 0.15) 0px, transparent 50%);
-  background-attachment: fixed;
+  font-family: var(--font-body), ui-rounded, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
   min-height: 100vh;
 }
 
-/* Noise Texture */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 50;
-  opacity: 0.4;
+::selection {
+  background: rgb(var(--primary-rgb) / 0.35);
+}
+
+/* 键盘可见焦点：统一粉色描边 */
+:focus-visible {
+  outline: 2px solid var(--primary-strong);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-  
-  .glass-panel {
-    @apply backdrop-blur-xl border border-white/20 shadow-lg;
-    background: var(--glass-bg);
-    border-color: var(--glass-border);
-    box-shadow: var(--glass-shadow);
+
+  .font-display {
+    font-family: var(--font-display), var(--font-display-zh), ui-rounded, 'PingFang SC', 'Microsoft YaHei', cursive, sans-serif;
   }
 
+  .font-mono-chip {
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* 奶油底波点（浅色：樱花粉点 / 深色：雾白点） */
+  .bg-polka {
+    background-image: radial-gradient(rgb(var(--primary-rgb) / 0.14) 1.6px, transparent 1.6px);
+    background-size: 26px 26px;
+  }
+  .dark .bg-polka,
+  html[data-theme='dark'] .bg-polka {
+    background-image: radial-gradient(rgb(255 255 255 / 0.06) 1.6px, transparent 1.6px);
+  }
+
+  /* CG 收集卡：白色厚框 + 柔和暖色投影 */
+  .cg-frame {
+    background: var(--card);
+    border: 4px solid rgb(var(--card-rgb));
+    outline: 1px solid rgb(var(--border-rgb));
+    border-radius: 2rem;
+    box-shadow: var(--soft-shadow);
+  }
+
+  /* 对话框卡片（视觉小说的文本框） */
+  .dialogue-box {
+    background: var(--card);
+    border: 2px solid rgb(var(--border-rgb));
+    border-radius: 1.5rem;
+    box-shadow: var(--soft-shadow);
+  }
+
+  /* 对话框名牌 */
+  .name-plate {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 9999px;
+    box-shadow: 0 4px 10px -2px rgb(var(--primary-strong-rgb) / 0.5);
+  }
+
+  /* 和纸胶带 */
+  .washi {
+    position: absolute;
+    width: 92px;
+    height: 26px;
+    background: rgb(var(--primary-rgb) / 0.55);
+    opacity: 0.85;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+    /* 胶带两端的撕边 */
+    clip-path: polygon(3% 0, 97% 0, 100% 20%, 97% 40%, 100% 60%, 97% 80%, 100% 100%, 0 100%, 3% 80%, 0 60%, 3% 40%, 0 20%);
+  }
+  .washi-lavender {
+    background: rgb(var(--secondary-rgb) / 0.55);
+  }
+
+  /* 蕾丝缎带导航的下摆 scallop 边 */
+  .lace-edge {
+    --lace-color: var(--card);
+    background-image:
+      radial-gradient(circle at 10px -4px, transparent 13px, var(--lace-color) 13.5px);
+    background-size: 22px 12px;
+    background-repeat: repeat-x;
+    background-position: bottom left;
+  }
+
+  /* 兼容旧类名：玻璃拟态 -> 柔和卡片 */
+  .glass-panel,
   .glass-card {
-    @apply backdrop-blur-md transition-all duration-300;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    background: var(--card);
+    border: 1px solid rgb(var(--border-rgb));
+    border-radius: 1.25rem;
+    box-shadow: var(--soft-shadow);
   }
-  
   .glass-card:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--lift-shadow);
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* 漂浮小装饰动画 */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-12px) rotate(4deg); }
 }
 
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.animate-float-soft {
+  animation: float-soft 6s ease-in-out infinite;
+}
+
+.animate-sparkle {
+  animation: sparkle-pulse 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-soft,
+  .animate-sparkle {
+    animation: none;
+  }
+}
+
+/* 柔和滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+}
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 4px;
+  background: rgb(var(--primary-rgb) / 0.45);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.8);
-}
-
-
-/* ==========================================
-   Admin V2 Style Overrides (Glassmorphism)
-   ========================================== */
-
-.admin-v2 .bg-white {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--foreground);
-}
-
-.dark .admin-v2 .bg-white {
-   background-color: rgba(0, 0, 0, 0.2) !important;
-   border-color: rgba(255, 255, 255, 0.1);
-}
-
-.admin-v2 .bg-gray-50, 
-.admin-v2 .bg-gray-100,
-.admin-v2 .bg-gray-200 {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.dark .admin-v2 .bg-gray-800,
-.dark .admin-v2 .bg-gray-900 {
-  background-color: rgba(0, 0, 0, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Buttons */
-.admin-v2 button.bg-blue-600,
-.admin-v2 .btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.admin-v2 button:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.1);
-}
-
-/* Inputs & Selects */
-.admin-v2 input,
-.admin-v2 select,
-.admin-v2 textarea {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px);
-  color: inherit !important;
-  border-radius: 0.75rem !important; /* 12px */
-}
-
-.admin-v2 input:focus,
-.admin-v2 select:focus,
-.admin-v2 textarea:focus {
-  border-color: var(--primary) !important;
-  box-shadow: 0 0 0 2px rgba(var(--primary), 0.2) !important;
-  outline: none;
-}
-
-/* Text Overrides */
-.admin-v2 .text-gray-500,
-.admin-v2 .text-gray-600,
-.admin-v2 .text-gray-700 {
-  color: rgba(var(--foreground), 0.7) !important;
-}
-
-.dark .admin-v2 .text-gray-400 {
-  color: rgba(255, 255, 255, 0.6) !important;
-}
-
-/* Remove hard shadows in V2 for a softer look */
-.admin-v2 .shadow-sm,
-.admin-v2 .shadow-md,
-.admin-v2 .shadow-lg {
-  box-shadow: none !important;
-}
-
-/* Tables */
-.admin-v2 table {
-  border-collapse: separate;
-  border-spacing: 0 4px;
-}
-
-.admin-v2 th {
-  background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  padding: 1rem !important;
-}
-
-.admin-v2 td {
-  background: rgba(255, 255, 255, 0.03);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 1rem !important;
-}
-
-.admin-v2 tr:first-child td:first-child { border-top-left-radius: 12px; }
-.admin-v2 tr:first-child td:last-child { border-top-right-radius: 12px; }
-.admin-v2 tr:last-child td:first-child { border-bottom-left-radius: 12px; }
-.admin-v2 tr:last-child td:last-child { border-bottom-right-radius: 12px; }
-
-.admin-v2 tr:hover td {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-/* Dialog/Modals inside V2 */
-.admin-v2 [role="dialog"], 
-.admin-v2 .fixed.inset-0.flex.items-center.justify-center > div {
-  background-color: rgba(20, 20, 25, 0.8) !important;
-  backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  background: rgb(var(--primary-rgb) / 0.7);
+  background-clip: content-box;
 }
