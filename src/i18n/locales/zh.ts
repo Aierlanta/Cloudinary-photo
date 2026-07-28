@@ -25,6 +25,7 @@ export const zh: Translations = {
     heroTaglineA: '一次请求，一张',
     heroTaglineHighlight: '插画',
     heroTaglineB: '！',
+    dialogueText: '你的下一张壁纸，只需一次请求！',
     apiStatus: 'API状态',
     statusHealthy: '正常',
     statusPartial: '部分可用',

@@ -27,6 +27,7 @@ export interface Translations {
     heroTaglineA: string;
     heroTaglineHighlight: string;
     heroTaglineB: string;
+    dialogueText: string;
     apiStatus: string;
     statusHealthy: string;
     statusPartial: string;

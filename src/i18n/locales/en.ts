@@ -25,6 +25,7 @@ export const en: Translations = {
     heroTaglineA: 'One request, one ',
     heroTaglineHighlight: 'illustration',
     heroTaglineB: '!',
+    dialogueText: 'Your next wallpaper is one request away!',
     apiStatus: 'API Status',
     statusHealthy: 'Healthy',
     statusPartial: 'Partially Available',

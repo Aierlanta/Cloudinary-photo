@@ -141,7 +141,7 @@ body {
 
   /* 奶油底波点（浅色：樱花粉点 / 深色：雾白点） */
   .bg-polka {
-    background-image: radial-gradient(rgb(var(--primary-rgb) / 0.18) 1.8px, transparent 1.8px);
+    background-image: radial-gradient(rgb(var(--primary-rgb) / 0.15) 1.8px, transparent 1.8px);
     background-size: 26px 26px;
   }
   .dark .bg-polka,
@@ -189,9 +189,9 @@ body {
     background: rgb(var(--secondary-rgb) / 0.55);
   }
 
-  /* 蕾丝缎带导航的下摆 scallop 边 */
+  /* 蕾丝缎带导航的下摆 scallop 边（粉色蕾丝） */
   .lace-edge {
-    --lace-color: var(--card);
+    --lace-color: rgb(var(--primary-rgb) / 0.55);
     background-image:
       radial-gradient(circle at 17px -7px, transparent 21px, var(--lace-color) 21.5px);
     background-size: 34px 16px;
