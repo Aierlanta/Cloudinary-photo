@@ -39,6 +39,8 @@ const config: Config = {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float-soft': 'float-soft 6s ease-in-out infinite',
         sparkle: 'sparkle-pulse 3.2s ease-in-out infinite',
+        drift: 'drift-y 5.5s ease-in-out infinite',
+        wiggle: 'wiggle-soft 4.5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {

@@ -1,13 +1,13 @@
 import type { Metadata } from 'next'
-import { Baloo_2, Nunito, ZCOOL_KuaiLe, DM_Mono } from 'next/font/google'
+import { Fredoka, Nunito, ZCOOL_KuaiLe, DM_Mono } from 'next/font/google'
 import './globals.css'
 import { PageErrorBoundary } from '@/components/ErrorBoundary'
 import { cookies, headers } from 'next/headers'
 import { PHProvider } from './providers'
 
-const displayFont = Baloo_2({
+const displayFont = Fredoka({
   subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-display',
 })
 

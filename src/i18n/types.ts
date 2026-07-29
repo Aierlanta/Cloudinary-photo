@@ -28,6 +28,11 @@ export interface Translations {
     heroTaglineHighlight: string;
     heroTaglineB: string;
     dialogueText: string;
+    previewBadge: string;
+    brandName: string;
+    statImages: string;
+    statGroups: string;
+    statUptime: string;
     apiStatus: string;
     statusHealthy: string;
     statusPartial: string;
