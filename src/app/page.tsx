@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -10,7 +11,6 @@ import {
   Image as ImageIcon,
   Languages,
   Moon,
-  Star,
   Sun,
 } from "lucide-react";
 
@@ -352,9 +352,16 @@ function HomeContent() {
         <FourPointStar className={styles.headerStarLeft} />
         <div className={styles.headerInner}>
           <Link href="/" className={styles.brandLink}>
-            <span className={styles.logoMedallion} aria-hidden>
+            <span className={styles.logoMedallion}>
               <span className={styles.logoStitch}>
-                <Star className={styles.logoStar} fill="currentColor" />
+                <Image
+                  src="/icon.png"
+                  alt=""
+                  width={72}
+                  height={72}
+                  className={styles.logoImage}
+                  priority
+                />
               </span>
             </span>
             <span className={styles.brandName}>{t.home.brandName}</span>
