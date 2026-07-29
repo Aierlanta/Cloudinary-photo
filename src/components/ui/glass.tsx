@@ -8,9 +8,9 @@ import Magnetic from "@/components/ui/magnetic";
 // --- Animation Variants ---
 export const cardHoverVariants = {
   hover: {
-    y: -8,
-    scale: 1.02,
-    boxShadow: "0 20px 40px -10px rgba(0,0,0,0.2)",
+    y: -6,
+    scale: 1.015,
+    boxShadow: "var(--lift-shadow)" as unknown as string,
     transition: {
       type: "spring" as const,
       stiffness: 260,
@@ -19,6 +19,10 @@ export const cardHoverVariants = {
   },
 };
 
+/**
+ * PastelCard（原 GlassCard）
+ * Galgame 风格卡片：白底、粉色描边、大圆角、柔和暖色投影
+ */
 export const GlassCard = ({
   children,
   className,
@@ -40,21 +44,21 @@ export const GlassCard = ({
       variants={enableHover ? cardHoverVariants : undefined}
       whileHover={enableHover ? "hover" : undefined}
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-lg transition-colors",
-        "dark:border-white/10 dark:bg-slate-900/40",
-        "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500",
+        "relative overflow-hidden rounded-3xl border-2 border-border bg-card shadow-soft transition-shadow",
         noPadding ? "" : "p-6",
         className
       )}
       {...props}
     >
-      {/* Noise texture overlay specifically for cards if needed, or rely on global */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-50 mix-blend-overlay" />
       <div className="relative z-10">{children}</div>
     </motion.div>
   );
 };
 
+/**
+ * PastelButton（原 GlassButton）
+ * 圆润饱满的糖果按钮：primary 为樱花粉填充 + 白色内描边，次要为白底粉边
+ */
 export const GlassButton = ({
   children,
   onClick,
@@ -72,21 +76,25 @@ export const GlassButton = ({
 
   const button = (
     <motion.button
-      whileHover={enableHover ? { scale: 1.05 } : undefined}
-      whileTap={enableHover ? { scale: 0.96 } : undefined}
+      whileHover={enableHover ? { scale: 1.04, y: -1 } : undefined}
+      whileTap={enableHover ? { scale: 0.95 } : undefined}
       onClick={onClick}
       className={cn(
-        "group flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all shadow-md backdrop-blur-md relative overflow-hidden",
+        "group flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-shadow shadow-soft relative",
         primary
-          ? "bg-primary text-white hover:shadow-primary/40 border border-primary/50"
-          : "bg-white/10 hover:bg-white/20 text-foreground border border-white/20 dark:bg-white/5 dark:hover:bg-white/10",
+          ? "bg-primary text-white ring-2 ring-white/70 ring-inset hover:shadow-lift"
+          : "bg-card text-foreground border-2 border-border hover:border-primary hover:shadow-lift",
         className
       )}
       {...props}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
       {Icon && (
-        <Icon className={cn("w-5 h-5 transition-transform", iconClassName ? iconClassName : "group-hover:rotate-12 group-hover:scale-110")} />
+        <Icon
+          className={cn(
+            "w-5 h-5 transition-transform",
+            iconClassName ? iconClassName : "group-hover:scale-110 group-hover:-rotate-6"
+          )}
+        />
       )}
       {children}
     </motion.button>
@@ -99,4 +107,3 @@ export const GlassButton = ({
 
   return <Magnetic>{button}</Magnetic>;
 };
-

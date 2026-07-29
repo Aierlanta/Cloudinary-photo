@@ -104,13 +104,17 @@ export function IPLocationBadge({
           const data = await response.json();
           if (data.success && data.data?.location) {
             globalLocationCache.set(ip, data.data.location);
+            // 竞态防护：ip 已切换时丢弃过期响应
+            if (fetchedRef.current !== ip) return;
             setLocation(data.data.location);
           }
         }
       } catch (error) {
         console.error('Failed to fetch IP location:', error);
       } finally {
-        setLoading(false);
+        if (fetchedRef.current === ip) {
+          setLoading(false);
+        }
       }
     };
 

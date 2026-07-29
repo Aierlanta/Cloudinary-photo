@@ -232,11 +232,14 @@ export default function ImageUpload({
     // 监听浏览器后退/前进
     window.addEventListener("popstate", handlePopState);
 
-    // 在上传开始时，向历史记录添加一个状态
-    // 这样后退时会触发 popstate 事件
-    if (uploading || fileStates.some((fs) => fs.status === "uploading")) {
+    // 仅在上传“开始”的边沿向历史记录添加一个状态，
+    // 否则每次进度更新都会 pushState，污染浏览历史
+    const isUploadingNow =
+      uploading || fileStates.some((fs) => fs.status === "uploading");
+    if (isUploadingNow && !wasUploadingRef.current) {
       window.history.pushState(null, "", window.location.pathname);
     }
+    wasUploadingRef.current = isUploadingNow;
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
@@ -375,8 +378,17 @@ export default function ImageUpload({
     }
   };
 
+  // 记录上一轮是否处于上传中，用于上传开始的边沿检测（避免重复 pushState）
+  const wasUploadingRef = useRef(false);
+
   const removeFile = (index: number) => {
-    setFileStates((prev) => prev.filter((_, i) => i !== index));
+    // 上传批次进行中禁止移除：并发 worker 按批次开始时捕获的下标更新状态，
+    // 此时移除任意一行都会让后续进度/结果贴到错误的文件上
+    setFileStates((prev) => {
+      const batchActive = prev.some((fs) => fs.status === "uploading");
+      if (batchActive) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const formatFileSize = (bytes: number) => {
@@ -492,7 +504,7 @@ export default function ImageUpload({
             console.warn(
               `上传 ${file.name} 失败 (状态码: ${
                 response.status
-              })，{retryDelay}ms后重试（第{retryCount + 1}次重试）`
+              })，${retryDelay}ms后重试（第${retryCount + 1}次重试）`
             );
 
             await delay(retryDelay);
@@ -523,7 +535,7 @@ export default function ImageUpload({
         if (retryCount < RETRY_CONFIG.maxRetries) {
           const retryDelay = calculateRetryDelay(retryCount);
           console.warn(
-            `上传 ${file.name} 网络错误，{retryDelay}ms后重试（第{
+            `上传 ${file.name} 网络错误，${retryDelay}ms后重试（第${
               retryCount + 1
             }次重试）：`,
             error

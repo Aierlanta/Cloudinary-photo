@@ -1,40 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Image as ImageIcon,
-  Zap,
-  Settings,
-  Moon,
-  Sun,
-  Github,
-  Copy,
-  RefreshCw,
-  CheckCircle2,
-  ArrowRight,
-  LayoutDashboard,
   BookOpen,
+  Github,
+  Heart,
+  Image as ImageIcon,
   Languages,
-  Terminal,
-  Code,
-  ShieldCheck,
-  Database,
+  Moon,
+  Star,
+  Sun,
 } from "lucide-react";
-import {
-  type Theme,
-  resolveSiteClientTheme,
-  applyThemeToRoot,
-  setSiteManualTheme,
-} from "@/lib/adminTheme";
-import { useLocale, LocaleProvider } from "@/hooks/useLocale";
-import { cn } from "@/lib/utils";
-import Magnetic from "@/components/ui/magnetic";
-import { GlassCard, GlassButton } from "@/components/ui/glass";
 
-// --- Types ---
+import { LocaleProvider, useLocale } from "@/hooks/useLocale";
+import {
+  applyThemeToRoot,
+  resolveSiteClientTheme,
+  setSiteManualTheme,
+  type Theme,
+} from "@/lib/adminTheme";
+import { cn } from "@/lib/utils";
+
+import styles from "./home.module.css";
+
 interface APIStatus {
   status: string;
   version: string;
@@ -49,717 +39,499 @@ interface APIStatus {
   };
 }
 
-// --- Animation Variants ---
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
       staggerChildren: 0.1,
-      delayChildren: 0.1,
+      delayChildren: 0.06,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.8,
+      duration: 0.64,
       ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
     },
   },
 };
 
+function FourPointStar({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <path
+        d="M16 1.8c1.5 8.2 3.9 10.6 12.2 12.2C19.9 15.5 17.5 18 16 26.2 14.5 18 12.1 15.5 3.8 14 12.1 12.4 14.5 10 16 1.8Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function Sakura({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <g fill="currentColor">
+        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" />
+        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(72 16 16)" />
+        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(144 16 16)" />
+        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(216 16 16)" />
+        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(288 16 16)" />
+        <circle cx="16" cy="16" r="3.1" fill="#fff5f2" />
+        <circle cx="16" cy="16" r="1.45" fill="#ff9fbd" />
+      </g>
+    </svg>
+  );
+}
+
+function DoodleHeart({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 56 52" className={className} aria-hidden>
+      <path
+        d="M28 45.2C22.7 39.8 7.3 31.7 5.9 17.9 5.1 9.7 10.2 5 16.5 5c5.2 0 9.1 3.1 11.5 7.1C30.4 8.1 34.3 5 39.5 5c6.3 0 11.4 4.7 10.6 12.9C48.7 31.7 33.3 39.8 28 45.2Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M27.8 39.1C23.6 35.2 11.7 28.1 10.4 18.4c-.8-5.9 2.7-9.2 7-9.2 4.7 0 8.2 3.9 10.4 7.8 2.2-3.9 5.8-7.8 10.5-7.8 4.3 0 7.8 3.3 7 9.2-1.3 9.7-13.2 16.8-17.5 20.7Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity=".65"
+      />
+    </svg>
+  );
+}
+
+function DoodleStar({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 52 52" className={className} aria-hidden>
+      <path
+        d="m26 4.8 6.1 12.4 13.7 2-9.9 9.7 2.3 13.6L26 36.1l-12.2 6.4 2.3-13.6-9.9-9.7 13.7-2L26 4.8Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m26 10.9 4.3 8.8 9.7 1.4-7 6.8 1.7 9.6-8.7-4.6-8.7 4.6 1.7-9.6-7-6.8 9.7-1.4 4.3-8.8Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity=".55"
+      />
+    </svg>
+  );
+}
+
+function PictureStatIcon() {
+  return (
+    <svg viewBox="0 0 58 58" aria-hidden>
+      <rect x="8" y="9" width="42" height="40" rx="5" fill="#fff7f5" stroke="currentColor" strokeWidth="2.8" />
+      <circle cx="20" cy="21" r="4.3" fill="#ffd5df" />
+      <path d="m12.5 43 11.8-12 8.1 7 5.5-5.5L46 43Z" fill="#ff9cb4" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FolderStarIcon() {
+  return (
+    <svg viewBox="0 0 64 58" aria-hidden>
+      <path d="M7 15.5h18l5.2 5H57v28H7Z" fill="#b898e4" stroke="#7650ad" strokeWidth="2.8" strokeLinejoin="round" />
+      <path d="M7 15.5v-5h17l5.2 5H57v5H30.2l-5.2-5Z" fill="#d4bff0" stroke="#7650ad" strokeWidth="2.8" strokeLinejoin="round" />
+      <path d="m39 27.2 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8Z" fill="#ffd36a" stroke="#8b68be" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ShieldBadgeIcon() {
+  return (
+    <svg viewBox="0 0 60 64" aria-hidden>
+      <path d="M30 4.5 51 12v17.5c0 14.8-9.1 24.4-21 30-11.9-5.6-21-15.2-21-30V12Z" fill="#6dcbb6" stroke="#218f7b" strokeWidth="3" strokeLinejoin="round" />
+      <path d="M30 11.5 44 16v13.1c0 10.2-5.7 17.2-14 21.6-8.3-4.4-14-11.4-14-21.6V16Z" fill="#a9e2d5" stroke="#f8fffd" strokeWidth="2" />
+      <path d="m22.8 30.8 4.8 4.7 9.9-10" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RibbonBow({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 150 82" className={className} aria-hidden>
+      <g stroke="#b95b72" strokeWidth="2.2" strokeLinejoin="round">
+        <path
+          d="M67 37C50 11 19 5 12 18 5 32 31 50 64 47Z"
+          fill="#ff9fba"
+        />
+        <path
+          d="M83 37c17-26 48-32 55-19 7 14-19 32-52 29Z"
+          fill="#ff9fba"
+        />
+        <path d="M61 44 43 76l30-15 2-18Z" fill="#ef87aa" />
+        <path d="m89 44 18 32-30-15-2-18Z" fill="#ef87aa" />
+        <rect x="64" y="30" width="22" height="22" rx="7" fill="#ffbfd0" />
+        <path d="M21 20c12 0 25 7 38 19M129 20c-12 0-25 7-38 19" fill="none" opacity=".55" />
+      </g>
+      <path d="M70 35c3-2 7-2 10 0" fill="none" stroke="#fff7f8" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FloatingDecor() {
+  return (
+    <div className={styles.decorLayer} aria-hidden>
+      <FourPointStar className={cn(styles.decor, styles.decorPinkSpark)} />
+      <DoodleStar className={cn(styles.decor, styles.decorGoldStarLeft)} />
+      <FourPointStar className={cn(styles.decor, styles.decorGoldSpark)} />
+      <FourPointStar className={cn(styles.decor, styles.decorLavenderSpark)} />
+      <FourPointStar className={cn(styles.decor, styles.decorLavenderSparkTopRight)} />
+      <FourPointStar className={cn(styles.decor, styles.decorCoralSparkRight)} />
+      <DoodleStar className={cn(styles.decor, styles.decorGoldStarRight)} />
+      <FourPointStar className={cn(styles.decor, styles.decorPeachSparkRight)} />
+      <FourPointStar className={cn(styles.decor, styles.decorMintSpark)} />
+      <FourPointStar className={cn(styles.decor, styles.decorGoldSparkBottom)} />
+      <FourPointStar className={cn(styles.decor, styles.decorPinkSparkBottom)} />
+      <DoodleHeart className={cn(styles.decor, styles.decorHeartRight)} />
+      <DoodleHeart className={cn(styles.decor, styles.decorHeartRightSmall)} />
+      <Sakura className={cn(styles.decor, styles.decorFlowerLeft)} />
+      <Sakura className={cn(styles.decor, styles.decorFlowerRight)} />
+    </div>
+  );
+}
+
+function EmptyPreview({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className={styles.emptyPreview}>
+      <div className={styles.emptyIconWrap}>
+        <ImageIcon className={styles.emptyIcon} />
+        <Sakura className={styles.emptyFlower} />
+        <Heart className={styles.emptyHeart} fill="currentColor" />
+      </div>
+      <p className={styles.emptyTitle}>{title}</p>
+      <p className={styles.emptyHint}>{hint}</p>
+    </div>
+  );
+}
+
+interface StatCardProps {
+  className: string;
+  icon: ReactNode;
+  value: string;
+  label: string;
+  decoration: ReactNode;
+}
+
+function StatCard({ className, icon, value, label, decoration }: StatCardProps) {
+  return (
+    <div className={cn(styles.statCard, className)}>
+      {decoration}
+      <div className={styles.statIcon}>{icon}</div>
+      <div className={styles.statCopy}>
+        <div className={styles.statValue}>{value}</div>
+        <div className={styles.statLabel}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
 function HomeContent() {
-  const { locale, t, toggleLocale } = useLocale();
+  const { t, toggleLocale } = useLocale();
   const [apiStatus, setApiStatus] = useState<APIStatus | null>(null);
-  const [randomImageUrl, setRandomImageUrl] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-  const [baseUrl, setBaseUrl] = useState<string>("");
+  const [randomImageUrl, setRandomImageUrl] = useState("");
+  const [imageFailed, setImageFailed] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [baseUrl, setBaseUrl] = useState("");
   const [theme, setTheme] = useState<Theme>("light");
   const [isManualTheme, setIsManualTheme] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  // Parallax Logic
-  const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0, 500], [0, 150]);
-  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
-
-  const bgBlob1Y = useTransform(scrollY, [0, 1000], [0, -200]);
-  const bgBlob2Y = useTransform(scrollY, [0, 1000], [0, 200]);
-
-  const generateBaseUrl = () => {
-    if (typeof window === "undefined") return "";
-    return `${window.location.protocol}//${window.location.host}`;
-  };
-
-  const generateRandomImageUrl = (baseUrl: string) => {
-    return `${baseUrl}/api/random`;
-  };
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-    
-    const pref = resolveSiteClientTheme();
-    setTheme(pref.theme);
-    setIsManualTheme(pref.isManual);
-    applyThemeToRoot(pref.theme);
+    const preference = resolveSiteClientTheme();
+    setTheme(preference.theme);
+    setIsManualTheme(preference.isManual);
+    applyThemeToRoot(preference.theme);
 
-    const currentBaseUrl = generateBaseUrl();
+    const currentBaseUrl = `${window.location.protocol}//${window.location.host}`;
     setBaseUrl(currentBaseUrl);
 
     fetch("/api/status?mode=summary")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setApiStatus(data.data);
-        }
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json();
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (data?.success) setApiStatus(data.data);
+      })
+      .catch(console.error);
 
-    if (currentBaseUrl) {
-      setRandomImageUrl(generateRandomImageUrl(currentBaseUrl));
-    }
+    setImageLoading(true);
+    setImageFailed(false);
+    setRandomImageUrl(`${currentBaseUrl}/api/random`);
   }, []);
 
-  // 在客户端挂载后设置按钮的 title 属性
   useEffect(() => {
-    if (!mounted) return;
-    
-    const langButton = document.querySelector('[data-lang-button]') as HTMLButtonElement;
-    const themeButton = document.querySelector('[data-theme-button]') as HTMLButtonElement;
-    
-    if (langButton) {
-      langButton.title = t.home.toggleLanguage;
-    }
-    if (themeButton) {
-      themeButton.title = t.home.toggleTheme;
-    }
-  }, [mounted, t.home.toggleLanguage, t.home.toggleTheme]);
+    if (isManualTheme) return;
 
-  useEffect(() => {
-    if (typeof window === "undefined" || isManualTheme) return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = (matches: boolean) => {
-      const next: Theme = matches ? "dark" : "light";
-      setTheme((prev) => (prev === next ? prev : next));
-      applyThemeToRoot(next);
+      const nextTheme: Theme = matches ? "dark" : "light";
+      setTheme((previous) => (previous === nextTheme ? previous : nextTheme));
+      applyThemeToRoot(nextTheme);
     };
+
     apply(media.matches);
-    const listener = (e: MediaQueryListEvent) => apply(e.matches);
+    const listener = (event: MediaQueryListEvent) => apply(event.matches);
     media.addEventListener("change", listener);
     return () => media.removeEventListener("change", listener);
   }, [isManualTheme]);
 
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
   const handleThemeToggle = () => {
     setIsManualTheme(true);
-    setTheme((prev) => {
-      const next: Theme = prev === "light" ? "dark" : "light";
-      applyThemeToRoot(next);
-      setSiteManualTheme(next);
-      return next;
+    setTheme((previous) => {
+      const nextTheme: Theme = previous === "light" ? "dark" : "light";
+      applyThemeToRoot(nextTheme);
+      setSiteManualTheme(nextTheme);
+      return nextTheme;
     });
   };
 
   const refreshRandomImage = () => {
+    if (!baseUrl) return;
     setImageLoading(true);
-    const url = new URL(randomImageUrl);
+    setImageFailed(false);
+    const url = new URL(`${baseUrl}/api/random`);
     url.searchParams.set("t", Date.now().toString());
     setRandomImageUrl(url.toString());
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copyEndpoint = async () => {
+    if (!baseUrl) return;
+    try {
+      await navigator.clipboard.writeText(`${baseUrl}/api/random`);
+      setCopied(true);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.warn("复制失败:", error);
+    }
   };
 
-  const versionLabel = apiStatus?.version;
+  const totalImages = apiStatus?.stats.totalImages ?? 0;
+  const totalGroups = apiStatus?.stats.totalGroups ?? 0;
+  const showImage = Boolean(randomImageUrl) && !imageFailed;
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden selection:bg-primary/30 font-sans">
-      {/* Moving Background Blobs */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <motion.div
-          style={{ y: bgBlob1Y }}
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -top-[20%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-primary/10 blur-[120px] mix-blend-multiply filter"
-        />
-        <motion.div
-          style={{ y: bgBlob2Y }}
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.2, 0.4, 0.2],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 1,
-          }}
-          className="absolute top-[10%] -right-[10%] w-[50vw] h-[50vw] rounded-full bg-secondary/10 blur-[120px] mix-blend-multiply filter"
-        />
-        <div className="absolute bottom-0 left-[20%] w-[40vw] h-[40vw] rounded-full bg-accent/10 blur-[100px] mix-blend-multiply filter" />
-      </div>
+    <div className={styles.root}>
+      <FloatingDecor />
 
-      {/* Navigation */}
-      <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-white/60 dark:bg-slate-950/60 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/10"
+      <motion.header
+        initial={{ y: -42, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.58, ease: [0.16, 1, 0.3, 1] }}
+        className={styles.header}
       >
-        <div className="w-full px-6 lg:px-12">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 flex items-center justify-center">
-                <Image src="/icon.png" alt="Logo" width={48} height={48} className="w-full h-full object-contain" />
-              </div>
-              <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-                {t.home.title}
+        <FourPointStar className={styles.headerStarLeft} />
+        <div className={styles.headerInner}>
+          <Link href="/" className={styles.brandLink}>
+            <span className={styles.logoMedallion} aria-hidden>
+              <span className={styles.logoStitch}>
+                <Star className={styles.logoStar} fill="currentColor" />
               </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link href="/admin" className="hidden md:block">
-                <GlassButton
-                  className="px-5 py-2 text-sm rounded-full"
-                  icon={LayoutDashboard}
-                >
-                  <span>{t.home.managementPanel}</span>
-                </GlassButton>
-              </Link>
-              <div className="h-6 w-px bg-foreground/10 mx-2 hidden md:block" />
+            </span>
+            <span className={styles.brandName}>{t.home.brandName}</span>
+            <FourPointStar className={styles.headerStarBrand} />
+          </Link>
 
-              <Magnetic>
-                <button
-                  data-lang-button
-                  onClick={toggleLocale}
-                  className="p-2.5 rounded-full hover:bg-foreground/5 transition-colors border border-transparent hover:border-white/10"
-                >
-                  <Languages className="w-5 h-5" />
-                </button>
-              </Magnetic>
-
-              <Magnetic>
-                <button
-                  data-theme-button
-                  onClick={handleThemeToggle}
-                  className="p-2.5 rounded-full hover:bg-foreground/5 transition-colors border border-transparent hover:border-white/10"
-                >
-                  {theme === "dark" ? (
-                    <Sun className="w-5 h-5" />
-                  ) : (
-                    <Moon className="w-5 h-5" />
-                  )}
-                </button>
-              </Magnetic>
-
-              <Magnetic>
-                <Link
-                  href="https://github.com/Aierlanta/Cloudinary-photo"
-                  target="_blank"
-                  className="p-2.5 rounded-full hover:bg-foreground/5 transition-colors border border-transparent hover:border-white/10"
-                >
-                  <Github className="w-5 h-5" />
-                </Link>
-              </Magnetic>
-            </div>
-          </div>
+          <nav className={styles.navigation} aria-label="Primary">
+            <Link href="/api/docs" className={styles.navButton} aria-label={t.home.apiDocs}>
+              <BookOpen aria-hidden />
+              <span>{t.home.apiDocs}</span>
+            </Link>
+            <Link
+              href="https://github.com/Aierlanta/Cloudinary-photo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.navButton}
+              aria-label="GitHub"
+            >
+              <Github aria-hidden />
+              <span>GitHub</span>
+            </Link>
+            <Link href="/admin" className={cn(styles.navButton, styles.adminButton)}>
+              <Sakura className={styles.adminFlower} />
+              <span>{t.home.managementPanel}</span>
+            </Link>
+          </nav>
         </div>
-      </motion.nav>
+      </motion.header>
 
-      {/* Main Content */}
-      <main className="pt-32 pb-20 px-4 sm:px-6 lg:px-12 w-full max-w-[1920px] mx-auto">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="space-y-32"
-        >
-          {/* Hero Section */}
-          <motion.section
-            style={{ y: heroY, opacity: heroOpacity }}
-            className="text-center space-y-10 relative z-10 pt-10"
-          >
-            <motion.div variants={itemVariants} className="flex justify-center">
-              <div className="relative group cursor-default">
-                <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary via-secondary to-accent opacity-40 blur-xl group-hover:opacity-60 transition-opacity duration-500" />
-                <div className="relative px-6 py-2 rounded-full border border-white/20 bg-white/40 dark:bg-black/40 backdrop-blur-xl text-sm font-semibold text-foreground flex items-center gap-3 shadow-xl">
-                  <span className="flex h-2.5 w-2.5 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                  </span>
-                  <span>{versionLabel ? `v${versionLabel} Stable` : "v... Stable"}</span>
-                </div>
-              </div>
-            </motion.div>
+      <main className={styles.main}>
+        <motion.div variants={containerVariants} initial="hidden" animate="visible">
+          <motion.section variants={itemVariants} className={styles.hero}>
+            <div className={styles.heroTitleRow}>
+              <DoodleHeart className={cn(styles.heroHeart, styles.heroHeartLeft)} />
+              <h1 className={styles.heroTitle}>
+                {t.home.heroTaglineA}
+                <span>{t.home.heroTaglineHighlight}</span>
+                {t.home.heroTaglineB}
+              </h1>
+              <DoodleHeart className={cn(styles.heroHeart, styles.heroHeartRight)} />
+            </div>
 
-            <motion.h1
-              variants={itemVariants}
-              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-foreground via-foreground/90 to-foreground/40 leading-[0.9] drop-shadow-sm select-none"
-             
-            >
-              {t.home.title}
-            </motion.h1>
-
-            <motion.p
-              variants={itemVariants}
-              className="max-w-3xl mx-auto text-xl sm:text-2xl text-muted-foreground leading-relaxed font-light"
-             
-            >
-              {t.home.subtitle}
-            </motion.p>
-
-            <motion.div
-              variants={itemVariants}
-              className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8"
-            >
-              <Link href="/api/docs">
-                <GlassButton
-                  primary
-                  icon={BookOpen}
-                  className="h-14 px-8 text-lg rounded-2xl shadow-xl shadow-primary/20"
+            {baseUrl && (
+              <div className={styles.endpointRow}>
+                <button
+                  type="button"
+                  className={styles.endpointButton}
+                  onClick={copyEndpoint}
+                  aria-label={t.common.copy}
                 >
-                  <span>{t.home.apiDocs}</span>
-                </GlassButton>
-              </Link>
-              <Link href="/admin">
-                <GlassButton
-                  icon={ArrowRight}
-                  className="h-14 px-8 text-lg rounded-2xl"
-                >
-                  <span>{t.home.managementPanel}</span>
-                </GlassButton>
-              </Link>
-            </motion.div>
-
-            {/* API Status Indicator */}
-            {!loading && apiStatus && (
-              <motion.div
-                variants={itemVariants}
-                className="inline-flex items-center gap-3 px-5 py-2.5 mt-12 rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-md border border-white/5 shadow-sm text-muted-foreground text-sm"
-              >
-                <div
-                  className={cn(
-                    "w-2 h-2 rounded-full",
-                    apiStatus.status === "healthy"
-                      ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"
-                      : "bg-yellow-500"
-                  )}
-                />
-                <span>
-                  System Status:{" "}
-                  <span
-                    className={cn(
-                      "font-semibold",
-                      apiStatus.status === "healthy"
-                        ? "text-green-500"
-                        : "text-yellow-500"
-                    )}
-                  >
-                    {apiStatus.status === "healthy"
-                      ? "Operational"
-                      : "Degraded"}
-                  </span>
+                  <strong>GET</strong>
+                  <span>/api/random</span>
+                </button>
+                <span className={styles.srOnly} aria-live="polite">
+                  {copied ? "Copied" : ""}
                 </span>
-                <span className="w-px h-4 bg-white/10 mx-1" />
-                <span>{apiStatus.stats.totalImages} Images Served</span>
-              </motion.div>
+              </div>
             )}
           </motion.section>
 
-          {/* Bento Grid Layout for Features & Preview */}
-          <section className="w-full max-w-[1700px] mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)]">
-              {/* Large Preview Card (Col-span-8, Row-span-2) */}
-              <motion.div
-                variants={itemVariants}
-                className="md:col-span-12 lg:col-span-8 row-span-2 h-full min-h-[500px]"
-              >
-                <GlassCard
-                  className="h-full flex flex-col p-0 overflow-hidden group"
-                  hover={false}
-                >
-                  <div className="absolute top-6 left-6 z-20 flex items-center gap-2">
-                    <div className="px-3 py-1 rounded-full bg-black/30 backdrop-blur-md text-white text-xs border border-white/10 flex items-center gap-2">
-                      <ImageIcon className="w-3 h-3" />
-                      Live Preview
-                    </div>
-                  </div>
+          <motion.section variants={itemVariants} className={styles.previewSection}>
+            <div className={styles.scrapbookShell}>
+              <div className={styles.frame}>
+                <div className={styles.washiDots} aria-hidden />
+                <div className={styles.washiStripes} aria-hidden />
+                <RibbonBow className={styles.bow} />
 
-                  <div className="relative flex-1 w-full h-full bg-black/5 dark:bg-white/5 overflow-hidden">
-                    {randomImageUrl ? (
-                      <>
-                        <img
-                          key={randomImageUrl}
-                          src={randomImageUrl}
-                          alt="Random Preview"
-                          className={cn(
-                            "w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-105",
-                            imageLoading
-                              ? "opacity-0 scale-105 blur-xl"
-                              : "opacity-100 scale-100 blur-0"
-                          )}
-                          onLoad={() => setImageLoading(false)}
-                          onError={() => setImageLoading(false)}
-                        />
-                        {imageLoading && (
-                          <div className="absolute inset-0 flex items-center justify-center backdrop-blur-md bg-black/20 z-10">
-                            <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                        <ImageIcon className="w-16 h-16 mb-4 opacity-20" />
-                        <p>{t.home.noImage}</p>
-                      </div>
-                    )}
-
-                    <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-32 flex items-end justify-between">
-                      <div className="text-white">
-                        <h3 className="text-2xl font-bold mb-2">
-                          {t.home.randomImagePreview}
-                        </h3>
-                        <p className="text-white/70 text-sm max-w-md">
-                          High-performance random image delivery optimized for
-                          speed and reliability.
-                        </p>
-                      </div>
-                      <Magnetic>
-                        <button
-                          onClick={refreshRandomImage}
-                          className="p-4 rounded-full bg-white text-black hover:scale-110 transition-transform shadow-2xl"
-                        >
-                          <RefreshCw
-                            className={cn(
-                              "w-6 h-6",
-                              imageLoading && "animate-spin"
-                            )}
-                          />
-                        </button>
-                      </Magnetic>
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
-
-              {/* Code Snippet Card (Col-span-4, Row-span-2) */}
-              <motion.div
-                variants={itemVariants}
-                className="md:col-span-12 lg:col-span-4 row-span-2"
-              >
-                <GlassCard
-                  className="h-full flex flex-col p-0 overflow-hidden"
-                  hover={false}
-                >
-                  <div className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-md flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
-                        <Code className="w-5 h-5" />
-                      </div>
-                      <span className="font-semibold">Quick Start</span>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-                      <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex-1 flex flex-col gap-6 font-mono text-sm bg-slate-950/50">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
-                        <span>Endpoint</span>
-                        <span className="text-green-500">GET</span>
-                      </div>
-                      <div className="relative group">
-                        <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-slate-300 break-all hover:border-primary/50 transition-colors cursor-text">
-                          {baseUrl}/api/random
-                        </div>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(`${baseUrl}/api/random`)
-                          }
-                          className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          {copied ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
-                        <span>HTML</span>
-                      </div>
-                      <div className="relative group">
-                        <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-slate-300 break-all hover:border-primary/50 transition-colors">
-                          <span className="text-blue-400">&lt;img</span>{" "}
-                          <span className="text-sky-300">src</span>=
-                          <span className="text-orange-300">
-                            "{baseUrl}/api/random"
-                          </span>{" "}
-                          <span className="text-blue-400">/&gt;</span>
-                        </div>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(
-                              `<img src="${baseUrl}/api/random" />`
-                            )
-                          }
-                          className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          {copied ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        timeWeight multiplies each in-window image; it is not a guaranteed hit percentage.
-                      </p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
-                        <span>Weighted Random</span>
-                        <span className="text-blue-400">optional</span>
-                      </div>
-                      <div className="relative group">
-                        <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-slate-300 break-all hover:border-primary/50 transition-colors cursor-text">
-                          {baseUrl}/api/random
-                          <span className="text-blue-300">
-                            ?timeWindow=7d&amp;timeWeight=3
-                          </span>
-                        </div>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(
-                              `${baseUrl}/api/random?timeWindow=7d&timeWeight=3`
-                            )
-                          }
-                          className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          {copied ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground uppercase tracking-wider">
-                        <span>Fixed Window</span>
-                        <span className="text-blue-400">timezone</span>
-                      </div>
-                      <div className="relative group">
-                        <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-slate-300 break-all hover:border-primary/50 transition-colors cursor-text">
-                          {baseUrl}/api/random
-                          <span className="text-blue-300">
-                            ?timeStart=2026-05-01T00:00:00&amp;timeEnd=2026-05-31T23:59:59&amp;timeZone=Asia/Shanghai&amp;timeWeight=4
-                          </span>
-                        </div>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(
-                              `${baseUrl}/api/random?timeStart=2026-05-01T00:00:00&timeEnd=2026-05-31T23:59:59&timeZone=Asia/Shanghai&timeWeight=4`
-                            )
-                          }
-                          className="absolute right-2 top-2 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          {copied ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                          ) : (
-                            <Copy className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="mt-auto pt-6 border-t border-white/5">
-                      <Link
-                        href="/api/docs"
-                        className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group"
-                      >
-                        <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                          Read Full Documentation
-                        </span>
-                        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-                      </Link>
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
-
-              {/* Feature: Performance (Col-span-4) */}
-              <motion.div
-                variants={itemVariants}
-                className="md:col-span-6 lg:col-span-4"
-              >
-                <GlassCard className="h-full p-8 flex flex-col justify-between hover:border-yellow-500/30 transition-colors group">
-                  <div>
-                    <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 mb-6 group-hover:scale-110 transition-transform duration-300">
-                      <Zap className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-3">
-                      {t.features.performance.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {t.features.performance.description}
-                    </p>
-                  </div>
-                </GlassCard>
-              </motion.div>
-
-              {/* Feature: Easy to Use (Col-span-4) */}
-              <motion.div
-                variants={itemVariants}
-                className="md:col-span-6 lg:col-span-4"
-              >
-                <GlassCard className="h-full p-8 flex flex-col justify-between hover:border-green-500/30 transition-colors group">
-                  <div>
-                    <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 mb-6 group-hover:scale-110 transition-transform duration-300">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-3">
-                      {t.features.easyToUse.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {t.features.easyToUse.description}
-                    </p>
-                  </div>
-                </GlassCard>
-              </motion.div>
-
-              {/* Feature: Flexible (Col-span-4) */}
-              <motion.div
-                variants={itemVariants}
-                className="md:col-span-12 lg:col-span-4"
-              >
-                <GlassCard className="h-full p-8 flex flex-col justify-between hover:border-blue-500/30 transition-colors group">
-                  <div>
-                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-6 group-hover:scale-110 transition-transform duration-300">
-                      <Settings className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-3">
-                      {t.features.flexible.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {t.features.flexible.description}
-                    </p>
-                  </div>
-                </GlassCard>
-              </motion.div>
-            </div>
-          </section>
-
-          {/* Stats Banner */}
-          {apiStatus && (
-            <section className="w-full max-w-[1700px] mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-              >
-                <GlassCard
-                  className="relative overflow-hidden py-16 px-8"
-                  hover={false}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5" />
-                  <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
-                    <div className="space-y-2">
-                      <div className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
-                        {apiStatus.stats.totalImages}
-                      </div>
-                      <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                        {t.stats.totalImages}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
-                        {apiStatus.stats.totalGroups}
-                      </div>
-                      <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                        {t.stats.imageGroups}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div
+                <div className={styles.photoWell}>
+                  {showImage ? (
+                    <>
+                      <img
+                        key={randomImageUrl}
+                        src={randomImageUrl}
+                        alt={t.home.randomImagePreview}
                         className={cn(
-                          "text-5xl lg:text-6xl font-black tracking-tighter",
-                          apiStatus.services.api.enabled
-                            ? "text-green-500"
-                            : "text-red-500"
+                          styles.previewImage,
+                          imageLoading ? styles.previewImageLoading : styles.previewImageReady,
                         )}
-                      >
-                        {apiStatus.services.api.enabled ? "100%" : "ERR"}
-                      </div>
-                      <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                        {t.stats.apiStatus}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-5xl lg:text-6xl font-black tracking-tighter text-foreground">
-                        99.9%
-                      </div>
-                      <div className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                        {t.stats.serviceTime}
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
-            </section>
-          )}
+                        onLoad={() => setImageLoading(false)}
+                        onError={() => {
+                          setImageLoading(false);
+                          setImageFailed(true);
+                        }}
+                      />
+                      {imageLoading && (
+                        <div className={styles.loadingOverlay}>
+                          <div className={styles.spinner} />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <EmptyPreview title={t.home.noImage} hint={t.home.uploadFirst} />
+                  )}
+                </div>
+
+                <div className={styles.captionBox}>
+                  <span className={styles.previewBadge}>
+                    <Sakura />
+                    {t.home.previewBadge}
+                    <Sakura />
+                  </span>
+                  <p>{t.home.dialogueText}</p>
+                  <button
+                    type="button"
+                    onClick={refreshRandomImage}
+                    aria-label={t.home.refreshImage}
+                    className={styles.refreshHeart}
+                  >
+                    <Heart fill="currentColor" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.section>
+
+          <motion.section variants={itemVariants} className={styles.statsSection}>
+            <div className={styles.statsGrid}>
+              <StatCard
+                className={styles.statPink}
+                icon={<PictureStatIcon />}
+                value={totalImages.toLocaleString()}
+                label={t.home.statImages}
+                decoration={
+                  <>
+                    <Sakura className={cn(styles.statDecor, styles.statDecorPinkOne)} />
+                    <Sakura className={cn(styles.statDecor, styles.statDecorPinkTwo)} />
+                  </>
+                }
+              />
+              <StatCard
+                className={styles.statPurple}
+                icon={<FolderStarIcon />}
+                value={totalGroups.toLocaleString()}
+                label={t.home.statGroups}
+                decoration={
+                  <>
+                    <FourPointStar className={cn(styles.statDecor, styles.statDecorPurpleOne)} />
+                    <FourPointStar className={cn(styles.statDecor, styles.statDecorPurpleTwo)} />
+                  </>
+                }
+              />
+              <StatCard
+                className={styles.statMint}
+                icon={<ShieldBadgeIcon />}
+                value="99.9%"
+                label={t.home.statUptime}
+                decoration={
+                  <>
+                    <FourPointStar className={cn(styles.statDecor, styles.statDecorMintOne)} />
+                    <FourPointStar className={cn(styles.statDecor, styles.statDecorMintTwo)} />
+                  </>
+                }
+              />
+            </div>
+          </motion.section>
         </motion.div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-white/30 dark:bg-black/30 backdrop-blur-xl relative z-10">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 flex items-center justify-center">
-                <Image src="/icon.png" alt="Logo" width={32} height={32} className="w-full h-full object-contain" />
-              </div>
-              <div className="text-sm text-muted-foreground">
-                &copy; {new Date().getFullYear()} {t.footer.copyright}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-8 text-sm font-medium text-muted-foreground">
-              <span>{t.footer.author}</span>
-              <Link
-                href="https://github.com/Aierlanta/Cloudinary-photo"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-primary transition-colors"
-              >
-                <Github className="w-4 h-4" />
-                <span>{t.footer.github}</span>
-              </Link>
-            </div>
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <p>&copy; {new Date().getFullYear()} {t.footer.copyright}</p>
+          <div className={styles.footerActions}>
+            <span>{t.footer.author}</span>
+            <button type="button" onClick={toggleLocale} aria-label={t.home.toggleLanguage}>
+              <Languages />
+            </button>
+            <button type="button" onClick={handleThemeToggle} aria-label={t.home.toggleTheme}>
+              {theme === "dark" ? <Sun /> : <Moon />}
+            </button>
+            <Link
+              href="https://github.com/Aierlanta/Cloudinary-photo"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t.footer.github}
+            >
+              <Github />
+            </Link>
           </div>
         </div>
       </footer>

@@ -1,8 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { notFound } from 'next/navigation'
 
 export default function TestRetryPage() {
+  // 开发调试页面：生产构建直接 404，避免暴露测试面
+  if (process.env.NODE_ENV === 'production') {
+    notFound()
+  }
+
   const [isUploading, setIsUploading] = useState(false)
   const [results, setResults] = useState<any[]>([])
   const [logs, setLogs] = useState<string[]>([])

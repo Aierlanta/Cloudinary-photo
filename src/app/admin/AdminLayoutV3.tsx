@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -22,6 +21,7 @@ import {
   Globe,
   Palette,
   Network,
+  Star,
 } from "lucide-react";
 import { useLocale } from "@/hooks/useLocale";
 import { Theme } from "@/lib/adminTheme";
@@ -77,63 +77,36 @@ export default function AdminLayoutV3({
     { name: t.adminNav.upload || "图片上传", href: "/admin/images", icon: Upload },
     { name: t.adminNav.gallery || "图库", href: "/admin/gallery", icon: ImageIcon },
     { name: t.adminNav.groups, href: "/admin/groups", icon: Layers },
-    { name: "蜂群", href: "/admin/swarm", icon: Network },
+    { name: t.adminNav.swarm, href: "/admin/swarm", icon: Network },
     { name: t.adminNav.apiConfig, href: "/admin/config", icon: Settings },
     { name: t.adminNav.status, href: "/admin/status", icon: Activity },
-    { name: "Logs", href: "/admin/logs", icon: FileText },
+    { name: t.adminNav.logs, href: "/admin/logs", icon: FileText },
     { name: t.adminNav.backup, href: "/admin/backup", icon: Database },
     { name: t.adminNav.security, href: "/admin/security", icon: ShieldAlert },
   ];
 
   const isLight = theme === "light";
 
+  const brandBadge = (
+    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-soft ring-2 ring-white/70 ring-inset shrink-0">
+      <Star className="w-5 h-5 text-white" fill="currentColor" />
+    </div>
+  );
+
   return (
-    <div
-      className={cn(
-        "min-h-screen flex",
-        isLight
-          ? "bg-gray-50 text-gray-900"
-          : "bg-gray-900 text-gray-100"
-      )}
-    >
+    <div className="min-h-screen flex bg-background text-foreground">
       {/* Sidebar Navigation (Desktop) */}
-      <aside
-        className={cn(
-          "hidden lg:flex w-64 flex-col h-screen sticky top-0 border-r",
-          isLight
-          ? "bg-white border-gray-300"
-          : "bg-gray-800 border-gray-600"
-        )}
-      >
+      <aside className="hidden lg:flex w-64 flex-col h-screen sticky top-0 border-r-2 border-border bg-card">
         <div className="flex flex-col h-full">
           {/* Logo / Brand */}
-          <div
-            className={cn(
-              "flex items-center gap-3 px-6 py-4 border-b",
-              isLight ? "border-gray-300" : "border-gray-600"
-            )}
-          >
-            <div className="w-10 h-10 flex items-center justify-center">
-              <Image
-                src="/icon.png"
-                alt="Admin Logo"
-                width={36}
-                height={36}
-                className="w-9 h-9"
-                priority
-              />
-            </div>
+          <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-dashed border-border">
+            {brandBadge}
             <div>
-              <h1 className="font-bold text-lg leading-tight">
+              <h1 className="font-display font-bold text-lg leading-tight">
                 {t.adminDashboard.title}
               </h1>
               {systemVersion && (
-                <p
-                  className={cn(
-                    "text-xs",
-                    isLight ? "text-gray-500" : "text-gray-400"
-                  )}
-                >
+                <p className="text-xs text-muted-foreground">
                   v{systemVersion}
                 </p>
               )}
@@ -142,25 +115,21 @@ export default function AdminLayoutV3({
 
           {/* Nav Links */}
           <nav className="flex-1 py-4 px-3 overflow-y-auto">
-            <div className="space-y-0.5">
+            <div className="space-y-1.5">
               {navigationItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link key={item.href} href={item.href} className="block">
                     <div
                       className={cn(
-                        "flex items-center gap-3 px-4 py-3 transition-colors",
+                        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all",
                         isActive
-                          ? isLight
-                            ? "bg-blue-500 text-white"
-                            : "bg-blue-600 text-white"
-                          : isLight
-                          ? "text-gray-700 hover:bg-gray-100"
-                          : "text-gray-300 hover:bg-gray-700"
+                          ? "bg-primary text-white shadow-soft"
+                          : "text-foreground/75 hover:bg-primary/10 hover:text-foreground"
                       )}
                     >
                       <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.name}</span>
+                      <span className="font-bold text-sm">{item.name}</span>
                     </div>
                   </Link>
                 );
@@ -169,38 +138,23 @@ export default function AdminLayoutV3({
           </nav>
 
           {/* Settings & Logout */}
-          <div
-            className={cn(
-              "p-3 border-t grid grid-cols-1 gap-1",
-              isLight ? "border-gray-300" : "border-gray-600"
-            )}
-          >
-            {/* Settings Button */}
+          <div className="p-3 border-t-2 border-dashed border-border grid grid-cols-1 gap-1.5">
             <button
+              type="button"
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 transition-colors",
-                isLight
-                  ? "text-gray-700 hover:bg-gray-100"
-                  : "text-gray-300 hover:bg-gray-700"
-              )}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-foreground/75 hover:bg-primary/10 hover:text-foreground"
             >
               <Palette className="w-5 h-5" />
-              <span className="font-medium">设置</span>
+              <span className="font-bold text-sm">{t.admin.quickSettings}</span>
             </button>
 
-            {/* Logout Button */}
             <button
+              type="button"
               onClick={handleLogout}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 transition-colors",
-                isLight
-                  ? "text-red-600 hover:bg-red-50"
-                  : "text-red-400 hover:bg-red-900/20"
-              )}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
             >
               <LogOut className="w-5 h-5" />
-              <span className="font-medium">{t.adminNav.logout}</span>
+              <span className="font-bold text-sm">{t.adminNav.logout}</span>
             </button>
           </div>
         </div>
@@ -209,13 +163,10 @@ export default function AdminLayoutV3({
       {/* Mobile Menu Toggle */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
+          type="button"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className={cn(
-            "p-3",
-            isLight
-              ? "bg-white text-gray-700 border border-gray-200"
-              : "bg-gray-800 text-gray-300 border border-gray-700"
-          )}
+          aria-label={isMobileMenuOpen ? t.common.close : "Menu"}
+          className="p-3 rounded-2xl bg-card border-2 border-border shadow-soft text-foreground"
         >
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -224,40 +175,21 @@ export default function AdminLayoutV3({
       {/* Mobile Navigation Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 lg:hidden"
+          className="fixed inset-0 z-40 lg:hidden bg-black/30"
           onClick={() => setIsMobileMenuOpen(false)}
         >
           <div
-            className={cn(
-              "w-3/4 max-w-xs h-full border-r",
-              isLight
-          ? "bg-white border-gray-300"
-          : "bg-gray-800 border-gray-600"
-            )}
+            className="w-3/4 max-w-xs h-full border-r-2 border-border bg-card"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col h-full">
-              <div
-                className={cn(
-                  "flex items-center gap-3 px-6 py-4 border-b",
-                  isLight ? "border-gray-300" : "border-gray-600"
-                )}
-              >
-                <div className="w-10 h-10 flex items-center justify-center">
-                  <Image
-                    src="/icon.png"
-                    alt="Admin Logo"
-                    width={36}
-                    height={36}
-                    className="w-9 h-9"
-                    priority
-                  />
-                </div>
-                <h1 className="font-bold text-lg">{t.adminDashboard.title}</h1>
+              <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-dashed border-border">
+                {brandBadge}
+                <h1 className="font-display font-bold text-lg">{t.adminDashboard.title}</h1>
               </div>
 
               <nav className="flex-1 py-4 px-3 overflow-y-auto">
-                <div className="space-y-0.5">
+                <div className="space-y-1.5">
                   {navigationItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (
@@ -268,18 +200,14 @@ export default function AdminLayoutV3({
                       >
                         <div
                           className={cn(
-                            "flex items-center gap-3 px-4 py-3 transition-colors",
+                            "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all",
                             isActive
-                              ? isLight
-                                ? "bg-blue-500 text-white"
-                                : "bg-blue-600 text-white"
-                              : isLight
-                              ? "text-gray-700 hover:bg-gray-100"
-                              : "text-gray-300 hover:bg-gray-700"
+                              ? "bg-primary text-white shadow-soft"
+                              : "text-foreground/75 hover:bg-primary/10 hover:text-foreground"
                           )}
                         >
                           <item.icon className="w-5 h-5" />
-                          <span className="font-medium">{item.name}</span>
+                          <span className="font-bold text-sm">{item.name}</span>
                         </div>
                       </Link>
                     );
@@ -287,23 +215,14 @@ export default function AdminLayoutV3({
                 </div>
               </nav>
 
-              <div
-                className={cn(
-                  "p-3 border-t space-y-1",
-                  isLight ? "border-gray-300" : "border-gray-600"
-                )}
-              >
+              <div className="p-3 border-t-2 border-dashed border-border space-y-1.5">
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 transition-colors",
-                    isLight
-                      ? "text-red-600 hover:bg-red-50"
-                      : "text-red-400 hover:bg-red-900/20"
-                  )}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                 >
                   <LogOut className="w-5 h-5" />
-                  <span className="font-medium">{t.adminNav.logout}</span>
+                  <span className="font-bold text-sm">{t.adminNav.logout}</span>
                 </button>
               </div>
             </div>
@@ -315,14 +234,7 @@ export default function AdminLayoutV3({
       <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden">
         <div className="min-h-full p-4 lg:p-8 pt-20 lg:pt-8">
           <div className="max-w-[1800px] mx-auto">
-            <div
-              className={cn(
-                "border p-6 lg:p-8 rounded-lg",
-                isLight
-                  ? "bg-white border-gray-300"
-                  : "bg-gray-800 border-gray-600"
-              )}
-            >
+            <div className="border-2 border-border bg-card p-6 lg:p-8 rounded-3xl shadow-soft">
               <ComponentErrorBoundary componentName="AdminPage">
                 {children}
               </ComponentErrorBoundary>
@@ -333,24 +245,14 @@ export default function AdminLayoutV3({
 
       {/* Settings Panel */}
       {isSettingsOpen && (
-        <div
-          className={cn(
-            "fixed top-4 right-4 z-50 w-[28rem] max-w-[calc(100vw-2rem)] border p-6 rounded-lg",
-            isLight
-          ? "bg-white border-gray-300"
-          : "bg-gray-800 border-gray-600"
-          )}
-        >
-          <div className="flex items-start justify-between mb-4 rounded-lg">
-            <h3 className="text-lg font-semibold">设置</h3>
+        <div className="fixed top-4 right-4 z-50 w-[28rem] max-w-[calc(100vw-2rem)] border-2 border-border bg-card p-6 rounded-3xl shadow-lift">
+          <div className="flex items-start justify-between mb-4">
+            <h3 className="font-display text-lg font-bold">{t.admin.quickSettings}</h3>
             <button
+              type="button"
               onClick={() => setIsSettingsOpen(false)}
-              className={cn(
-                "p-1 rounded-lg",
-                isLight
-                  ? "text-gray-500 hover:bg-gray-100"
-                  : "text-gray-400 hover:bg-gray-700"
-              )}
+              aria-label={t.common.close}
+              className="p-1.5 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary-strong transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -359,17 +261,13 @@ export default function AdminLayoutV3({
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between gap-3 mb-2">
-                <label className="block text-sm font-medium">蜂群节点总览</label>
+                <label className="block text-sm font-bold">{t.adminNav.swarm}</label>
                 <button
+                  type="button"
                   onClick={() => refreshNodeStatuses().catch(() => {})}
-                  className={cn(
-                    "px-2 py-1 border text-xs rounded-lg",
-                    isLight
-                      ? "bg-gray-50 border-gray-300 hover:bg-gray-100 text-gray-700"
-                      : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
-                  )}
+                  className="px-3 py-1 border-2 border-border text-xs font-bold rounded-full bg-card hover:border-primary hover:text-primary-strong transition-colors"
                 >
-                  刷新
+                  {t.common.refresh}
                 </button>
               </div>
               <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -383,45 +281,38 @@ export default function AdminLayoutV3({
                         ? '离线'
                         : '未知';
                   const statusClass = status?.status === 'online'
-                    ? 'bg-green-500'
+                    ? 'bg-emerald-400'
                     : status?.status === 'degraded'
-                      ? 'bg-yellow-500'
+                      ? 'bg-amber-400'
                       : status?.status === 'offline'
-                        ? 'bg-red-500'
-                        : 'bg-gray-400';
+                        ? 'bg-red-400'
+                        : 'bg-gray-300';
 
                   return (
                     <div
                       key={node.id}
                       className={cn(
-                        "border p-3 rounded-lg",
+                        "border-2 p-3 rounded-2xl",
                         node.id === selectedNodeId
-                          ? isLight
-                            ? "border-blue-400 bg-blue-50"
-                            : "border-blue-500 bg-blue-900/20"
-                          : isLight
-                            ? "border-gray-300 bg-gray-50"
-                            : "border-gray-600 bg-gray-700"
+                          ? "border-primary/60 bg-primary/10"
+                          : "border-border bg-background"
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className={cn("w-2 h-2 rounded-full", statusClass)} />
-                            <span className="font-medium text-sm truncate">{node.name}</span>
+                            <span className="font-bold text-sm truncate">{node.name}</span>
                             {node.id === selectedNodeId && (
-                              <span className={cn(
-                                "text-[10px] px-1.5 py-0.5 border rounded",
-                                isLight ? "border-blue-300 text-blue-700" : "border-blue-500 text-blue-200"
-                              )}>
-                                默认操作
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary text-white">
+                                默认
                               </span>
                             )}
                           </div>
-                          <p className={cn("mt-1 text-xs break-all", isLight ? "text-gray-500" : "text-gray-400")}>
+                          <p className="mt-1 text-xs break-all text-muted-foreground">
                             {node.baseUrl}
                           </p>
-                          <p className={cn("mt-1 text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
+                          <p className="mt-1 text-xs text-muted-foreground">
                             {statusLabel}
                             {status?.latencyMs !== undefined ? ` · ${status.latencyMs}ms` : ''}
                             {status?.version ? ` · v${status.version}` : ''}
@@ -429,13 +320,9 @@ export default function AdminLayoutV3({
                         </div>
                         {node.id !== selectedNodeId && (
                           <button
+                            type="button"
                             onClick={() => setSelectedNodeId(node.id)}
-                            className={cn(
-                              "shrink-0 px-2 py-1 border text-xs rounded-lg",
-                              isLight
-                                ? "bg-white border-gray-300 hover:bg-gray-100 text-gray-700"
-                                : "bg-gray-800 border-gray-600 hover:bg-gray-700 text-gray-200"
-                            )}
+                            className="shrink-0 px-3 py-1 border-2 border-border text-xs font-bold rounded-full bg-card hover:border-primary hover:text-primary-strong transition-colors"
                           >
                             设为默认
                           </button>
@@ -445,22 +332,18 @@ export default function AdminLayoutV3({
                   );
                 })}
               </div>
-              <p className={cn("mt-2 text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
+              <p className="mt-2 text-xs text-muted-foreground">
                 当前默认操作节点：{selectedNode.name}。图库和蜂群策略仍按共享数据库聚合展示。
               </p>
             </div>
 
             {/* Language Toggle */}
             <div>
-              <label className="block text-sm font-medium mb-2">语言</label>
+              <label className="block text-sm font-bold mb-2">{t.admin.toggleLanguage}</label>
               <button
+                type="button"
                 onClick={toggleLocale}
-                className={cn(
-                  "w-full flex items-center gap-2 px-4 py-2 transition-colors rounded-lg",
-                  isLight
-                    ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                )}
+                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-border bg-card hover:border-primary transition-colors font-bold text-sm"
               >
                 <Globe className="w-4 h-4" />
                 <span>{locale === "zh" ? "切换到 English" : "切换到 中文"}</span>
@@ -469,15 +352,11 @@ export default function AdminLayoutV3({
 
             {/* Theme Toggle */}
             <div>
-              <label className="block text-sm font-medium mb-2">主题</label>
+              <label className="block text-sm font-bold mb-2">{t.admin.toggleTheme}</label>
               <button
+                type="button"
                 onClick={handleThemeToggle}
-                className={cn(
-                  "w-full flex items-center gap-2 px-4 py-2 transition-colors rounded-lg",
-                  isLight
-                    ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                )}
+                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-border bg-card hover:border-primary transition-colors font-bold text-sm"
               >
                 {isLight ? (
                   <Moon className="w-4 h-4" />
@@ -485,22 +364,18 @@ export default function AdminLayoutV3({
                   <Sun className="w-4 h-4" />
                 )}
                 <span>
-                  {isLight ? "切换到深色模式" : "切换到浅色模式"}
+                  {isLight ? `→ ${t.admin.dark}` : `→ ${t.admin.light}`}
                 </span>
               </button>
             </div>
 
             {isManualTheme && (
               <button
+                type="button"
                 onClick={handleThemeReset}
-                className={cn(
-                  "w-full flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm rounded-lg",
-                  isLight
-                    ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                    : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                )}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border-2 border-border bg-card hover:border-primary transition-colors font-bold text-sm"
               >
-                <span>恢复跟随系统</span>
+                <span>{t.admin.resetToBrowser}</span>
               </button>
             )}
 
@@ -510,4 +385,3 @@ export default function AdminLayoutV3({
     </div>
   );
 }
-

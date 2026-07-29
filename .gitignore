@@ -41,6 +41,9 @@ next-env.d.ts
 .vscode/
 .idea/
 
+# Local homepage fidelity apply backups
+.homepage-fidelity-backup/
+
 # Test coverage
 coverage/
 .nyc_output/

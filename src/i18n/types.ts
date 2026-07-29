@@ -24,6 +24,15 @@ export interface Translations {
   home: {
     title: string;
     subtitle: string;
+    heroTaglineA: string;
+    heroTaglineHighlight: string;
+    heroTaglineB: string;
+    dialogueText: string;
+    previewBadge: string;
+    brandName: string;
+    statImages: string;
+    statGroups: string;
+    statUptime: string;
     apiStatus: string;
     statusHealthy: string;
     statusPartial: string;
@@ -103,6 +112,8 @@ export interface Translations {
     status: string;
     storage: string;
     security: string;
+    swarm: string;
+    logs: string;
     logout: string;
   };
   
