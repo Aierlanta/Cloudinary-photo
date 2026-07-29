@@ -1,33 +1,29 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Image as ImageIcon,
-  Github,
-  Copy,
-  CheckCircle2,
-  Languages,
-  Heart,
-  Star,
-  Sparkles,
-  RefreshCw,
   BookOpen,
-  Flower2,
-  ShieldCheck,
+  Github,
+  Heart,
+  Image as ImageIcon,
+  Languages,
   Moon,
+  Star,
   Sun,
-  FolderKanban,
 } from "lucide-react";
+
+import { LocaleProvider, useLocale } from "@/hooks/useLocale";
 import {
-  type Theme,
-  resolveSiteClientTheme,
   applyThemeToRoot,
+  resolveSiteClientTheme,
   setSiteManualTheme,
+  type Theme,
 } from "@/lib/adminTheme";
-import { useLocale, LocaleProvider } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
+
+import styles from "./home.module.css";
 
 interface APIStatus {
   status: string;
@@ -48,34 +44,35 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.11,
-      delayChildren: 0.08,
+      staggerChildren: 0.1,
+      delayChildren: 0.06,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 22 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.65,
+      duration: 0.64,
       ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
     },
   },
 };
 
-/** 手绘感四角星 */
-function DoodleStar({ className }: { className?: string }) {
+function FourPointStar({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden fill="currentColor">
-      <path d="M12 1.2 14.1 8.7 21.8 10.8 14.1 12.9 12 20.4 9.9 12.9 2.2 10.8 9.9 8.7Z" />
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <path
+        d="M16 1.8c1.5 8.2 3.9 10.6 12.2 12.2C19.9 15.5 17.5 18 16 26.2 14.5 18 12.1 15.5 3.8 14 12.1 12.4 14.5 10 16 1.8Z"
+        fill="currentColor"
+      />
     </svg>
   );
 }
 
-/** 五瓣樱花——参考图 PREVIEW 两侧的花 */
 function Sakura({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
@@ -85,54 +82,166 @@ function Sakura({ className }: { className?: string }) {
         <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(144 16 16)" />
         <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(216 16 16)" />
         <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(288 16 16)" />
-        <circle cx="16" cy="16" r="3.2" fill="#ffe8f2" />
-        <circle cx="16" cy="16" r="1.5" fill="#ffb3d4" />
+        <circle cx="16" cy="16" r="3.1" fill="#fff5f2" />
+        <circle cx="16" cy="16" r="1.45" fill="#ff9fbd" />
       </g>
+    </svg>
+  );
+}
+
+function DoodleHeart({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 56 52" className={className} aria-hidden>
+      <path
+        d="M28 45.2C22.7 39.8 7.3 31.7 5.9 17.9 5.1 9.7 10.2 5 16.5 5c5.2 0 9.1 3.1 11.5 7.1C30.4 8.1 34.3 5 39.5 5c6.3 0 11.4 4.7 10.6 12.9C48.7 31.7 33.3 39.8 28 45.2Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M27.8 39.1C23.6 35.2 11.7 28.1 10.4 18.4c-.8-5.9 2.7-9.2 7-9.2 4.7 0 8.2 3.9 10.4 7.8 2.2-3.9 5.8-7.8 10.5-7.8 4.3 0 7.8 3.3 7 9.2-1.3 9.7-13.2 16.8-17.5 20.7Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity=".65"
+      />
+    </svg>
+  );
+}
+
+function DoodleStar({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 52 52" className={className} aria-hidden>
+      <path
+        d="m26 4.8 6.1 12.4 13.7 2-9.9 9.7 2.3 13.6L26 36.1l-12.2 6.4 2.3-13.6-9.9-9.7 13.7-2L26 4.8Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m26 10.9 4.3 8.8 9.7 1.4-7 6.8 1.7 9.6-8.7-4.6-8.7 4.6 1.7-9.6-7-6.8 9.7-1.4 4.3-8.8Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity=".55"
+      />
+    </svg>
+  );
+}
+
+function PictureStatIcon() {
+  return (
+    <svg viewBox="0 0 58 58" aria-hidden>
+      <rect x="8" y="9" width="42" height="40" rx="5" fill="#fff7f5" stroke="currentColor" strokeWidth="2.8" />
+      <circle cx="20" cy="21" r="4.3" fill="#ffd5df" />
+      <path d="m12.5 43 11.8-12 8.1 7 5.5-5.5L46 43Z" fill="#ff9cb4" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FolderStarIcon() {
+  return (
+    <svg viewBox="0 0 64 58" aria-hidden>
+      <path d="M7 15.5h18l5.2 5H57v28H7Z" fill="#b898e4" stroke="#7650ad" strokeWidth="2.8" strokeLinejoin="round" />
+      <path d="M7 15.5v-5h17l5.2 5H57v5H30.2l-5.2-5Z" fill="#d4bff0" stroke="#7650ad" strokeWidth="2.8" strokeLinejoin="round" />
+      <path d="m39 27.2 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8Z" fill="#ffd36a" stroke="#8b68be" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ShieldBadgeIcon() {
+  return (
+    <svg viewBox="0 0 60 64" aria-hidden>
+      <path d="M30 4.5 51 12v17.5c0 14.8-9.1 24.4-21 30-11.9-5.6-21-15.2-21-30V12Z" fill="#6dcbb6" stroke="#218f7b" strokeWidth="3" strokeLinejoin="round" />
+      <path d="M30 11.5 44 16v13.1c0 10.2-5.7 17.2-14 21.6-8.3-4.4-14-11.4-14-21.6V16Z" fill="#a9e2d5" stroke="#f8fffd" strokeWidth="2" />
+      <path d="m22.8 30.8 4.8 4.7 9.9-10" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RibbonBow({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 150 82" className={className} aria-hidden>
+      <g stroke="#b95b72" strokeWidth="2.2" strokeLinejoin="round">
+        <path
+          d="M67 37C50 11 19 5 12 18 5 32 31 50 64 47Z"
+          fill="#ff9fba"
+        />
+        <path
+          d="M83 37c17-26 48-32 55-19 7 14-19 32-52 29Z"
+          fill="#ff9fba"
+        />
+        <path d="M61 44 43 76l30-15 2-18Z" fill="#ef87aa" />
+        <path d="m89 44 18 32-30-15-2-18Z" fill="#ef87aa" />
+        <rect x="64" y="30" width="22" height="22" rx="7" fill="#ffbfd0" />
+        <path d="M21 20c12 0 25 7 38 19M129 20c-12 0-25 7-38 19" fill="none" opacity=".55" />
+      </g>
+      <path d="M70 35c3-2 7-2 10 0" fill="none" stroke="#fff7f8" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
 function FloatingDecor() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-      <Heart className="absolute top-[14%] left-[6%] w-5 h-5 text-primary/55 animate-float-soft" fill="currentColor" />
-      <DoodleStar className="absolute top-[18%] right-[9%] w-6 h-6 text-secondary/60 animate-sparkle" />
-      <Sparkles className="absolute top-[42%] left-[4%] w-5 h-5 text-primary-strong/45 animate-sparkle" />
-      <Sakura className="absolute top-[55%] right-[5%] w-6 h-6 text-primary/50 animate-drift" />
-      <DoodleStar className="absolute bottom-[22%] left-[10%] w-4 h-4 text-accent/65 animate-wiggle" />
-      <Heart className="absolute bottom-[18%] right-[12%] w-4 h-4 text-primary/45 animate-float-soft" fill="currentColor" />
-      <Flower2 className="absolute top-[70%] left-[3%] w-5 h-5 text-secondary/45 animate-drift" />
-      <Star
-        className="absolute top-[28%] left-[14%] w-3.5 h-3.5 animate-sparkle hidden md:block"
-        fill="currentColor"
-        style={{ color: "var(--logo-yellow)" }}
-      />
-      <DoodleStar className="absolute top-[8%] left-[40%] w-3 h-3 text-primary/40 animate-sparkle hidden sm:block" />
-      <Heart className="absolute top-[12%] right-[28%] w-3.5 h-3.5 text-secondary/45 animate-float-soft hidden sm:block" fill="currentColor" />
-      <Sakura className="absolute top-[36%] right-[16%] w-4 h-4 text-primary/35 animate-wiggle hidden md:block" />
-      <DoodleStar className="absolute bottom-[32%] right-[22%] w-3.5 h-3.5 text-primary/30 animate-sparkle hidden md:block" />
+    <div className={styles.decorLayer} aria-hidden>
+      <FourPointStar className={cn(styles.decor, styles.decorPinkSpark)} />
+      <DoodleStar className={cn(styles.decor, styles.decorGoldStarLeft)} />
+      <FourPointStar className={cn(styles.decor, styles.decorGoldSpark)} />
+      <FourPointStar className={cn(styles.decor, styles.decorLavenderSpark)} />
+      <FourPointStar className={cn(styles.decor, styles.decorLavenderSparkTopRight)} />
+      <FourPointStar className={cn(styles.decor, styles.decorCoralSparkRight)} />
+      <DoodleStar className={cn(styles.decor, styles.decorGoldStarRight)} />
+      <FourPointStar className={cn(styles.decor, styles.decorPeachSparkRight)} />
+      <FourPointStar className={cn(styles.decor, styles.decorMintSpark)} />
+      <FourPointStar className={cn(styles.decor, styles.decorGoldSparkBottom)} />
+      <FourPointStar className={cn(styles.decor, styles.decorPinkSparkBottom)} />
+      <DoodleHeart className={cn(styles.decor, styles.decorHeartRight)} />
+      <DoodleHeart className={cn(styles.decor, styles.decorHeartRightSmall)} />
+      <Sakura className={cn(styles.decor, styles.decorFlowerLeft)} />
+      <Sakura className={cn(styles.decor, styles.decorFlowerRight)} />
     </div>
   );
 }
 
-function EmptyPreview({
-  title,
-  hint,
-}: {
-  title: string;
-  hint: string;
-}) {
+function EmptyPreview({ title, hint }: { title: string; hint: string }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-[#ffe4f0] via-[#fff6ee] to-[#e8ddff]">
-      <div className="relative">
-        <div className="w-20 h-20 rounded-[1.75rem] bg-white/80 border-2 border-primary/30 shadow-soft flex items-center justify-center">
-          <ImageIcon className="w-9 h-9 text-primary/70" />
-        </div>
-        <Sakura className="absolute -top-2 -right-3 w-6 h-6 text-primary animate-sparkle" />
-        <Heart className="absolute -bottom-1 -left-2 w-4 h-4 text-primary-strong animate-float-soft" fill="currentColor" />
+    <div className={styles.emptyPreview}>
+      <div className={styles.emptyIconWrap}>
+        <ImageIcon className={styles.emptyIcon} />
+        <Sakura className={styles.emptyFlower} />
+        <Heart className={styles.emptyHeart} fill="currentColor" />
       </div>
-      <p className="font-display font-bold text-foreground/80">{title}</p>
-      <p className="text-sm text-muted-foreground px-6 text-center">{hint}</p>
+      <p className={styles.emptyTitle}>{title}</p>
+      <p className={styles.emptyHint}>{hint}</p>
+    </div>
+  );
+}
+
+interface StatCardProps {
+  className: string;
+  icon: ReactNode;
+  value: string;
+  label: string;
+  decoration: ReactNode;
+}
+
+function StatCard({ className, icon, value, label, decoration }: StatCardProps) {
+  return (
+    <div className={cn(styles.statCard, className)}>
+      {decoration}
+      <div className={styles.statIcon}>{icon}</div>
+      <div className={styles.statCopy}>
+        <div className={styles.statValue}>{value}</div>
+        <div className={styles.statLabel}>{label}</div>
+      </div>
     </div>
   );
 }
@@ -140,56 +249,51 @@ function EmptyPreview({
 function HomeContent() {
   const { t, toggleLocale } = useLocale();
   const [apiStatus, setApiStatus] = useState<APIStatus | null>(null);
-  const [randomImageUrl, setRandomImageUrl] = useState<string>("");
+  const [randomImageUrl, setRandomImageUrl] = useState("");
   const [imageFailed, setImageFailed] = useState(false);
-  const [baseUrl, setBaseUrl] = useState<string>("");
   const [imageLoading, setImageLoading] = useState(false);
+  const [baseUrl, setBaseUrl] = useState("");
   const [theme, setTheme] = useState<Theme>("light");
   const [isManualTheme, setIsManualTheme] = useState(false);
   const [copied, setCopied] = useState(false);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const pref = resolveSiteClientTheme();
-    setTheme(pref.theme);
-    setIsManualTheme(pref.isManual);
-    applyThemeToRoot(pref.theme);
+    const preference = resolveSiteClientTheme();
+    setTheme(preference.theme);
+    setIsManualTheme(preference.isManual);
+    applyThemeToRoot(preference.theme);
 
-    const currentBaseUrl =
-      typeof window === "undefined"
-        ? ""
-        : `${window.location.protocol}//${window.location.host}`;
+    const currentBaseUrl = `${window.location.protocol}//${window.location.host}`;
     setBaseUrl(currentBaseUrl);
 
     fetch("/api/status?mode=summary")
-      .then(async (res) => {
-        if (!res.ok) return null;
-        return res.json();
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json();
       })
       .then((data) => {
-        if (data?.success) {
-          setApiStatus(data.data);
-        }
+        if (data?.success) setApiStatus(data.data);
       })
       .catch(console.error);
 
-    if (currentBaseUrl) {
-      setImageLoading(true);
-      setImageFailed(false);
-      setRandomImageUrl(`${currentBaseUrl}/api/random`);
-    }
+    setImageLoading(true);
+    setImageFailed(false);
+    setRandomImageUrl(`${currentBaseUrl}/api/random`);
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || isManualTheme) return;
+    if (isManualTheme) return;
+
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const apply = (matches: boolean) => {
-      const next: Theme = matches ? "dark" : "light";
-      setTheme((prev) => (prev === next ? prev : next));
-      applyThemeToRoot(next);
+      const nextTheme: Theme = matches ? "dark" : "light";
+      setTheme((previous) => (previous === nextTheme ? previous : nextTheme));
+      applyThemeToRoot(nextTheme);
     };
+
     apply(media.matches);
-    const listener = (e: MediaQueryListEvent) => apply(e.matches);
+    const listener = (event: MediaQueryListEvent) => apply(event.matches);
     media.addEventListener("change", listener);
     return () => media.removeEventListener("change", listener);
   }, [isManualTheme]);
@@ -202,11 +306,11 @@ function HomeContent() {
 
   const handleThemeToggle = () => {
     setIsManualTheme(true);
-    setTheme((prev) => {
-      const next: Theme = prev === "light" ? "dark" : "light";
-      applyThemeToRoot(next);
-      setSiteManualTheme(next);
-      return next;
+    setTheme((previous) => {
+      const nextTheme: Theme = previous === "light" ? "dark" : "light";
+      applyThemeToRoot(nextTheme);
+      setSiteManualTheme(nextTheme);
+      return nextTheme;
     });
   };
 
@@ -236,116 +340,89 @@ function HomeContent() {
   const showImage = Boolean(randomImageUrl) && !imageFailed;
 
   return (
-    <div className="min-h-[100dvh] relative overflow-x-hidden bg-polka font-body flex flex-col">
+    <div className={styles.root}>
       <FloatingDecor />
 
       <motion.header
-        initial={{ y: -48, opacity: 0 }}
+        initial={{ y: -42, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-50"
+        transition={{ duration: 0.58, ease: [0.16, 1, 0.3, 1] }}
+        className={styles.header}
       >
-        <div className="bg-card/95 backdrop-blur-sm">
-          <div className="w-full max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center justify-between h-[4.25rem]">
-              <Link href="/" className="flex items-center gap-2.5 group min-w-0">
-                <div
-                  className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-soft ring-[3px] ring-white/90 group-hover:rotate-12 transition-transform"
-                  aria-hidden
-                >
-                  <Star
-                    className="w-5 h-5"
-                    style={{ color: "var(--logo-yellow)" }}
-                    fill="currentColor"
-                  />
-                </div>
-                <span className="font-display font-bold text-[1.05rem] sm:text-xl tracking-tight brand-outline truncate">
-                  {t.home.brandName}
-                </span>
-              </Link>
+        <FourPointStar className={styles.headerStarLeft} />
+        <div className={styles.headerInner}>
+          <Link href="/" className={styles.brandLink}>
+            <span className={styles.logoMedallion} aria-hidden>
+              <span className={styles.logoStitch}>
+                <Star className={styles.logoStar} fill="currentColor" />
+              </span>
+            </span>
+            <span className={styles.brandName}>{t.home.brandName}</span>
+            <FourPointStar className={styles.headerStarBrand} />
+          </Link>
 
-              <nav className="flex items-center gap-1.5 sm:gap-2.5">
-                <Link href="/api/docs" className="nav-chip" aria-label={t.home.apiDocs}>
-                  <BookOpen className="w-3.5 h-3.5 opacity-80" />
-                  <span className="hidden sm:inline">{t.home.apiDocs}</span>
-                </Link>
-                <Link
-                  href="https://github.com/Aierlanta/Cloudinary-photo"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="nav-chip"
-                  aria-label="GitHub"
-                >
-                  <Github className="w-3.5 h-3.5 opacity-80" />
-                  <span className="hidden sm:inline">GitHub</span>
-                </Link>
-                <Link href="/admin" className="nav-chip nav-chip-admin">
-                  <Sakura className="w-3.5 h-3.5" />
-                  <span>{t.home.managementPanel}</span>
-                </Link>
-              </nav>
-            </div>
-          </div>
+          <nav className={styles.navigation} aria-label="Primary">
+            <Link href="/api/docs" className={styles.navButton} aria-label={t.home.apiDocs}>
+              <BookOpen aria-hidden />
+              <span>{t.home.apiDocs}</span>
+            </Link>
+            <Link
+              href="https://github.com/Aierlanta/Cloudinary-photo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.navButton}
+              aria-label="GitHub"
+            >
+              <Github aria-hidden />
+              <span>GitHub</span>
+            </Link>
+            <Link href="/admin" className={cn(styles.navButton, styles.adminButton)}>
+              <Sakura className={styles.adminFlower} />
+              <span>{t.home.managementPanel}</span>
+            </Link>
+          </nav>
         </div>
-        <div className="lace-edge h-3.5 w-full" aria-hidden />
       </motion.header>
 
-      <main className="relative z-10 px-4 sm:px-6 w-full max-w-3xl mx-auto flex-1">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="pt-10 sm:pt-14 pb-12 space-y-9"
-        >
-          <motion.section variants={itemVariants} className="text-center space-y-6">
-            <div className="relative inline-block px-10 sm:px-14">
-              <Heart
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 text-primary animate-float-soft"
-                fill="currentColor"
-                aria-hidden
-              />
-              <Heart
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 text-primary animate-float-soft"
-                fill="currentColor"
-                aria-hidden
-                style={{ animationDelay: "0.8s" }}
-              />
-              <h1 className="font-display text-[2.35rem] sm:text-5xl md:text-[3.35rem] font-bold tracking-tight text-foreground leading-[1.2] select-none">
+      <main className={styles.main}>
+        <motion.div variants={containerVariants} initial="hidden" animate="visible">
+          <motion.section variants={itemVariants} className={styles.hero}>
+            <div className={styles.heroTitleRow}>
+              <DoodleHeart className={cn(styles.heroHeart, styles.heroHeartLeft)} />
+              <h1 className={styles.heroTitle}>
                 {t.home.heroTaglineA}
-                <span className="text-primary-strong">{t.home.heroTaglineHighlight}</span>
+                <span>{t.home.heroTaglineHighlight}</span>
                 {t.home.heroTaglineB}
               </h1>
+              <DoodleHeart className={cn(styles.heroHeart, styles.heroHeartRight)} />
             </div>
 
             {baseUrl && (
-              <div className="flex justify-center">
-                <div className="motion-lines inline-flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={copyEndpoint}
-                    aria-label={t.common.copy}
-                    className="endpoint-pill"
-                  >
-                    <span className="font-bold text-primary-strong">GET</span>
-                    <span>/api/random</span>
-                    {copied ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                    )}
-                  </button>
-                </div>
+              <div className={styles.endpointRow}>
+                <button
+                  type="button"
+                  className={styles.endpointButton}
+                  onClick={copyEndpoint}
+                  aria-label={t.common.copy}
+                >
+                  <strong>GET</strong>
+                  <span>/api/random</span>
+                </button>
+                <span className={styles.srOnly} aria-live="polite">
+                  {copied ? "Copied" : ""}
+                </span>
               </div>
             )}
           </motion.section>
 
-          <motion.section variants={itemVariants} className="px-1 sm:px-4">
-            <div className="scallop-shell">
-              <div className="scallop-frame">
-                <div className="washi-dot -top-2.5 left-5 sm:left-9 -rotate-[18deg]" aria-hidden />
-                <div className="washi-dot -bottom-2.5 right-5 sm:right-9 rotate-[16deg]" aria-hidden />
+          <motion.section variants={itemVariants} className={styles.previewSection}>
+            <div className={styles.scrapbookShell}>
+              <div className={styles.frame}>
+                <div className={styles.washiDots} aria-hidden />
+                <div className={styles.washiStripes} aria-hidden />
+                <RibbonBow className={styles.bow} />
 
-                <div className="photo-well">
+                <div className={styles.photoWell}>
                   {showImage ? (
                     <>
                       <img
@@ -353,10 +430,8 @@ function HomeContent() {
                         src={randomImageUrl}
                         alt={t.home.randomImagePreview}
                         className={cn(
-                          "absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out",
-                          imageLoading
-                            ? "opacity-0 scale-105 blur-lg"
-                            : "opacity-100 scale-100 blur-0"
+                          styles.previewImage,
+                          imageLoading ? styles.previewImageLoading : styles.previewImageReady,
                         )}
                         onLoad={() => setImageLoading(false)}
                         onError={() => {
@@ -365,144 +440,98 @@ function HomeContent() {
                         }}
                       />
                       {imageLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-card/55 z-10">
-                          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        <div className={styles.loadingOverlay}>
+                          <div className={styles.spinner} />
                         </div>
                       )}
                     </>
                   ) : (
                     <EmptyPreview title={t.home.noImage} hint={t.home.uploadFirst} />
                   )}
+                </div>
 
-                  <div className="absolute bottom-[3.75rem] sm:bottom-[4.25rem] left-3 sm:left-4 z-20">
-                    <span className="preview-badge">
-                      <Sakura className="w-3.5 h-3.5" />
-                      {t.home.previewBadge}
-                      <Sakura className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-
-                  <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 z-20">
-                    <div className="caption-strip px-4 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-3">
-                      <p className="text-sm sm:text-[0.95rem] font-bold text-foreground flex items-center gap-1.5 min-w-0">
-                        <span className="truncate">{t.home.dialogueText}</span>
-                        <Heart
-                          className="w-3.5 h-3.5 text-primary shrink-0"
-                          fill="currentColor"
-                          aria-hidden
-                        />
-                      </p>
-                      <button
-                        type="button"
-                        onClick={refreshRandomImage}
-                        aria-label={t.home.refreshImage}
-                        className="shrink-0 p-2 rounded-full bg-primary/15 text-primary-strong hover:bg-primary hover:text-white transition-colors"
-                      >
-                        <RefreshCw
-                          className={cn("w-4 h-4", imageLoading && "animate-spin")}
-                        />
-                      </button>
-                    </div>
-                  </div>
+                <div className={styles.captionBox}>
+                  <span className={styles.previewBadge}>
+                    <Sakura />
+                    {t.home.previewBadge}
+                    <Sakura />
+                  </span>
+                  <p>{t.home.dialogueText}</p>
+                  <button
+                    type="button"
+                    onClick={refreshRandomImage}
+                    aria-label={t.home.refreshImage}
+                    className={styles.refreshHeart}
+                  >
+                    <Heart fill="currentColor" />
+                  </button>
                 </div>
               </div>
             </div>
           </motion.section>
 
-          <motion.section variants={itemVariants}>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-              <div className="stat-candy stat-candy-pink">
-                <Sakura className="absolute top-2 left-3 w-4 h-4 text-primary/55 animate-sparkle" />
-                <Sakura className="absolute top-3 right-4 w-3.5 h-3.5 text-primary/40 animate-drift" />
-                <div className="mx-auto mb-2 w-11 h-11 rounded-2xl bg-primary/20 text-primary-strong flex items-center justify-center">
-                  <ImageIcon className="w-5 h-5" />
-                </div>
-                <div className="font-display text-3xl sm:text-4xl font-bold text-primary-strong tracking-tight">
-                  {totalImages.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs font-bold text-muted-foreground tracking-wide">
-                  {t.home.statImages}
-                </div>
-              </div>
-
-              <div className="stat-candy stat-candy-purple">
-                <DoodleStar className="absolute top-2.5 left-3.5 w-4 h-4 text-secondary/60 animate-sparkle" />
-                <DoodleStar className="absolute bottom-3 right-3 w-3.5 h-3.5 text-secondary/50 animate-wiggle" />
-                <div className="mx-auto mb-2 w-11 h-11 rounded-2xl bg-secondary/25 text-[#8b6fd4] dark:text-secondary flex items-center justify-center">
-                  <FolderKanban className="w-5 h-5" />
-                </div>
-                <div className="font-display text-3xl sm:text-4xl font-bold text-[#8b6fd4] dark:text-secondary tracking-tight">
-                  {totalGroups.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs font-bold text-muted-foreground tracking-wide">
-                  {t.home.statGroups}
-                </div>
-              </div>
-
-              <div className="stat-candy stat-candy-mint">
-                <Sparkles className="absolute top-2.5 right-3.5 w-4 h-4 text-accent/75 animate-sparkle" />
-                <Sparkles className="absolute bottom-3 left-3 w-3.5 h-3.5 text-accent/60 animate-drift" />
-                <div className="mx-auto mb-2 w-11 h-11 rounded-2xl bg-accent/25 text-emerald-600 dark:text-accent flex items-center justify-center">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div className="font-display text-3xl sm:text-4xl font-bold text-emerald-600 dark:text-accent tracking-tight">
-                  99.9%
-                </div>
-                <div className="mt-1 text-xs font-bold text-muted-foreground tracking-wide">
-                  {t.home.statUptime}
-                </div>
-              </div>
+          <motion.section variants={itemVariants} className={styles.statsSection}>
+            <div className={styles.statsGrid}>
+              <StatCard
+                className={styles.statPink}
+                icon={<PictureStatIcon />}
+                value={totalImages.toLocaleString()}
+                label={t.home.statImages}
+                decoration={
+                  <>
+                    <Sakura className={cn(styles.statDecor, styles.statDecorPinkOne)} />
+                    <Sakura className={cn(styles.statDecor, styles.statDecorPinkTwo)} />
+                  </>
+                }
+              />
+              <StatCard
+                className={styles.statPurple}
+                icon={<FolderStarIcon />}
+                value={totalGroups.toLocaleString()}
+                label={t.home.statGroups}
+                decoration={
+                  <>
+                    <FourPointStar className={cn(styles.statDecor, styles.statDecorPurpleOne)} />
+                    <FourPointStar className={cn(styles.statDecor, styles.statDecorPurpleTwo)} />
+                  </>
+                }
+              />
+              <StatCard
+                className={styles.statMint}
+                icon={<ShieldBadgeIcon />}
+                value="99.9%"
+                label={t.home.statUptime}
+                decoration={
+                  <>
+                    <FourPointStar className={cn(styles.statDecor, styles.statDecorMintOne)} />
+                    <FourPointStar className={cn(styles.statDecor, styles.statDecorMintTwo)} />
+                  </>
+                }
+              />
             </div>
           </motion.section>
         </motion.div>
       </main>
 
-      <footer className="relative z-10 mt-auto">
-        <div className="lace-edge h-3.5 w-full rotate-180" aria-hidden />
-        <div className="bg-card/95 backdrop-blur-sm">
-          <div className="max-w-3xl mx-auto px-6 py-7">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-muted-foreground text-center md:text-left">
-                &copy; {new Date().getFullYear()} {t.footer.copyright}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-muted-foreground mr-1">
-                  {t.footer.author}
-                </span>
-                <button
-                  type="button"
-                  onClick={toggleLocale}
-                  aria-label={t.home.toggleLanguage}
-                  className="p-2.5 rounded-full border border-[var(--nav-outline)] hover:border-primary hover:text-primary-strong transition-colors"
-                  style={{ background: "var(--nav-beige)" }}
-                >
-                  <Languages className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleThemeToggle}
-                  aria-label={t.home.toggleTheme}
-                  className="p-2.5 rounded-full border border-[var(--nav-outline)] hover:border-primary hover:text-primary-strong transition-colors"
-                  style={{ background: "var(--nav-beige)" }}
-                >
-                  {theme === "dark" ? (
-                    <Sun className="w-5 h-5" />
-                  ) : (
-                    <Moon className="w-5 h-5" />
-                  )}
-                </button>
-                <Link
-                  href="https://github.com/Aierlanta/Cloudinary-photo"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={t.footer.github}
-                  className="p-2.5 rounded-full border border-[var(--nav-outline)] hover:border-primary hover:text-primary-strong transition-colors"
-                  style={{ background: "var(--nav-beige)" }}
-                >
-                  <Github className="w-5 h-5" />
-                </Link>
-              </div>
-            </div>
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <p>&copy; {new Date().getFullYear()} {t.footer.copyright}</p>
+          <div className={styles.footerActions}>
+            <span>{t.footer.author}</span>
+            <button type="button" onClick={toggleLocale} aria-label={t.home.toggleLanguage}>
+              <Languages />
+            </button>
+            <button type="button" onClick={handleThemeToggle} aria-label={t.home.toggleTheme}>
+              {theme === "dark" ? <Sun /> : <Moon />}
+            </button>
+            <Link
+              href="https://github.com/Aierlanta/Cloudinary-photo"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t.footer.github}
+            >
+              <Github />
+            </Link>
           </div>
         </div>
       </footer>
