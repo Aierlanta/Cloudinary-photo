@@ -20,10 +20,6 @@ A random image API service based on Next.js 14, supporting multiple image hostin
 
 ### Image update
 
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/d53f7d6f-2db8-48b5-a268-1d6b0f764c99" />
-
-### Image Management
-
 <img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/f3aa2460-898c-473a-a338-1c958492ce78" />
 
 ### Group Management
