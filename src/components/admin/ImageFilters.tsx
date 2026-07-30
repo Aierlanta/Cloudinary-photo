@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocale } from "@/hooks/useLocale";
-import { Search, Calendar, X, RotateCcw } from "lucide-react";
+import { Search, SlidersHorizontal, X, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -37,9 +37,10 @@ export default function ImageFilters({
   groups,
   onFilterChange,
 }: ImageFiltersProps) {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const isLight = useTheme();
   const [searchInput, setSearchInput] = useState(filters.search);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // 搜索防抖
   useEffect(() => {
@@ -97,11 +98,9 @@ export default function ImageFilters({
   const hasActiveFilters =
     filters.search || filters.groupId || filters.dateFrom || filters.dateTo;
 
-  // --- V3 Layout (Flat Design) ---
   return (
-      <div className="space-y-4">
-        {/* Search Bar */}
-        <div className="relative">
+      <div className="admin-gallery-filters">
+        <div className="admin-gallery-search relative">
           <Search className={cn(
             "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4",
             isLight ? "text-gray-400" : "text-gray-500"
@@ -133,16 +132,9 @@ export default function ImageFilters({
           )}
         </div>
 
-        {/* Filter Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Group Filter */}
-          <div className="space-y-1.5">
-            <label className={cn(
-              "text-xs font-medium ml-1",
-              isLight ? "text-gray-700" : "text-gray-300"
-            )}>
-              {t.adminImages.filterByGroup}
-            </label>
+        <div className="admin-gallery-primary-filters">
+          <label>
+            <span>{t.adminImages.filterByGroup}</span>
             <select
               value={filters.groupId}
               onChange={(e) => onFilterChange({ groupId: e.target.value })}
@@ -153,7 +145,7 @@ export default function ImageFilters({
                   : "bg-gray-800 border-gray-600"
               )}
             >
-              <option value="">{t.adminImages.selectGroupPlaceholder}</option>
+              <option value="">{t.adminUi.groupAll}</option>
               <option value="unassigned">{t.adminImages.unassigned}</option>
               {Array.isArray(groups) && groups.length > 0 ? (
                 groups.map((group) => (
@@ -161,18 +153,12 @@ export default function ImageFilters({
                     {group.name} ({group.imageCount || 0})
                   </option>
                 ))
-              ) : null}
+                ) : null}
             </select>
-          </div>
+          </label>
 
-          {/* Storage Filter */}
-          <div className="space-y-1.5">
-            <label className={cn(
-              "text-xs font-medium ml-1",
-              isLight ? "text-gray-700" : "text-gray-300"
-            )}>
-              {t.adminImages.filterByStorage}
-            </label>
+          <label>
+            <span>{t.adminImages.filterByStorage}</span>
             <select
               value={filters.provider}
               onChange={(e) => onFilterChange({ provider: e.target.value })}
@@ -183,23 +169,36 @@ export default function ImageFilters({
                   : "bg-gray-800 border-gray-600"
               )}
             >
-              <option value="">{t.adminImages.allStorages}</option>
+              <option value="">{t.adminUi.storageAll}</option>
               <option value="cloudinary">Cloudinary</option>
               <option value="tgstate">tgState</option>
               <option value="telegram">Telegram</option>
-              <option value="custom">{locale === 'zh' ? 'URL导入' : 'URL Import'}</option>
+              <option value="custom">{t.adminUi.urlImport}</option>
             </select>
-          </div>
+          </label>
 
-          {/* Date Range */}
-          <div className="col-span-1 sm:col-span-2 grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className={cn(
-                "text-xs font-medium ml-1",
-                isLight ? "text-gray-700" : "text-gray-300"
-              )}>
-                {t.adminImages.startDate}
-              </label>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((value) => !value)}
+            className={cn("admin-gallery-advanced-toggle", showAdvanced && "is-active")}
+            aria-expanded={showAdvanced}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            {t.adminUi.moreFilters}
+          </button>
+
+          {hasActiveFilters ? (
+            <button type="button" onClick={handleReset} className="admin-gallery-reset">
+              <RotateCcw className="w-4 h-4" />
+              {t.adminImages.reset}
+            </button>
+          ) : null}
+        </div>
+
+        {showAdvanced ? (
+          <div className="admin-gallery-advanced">
+            <label>
+              <span>{t.adminImages.startDate}</span>
               <input
                 type="date"
                 value={formatDateForInput(filters.dateFrom)}
@@ -211,14 +210,9 @@ export default function ImageFilters({
                     : "bg-gray-800 border-gray-600"
                 )}
               />
-            </div>
-            <div className="space-y-1.5">
-              <label className={cn(
-                "text-xs font-medium ml-1",
-                isLight ? "text-gray-700" : "text-gray-300"
-              )}>
-                {t.adminImages.endDate}
-              </label>
+            </label>
+            <label>
+              <span>{t.adminImages.endDate}</span>
               <input
                 type="date"
                 value={formatDateForInput(filters.dateTo)}
@@ -230,17 +224,9 @@ export default function ImageFilters({
                     : "bg-gray-800 border-gray-600"
                 )}
               />
-            </div>
-          </div>
-
-          {/* Sort */}
-          <div className="col-span-1 sm:col-span-2 space-y-1.5">
-            <label className={cn(
-              "text-xs font-medium ml-1",
-              isLight ? "text-gray-700" : "text-gray-300"
-            )}>
-              {t.adminImages.sortBy}
             </label>
+            <label>
+              <span>{t.adminImages.sortBy}</span>
             <select
               value={`${filters.sortBy || "uploadedAt"}-${filters.sortOrder || "desc"}`}
               onChange={(e) => {
@@ -259,65 +245,41 @@ export default function ImageFilters({
             >
               <option value="uploadedAt-desc">{t.adminImages.latestUpload}</option>
               <option value="uploadedAt-asc">{t.adminImages.oldestUpload}</option>
-              <option value="filename-asc">Filename A-Z</option>
-              <option value="filename-desc">Filename Z-A</option>
-              <option value="bytes-desc">Size Large-Small</option>
-              <option value="bytes-asc">Size Small-Large</option>
+              <option value="filename-asc">{t.adminUi.filenameAsc}</option>
+              <option value="filename-desc">{t.adminUi.filenameDesc}</option>
+              <option value="bytes-desc">{t.adminUi.sizeLargeToSmall}</option>
+              <option value="bytes-asc">{t.adminUi.sizeSmallToLarge}</option>
             </select>
+            </label>
+
+            <div className="admin-gallery-quick-filters">
+              {[
+                { label: t.adminImages.today, days: 0 },
+                { label: t.adminImages.last7Days, days: 6 },
+                { label: t.adminImages.last30Days, days: 29 },
+              ].map((item) => (
+                <button
+                  key={item.days}
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    const fromDate = new Date(now);
+                    fromDate.setDate(fromDate.getDate() - item.days);
+                    fromDate.setHours(0, 0, 0, 0);
+                    const toDate = new Date(now);
+                    toDate.setHours(23, 59, 59, 999);
+                    onFilterChange({
+                      dateFrom: fromDate.toISOString(),
+                      dateTo: toDate.toISOString(),
+                    });
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Quick Filters */}
-        <div className="flex flex-wrap gap-2 pt-2">
-          {[
-            { label: t.adminImages.today, days: 0 },
-            { label: t.adminImages.last7Days, days: 6 },
-            { label: t.adminImages.last30Days, days: 29 },
-          ].map((item) => (
-            <button
-              key={item.days}
-              onClick={() => {
-                const now = new Date();
-                // 计算用户本地时区的日期范围
-                // dateFrom: N 天前的本地时间 00:00:00
-                const fromDate = new Date(now);
-                fromDate.setDate(fromDate.getDate() - item.days);
-                fromDate.setHours(0, 0, 0, 0);
-                // dateTo: 今天的本地时间 23:59:59.999
-                const toDate = new Date(now);
-                toDate.setHours(23, 59, 59, 999);
-                // 传递 ISO 格式的 UTC 时间戳给后端
-                onFilterChange({
-                  dateFrom: fromDate.toISOString(),
-                  dateTo: toDate.toISOString(),
-                });
-              }}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium border transition-colors",
-                isLight
-                  ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
-                  : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-
-          {hasActiveFilters && (
-            <button
-              onClick={handleReset}
-              className={cn(
-                "ml-auto px-3 py-1.5 text-xs border flex items-center gap-2 transition-colors",
-                isLight
-                  ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
-                  : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
-              )}
-            >
-              <RotateCcw className="w-3 h-3" />
-              {t.adminImages.reset}
-            </button>
-          )}
-        </div>
+        ) : null}
       </div>
     );
 }

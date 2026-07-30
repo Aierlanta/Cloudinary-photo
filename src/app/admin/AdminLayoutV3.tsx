@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Image as ImageIcon,
   Upload,
   Layers,
-  Settings,
+  Settings as SettingsIcon,
   Activity,
   FileText,
   Database,
@@ -19,15 +20,15 @@ import {
   Moon,
   Sun,
   Globe,
-  Palette,
   Network,
-  Star,
+  Sparkles,
 } from "lucide-react";
 import { useLocale } from "@/hooks/useLocale";
 import { Theme } from "@/lib/adminTheme";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
-import { useAdminApi } from "@/lib/admin-api-client";
+import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
+import styles from "./admin-shell.module.css";
 
 interface AdminLayoutV3Props {
   children: React.ReactNode;
@@ -41,8 +42,37 @@ interface AdminLayoutV3Props {
   handleLogout: () => void;
 }
 
+function RibbonBow({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 168 92" className={className} aria-hidden>
+      <g stroke="#fff0df" strokeWidth="7" strokeLinejoin="round">
+        <path d="M75 41C54 10 19 5 11 22 4 38 35 56 72 51Z" fill="#ff7198" />
+        <path d="M93 41c21-31 56-36 64-19 7 16-24 34-61 29Z" fill="#ff7198" />
+        <path d="M70 49 49 84l34-17 2-21Z" fill="#f05c8a" />
+        <path d="m98 49 21 35-34-17-2-21Z" fill="#f05c8a" />
+        <rect x="72" y="33" width="24" height="24" rx="8" fill="#ff9cb6" />
+      </g>
+      <g fill="none" stroke="#b73d67" strokeWidth="2.2" strokeLinejoin="round">
+        <path d="M75 41C54 10 19 5 11 22 4 38 35 56 72 51Z" />
+        <path d="M93 41c21-31 56-36 64-19 7 16-24 34-61 29Z" />
+        <path d="M70 49 49 84l34-17 2-21Z" />
+        <path d="m98 49 21 35-34-17-2-21Z" />
+        <rect x="72" y="33" width="24" height="24" rx="8" />
+      </g>
+      <path d="M79 39c4-2 8-2 12 0" fill="none" stroke="#fff0df" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function isNavActive(pathname: string, href: string) {
+  if (href === "/admin") return pathname === "/admin" || pathname === "/admin/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function AdminLayoutV3({
   children,
+  panelOpacity,
+  setPanelOpacity,
   theme,
   isManualTheme,
   initialVersion,
@@ -57,331 +87,402 @@ export default function AdminLayoutV3({
     setSelectedNodeId,
     selectedNode,
     nodeStatuses,
-    refreshNodeStatuses
+    refreshNodeStatuses,
   } = useAdminApi();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
-    if (!isSettingsOpen) {
-      return;
-    }
+    if (!isSettingsOpen) return;
     refreshNodeStatuses().catch(() => {});
   }, [isSettingsOpen, refreshNodeStatuses]);
 
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsSettingsOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isSettingsOpen]);
+
+  const isLight = theme === "light";
   const systemVersion = initialVersion;
+  const routeKey = pathname === "/admin"
+    ? "dashboard"
+    : pathname.split("/")[2] || "dashboard";
 
   const navigationItems = [
     { name: t.adminNav.dashboard, href: "/admin", icon: LayoutDashboard },
-    { name: t.adminNav.upload || "图片上传", href: "/admin/images", icon: Upload },
-    { name: t.adminNav.gallery || "图库", href: "/admin/gallery", icon: ImageIcon },
+    { name: t.adminNav.upload, href: "/admin/images", icon: Upload },
+    { name: t.adminNav.gallery, href: "/admin/gallery", icon: ImageIcon },
     { name: t.adminNav.groups, href: "/admin/groups", icon: Layers },
     { name: t.adminNav.swarm, href: "/admin/swarm", icon: Network },
-    { name: t.adminNav.apiConfig, href: "/admin/config", icon: Settings },
+    { name: t.adminNav.apiConfig, href: "/admin/config", icon: SettingsIcon },
     { name: t.adminNav.status, href: "/admin/status", icon: Activity },
     { name: t.adminNav.logs, href: "/admin/logs", icon: FileText },
     { name: t.adminNav.backup, href: "/admin/backup", icon: Database },
     { name: t.adminNav.security, href: "/admin/security", icon: ShieldAlert },
   ];
 
-  const isLight = theme === "light";
+  const renderNav = (onNavigate?: () => void) => (
+    <nav className={styles.nav} aria-label={t.adminUi.navigation}>
+      {navigationItems.map((item) => {
+        const active = isNavActive(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={cn(styles.navItem, active && styles.navItemActive)}
+            aria-current={active ? "page" : undefined}
+          >
+            <item.icon aria-hidden />
+            <span>{item.name}</span>
+            <Sparkles className={styles.navSpark} aria-hidden />
+          </Link>
+        );
+      })}
+    </nav>
+  );
 
-  const brandBadge = (
-    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-soft ring-2 ring-white/70 ring-inset shrink-0">
-      <Star className="w-5 h-5 text-white" fill="currentColor" />
+  const openSettings = (compact = false) => {
+    setIsSettingsOpen(true);
+    if (compact) setIsMobileMenuOpen(false);
+  };
+
+  const sidebarNotes: Record<string, { eyebrow?: string; title: string; body: string }> = {
+    images: { title: t.adminUi.imagesNoteTitle, body: t.adminUi.imagesNoteBody },
+    gallery: { eyebrow: t.adminUi.galleryNoteEyebrow, title: t.adminUi.galleryNoteTitle, body: t.adminUi.galleryNoteBody },
+    groups: { title: t.adminUi.groupsNoteTitle, body: t.adminUi.groupsNoteBody },
+    swarm: { title: t.adminUi.swarmNoteTitle, body: t.adminUi.swarmNoteBody },
+    config: { title: t.adminUi.configNoteTitle, body: t.adminUi.configNoteBody },
+    status: { title: t.adminUi.statusNoteTitle, body: t.adminUi.statusNoteBody },
+    logs: { title: t.adminUi.logsNoteTitle, body: t.adminUi.logsNoteBody },
+    backup: { title: t.adminUi.backupNoteTitle, body: t.adminUi.backupNoteBody },
+    security: { title: t.adminUi.securityNoteTitle, body: t.adminUi.securityNoteBody },
+  };
+
+  const renderSidebarNote = () => {
+    const note = sidebarNotes[routeKey];
+    if (!note) return null;
+    return (
+      <div className={styles.sidebarNote}>
+        {note.eyebrow ? <span>{note.eyebrow}</span> : null}
+        <strong>{note.title}</strong>
+        <p>{note.body}</p>
+      </div>
+    );
+  };
+
+  const renderSidebarFooter = (compact = false) => (
+    <div className={styles.sidebarFooter}>
+      {compact ? (
+        <button
+          type="button"
+          className={cn(styles.sideAction, isSettingsOpen && styles.sideActionActive)}
+          onClick={() => openSettings(true)}
+          aria-expanded={isSettingsOpen}
+        >
+          <SettingsIcon aria-hidden />
+          <span>{t.admin.quickSettings}</span>
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className={cn(styles.sideAction, styles.logout)}
+        onClick={handleLogout}
+      >
+        <LogOut aria-hidden />
+        <span>{t.adminNav.logout}</span>
+        {!compact ? <span aria-hidden>♡</span> : null}
+      </button>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground">
-      {/* Sidebar Navigation (Desktop) */}
-      <aside className="hidden lg:flex w-64 flex-col h-screen sticky top-0 border-r-2 border-border bg-card">
-        <div className="flex flex-col h-full">
-          {/* Logo / Brand */}
-          <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-dashed border-border">
-            {brandBadge}
-            <div>
-              <h1 className="font-display font-bold text-lg leading-tight">
-                {t.adminDashboard.title}
-              </h1>
-              {systemVersion && (
-                <p className="text-xs text-muted-foreground">
-                  v{systemVersion}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Nav Links */}
-          <nav className="flex-1 py-4 px-3 overflow-y-auto">
-            <div className="space-y-1.5">
-              {navigationItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link key={item.href} href={item.href} className="block">
-                    <div
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all",
-                        isActive
-                          ? "bg-primary text-white shadow-soft"
-                          : "text-foreground/75 hover:bg-primary/10 hover:text-foreground"
-                      )}
-                    >
-                      <item.icon className="w-5 h-5" />
-                      <span className="font-bold text-sm">{item.name}</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-
-          {/* Settings & Logout */}
-          <div className="p-3 border-t-2 border-dashed border-border grid grid-cols-1 gap-1.5">
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-foreground/75 hover:bg-primary/10 hover:text-foreground"
-            >
-              <Palette className="w-5 h-5" />
-              <span className="font-bold text-sm">{t.admin.quickSettings}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="font-bold text-sm">{t.adminNav.logout}</span>
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Mobile Menu Toggle */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          type="button"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          aria-label={isMobileMenuOpen ? t.common.close : "Menu"}
-          className="p-3 rounded-2xl bg-card border-2 border-border shadow-soft text-foreground"
-        >
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+    <div
+      className={cn(
+        styles.shell,
+        theme === "dark" ? styles.shellDark : styles.shellLight,
+      )}
+      data-admin-route={routeKey}
+      data-settings-open={isSettingsOpen ? "true" : "false"}
+    >
+      <div className={styles.atmosphere} aria-hidden>
+        <span className={styles.spark}>✦</span>
+        <span className={styles.spark}>✧</span>
+        <span className={styles.spark}>♡</span>
+        <span className={styles.spark}>❀</span>
+        <span className={styles.spark}>✿</span>
       </div>
 
-      {/* Mobile Navigation Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 lg:hidden bg-black/30"
-          onClick={() => setIsMobileMenuOpen(false)}
+      {!isSettingsOpen ? (
+        <button
+          type="button"
+          className={styles.mobileToggle}
+          aria-label={isMobileMenuOpen ? t.common.close : t.adminUi.menu}
+          aria-expanded={isMobileMenuOpen}
+          onClick={() => setIsMobileMenuOpen((open) => !open)}
         >
-          <div
-            className="w-3/4 max-w-xs h-full border-r-2 border-border bg-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex flex-col h-full">
-              <div className="flex items-center gap-3 px-6 py-4 border-b-2 border-dashed border-border">
-                {brandBadge}
-                <h1 className="font-display font-bold text-lg">{t.adminDashboard.title}</h1>
-              </div>
+          {isMobileMenuOpen ? <X /> : <Menu />}
+        </button>
+      ) : null}
 
-              <nav className="flex-1 py-4 px-3 overflow-y-auto">
-                <div className="space-y-1.5">
-                  {navigationItems.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <div
-                          className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all",
-                            isActive
-                              ? "bg-primary text-white shadow-soft"
-                              : "text-foreground/75 hover:bg-primary/10 hover:text-foreground"
-                          )}
-                        >
-                          <item.icon className="w-5 h-5" />
-                          <span className="font-bold text-sm">{item.name}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </nav>
-
-              <div className="p-3 border-t-2 border-dashed border-border space-y-1.5">
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="font-bold text-sm">{t.adminNav.logout}</span>
-                </button>
-              </div>
-            </div>
-          </div>
+      <aside className={styles.sidebar} aria-label={t.adminUi.navigation}>
+        <div className={styles.lace} aria-hidden>
+          <span className={styles.laceHeart}>♡</span>
         </div>
-      )}
+        <Link href="/" className={styles.brand} aria-label="Random Image API home">
+          <span className={styles.medallion}>
+            <Image
+              src="/icon.png"
+              alt=""
+              width={104}
+              height={104}
+              className={styles.medallionLogo}
+              priority
+            />
+          </span>
+          <span className={styles.brandName}>Random Image API</span>
+          {systemVersion ? <span className={styles.brandVersion}>v{systemVersion}</span> : null}
+        </Link>
+        {renderNav()}
+        {renderSidebarNote()}
+        {routeKey === "dashboard" ? renderSidebarFooter() : null}
+        <button
+          type="button"
+          className={styles.settingsFab}
+          onClick={() => openSettings(false)}
+          aria-label={t.admin.quickSettings}
+          aria-expanded={isSettingsOpen}
+          title={t.admin.quickSettings}
+        >
+          <SettingsIcon aria-hidden />
+        </button>
+      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 h-screen overflow-y-auto overflow-x-hidden">
-        <div className="min-h-full p-4 lg:p-8 pt-20 lg:pt-8">
-          <div className="max-w-[1800px] mx-auto">
-            <div className="border-2 border-border bg-card p-6 lg:p-8 rounded-3xl shadow-soft">
-              <ComponentErrorBoundary componentName="AdminPage">
-                {children}
-              </ComponentErrorBoundary>
+      {isMobileMenuOpen ? (
+        <>
+          <button
+            type="button"
+            className={styles.mobileBackdrop}
+            aria-label={t.common.close}
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <aside className={styles.mobileDrawer} aria-label={t.adminUi.navigation}>
+            <div className={styles.lace} aria-hidden>
+              <span className={styles.laceHeart}>♡</span>
             </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Settings Panel */}
-      {isSettingsOpen && (
-        <div className="fixed top-4 right-4 z-50 w-[28rem] max-w-[calc(100vw-2rem)] border-2 border-border bg-card p-6 rounded-3xl shadow-lift">
-          <div className="flex items-start justify-between mb-4">
-            <h3 className="font-display text-lg font-bold">{t.admin.quickSettings}</h3>
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(false)}
-              aria-label={t.common.close}
-              className="p-1.5 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary-strong transition-colors"
+            <Link
+              href="/"
+              className={styles.brand}
+              aria-label="Random Image API home"
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+              <span className={styles.medallion}>
+                <Image
+                  src="/icon.png"
+                  alt=""
+                  width={104}
+                  height={104}
+                  className={styles.medallionLogo}
+                  priority
+                />
+              </span>
+              <span className={styles.brandName}>Random Image API</span>
+            </Link>
+            {renderNav(() => setIsMobileMenuOpen(false))}
+            {renderSidebarFooter(true)}
+          </aside>
+        </>
+      ) : null}
 
-          <div className="space-y-4">
-            <div>
+      <div className={styles.workspace}>
+        <main
+          className={styles.panel}
+          style={{
+            "--admin-panel-opacity": Math.max(0.55, Math.min(1, panelOpacity)),
+          } as CSSProperties}
+        >
+          <div className={styles.washiDots} aria-hidden />
+          <div className={styles.washiStripes} aria-hidden />
+          <RibbonBow className={styles.bow} />
+          <div className={styles.panelInner}>
+            <ComponentErrorBoundary componentName="AdminPage">
+              {children}
+            </ComponentErrorBoundary>
+          </div>
+        </main>
+      </div>
+
+      {isSettingsOpen ? (
+        <>
+          <button
+            type="button"
+            className={styles.settingsBackdrop}
+            aria-label={t.common.close}
+            onClick={() => setIsSettingsOpen(false)}
+          />
+          <aside className={styles.settingsCard} role="dialog" aria-modal="true" aria-label={t.admin.quickSettings}>
+            <div className={styles.settingsHeader}>
+              <div>
+                <span className={styles.settingsEyebrow}>{t.adminUi.settingsEyebrow}</span>
+                <h3 className={styles.settingsTitle}>{t.admin.quickSettings}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(false)}
+                aria-label={t.common.close}
+                className={styles.settingsClose}
+              >
+                <X />
+              </button>
+            </div>
+
+            <div className={styles.settingsBody}>
+              <section className={styles.settingsSection}>
               <div className="flex items-center justify-between gap-3 mb-2">
-                <label className="block text-sm font-bold">{t.adminNav.swarm}</label>
+                <label className={styles.settingsLabel} style={{ marginBottom: 0 }}>
+                  {t.adminNav.swarm}
+                </label>
                 <button
                   type="button"
                   onClick={() => refreshNodeStatuses().catch(() => {})}
-                  className="px-3 py-1 border-2 border-border text-xs font-bold rounded-full bg-card hover:border-primary hover:text-primary-strong transition-colors"
+                  className={styles.settingsButton}
+                  style={{ width: "auto" }}
                 >
                   {t.common.refresh}
                 </button>
               </div>
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <div className={styles.nodeList}>
                 {nodes.map((node) => {
                   const status = nodeStatuses[node.id];
-                  const statusLabel = status?.status === 'online'
-                    ? '在线'
-                    : status?.status === 'degraded'
-                      ? '降级'
-                      : status?.status === 'offline'
-                        ? '离线'
-                        : '未知';
-                  const statusClass = status?.status === 'online'
-                    ? 'bg-emerald-400'
-                    : status?.status === 'degraded'
-                      ? 'bg-amber-400'
-                      : status?.status === 'offline'
-                        ? 'bg-red-400'
-                        : 'bg-gray-300';
+                  const statusLabel =
+                    status?.status === "online"
+                      ? t.adminUi.online
+                      : status?.status === "degraded"
+                        ? t.adminUi.degraded
+                        : status?.status === "offline"
+                          ? t.adminUi.offline
+                          : t.adminUi.unknown;
+                  const statusClass =
+                    status?.status === "online"
+                      ? "bg-emerald-400"
+                      : status?.status === "degraded"
+                        ? "bg-amber-400"
+                        : status?.status === "offline"
+                          ? "bg-red-400"
+                          : "bg-gray-300";
 
                   return (
                     <div
                       key={node.id}
                       className={cn(
-                        "border-2 p-3 rounded-2xl",
-                        node.id === selectedNodeId
-                          ? "border-primary/60 bg-primary/10"
-                          : "border-border bg-background"
+                        styles.nodeCard,
+                        node.id === selectedNodeId && styles.nodeCardActive,
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className={cn("w-2 h-2 rounded-full", statusClass)} />
-                            <span className="font-bold text-sm truncate">{node.name}</span>
-                            {node.id === selectedNodeId && (
+                            <span className="font-bold text-sm truncate">{getNodeDisplayName(node, t.adminUi.currentNode)}</span>
+                            {node.id === selectedNodeId ? (
                               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary text-white">
-                                默认
+                                {t.adminUi.defaultNode}
                               </span>
-                            )}
+                            ) : null}
                           </div>
                           <p className="mt-1 text-xs break-all text-muted-foreground">
                             {node.baseUrl}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {statusLabel}
-                            {status?.latencyMs !== undefined ? ` · ${status.latencyMs}ms` : ''}
-                            {status?.version ? ` · v${status.version}` : ''}
+                            {status?.latencyMs !== undefined ? ` · ${status.latencyMs}ms` : ""}
+                            {status?.version ? ` · v${status.version}` : ""}
                           </p>
                         </div>
-                        {node.id !== selectedNodeId && (
+                        {node.id !== selectedNodeId ? (
                           <button
                             type="button"
                             onClick={() => setSelectedNodeId(node.id)}
-                            className="shrink-0 px-3 py-1 border-2 border-border text-xs font-bold rounded-full bg-card hover:border-primary hover:text-primary-strong transition-colors"
+                            className={styles.settingsButton}
+                            style={{ width: "auto", flexShrink: 0 }}
                           >
-                            设为默认
+                            {t.adminUi.setDefaultNode}
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                当前默认操作节点：{selectedNode.name}。图库和蜂群策略仍按共享数据库聚合展示。
+              <p className={cn(styles.hint, "mt-2")}>
+                {t.adminUi.currentDefaultNode.replace("{name}", getNodeDisplayName(selectedNode, t.adminUi.currentNode))} {t.adminUi.currentDefaultNodeHint}
               </p>
-            </div>
+              </section>
 
-            {/* Language Toggle */}
-            <div>
-              <label className="block text-sm font-bold mb-2">{t.admin.toggleLanguage}</label>
+              <section className={cn(styles.settingsSection, styles.opacityRow)}>
+                <div className={styles.settingLine}>
+                  <label className={styles.settingsLabel} htmlFor="admin-panel-opacity">
+                    {t.admin.panelOpacity}
+                  </label>
+                  <output>{Math.round(panelOpacity * 100)}%</output>
+                </div>
+                <input
+                  id="admin-panel-opacity"
+                  type="range"
+                  min={0.55}
+                  max={1}
+                  step={0.05}
+                  value={panelOpacity}
+                  onChange={(event) => setPanelOpacity(Number(event.target.value))}
+                />
+                <p className={styles.hint}>{t.admin.opacityDescription}</p>
+              </section>
+
+              <section className={styles.settingsSection}>
+                <label className={styles.settingsLabel}>{t.admin.toggleLanguage}</label>
+                <button type="button" onClick={toggleLocale} className={styles.settingsButton}>
+                  <Globe className="w-4 h-4" />
+                  <span>{locale === "zh" ? t.adminUi.switchToEnglish : t.adminUi.switchToChinese}</span>
+                </button>
+              </section>
+
+              <section className={styles.settingsSection}>
+                <label className={styles.settingsLabel}>{t.admin.toggleTheme}</label>
+                <button type="button" onClick={handleThemeToggle} className={styles.settingsButton}>
+                  {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  <span>{isLight ? `→ ${t.admin.dark}` : `→ ${t.admin.light}`}</span>
+                </button>
+              </section>
+
+              {isManualTheme ? (
+                <button type="button" onClick={handleThemeReset} className={styles.settingsButton}>
+                  <span>{t.admin.resetToBrowser}</span>
+                </button>
+              ) : null}
+
               <button
                 type="button"
-                onClick={toggleLocale}
-                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-border bg-card hover:border-primary transition-colors font-bold text-sm"
+                onClick={handleLogout}
+                className={cn(styles.settingsButton, styles.settingsLogout)}
               >
-                <Globe className="w-4 h-4" />
-                <span>{locale === "zh" ? "切换到 English" : "切换到 中文"}</span>
+                <LogOut className="w-4 h-4" />
+                <span>{t.adminNav.logout}</span>
               </button>
             </div>
-
-            {/* Theme Toggle */}
-            <div>
-              <label className="block text-sm font-bold mb-2">{t.admin.toggleTheme}</label>
-              <button
-                type="button"
-                onClick={handleThemeToggle}
-                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-full border-2 border-border bg-card hover:border-primary transition-colors font-bold text-sm"
-              >
-                {isLight ? (
-                  <Moon className="w-4 h-4" />
-                ) : (
-                  <Sun className="w-4 h-4" />
-                )}
-                <span>
-                  {isLight ? `→ ${t.admin.dark}` : `→ ${t.admin.light}`}
-                </span>
-              </button>
-            </div>
-
-            {isManualTheme && (
-              <button
-                type="button"
-                onClick={handleThemeReset}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border-2 border-border bg-card hover:border-primary transition-colors font-bold text-sm"
-              >
-                <span>{t.admin.resetToBrowser}</span>
-              </button>
-            )}
-
-          </div>
-        </div>
-      )}
+          </aside>
+        </>
+      ) : null}
     </div>
   );
 }

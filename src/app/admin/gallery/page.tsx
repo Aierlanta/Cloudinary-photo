@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import ImageList from "@/components/admin/ImageList";
 import ImageFilters from "@/components/admin/ImageFilters";
 import { useToast } from "@/hooks/useToast";
@@ -9,8 +10,9 @@ import { ToastContainer } from "@/components/ui/Toast";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
-import { Image as ImageIcon, Filter, Grid } from "lucide-react";
-import { useAdminApi } from "@/lib/admin-api-client";
+import { ChevronLeft, ChevronRight, Download, MoreHorizontal, Plus, RefreshCw } from "lucide-react";
+import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
+import pageStyles from "../admin-pages.module.css";
 
 interface Image {
   id: string;
@@ -72,10 +74,10 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true);
   const [totalImages, setTotalImages] = useState(0);
   const [loadTime, setLoadTime] = useState(0);
-  
+
   // 从 URL 参数中读取 groupId
   const urlGroupId = searchParams?.get("groupId") || "";
-  
+
   const [filters, setFilters] = useState<FilterState>({
     search: "",
     groupId: urlGroupId,
@@ -88,11 +90,10 @@ export default function GalleryPage() {
     sortBy: "uploadedAt",
     sortOrder: "desc",
   });
-  const [pageInput, setPageInput] = useState("1");
 
   // Toast通知
   const { toasts, success, error: showError, removeToast } = useToast();
-  
+
   // 当 URL 参数中的 groupId 变化时，更新 filters
   useEffect(() => {
     setFilters((prev) => {
@@ -267,194 +268,87 @@ export default function GalleryPage() {
     }
   };
 
-  const totalPages = Math.ceil(totalImages / filters.limit);
-  useEffect(() => {
-    setPageInput(filters.page.toString());
-  }, [filters.page, totalPages]);
-
-  const handlePageJump = () => {
-    const target = Number(pageInput);
-    if (!Number.isNaN(target) && target >= 1 && target <= totalPages) {
-      handleFilterChange({ page: target });
-    }
-  };
-
+  const totalPages = Math.max(1, Math.ceil(totalImages / filters.limit));
   const paginationButtons = Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
     const start = Math.max(1, Math.min(filters.page - 2, totalPages - 4));
     const page = start + i;
     if (page > totalPages) return null;
     return page;
   }).filter(Boolean) as number[];
+  const lastPaginationButton = paginationButtons[paginationButtons.length - 1];
+
+  const handleExport = () => {
+    const quote = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const header = ["id", "title", "url", "groupId", "provider", "uploadedAt"];
+    const rows = images.map((image) => [
+      image.id,
+      image.title || image.publicId,
+      image.url,
+      image.groupId || "",
+      image.primaryProvider || "",
+      image.uploadedAt,
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(quote).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `gallery-page-${filters.page}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="space-y-6 max-w-[1800px] mx-auto rounded-lg">
-      {/* Header */}
-      <div className={cn(
-        "border p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <div>
-          <h1 className={cn(
-            "text-3xl font-bold flex items-center gap-3 mb-2 rounded-lg",
-            isLight ? "text-gray-900" : "text-gray-100"
-          )}>
-            <ImageIcon className={cn(
-              "w-8 h-8 rounded-lg",
-              isLight ? "text-blue-500" : "text-blue-400"
-            )} />
-            {t.adminGallery?.title || "图库"}
-          </h1>
-          <p className={cn(
-            "text-sm rounded-lg",
-            isLight ? "text-gray-600" : "text-gray-400"
-          )}>
-            {t.adminGallery?.description || "浏览和管理您的图片库"}
-          </p>
-        </div>
-        <div className={cn(
-          "flex flex-wrap items-center gap-6 p-4 border rounded-lg",
-          isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-        )}>
-          <div className="flex items-center gap-3 rounded-lg">
-            <div className={cn(
-              "w-10 h-10 flex items-center justify-center rounded-lg",
-              isLight ? "bg-blue-500" : "bg-blue-600"
-            )}>
-              <ImageIcon className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className={cn(
-                "text-xs rounded-lg",
-                isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {t.adminImages.totalImages}
-              </p>
-              <p className={cn(
-                "text-xl font-bold rounded-lg",
-                isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {totalImages}
-              </p>
-            </div>
-          </div>
-          <div className={cn(
-            "w-px h-10 rounded-lg",
-            isLight ? "bg-gray-300" : "bg-gray-600"
-          )} />
-          <div className="flex items-center gap-3 rounded-lg">
-            <div className={cn(
-              "w-10 h-10 flex items-center justify-center rounded-lg",
-              isLight ? "bg-green-500" : "bg-green-600"
-            )}>
-              <Grid className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className={cn(
-                "text-xs rounded-lg",
-                isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {t.adminImages.groupCount}
-              </p>
-              <p className={cn(
-                "text-xl font-bold rounded-lg",
-                isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {groups.length}
-              </p>
-            </div>
-          </div>
+    <div className={`${pageStyles.page} admin-gallery-page`}>
+      <div className="admin-gallery-toolbar">
+        <ImageFilters filters={filters} groups={groups} onFilterChange={handleFilterChange} />
+        <div className="admin-gallery-toolbar-actions">
+          <Link href="/admin/images"><Plus aria-hidden /> {t.adminNav.upload}</Link>
+          <button type="button" onClick={() => setFilters((current) => ({ ...current }))}>
+            <RefreshCw aria-hidden /> {t.common.refresh}
+          </button>
+          <button type="button" onClick={handleExport}>
+            <Download aria-hidden /> {t.adminUi.exportData}
+          </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className={cn(
-        "border p-6 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <h2 className={cn(
-          "text-lg font-semibold mb-4 flex items-center gap-2 rounded-lg",
-          isLight ? "text-gray-900" : "text-gray-100"
-        )}>
-          <Filter className={cn(
-            "w-5 h-5 rounded-lg",
-            isLight ? "text-blue-500" : "text-blue-400"
-          )} />
-          {t.adminImages.filterAndSearch}
-        </h2>
-        <ImageFilters filters={filters} groups={groups} onFilterChange={handleFilterChange} />
-        <div className={cn(
-          "mt-4 border-t pt-4",
-          isLight ? "border-gray-200" : "border-gray-700"
-        )}>
+      <div className="admin-gallery-owner-filter">
           <label className={cn(
             "block text-xs font-medium mb-2",
             isLight ? "text-gray-700" : "text-gray-300"
           )}>
-            蜂群归属节点
+            {t.adminUi.galleryOwnerNode}
           </label>
           <select
             value={filters.ownerNodeId}
             onChange={(event) => handleFilterChange({ ownerNodeId: event.target.value })}
             className={cn(
               "w-full md:w-80 px-3 py-2 border text-sm outline-none focus:border-blue-500 rounded-lg",
-              isLight
-                ? "bg-white border-gray-300"
-                : "bg-gray-800 border-gray-600"
+              pageStyles.input
             )}
           >
-            <option value="">全部节点</option>
+            <option value="">{t.adminUi.allNodes}</option>
             {nodes.map((node) => (
               <option key={node.id} value={node.id}>
-                {node.name}
+                {getNodeDisplayName(node, t.adminUi.currentNode)}
               </option>
             ))}
-            <option value="unknown">未知归属</option>
+            <option value="unknown">{t.adminUi.unknownOwner}</option>
           </select>
           <p className={cn("mt-2 text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
-            当前图库为共享数据库聚合视图，筛选项按图片 owner 节点过滤。
+            {t.adminUi.galleryOwnerHint}
           </p>
-        </div>
       </div>
 
-      {/* Image List */}
-      <div className={cn(
-        "border p-6 space-y-6 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg">
-          <div className="flex items-center gap-3 rounded-lg">
-            <h2 className={cn(
-              "text-lg font-semibold flex items-center gap-2 rounded-lg",
-              isLight ? "text-gray-900" : "text-gray-100"
-            )}>
-              <ImageIcon className={cn(
-                "w-5 h-5 rounded-lg",
-                isLight ? "text-blue-500" : "text-blue-400"
-              )} />
-              {t.adminImages.imageList}
-            </h2>
-            <span className={cn(
-              "text-sm rounded-lg",
-              isLight ? "text-gray-600" : "text-gray-400"
-            )}>
-              ({totalImages} {t.adminImages.imagesCount})
-            </span>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg">
-            <span className={cn(
-              "text-sm rounded-lg",
-              isLight ? "text-gray-600" : "text-gray-400"
-            )}>
-              {t.adminImages.itemsPerPage}:
-            </span>
+      <div className="admin-gallery-content">
+        <div className="admin-gallery-page-size">
+          <span>{t.adminUi.perPage}</span>
             <select
               value={filters.limit}
               onChange={(e) => handleFilterChange({ limit: parseInt(e.target.value) })}
               className={cn(
                 "border text-sm px-3 py-1 outline-none focus:border-blue-500 rounded-lg",
-                isLight
-                  ? "bg-white border-gray-300"
-                  : "bg-gray-800 border-gray-600"
+                pageStyles.input
               )}
             >
               {itemsPerPageOptions.map((count) => (
@@ -463,7 +357,6 @@ export default function GalleryPage() {
                 </option>
               ))}
             </select>
-          </div>
         </div>
 
         <ImageList
@@ -476,90 +369,61 @@ export default function GalleryPage() {
           onBulkUpdate={handleBulkUpdate}
         />
 
-        {totalPages > 1 && (
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg">
-            <div className="flex items-center gap-2 flex-wrap rounded-lg">
-              <button
-                onClick={() => handleFilterChange({ page: filters.page - 1 })}
-                disabled={filters.page <= 1}
-                className={cn(
-                  "px-4 py-2 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg",
-                  isLight
-                    ? "bg-white border-gray-300 hover:bg-gray-50 disabled:bg-gray-100"
-                    : "bg-gray-800 border-gray-600 hover:bg-gray-700 disabled:bg-gray-900"
-                )}
-              >
-                {t.adminImages.previousPage}
-              </button>
-              <div className="flex gap-1 flex-wrap rounded-lg">
-                {paginationButtons.map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => handleFilterChange({ page })}
-                    className={cn(
-                      "w-10 h-10 flex items-center justify-center transition-colors border rounded-lg",
-                      page === filters.page
-                        ? isLight
-                          ? "bg-blue-500 text-white border-blue-600"
-                          : "bg-blue-600 text-white border-blue-500"
-                        : isLight
-                        ? "bg-white border-gray-300 hover:bg-gray-50"
-                        : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-                    )}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => handleFilterChange({ page: filters.page + 1 })}
-                disabled={filters.page >= totalPages}
-                className={cn(
-                  "px-4 py-2 border transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg",
-                  isLight
-                    ? "bg-white border-gray-300 hover:bg-gray-50 disabled:bg-gray-100"
-                    : "bg-gray-800 border-gray-600 hover:bg-gray-700 disabled:bg-gray-900"
-                )}
-              >
-                {t.adminImages.nextPage}
-              </button>
-            </div>
-            <div className="flex items-center gap-2 text-sm rounded-lg">
-              <span className={isLight ? "text-gray-600" : "text-gray-400"}>
-                {t.adminImages.currentPage}:
+        {images.length > 0 && (
+          <nav className="admin-gallery-pagination" aria-label={t.adminUi.galleryPagination}>
+            <button
+              type="button"
+              className="admin-gallery-page-arrow"
+              onClick={() => handleFilterChange({ page: filters.page - 1 })}
+              disabled={filters.page <= 1}
+              aria-label={t.adminImages.previousPage}
+              title={t.adminImages.previousPage}
+            >
+              <ChevronLeft aria-hidden />
+            </button>
+            {paginationButtons.map((page, index) => (
+              <span key={page} className="admin-gallery-page-entry">
+                {index === 0 && page > 1 ? (
+                  <span className="admin-gallery-page-ellipsis" aria-hidden><MoreHorizontal /></span>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ page })}
+                  className={cn(
+                    "admin-gallery-page-button",
+                    page === filters.page && "is-active"
+                  )}
+                  aria-current={page === filters.page ? "page" : undefined}
+                  aria-label={`${t.adminImages.currentPage} ${page}`}
+                >
+                  {page}
+                </button>
               </span>
-              <input
-                type="number"
-                min={1}
-                max={totalPages}
-                value={pageInput}
-                onChange={(e) => setPageInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handlePageJump();
-                }}
-                className={cn(
-                  "w-20 px-3 py-2 border outline-none rounded-lg",
-                  isLight
-                    ? "bg-white border-gray-300 focus:border-blue-500"
-                    : "bg-gray-800 border-gray-600 focus:border-blue-500"
-                )}
-              />
-              <button
-                onClick={handlePageJump}
-                className={cn(
-                  "px-3 py-2 border transition-colors rounded-lg",
-                  isLight
-                    ? "bg-gray-100 border-gray-300 hover:bg-gray-200"
-                    : "bg-gray-700 border-gray-600 hover:bg-gray-600"
-                )}
-              >
-                GO
-              </button>
-              <span className={isLight ? "text-gray-600" : "text-gray-400"}>
-                / {totalPages}
-              </span>
-            </div>
-          </div>
+            ))}
+            {lastPaginationButton && lastPaginationButton < totalPages ? (
+              <>
+                <span className="admin-gallery-page-ellipsis" aria-hidden><MoreHorizontal /></span>
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange({ page: totalPages })}
+                  className="admin-gallery-page-button"
+                  aria-label={`${t.adminImages.currentPage} ${totalPages}`}
+                >
+                  {totalPages}
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="admin-gallery-page-arrow"
+              onClick={() => handleFilterChange({ page: filters.page + 1 })}
+              disabled={filters.page >= totalPages}
+              aria-label={t.adminImages.nextPage}
+              title={t.adminImages.nextPage}
+            >
+              <ChevronRight aria-hidden />
+            </button>
+          </nav>
         )}
       </div>
 
@@ -567,4 +431,3 @@ export default function GalleryPage() {
     </div>
   );
 }
-

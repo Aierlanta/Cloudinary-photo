@@ -290,7 +290,7 @@ export function setSecurityHeaders(response: Response): Response {
     'Content-Security-Policy',
     `
       default-src 'self';
-      img-src 'self' https: data:${configuredConnectOrigins.length ? ` ${configuredConnectOrigins.join(' ')}` : ''};
+      img-src 'self' https: data: blob:${configuredConnectOrigins.length ? ` ${configuredConnectOrigins.join(' ')}` : ''};
       connect-src 'self' https://api.telegram.org https://res.cloudinary.com${tgStateDomain ? ` ${tgStateDomain}` : ''}${configuredConnectOrigins.length ? ` ${configuredConnectOrigins.join(' ')}` : ''};
       script-src 'self' 'unsafe-inline' 'unsafe-eval';
       style-src 'self' 'unsafe-inline';

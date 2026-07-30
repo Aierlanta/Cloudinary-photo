@@ -32,6 +32,10 @@ const monoFont = DM_Mono({
 export const metadata: Metadata = {
   title: '随机图片API',
   description: '基于Next.js的随机图片API服务，集成Cloudinary图床',
+  icons: {
+    icon: [{ url: '/icon.png', type: 'image/png' }],
+    apple: [{ url: '/icon.png', type: 'image/png' }],
+  },
 }
 
 export default function RootLayout({

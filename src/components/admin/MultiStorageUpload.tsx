@@ -81,12 +81,12 @@ export default function MultiStorageUpload({
     try {
       // 验证文件类型
       if (!file.type.startsWith('image/')) {
-        throw new Error('请选择图片文件');
+        throw new Error(t.adminImages.imageFileRequired);
       }
 
       // 验证文件大小 (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        throw new Error('文件大小不能超过 10MB');
+        throw new Error(t.adminImages.imageFileSizeExceeded);
       }
 
       const formData = new FormData();
@@ -117,11 +117,11 @@ export default function MultiStorageUpload({
         setUploadResult(uploadResult);
         onUploadComplete?.(uploadResult);
       } else {
-        throw new Error(result.message || '上传失败');
+        throw new Error(result.message || t.adminUi.uploadFailed);
       }
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '上传失败';
+      const errorMessage = err instanceof Error ? err.message : t.adminUi.uploadFailed;
       setError(errorMessage);
       onUploadError?.(errorMessage);
     } finally {
@@ -160,10 +160,10 @@ export default function MultiStorageUpload({
         <CardHeader>
           <CardTitle className="flex items-center">
             <Upload className="h-5 w-5 mr-2" />
-            多图床上传
+            {t.adminImages.multiStorageUploadTitle}
           </CardTitle>
           <CardDescription>
-            支持自动故障转移和备份上传的智能图床服务
+            {t.adminImages.multiStorageUploadDescription}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -190,17 +190,17 @@ export default function MultiStorageUpload({
             {uploading ? (
               <div className="space-y-2">
                 <Clock className="h-8 w-8 mx-auto animate-spin text-primary" />
-                <p className="text-lg font-medium">正在上传...</p>
+                <p className="text-lg font-medium">{t.adminImages.multiStorageUploading}</p>
                 <p className="text-sm text-muted-foreground">
-                  正在使用多图床服务上传，请稍候
+                  {t.adminImages.multiStorageUploadingDescription}
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
                 <FileImage className="h-8 w-8 mx-auto text-muted-foreground" />
-                <p className="text-lg font-medium">点击或拖拽上传图片</p>
+                <p className="text-lg font-medium">{t.adminImages.multiStorageSelectHint}</p>
                 <p className="text-sm text-muted-foreground">
-                  支持 JPG、PNG、GIF 等格式，最大 10MB
+                  {t.adminImages.multiStorageFormatHint}
                 </p>
               </div>
             )}
@@ -228,7 +228,7 @@ export default function MultiStorageUpload({
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                上传成功
+                {t.adminImages.uploadComplete}
               </div>
               <Button variant="ghost" size="sm" onClick={clearResult}>
                 <X className="h-4 w-4" />
@@ -239,28 +239,28 @@ export default function MultiStorageUpload({
             {/* 基本信息 */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">主要存储</p>
+                <p className="text-sm text-muted-foreground">{t.adminImages.primaryStorage}</p>
                 <div className="flex items-center mt-1">
                   <Cloud className="h-4 w-4 mr-2" />
                   <span className="font-medium">{uploadResult.provider}</span>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">上传时间</p>
+                <p className="text-sm text-muted-foreground">{t.adminImages.uploadTime}</p>
                 <p className="font-medium">{uploadResult.uploadTime}ms</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">重试次数</p>
+                <p className="text-sm text-muted-foreground">{t.adminImages.retryCount}</p>
                 <p className="font-medium">{uploadResult.retryCount}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">状态</p>
+                <p className="text-sm text-muted-foreground">{t.adminStatus.status}</p>
                 <div className="flex space-x-1 mt-1">
                   {uploadResult.failedOver && (
-                    <Badge variant="secondary">故障转移</Badge>
+                    <Badge variant="secondary">{t.adminUi.failover}</Badge>
                   )}
                   {uploadResult.hasBackup && (
-                    <Badge variant="outline">有备份</Badge>
+                    <Badge variant="outline">{t.adminImages.backupAvailable}</Badge>
                   )}
                 </div>
               </div>
@@ -269,7 +269,7 @@ export default function MultiStorageUpload({
             {/* 存储记录 */}
             {uploadResult.image?.storageRecords && (
               <div>
-                <h4 className="font-medium mb-2">存储记录</h4>
+                <h4 className="font-medium mb-2">{t.adminImages.storageRecords}</h4>
                 <div className="space-y-2">
                   {uploadResult.image.storageRecords.map((record, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
@@ -287,7 +287,11 @@ export default function MultiStorageUpload({
                         </div>
                       </div>
                       <Badge variant={record.status === 'active' ? 'default' : 'secondary'}>
-                        {record.status}
+                        {record.status === 'active'
+                          ? t.adminImages.storageStatusActive
+                          : record.status === 'inactive'
+                            ? t.adminImages.storageStatusInactive
+                            : record.status}
                       </Badge>
                     </div>
                   ))}
@@ -298,11 +302,11 @@ export default function MultiStorageUpload({
             {/* 图片预览 */}
             {uploadResult.image?.url && (
               <div>
-                <h4 className="font-medium mb-2">图片预览</h4>
+                <h4 className="font-medium mb-2">{t.adminImages.imagePreview}</h4>
                 <div className="border rounded-lg p-4">
                   <img
                     src={uploadResult.image.url}
-                    alt="上传的图片"
+                    alt={t.adminImages.uploadedImageAlt}
                     className="max-w-full max-h-64 mx-auto rounded"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
@@ -310,7 +314,7 @@ export default function MultiStorageUpload({
                   />
                   <div className="mt-2 text-center">
                     <p className="text-sm text-muted-foreground">
-                      图片ID: {uploadResult.image.id}
+                      {t.adminImages.imageId.replace('{id}', uploadResult.image.id)}
                     </p>
                     <Button
                       variant="outline"
@@ -325,7 +329,7 @@ export default function MultiStorageUpload({
                         }
                       }}
                     >
-                      复制 URL
+                      {t.adminImages.copyUrl}
                     </Button>
                   </div>
                 </div>

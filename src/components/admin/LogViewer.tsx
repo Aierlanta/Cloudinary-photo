@@ -1,6 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
 
 import { useState, useEffect, useCallback } from 'react'
 import { LogLevel } from '@/lib/logger'
@@ -28,7 +29,7 @@ export default function LogViewer({
   autoRefresh: initialAutoRefresh = false,
   refreshInterval = 5000
 }: LogViewerProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { adminFetch } = useAdminApi();
   const {
     loadFailedFormat,
@@ -214,6 +215,14 @@ export default function LogViewer({
     return LogLevel[level] || 'UNKNOWN'
   }
 
+  const totalRecords = pagination.total || logs.length
+  const errorCount = logs.filter((log) => log.level === LogLevel.ERROR).length
+  const warningCount = logs.filter((log) => log.level === LogLevel.WARN).length
+  const totalPages = Math.max(1, pagination.totalPages)
+  const paginationStart = Math.max(1, Math.min(pagination.page - 1, totalPages - 2))
+  const visiblePages = Array.from({ length: Math.min(3, totalPages) }, (_, index) => paginationStart + index)
+  const lastVisiblePage = visiblePages[visiblePages.length - 1]
+
   // 翻译日志消息（智能模式匹配）
   const translateLogMessage = (message: string): string => {
     // 关键词模式匹配（按优先级排序）
@@ -322,7 +331,7 @@ export default function LogViewer({
   const formatTimestamp = (timestamp: Date | string) => {
     try {
       const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-      return date.toLocaleString('zh-CN', {
+      return date.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
         timeZone: 'Asia/Shanghai',
         year: 'numeric',
         month: '2-digit',
@@ -338,9 +347,9 @@ export default function LogViewer({
   }
 
   return (
-    <div className="transparent-panel rounded-lg p-6 shadow-lg flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4 shrink-0">
-        <h2 className="text-lg font-semibold panel-text">{t.adminLogs.systemLogs}</h2>
+    <div className="admin-log-viewer transparent-panel rounded-lg p-6 shadow-lg flex flex-col h-full">
+      <div className="admin-log-viewer-header flex items-center justify-between mb-4 shrink-0">
+        <h2 className="text-lg font-semibold panel-text">{t.adminUi.accessLogs}</h2>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => loadLogs()}
@@ -378,8 +387,8 @@ export default function LogViewer({
       </div>
 
       {/* 筛选器 */}
-      <div className="space-y-4 mb-6 shrink-0">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="admin-log-filterbar space-y-4 mb-6 shrink-0">
+        <div className="admin-log-filter-selects grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* 日志级别过滤 */}
           <div>
             <label className="block text-sm font-medium panel-text mb-2 rounded-lg">
@@ -493,7 +502,7 @@ export default function LogViewer({
         </div>
 
         {/* 搜索框和操作按钮 */}
-        <div className="flex items-end space-x-4">
+        <div className="admin-log-searchrow flex items-end space-x-4">
           <div className="flex-1">
             <label className="block text-sm font-medium panel-text mb-2 rounded-lg">
               {t.adminLogs.searchLogMessage}
@@ -547,15 +556,15 @@ export default function LogViewer({
       )}
 
       {/* 日志列表 */}
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 flex-1 overflow-y-auto min-h-0">
+      <div className="admin-log-list bg-gray-50 dark:bg-gray-900 rounded-lg p-4 flex-1 overflow-y-auto min-h-0">
         {loading ? (
           <div className="text-center py-8 rounded-lg">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">加载中...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t.common.loading}</p>
           </div>
         ) : logs.length === 0 ? (
           <div className="text-center py-8 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400">暂无日志记录</p>
+            <p className="text-gray-500 dark:text-gray-400">{t.adminLogs.noLogsFound}</p>
           </div>
         ) : (
           <div className="space-y-2 rounded-lg">
@@ -567,15 +576,15 @@ export default function LogViewer({
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                  className="admin-log-entry bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                  <div className="admin-log-entry-layout flex items-start justify-between">
+                    <div className="admin-log-entry-main flex-1">
                       <div className="flex items-center space-x-2 mb-1">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getLevelColor(log.level)}`}>
+                        <span className={`admin-log-level px-2 py-1 rounded text-xs font-medium ${getLevelColor(log.level)}`}>
                           {getLevelName(log.level)}
                         </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 rounded-lg">
+                        <span className="admin-log-time text-xs text-gray-500 dark:text-gray-400 rounded-lg">
                           {formatTimestamp(log.timestamp)}
                         </span>
                         {log.requestId && (
@@ -584,7 +593,7 @@ export default function LogViewer({
                           </span>
                         )}
                       </div>
-                      <p className="text-sm panel-text mb-1 rounded-lg">{translateLogMessage(log.message)}</p>
+                      <p className="admin-log-message text-sm panel-text mb-1 rounded-lg">{translateLogMessage(log.message)}</p>
                       {log.context && Object.keys(log.context).length > 0 && (
                         <details className="mt-2">
                           <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer rounded-lg">
@@ -603,7 +612,7 @@ export default function LogViewer({
                           {log.error.stack && (
                             <details className="mt-1">
                               <summary className="text-xs text-red-600 dark:text-red-400 cursor-pointer rounded-lg">
-                                堆栈跟踪
+                                {t.adminUi.stackTrace}
                               </summary>
                               <pre className="text-xs text-red-600 dark:text-red-400 mt-1 overflow-auto max-h-32 rounded-lg">
                                 {log.error.stack}
@@ -621,43 +630,63 @@ export default function LogViewer({
         )}
       </div>
 
-      {/* 分页控件 */}
-      {pagination.totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between shrink-0">
-          <div className="text-sm text-gray-500 dark:text-gray-400 rounded-lg">
-            {t.adminLogs.pageInfo
-              .replace('{page}', pagination.page.toString())
-              .replace('{totalPages}', pagination.totalPages.toString())
-              .replace('{total}', pagination.total.toString())}
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={pagination.page <= 1}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600"
-            >
-              {t.adminLogs.previous}
-            </button>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {pagination.page} / {pagination.totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={pagination.page >= pagination.totalPages}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600"
-            >
-              {t.adminLogs.next}
-            </button>
-          </div>
+      <div className="admin-log-footer shrink-0">
+        <div className="admin-log-summary" aria-label={t.adminUi.logSummary}>
+          <span><small>{t.adminUi.total}</small><strong>{totalRecords}</strong></span>
+          <span><small>{t.adminUi.errors}</small><strong>{errorCount}</strong></span>
+          <span><small>{t.adminUi.warnings}</small><strong>{warningCount}</strong></span>
         </div>
-      )}
-
-      {/* 统计信息 */}
-      <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 panel-text shrink-0">
-        {t.adminLogs.showingRecords.replace('{count}', logs.length.toString())}
-        {filter.search && ` (${t.adminLogs.searchFilter.replace('{search}', filter.search)})`}
-        {filter.level !== 'all' && ` (${t.adminLogs.levelFilter.replace('{level}', getLevelName(filter.level as LogLevel))})`}
-        {filter.type !== 'all' && ` (${t.adminLogs.typeFilter.replace('{type}', filter.type)})`}
+        <nav className="admin-log-pagination" aria-label={t.adminLogs.title}>
+          <button
+            type="button"
+            aria-label={t.adminLogs.previous}
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={pagination.page <= 1}
+          >
+            <ChevronLeft aria-hidden />
+          </button>
+          {visiblePages[0] > 1 ? (
+            <span className="admin-log-page-ellipsis" aria-hidden><MoreHorizontal /></span>
+          ) : null}
+          {visiblePages.map((page) => (
+            <button
+              key={page}
+              type="button"
+              className={page === pagination.page ? "admin-log-page-current" : undefined}
+              onClick={() => handlePageChange(page)}
+              aria-current={page === pagination.page ? "page" : undefined}
+              aria-label={`${t.adminLogs.page} ${page}`}
+            >
+              {page}
+            </button>
+          ))}
+          {lastVisiblePage < totalPages ? (
+            <>
+              <span className="admin-log-page-ellipsis" aria-hidden><MoreHorizontal /></span>
+              <button
+                type="button"
+                onClick={() => handlePageChange(totalPages)}
+                aria-label={`${t.adminLogs.page} ${totalPages}`}
+              >
+                {totalPages}
+              </button>
+            </>
+          ) : null}
+          <button
+            type="button"
+            aria-label={t.adminLogs.next}
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={pagination.page >= totalPages}
+          >
+            <ChevronRight aria-hidden />
+          </button>
+        </nav>
+        <p className="admin-log-meta">
+          {t.adminLogs.showingRecords.replace('{count}', logs.length.toString())}
+          {filter.search && ` (${t.adminLogs.searchFilter.replace('{search}', filter.search)})`}
+          {filter.level !== 'all' && ` (${t.adminLogs.levelFilter.replace('{level}', getLevelName(filter.level as LogLevel))})`}
+          {filter.type !== 'all' && ` (${t.adminLogs.typeFilter.replace('{type}', filter.type)})`}
+        </p>
       </div>
     </div>
   )

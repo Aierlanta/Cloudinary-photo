@@ -48,7 +48,7 @@ export default function TransparencyControl({
                   className="px-3 py-1 text-xs rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors font-semibold"
                   title={t.admin.toggleLanguage}
                 >
-                  <span>{locale === 'zh' ? 'EN' : '中'}</span>
+                  <span>{locale === 'zh' ? t.adminUi.switchToEnglish : t.adminUi.switchToChinese}</span>
                 </button>
                 <button
                   onClick={onThemeToggle}
