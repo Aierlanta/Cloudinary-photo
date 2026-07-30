@@ -10,7 +10,7 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onLogin }: LoginFormProps) {
-  const { t, locale } = useLocale()
+  const { t } = useLocale()
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -47,7 +47,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       <div className="dialogue-box relative p-8 pt-10">
         {/* 名牌 */}
         <div className="name-plate absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-1.5 text-sm font-bold tracking-wider uppercase whitespace-nowrap">
-          Login
+          {t.adminLogin.login}
         </div>
 
         {/* 标题 */}
@@ -117,7 +117,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-full bg-card border-2 border-border hover:border-primary text-muted-foreground hover:text-primary-strong transition-colors font-bold text-sm"
           >
             <Home className="w-4 h-4" />
-            {locale === 'zh' ? '返回首页' : 'Back to Home'}
+            {t.adminUi.backToHome}
           </Link>
         </div>
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Database, Network, RefreshCw, Save } from "lucide-react";
-import { useAdminApi } from "@/lib/admin-api-client";
-import { useTheme } from "@/hooks/useTheme";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Database, Flower2, Network, RefreshCw, Save } from "lucide-react";
+import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
+import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
+import styles from "../admin-pages.module.css";
 
 type UploadStrategy = "manual" | "round-robin" | "random" | "available-first";
 type ProviderDeliveryMode = "owner-node" | "existing-chain";
@@ -24,12 +25,7 @@ interface SwarmConfig {
   updatedAt: string;
 }
 
-const providerLabels: Array<[SwarmProvider, string]> = [
-  ["cloudinary", "Cloudinary"],
-  ["tgstate", "tgState"],
-  ["telegram", "Telegram"],
-  ["custom", "Custom"],
-];
+const swarmProviders: SwarmProvider[] = ["cloudinary", "tgstate", "telegram", "custom"];
 
 function getDefaultSwarmConfig(): SwarmConfig {
   return {
@@ -48,7 +44,7 @@ function getDefaultSwarmConfig(): SwarmConfig {
 }
 
 export default function SwarmPage() {
-  const isLight = useTheme();
+  const { t } = useLocale();
   const {
     adminFetch,
     nodes,
@@ -88,9 +84,7 @@ export default function SwarmPage() {
     try {
       const response = await adminFetch("/api/admin/swarm/config", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           uploadStrategy: swarmConfig.uploadStrategy,
           providerDeliveryPolicy: swarmConfig.providerDeliveryPolicy,
@@ -101,14 +95,14 @@ export default function SwarmPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error?.message || "蜂群配置保存失败");
+        throw new Error(errorData?.error?.message || t.adminUi.swarmConfigSaveFailed);
       }
 
       const data = await response.json();
       setSwarmConfig(data.data?.config || swarmConfig);
-      success("蜂群配置已保存", "共享策略已写入数据库。");
+      success(t.adminUi.swarmConfigSaved, t.adminUi.swarmConfigSavedHint);
     } catch (error) {
-      showError("蜂群配置保存失败", error instanceof Error ? error.message : "网络错误");
+      showError(t.adminUi.swarmConfigSaveFailed, error instanceof Error ? error.message : t.adminLogin.networkError);
     } finally {
       setSaving(false);
     }
@@ -128,230 +122,223 @@ export default function SwarmPage() {
     });
   };
 
+  const statusCounts = useMemo(() => {
+    const counts = { online: 0, degraded: 0, offline: 0, unknown: 0 };
+    nodes.forEach((node) => {
+      const status = nodeStatuses[node.id]?.status;
+      if (status === "online") counts.online += 1;
+      else if (status === "degraded") counts.degraded += 1;
+      else if (status === "offline") counts.offline += 1;
+      else counts.unknown += 1;
+    });
+    return counts;
+  }, [nodes, nodeStatuses]);
+
   if (loading || !swarmConfig) {
     return (
-      <div className={cn(
-        "border p-6 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <p className={cn(isLight ? "text-gray-600" : "text-gray-400")}>加载蜂群配置中...</p>
+      <div className={`${styles.page} admin-swarm-page`}>
+        <div className={styles.panel}>
+          <div className={styles.empty}>{t.adminUi.swarmConfigLoading}</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto rounded-lg">
-      <div className={cn(
-        "border p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <div className="flex items-start gap-4">
-          <div className={cn(
-            "w-12 h-12 flex items-center justify-center rounded-lg",
-            isLight ? "bg-blue-500" : "bg-blue-600"
-          )}>
-            <Network className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className={cn("text-3xl font-bold mb-2", isLight ? "text-gray-900" : "text-gray-100")}>
-              蜂群
-            </h1>
-            <p className={cn("text-sm", isLight ? "text-gray-600" : "text-gray-400")}>
-              管理多节点状态、默认上传策略和 provider 交付策略。节点身份与密钥仍由 env 管理。
-            </p>
-          </div>
+    <div className={`${styles.page} admin-swarm-page`}>
+      <header className={styles.hero}>
+        <div>
+          <h1 className={styles.heroTitle}>
+            <span>{t.adminNav.swarm}</span>
+            <span style={{ color: "var(--secondary)" }}> {t.adminUi.nodes}</span>
+            <Flower2 className={styles.heroIcon} aria-hidden />
+          </h1>
+          <p className={styles.heroSubtitle}>
+            {t.adminUi.swarmSubtitle}
+          </p>
         </div>
-        <button
-          onClick={saveSwarmConfig}
-          disabled={saving}
-          className={cn(
-            "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
-            isLight
-              ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-              : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-          )}
-        >
-          <Save className="w-4 h-4" />
-          {saving ? "保存中..." : "保存蜂群配置"}
-        </button>
-      </div>
-
-      <div className={cn(
-        "border p-6 space-y-4 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Database className={cn("w-5 h-5", isLight ? "text-blue-500" : "text-blue-400")} />
-            <div>
-              <h2 className={cn("font-bold text-lg", isLight ? "text-gray-900" : "text-gray-100")}>
-                节点总览
-              </h2>
-              <p className={cn("text-sm", isLight ? "text-gray-600" : "text-gray-400")}>
-                节点列表来自 env，健康状态通过各节点 `/api/status` 探测。
-              </p>
-            </div>
-          </div>
+        <div className={styles.heroActions}>
           <button
+            type="button"
             onClick={() => refreshNodeStatuses().catch(() => {})}
-            className={cn(
-              "px-3 py-2 border flex items-center gap-2 rounded-lg",
-              isLight ? "bg-gray-50 border-gray-300 hover:bg-gray-100" : "bg-gray-700 border-gray-600 hover:bg-gray-600"
-            )}
+            className={cn(styles.btn, styles.btnLavender)}
           >
             <RefreshCw className="w-4 h-4" />
-            刷新状态
+            {t.common.refresh}
+          </button>
+          <button
+            type="button"
+            onClick={saveSwarmConfig}
+            disabled={saving}
+            className={cn(styles.btn, styles.btnPink)}
+          >
+            <Save className="w-4 h-4" />
+            {saving ? t.adminConfig.saving : t.adminUi.saveSwarmConfig}
           </button>
         </div>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {nodes.map((node) => {
-            const status = nodeStatuses[node.id];
-            const statusLabel = status?.status === "online"
-              ? "在线"
-              : status?.status === "degraded"
-                ? "降级"
-                : status?.status === "offline"
-                  ? "离线"
-                  : "未知";
-            const statusClass = status?.status === "online"
-              ? "bg-green-500"
-              : status?.status === "degraded"
-                ? "bg-yellow-500"
-                : status?.status === "offline"
-                  ? "bg-red-500"
-                  : "bg-gray-400";
+      <section className={styles.statGrid} aria-label={t.adminUi.nodeStatusSummary}>
+        <article className={cn(styles.statCard, styles.toneMint)}>
+          <p className={styles.statLabel}>{t.adminUi.totalNodes}</p>
+          <p className={styles.statValue}>{nodes.length}</p>
+          <Network className={styles.statIcon} aria-hidden />
+        </article>
+        <article className={cn(styles.statCard, styles.toneLavender)}>
+          <p className={styles.statLabel}>{t.adminUi.online}</p>
+          <p className={styles.statValue}>{statusCounts.online}</p>
+          <Database className={styles.statIcon} aria-hidden />
+        </article>
+        <article className={cn(styles.statCard, styles.toneAmber)}>
+          <p className={styles.statLabel}>{t.adminUi.degraded}</p>
+          <p className={styles.statValue}>{statusCounts.degraded}</p>
+          <AlertTriangle className={styles.statIcon} aria-hidden />
+        </article>
+        <article className={cn(styles.statCard, styles.tonePink)}>
+          <p className={styles.statLabel}>{t.adminUi.offline}</p>
+          <p className={styles.statValue}>{statusCounts.offline}</p>
+          <Network className={styles.statIcon} aria-hidden />
+        </article>
+      </section>
 
-            return (
-              <div
-                key={node.id}
-                className={cn(
-                  "border p-4 rounded-lg",
-                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={cn("w-2 h-2 rounded-full", statusClass)} />
-                  <span className={cn("font-medium", isLight ? "text-gray-900" : "text-gray-100")}>{node.name}</span>
-                  <span className={cn("text-xs", isLight ? "text-gray-500" : "text-gray-400")}>({statusLabel})</span>
-                </div>
-                <p className={cn("mt-2 text-xs break-all", isLight ? "text-gray-500" : "text-gray-400")}>{node.baseUrl}</p>
-                <p className={cn("mt-1 text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
-                  {status?.latencyMs !== undefined ? `${status.latencyMs}ms` : "未探测"}
-                  {status?.version ? ` · v${status.version}` : ""}
-                </p>
-              </div>
-            );
-          })}
+      <section className={styles.panel}>
+        <h2 className={styles.panelTitle}>{t.adminUi.nodeList}</h2>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>{t.adminUi.nodeName}</th>
+                <th>{t.adminStatus.status}</th>
+                <th>URL</th>
+                <th>{t.adminUi.latency}</th>
+                <th>{t.adminStatus.version}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nodes.map((node) => {
+                const status = nodeStatuses[node.id];
+                const statusLabel =
+                  status?.status === "online"
+                    ? t.adminUi.online
+                    : status?.status === "degraded"
+                      ? t.adminUi.degraded
+                      : status?.status === "offline"
+                        ? t.adminUi.offline
+                        : t.adminUi.unknown;
+                const pillClass =
+                  status?.status === "online"
+                    ? styles.pillMint
+                    : status?.status === "degraded"
+                      ? styles.pillAmber
+                      : status?.status === "offline"
+                        ? styles.pillPink
+                        : styles.pillLavender;
+
+                return (
+                  <tr key={node.id}>
+                    <td className="font-bold">{getNodeDisplayName(node, t.adminUi.currentNode)}</td>
+                    <td>
+                      <span className={cn(styles.pill, pillClass)}>{statusLabel}</span>
+                    </td>
+                    <td className={styles.mono}>{node.baseUrl}</td>
+                    <td>{status?.latencyMs !== undefined ? `${status.latencyMs}ms` : "—"}</td>
+                    <td>{status?.version ? `v${status.version}` : "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      </div>
+      </section>
 
-      <div className={cn(
-        "border p-6 space-y-4 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <div className="flex items-center gap-3">
-          <Database className={cn("w-5 h-5", isLight ? "text-blue-500" : "text-blue-400")} />
-          <div>
-            <h2 className={cn("font-bold text-lg", isLight ? "text-gray-900" : "text-gray-100")}>
-              共享策略
-            </h2>
-            <p className={cn("text-sm", isLight ? "text-gray-600" : "text-gray-400")}>
-              这些设置保存到共享数据库，同一蜂群内所有前端/节点保持一致。
-            </p>
-          </div>
-        </div>
+      <section className={styles.swarmFeatureGrid} aria-label={t.adminUi.swarmCapabilities}>
+        <article>
+          <Database aria-hidden />
+          <div><h2>{t.adminUi.sharedStorage}</h2><p>{t.adminUi.sharedStorageDescription}</p></div>
+        </article>
+        <article>
+          <Network aria-hidden />
+          <div><h2>{t.adminUi.crossNodeScheduling}</h2><p>{t.adminUi.crossNodeSchedulingDescription}</p></div>
+        </article>
+        <article>
+          <AlertTriangle aria-hidden />
+          <div><h2>{t.adminUi.failover}</h2><p>{t.adminUi.failoverDescription}</p></div>
+        </article>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
-          <div className="space-y-2">
-            <label className={cn("block text-sm font-medium", isLight ? "text-gray-700" : "text-gray-300")}>
-              默认上传策略
-            </label>
+      <section className={cn(styles.panel, "admin-swarm-settings")}>
+        <h2 className={styles.panelTitle}>{t.adminUi.sharedPolicy}</h2>
+        <p className="relative z-[1] text-sm text-muted-foreground mb-4">
+          {t.adminUi.sharedPolicyDescription}
+        </p>
+
+        <div className="relative z-[1] grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={styles.field}>
+            <label htmlFor="upload-strategy">{t.adminUi.uploadStrategy}</label>
             <select
+              id="upload-strategy"
               value={swarmConfig.uploadStrategy}
-              onChange={(event) => setSwarmConfig({ ...swarmConfig, uploadStrategy: event.target.value as UploadStrategy })}
-              className={cn(
-                "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-700 border-gray-600"
-              )}
+              onChange={(event) =>
+                setSwarmConfig({ ...swarmConfig, uploadStrategy: event.target.value as UploadStrategy })
+              }
             >
-              <option value="manual">手动选择目标节点</option>
-              <option value="round-robin">轮询分散到可用节点</option>
-              <option value="random">随机选择可用节点</option>
-              <option value="available-first">优先选择第一个可用节点</option>
+              <option value="manual">{t.adminUi.manualTargetNode}</option>
+              <option value="round-robin">{t.adminUi.roundRobinNodes}</option>
+              <option value="random">{t.adminUi.randomAvailableNode}</option>
+              <option value="available-first">{t.adminUi.firstAvailableNode}</option>
             </select>
           </div>
 
-          <label className={cn(
-            "flex items-center justify-between gap-4 p-3 border rounded-lg",
-            isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-          )}>
-            <div>
-              <p className={cn("font-medium text-sm", isLight ? "text-gray-900" : "text-gray-100")}>
-                管理端预览图策略化交付
-              </p>
-              <p className={cn("text-xs mt-1", isLight ? "text-gray-600" : "text-gray-400")}>
-                开启后按 provider 策略生成预览 URL。
-              </p>
-            </div>
+          <label className={cn(styles.groupCard, "min-h-0 !flex-row items-center justify-between")}>
+            <span className="relative z-[1]">
+              <strong className="block text-sm">{t.adminUi.previewDelivery}</strong>
+              <small className="text-muted-foreground">{t.adminUi.previewDeliveryDescription}</small>
+            </span>
             <input
               type="checkbox"
+              className="relative z-[1]"
               checked={swarmConfig.previewDeliveryEnabled}
-              onChange={(event) => setSwarmConfig({ ...swarmConfig, previewDeliveryEnabled: event.target.checked })}
+              onChange={(event) =>
+                setSwarmConfig({ ...swarmConfig, previewDeliveryEnabled: event.target.checked })
+              }
             />
           </label>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-lg">
-          {providerLabels.map(([provider, label]) => (
-            <div
-              key={provider}
-              className={cn(
-                "border p-3 rounded-lg",
-                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-              )}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className={cn("font-medium text-sm", isLight ? "text-gray-900" : "text-gray-100")}>
-                    {label}
-                  </p>
-                  <p className={cn("text-xs mt-1", isLight ? "text-gray-600" : "text-gray-400")}>
-                    {swarmConfig.providerDeliveryPolicy[provider]?.mode === "owner-node"
-                      ? "走 owner 节点交付链路"
-                      : "沿用现有直链/代理链路"}
-                  </p>
-                </div>
-                <select
-                  value={swarmConfig.providerDeliveryPolicy[provider]?.mode || "existing-chain"}
-                  onChange={(event) => updateProviderDeliveryMode(provider, event.target.value as ProviderDeliveryMode)}
-                  className={cn(
-                    "px-2 py-1 border text-xs outline-none rounded-lg",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                  )}
-                >
-                  <option value="owner-node">owner 节点</option>
-                  <option value="existing-chain">现有链路</option>
-                </select>
+        <div className="relative z-[1] grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+          {swarmProviders.map((provider) => (
+            <div key={provider} className={cn(styles.miniCard, "flex items-center justify-between gap-3")}>
+              <div>
+                <p className="font-bold text-sm">{provider === "custom" ? t.adminConfig.typeCustom : provider === "cloudinary" ? "Cloudinary" : provider === "tgstate" ? "tgState" : "Telegram"}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {swarmConfig.providerDeliveryPolicy[provider]?.mode === "owner-node"
+                    ? t.adminUi.ownerNodeDelivery
+                    : t.adminUi.existingDeliveryChain}
+                </p>
               </div>
+              <select
+                value={swarmConfig.providerDeliveryPolicy[provider]?.mode || "existing-chain"}
+                onChange={(event) =>
+                  updateProviderDeliveryMode(provider, event.target.value as ProviderDeliveryMode)
+                }
+                className="px-2 py-1 border-2 border-border rounded-full text-xs bg-card outline-none"
+              >
+                <option value="owner-node">{t.adminUi.ownerNode}</option>
+                <option value="existing-chain">{t.adminUi.existingChain}</option>
+              </select>
             </div>
           ))}
         </div>
 
         {swarmConfig.providerDeliveryPolicy.cloudinary.mode !== "owner-node" && (
-          <div className={cn(
-            "flex items-start gap-3 p-3 border rounded-lg",
-            isLight
-              ? "bg-yellow-50 border-yellow-300 text-yellow-800"
-              : "bg-yellow-900/20 border-yellow-700 text-yellow-200"
-          )}>
-            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="relative z-[1] flex items-start gap-3 p-3 mt-4 rounded-2xl border-2 border-amber-400/50 bg-amber-400/10">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
             <p className="text-sm">
-              Cloudinary 未走 owner 节点交付可能暴露前端来源、管理端域名和访问模式，增加 provider 风控风险。除非你明确接受该风险，否则建议保持开启。
+              {t.adminUi.cloudinaryDeliveryWarning}
             </p>
           </div>
         )}
-      </div>
+      </section>
 
       <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
     </div>

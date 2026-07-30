@@ -276,7 +276,7 @@ export default function AdminNavigation({
     },
 
     {
-      name: t.adminNav.upload || "图片上传",
+      name: t.adminNav.upload,
 
       href: "/admin/images",
 
@@ -298,7 +298,7 @@ export default function AdminNavigation({
     },
 
     {
-      name: t.adminNav.gallery || "图库",
+      name: t.adminNav.gallery,
 
       href: "/admin/gallery",
 

@@ -15,17 +15,20 @@ import { useImageCachePrewarming } from "@/hooks/useImageCachePrewarming";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
-import { 
-  MoreVertical, 
-  Edit2, 
-  Trash2, 
-  Check, 
-  Move, 
-  Layers, 
-  Tag, 
+import {
+  MoreVertical,
+  Edit2,
+  Trash2,
+  Check,
+  CheckCheck,
+  ListChecks,
+  Move,
+  Layers,
+  Tag,
   ExternalLink,
   Download,
-  Copy
+  Copy,
+  X
 } from "lucide-react";
 import { useAdminApi } from "@/lib/admin-api-client";
 
@@ -100,20 +103,25 @@ function LazyImage({
   className,
   onClick,
   preloadUrls = [],
+  eager = false,
 }: {
   src: string;
   alt: string;
   className?: string;
   onClick?: () => void;
   preloadUrls?: string[];
+  eager?: boolean;
 }) {
   const isLight = useTheme();
-  const [isInView, setIsInView] = useState(false);
+  const { t } = useLocale();
+  const [isInView, setIsInView] = useState(eager);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (eager) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -132,7 +140,7 @@ function LazyImage({
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [eager]);
 
   useEffect(() => {
     if (isInView && preloadUrls.length > 0) {
@@ -170,7 +178,7 @@ function LazyImage({
           "w-full h-full flex items-center justify-center",
           isLight ? "bg-gray-100" : "bg-gray-800"
         )}>
-          <div className="text-center text-gray-500 text-xs">Error</div>
+          <div className="text-center text-gray-500 text-xs">{t.adminUi.error}</div>
         </div>
       ) : (
         <>
@@ -189,6 +197,7 @@ function LazyImage({
             onLoad={handleLoad}
             onError={handleError}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            priority={eager}
           />
         </>
       )}
@@ -206,9 +215,7 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
   const group = groups.find((g) => g.id === image.groupId);
   const previewSrc = image.previewUrl || (isTgStateImage(image.url) ? getImageUrls(image.url).preview : generateThumbnailUrlForImage(image, 400));
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("zh-CN");
-  };
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleString(locale === "zh" ? "zh-CN" : "en-US");
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -439,13 +446,13 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
                     "text-xs mb-1",
                     isLight ? "text-gray-600" : "text-gray-400"
                   )}>
-                    蜂群归属节点
+                    {t.adminUi.galleryOwnerNode}
                   </p>
                   <p className={cn(
                     "text-sm break-all",
                     isLight ? "text-gray-900" : "text-gray-100"
                   )}>
-                    {image.ownerNodeId || "unknown"}
+                    {image.ownerNodeId || t.adminUi.unknownOwner}
                   </p>
                 </div>
                 {image.tags && image.tags.length > 0 && (
@@ -667,13 +674,14 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
 }
 
 export default function ImageList({ images, groups, loading, onDeleteImage, onBulkDelete, onUpdateImage, onBulkUpdate }: ImageListProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const isLight = useTheme();
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [editingImage, setEditingImage] = useState<ImageItem | null>(null);
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkGroupId, setBulkGroupId] = useState<string>("");
+  const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null);
   const { toasts, success, error: showToastError, removeToast } = useToast();
 
@@ -685,9 +693,9 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
     thumbnailSize: 300,
   });
 
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("zh-CN");
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US");
   const getGroupName = (groupId?: string) => groups.find((g) => g.id === groupId)?.name || t.adminImages.unassigned;
-  const getOwnerNodeLabel = (image: ImageItem) => image.ownerNodeId || "unknown";
+  const getOwnerNodeLabel = (image: ImageItem) => image.ownerNodeId || t.adminUi.unknownOwner;
 
   const toggleImageSelection = (imageId: string) => {
     const newSelected = new Set(selectedImages);
@@ -696,12 +704,33 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
     setSelectedImages(newSelected);
   };
 
+  const handleEnterBulkMode = () => {
+    setBulkMode(true);
+    setSelectedImages(new Set());
+    setBulkGroupId("");
+    setIsGroupPickerOpen(false);
+  };
+
+  const handleExitBulkMode = () => {
+    setBulkMode(false);
+    setSelectedImages(new Set());
+    setBulkGroupId("");
+    setIsGroupPickerOpen(false);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedImages.size === images.length && images.length > 0) {
+      setSelectedImages(new Set());
+      return;
+    }
+    setSelectedImages(new Set(images.map((image) => image.id)));
+  };
+
   const handleBulkDelete = () => {
     if (selectedImages.size === 0) return;
     if (confirm(t.adminImages.deleteImagesConfirm.replace('{count}', selectedImages.size.toString()))) {
       if (onBulkDelete) onBulkDelete(Array.from(selectedImages));
-      setSelectedImages(new Set());
-      setBulkMode(false);
+      handleExitBulkMode();
     }
   };
 
@@ -720,9 +749,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
     if (selectedImages.size === 0 || !bulkGroupId) return;
     if (confirm(t.adminImages.moveImagesConfirm.replace('{count}', selectedImages.size.toString()))) {
       if (onBulkUpdate) onBulkUpdate(Array.from(selectedImages), { groupId: bulkGroupId });
-      setSelectedImages(new Set());
-      setBulkMode(false);
-      setBulkGroupId("");
+      handleExitBulkMode();
     }
   };
 
@@ -733,62 +760,66 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
   if (loading) return <div className="p-8 text-center">{t.common.loading}</div>;
   if (!images?.length) return <div className="p-8 text-center text-muted-foreground">{t.adminImages.noImagesFound}</div>;
 
+  const allImagesSelected = selectedImages.size === images.length;
+  const hasSelectedImages = selectedImages.size > 0;
+
   // --- V3 Layout (Flat Design) ---
   return (
-      <div className="space-y-4">
-        {/* Toolbar */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setBulkMode(!bulkMode);
-                setSelectedImages(new Set());
-              }}
-              className={cn(
-                "px-4 py-2 border transition-colors",
-                bulkMode
-                  ? isLight
-                    ? "bg-blue-500 text-white border-blue-600"
-                    : "bg-blue-600 text-white border-blue-500"
-                  : isLight
-                  ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
-                  : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
-              )}
-            >
-              {bulkMode ? t.adminImages.exitBulkMode : t.adminImages.bulkActions}
-            </button>
-            {bulkMode && selectedImages.size > 0 && (
-              <>
-                <button
-                  onClick={handleBulkDelete}
-                  className={cn(
-                    "px-4 py-2 border transition-colors",
-                    isLight
-                      ? "bg-red-500 text-white border-red-600 hover:bg-red-600"
-                      : "bg-red-600 text-white border-red-500 hover:bg-red-700"
-                  )}
-                >
-                  {t.common.delete} ({selectedImages.size})
-                </button>
-                <select
-                  value={bulkGroupId}
-                  onChange={(e) => setBulkGroupId(e.target.value)}
-                  className={cn(
-                    "px-3 py-2 border outline-none focus:border-blue-500",
-                    isLight
-                      ? "bg-white border-gray-300"
-                      : "bg-gray-800 border-gray-600"
-                  )}
-                >
-                  <option value="">{t.adminImages.moveToGroup}</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
-                {bulkGroupId && (
+      <div className="admin-gallery-list space-y-4">
+        {bulkMode ? (
+          <div className="admin-gallery-list-toolbar is-bulk-active flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="admin-gallery-selection-count" aria-live="polite">
+                {t.adminImages.selectedImageCount.replace("{count}", selectedImages.size.toString())}
+              </span>
+              <button type="button" onClick={handleExitBulkMode} className="admin-gallery-bulk-action admin-gallery-bulk-exit">
+                <X aria-hidden />
+                {t.adminImages.exitBulkMode}
+              </button>
+              <button type="button" onClick={handleSelectAll} className="admin-gallery-bulk-action admin-gallery-bulk-select-all">
+                <CheckCheck aria-hidden />
+                {allImagesSelected ? t.adminImages.clearSelection : t.adminImages.selectAll}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsGroupPickerOpen((open) => !open)}
+                disabled={!hasSelectedImages}
+                className="admin-gallery-bulk-action admin-gallery-bulk-move"
+              >
+                <Move aria-hidden />
+                {t.adminImages.moveToGroup}
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={!hasSelectedImages}
+                className="admin-gallery-bulk-action admin-gallery-bulk-delete"
+              >
+                <Trash2 aria-hidden />
+                {t.common.delete}
+              </button>
+              {isGroupPickerOpen ? (
+                <div className="admin-gallery-group-picker">
+                  <select
+                    value={bulkGroupId}
+                    onChange={(e) => setBulkGroupId(e.target.value)}
+                    className={cn(
+                      "px-3 py-2 border outline-none focus:border-blue-500",
+                      isLight
+                        ? "bg-white border-gray-300"
+                        : "bg-gray-800 border-gray-600"
+                    )}
+                  >
+                    <option value="">{t.adminImages.moveToGroup}</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
                   <button
+                    type="button"
+                    disabled={!bulkGroupId || !hasSelectedImages}
                     onClick={handleBulkUpdateGroup}
                     className={cn(
                       "px-4 py-2 border transition-colors",
@@ -799,15 +830,24 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                   >
                     {t.common.confirm}
                   </button>
-                )}
-              </>
-            )}
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="admin-gallery-list-toolbar is-idle flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={handleEnterBulkMode} className="admin-gallery-bulk-mode-trigger">
+                <ListChecks aria-hidden />
+                {t.adminImages.enterBulkMode}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Loading State */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="admin-gallery-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
@@ -825,34 +865,33 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
               ? "bg-gray-50 border-gray-300 text-gray-600"
               : "bg-gray-700 border-gray-600 text-gray-400"
           )}>
-            <p>{t.adminGroups.noImagesInGroup || '暂无图片'}</p>
+            <p>{t.adminGroups.noImagesInGroup}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {images.map((image) => (
+          <div className="admin-gallery-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {images.map((image, index) => (
               <div
                 key={image.id}
                 className={cn(
-                  "border overflow-hidden transition-colors relative",
-                  bulkMode && selectedImages.has(image.id)
-                    ? isLight
-                      ? "border-blue-500"
-                      : "border-blue-400"
-                    : isLight
+                  "admin-gallery-card border overflow-hidden transition-colors relative",
+                  bulkMode && "is-bulk-mode",
+                  bulkMode && selectedImages.has(image.id) && "is-selected",
+                  !bulkMode && (isLight
                     ? "bg-white border-gray-300 hover:bg-gray-50"
-                    : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+                    : "bg-gray-800 border-gray-600 hover:bg-gray-700")
                 )}
                 onMouseEnter={() => !bulkMode && setHoveredImageId(image.id)}
                 onMouseLeave={() => setHoveredImageId(null)}
               >
                 <div className={cn(
-                  "aspect-square relative",
+                  "admin-gallery-photo aspect-square relative",
                   isLight ? "bg-gray-100" : "bg-gray-800"
                 )}>
                   <LazyImage
                     src={image.previewUrl || (isTgStateImage(image.url) ? getImageUrls(image.url).thumbnail : generateThumbnailUrlForImage(image, 300))}
                     alt={image.title || image.publicId}
                     className="w-full h-full"
+                    eager={index < 8}
                     onClick={() => {
                       if (bulkMode) {
                         toggleImageSelection(image.id);
@@ -861,21 +900,27 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                       }
                     }}
                   />
-                  {bulkMode && selectedImages.has(image.id) && (
-                    <div className={cn(
-                      "absolute inset-0 flex items-center justify-center pointer-events-none",
-                      isLight ? "bg-blue-500/20" : "bg-blue-600/20"
-                    )}>
-                      <div className={cn(
-                        "w-8 h-8 flex items-center justify-center border-2",
-                        isLight
-                          ? "bg-blue-500 border-blue-600"
-                          : "bg-blue-600 border-blue-500"
-                      )}>
-                        <Check className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                  )}
+                  {bulkMode ? (
+                    <>
+                      {selectedImages.has(image.id) ? <span className="admin-gallery-selection-wash" aria-hidden /> : null}
+                      <button
+                        type="button"
+                        className={cn(
+                          "admin-gallery-card-selector",
+                          selectedImages.has(image.id) && "is-selected"
+                        )}
+                        aria-label={selectedImages.has(image.id) ? t.adminImages.deselectImage : t.adminImages.selectImage}
+                        aria-pressed={selectedImages.has(image.id)}
+                        title={selectedImages.has(image.id) ? t.adminImages.deselectImage : t.adminImages.selectImage}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleImageSelection(image.id);
+                        }}
+                      >
+                        <Check aria-hidden />
+                      </button>
+                    </>
+                  ) : null}
                   {!bulkMode && hoveredImageId === image.id && (
                     <button
                       onClick={(e) => {
@@ -889,13 +934,13 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                           ? "bg-red-500 text-white hover:bg-red-600 shadow-lg"
                           : "bg-red-600 text-white hover:bg-red-700 shadow-lg"
                       )}
-                      title={t.adminImages.deleteImage || '删除图片'}
+                      title={t.adminImages.deleteImage}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>
-                <div className="p-3">
+                <div className="admin-gallery-caption p-3">
                   <h3 className={cn(
                     "font-medium truncate mb-1",
                     isLight ? "text-gray-900" : "text-gray-100"
@@ -915,7 +960,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                         ? "bg-blue-50 border-blue-200 text-blue-700"
                         : "bg-blue-900/20 border-blue-700 text-blue-200"
                     )}>
-                      <span className="truncate">节点: {getOwnerNodeLabel(image)}</span>
+                      <span className="truncate">{t.adminUi.galleryOwnerNode}: {getOwnerNodeLabel(image)}</span>
                     </span>
                   </div>
                 </div>

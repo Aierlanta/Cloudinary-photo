@@ -14,6 +14,7 @@ interface SmartImageProps {
   sizes?: string;
   width?: number;
   height?: number;
+  priority?: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ export default function SmartImage({
   sizes,
   width,
   height,
+  priority = false,
 }: SmartImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [useNativeImage, setUseNativeImage] = useState(() => shouldUseNativeImage(src));
@@ -105,6 +107,7 @@ export default function SmartImage({
           alt={alt}
           referrerPolicy="no-referrer"
           className={sharedClassName}
+          loading={priority ? "eager" : "lazy"}
           onClick={onClick}
           onLoad={handleLoad}
           onError={handleNativeError}
@@ -129,6 +132,7 @@ export default function SmartImage({
           onLoad={handleLoad}
           onError={handleOptimizedError}
           sizes={sizes || "100vw"}
+          priority={priority}
         />
       )}
     </>

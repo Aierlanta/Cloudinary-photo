@@ -8,6 +8,12 @@ export interface BackendNode {
   baseUrl: string;
 }
 
+const CURRENT_FRONTEND_NODE_NAME = '__current_frontend_node__';
+
+export function getNodeDisplayName(node: BackendNode, currentNodeLabel: string): string {
+  return node.name === CURRENT_FRONTEND_NODE_NAME ? currentNodeLabel : node.name;
+}
+
 export interface NodeHealthStatus {
   nodeId: string;
   status: 'unknown' | 'online' | 'offline' | 'degraded';
@@ -79,7 +85,7 @@ function parseBackendNodes(currentOrigin: string): BackendNode[] {
   const raw = process.env.NEXT_PUBLIC_BACKEND_NODES;
   const currentNode = normalizeNode({
     id: process.env.NEXT_PUBLIC_NODE_ID || 'local',
-    name: process.env.NEXT_PUBLIC_NODE_NAME || '当前节点',
+    name: process.env.NEXT_PUBLIC_NODE_NAME || CURRENT_FRONTEND_NODE_NAME,
     baseUrl: process.env.NEXT_PUBLIC_PUBLIC_API_BASE_URL || currentOrigin
   }, 0);
 
@@ -116,7 +122,7 @@ function getPreferredDefaultNode(nodes: BackendNode[], currentOrigin: string): B
   return nodes.find((node) => node.id === currentNodeId)
     || nodes.find((node) => normalizeBaseUrl(node.baseUrl) === normalizedCurrentOrigin)
     || nodes[0]
-    || { id: 'local', name: '当前节点', baseUrl: currentOrigin };
+    || { id: 'local', name: CURRENT_FRONTEND_NODE_NAME, baseUrl: currentOrigin };
 }
 
 function mergeHeaders(initHeaders: HeadersInit | undefined, authToken: string | null): Headers {
@@ -322,7 +328,7 @@ export function useAdminApi(): AdminApiContextValue {
 
   const fallbackNode = {
     id: 'local',
-    name: '当前节点',
+    name: CURRENT_FRONTEND_NODE_NAME,
     baseUrl: getCurrentOrigin()
   };
 

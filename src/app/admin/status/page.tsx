@@ -14,9 +14,11 @@ import {
   AlertTriangle, 
   CheckCircle, 
   Info,
-  Zap
+  Zap,
+  Flower2,
 } from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
+import pageStyles from '../admin-pages.module.css'
 
 interface SystemStatus {
   status: 'healthy' | 'degraded' | 'down'
@@ -78,7 +80,7 @@ interface SystemStatus {
 }
 
 export default function SystemStatusPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const isLight = useTheme();
   const { adminFetch } = useAdminApi();
   const [status, setStatus] = useState<SystemStatus | null>(null)
@@ -124,9 +126,9 @@ export default function SystemStatusPage() {
     const hours = Math.floor((seconds % 86400) / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
     
-    if (days > 0) return `${days}${t.adminStatus.days}${hours}${t.adminStatus.hours}${minutes}${t.adminStatus.minutes}`
-    if (hours > 0) return `${hours}${t.adminStatus.hours}${minutes}${t.adminStatus.minutes}`
-    return `${minutes}${t.adminStatus.minutes}`
+    if (days > 0) return `${days} ${t.adminStatus.days} ${hours} ${t.adminStatus.hours}`
+    if (hours > 0) return `${hours} ${t.adminStatus.hours} ${minutes} ${t.adminStatus.minutes}`
+    return `${minutes} ${t.adminStatus.minutes}`
   }
 
   const getStatusColor = (status: string) => {
@@ -155,25 +157,11 @@ export default function SystemStatusPage() {
 
   if (loading) {
     return (
-      <div className={cn(
-        "border p-6",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <div className="animate-pulse">
-          <div className={cn(
-            "h-8 mb-4",
-            isLight ? "bg-gray-200" : "bg-gray-700"
-          )} style={{ width: '25%' }}></div>
-          <div className="space-y-3">
-            <div className={cn(
-              "h-4",
-              isLight ? "bg-gray-200" : "bg-gray-700"
-            )} style={{ width: '75%' }}></div>
-            <div className={cn(
-              "h-4",
-              isLight ? "bg-gray-200" : "bg-gray-700"
-            )} style={{ width: '50%' }}></div>
-          </div>
+      <div className={`${pageStyles.page} admin-status-page`}>
+        <div className={cn(pageStyles.panel, "animate-pulse")}>
+          <div className="relative z-[1] h-10 w-1/3 rounded-2xl bg-primary/20 mb-4" />
+          <div className="relative z-[1] h-4 w-3/4 rounded-xl bg-primary/10 mb-2" />
+          <div className="relative z-[1] h-4 w-1/2 rounded-xl bg-primary/10" />
         </div>
       </div>
     );
@@ -181,34 +169,24 @@ export default function SystemStatusPage() {
 
   if (error) {
     return (
-      <div className={cn(
-        "border p-6",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <h1 className={cn(
-          "text-2xl font-bold mb-4",
-          isLight ? "text-gray-900" : "text-gray-100"
-        )}>
-          {t.adminStatus.title}
-        </h1>
-        <div className={cn(
-          "border p-4",
-          isLight
-            ? "bg-red-50 border-red-300"
-            : "bg-red-900/20 border-red-800"
-        )}>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-5 h-5 text-red-500" />
-            <span className={isLight ? "text-red-700" : "text-red-300"}>{error}</span>
+      <div className={`${pageStyles.page} admin-status-page`}>
+        <header className={pageStyles.hero}>
+          <div>
+            <h1 className={pageStyles.heroTitle}>
+              <span>{t.adminNav.status}</span>
+              <Flower2 className={pageStyles.heroIcon} aria-hidden />
+            </h1>
+          </div>
+        </header>
+        <div className={cn(pageStyles.panel, "border-rose-300")}>
+          <div className="relative z-[1] flex items-center gap-2 mb-3 text-rose-600">
+            <AlertTriangle className="w-5 h-5" />
+            <span>{error}</span>
           </div>
           <button
+            type="button"
             onClick={loadStatus}
-            className={cn(
-              "px-4 py-2 border transition-colors",
-              isLight
-                ? "bg-red-600 text-white border-red-700 hover:bg-red-700"
-                : "bg-red-600 text-white border-red-500 hover:bg-red-700"
-            )}
+            className={cn(pageStyles.btn, pageStyles.btnPink)}
           >
             {t.adminStatus.retry}
           </button>
@@ -219,297 +197,68 @@ export default function SystemStatusPage() {
 
   if (!status) return null
 
-  // --- V3 Layout (Flat Design) ---
+  const memoryUsed = Math.round((status.performance.memoryUsage?.used || 0) / 1024 / 1024)
+  const memoryTotal = Math.max(1, Math.round((status.performance.memoryUsage?.total || 0) / 1024 / 1024))
+  const memoryPercent = Math.min(100, Math.round((memoryUsed / memoryTotal) * 100))
+  const checkedAt = new Date(status.timestamp).toLocaleTimeString(locale === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
   return (
-      <div className="space-y-6 rounded-lg">
-        {/* Header */}
-        <div className={cn(
-          "border p-6 flex justify-between items-start rounded-lg",
-          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-        )}>
-          <div>
-            <h1 className={cn(
-              "text-3xl font-bold mb-2 rounded-lg",
-              isLight ? "text-gray-900" : "text-gray-100"
-            )}>
-              {t.adminStatus.title}
-            </h1>
-            <p className={cn(
-              "text-sm rounded-lg",
-              isLight ? "text-gray-600" : "text-gray-400"
-            )}>
-              {t.adminStatus.description}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "flex items-center gap-2 text-sm rounded-lg",
-              isLight ? "text-gray-600" : "text-gray-400"
-            )}>
-              <span className="relative flex h-2 w-2">
-                <span className={cn(
-                  "absolute inline-flex h-full w-full opacity-75",
-                  status.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'
-                )} style={{ animation: 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite' }}></span>
-                <span className={cn(
-                  "relative inline-flex h-2 w-2",
-                  status.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'
-                )}></span>
-              </span>
-              {autoRefresh ? t.adminStatus.live : t.adminStatus.paused}
-            </div>
-            <button
-              onClick={loadStatus}
-              className={cn(
-                "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
-                isLight
-                  ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                  : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-              )}
-            >
-              <RefreshCw className="w-4 h-4" />
-              {t.adminStatus.refreshStatus}
-            </button>
-          </div>
-        </div>
+    <div className={`${pageStyles.page} admin-status-page`}>
+      <header className={pageStyles.hero}>
+        <h1 className={pageStyles.heroTitle}>
+          <span>{t.adminStatus.systemStatus}</span>
+          <Activity className={pageStyles.heroIcon} aria-hidden />
+        </h1>
+        <button type="button" onClick={loadStatus} className={cn(pageStyles.btn, pageStyles.btnLavender)}>
+          <RefreshCw className="w-4 h-4" />
+          {t.common.refresh}
+        </button>
+      </header>
 
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 rounded-lg">
-          <div className={cn(
-            "border p-6 flex items-center gap-4 rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-lg",
-              isLight ? "bg-blue-500" : "bg-blue-600"
-            )}>
-              <Activity className="w-6 h-6 text-white" />
-            </div>
+      <section className={pageStyles.statusServiceGrid} aria-label={t.adminStatus.serviceStatus}>
+        {[
+          { label: t.adminStatus.apiService, healthy: status.services.api.enabled, icon: Server },
+          { label: t.adminUi.storageService, healthy: status.services.cloudinary.healthy, icon: Cloud },
+          { label: t.adminStatus.database, healthy: status.services.database.healthy, icon: Database },
+        ].map(({ label, healthy, icon: Icon }) => (
+          <article key={label} className={cn(pageStyles.statusServiceCard, healthy ? pageStyles.statusHealthy : pageStyles.statusWarning)}>
+            {healthy ? <CheckCircle aria-hidden /> : <AlertTriangle aria-hidden />}
             <div>
-              <p className={cn(
-                "text-sm mb-1 rounded-lg",
-                isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {t.adminStatus.uptime}
-              </p>
-              <p className={cn(
-                "text-xl font-bold rounded-lg",
-                isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {formatUptime(status.uptime)}
-              </p>
+              <h2>{label}</h2>
+              <p>{t.adminUi.checkedAt.replace('{time}', checkedAt)}</p>
             </div>
+            <Icon className={pageStyles.statusCardAccent} aria-hidden />
+          </article>
+        ))}
+      </section>
+
+      <section className={pageStyles.statusDetailsGrid}>
+        <article className={pageStyles.statusDetailPanel}>
+          <h2>{t.adminUi.systemInfo}</h2>
+          <div className={pageStyles.statusMetricGrid}>
+            <div className={pageStyles.statusMetric}><Info aria-hidden /><span>{t.adminStatus.version}</span><strong>v{status.version}</strong></div>
+            <div className={pageStyles.statusMetric}><Activity aria-hidden /><span>{t.adminStatus.uptime}</span><strong>{formatUptime(status.uptime)}</strong></div>
+            <div className={pageStyles.statusMetric}><Cpu aria-hidden /><span>{t.adminStatus.memoryUsage}</span><strong>{memoryUsed} MB</strong><progress max="100" value={memoryPercent} /></div>
+            <div className={pageStyles.statusMetric}><Server aria-hidden /><span>Node.js</span><strong>{status.environment || t.adminUi.running}</strong></div>
           </div>
+        </article>
 
-          <div className={cn(
-            "border p-6 flex items-center gap-4 rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-lg",
-              isLight ? "bg-green-500" : "bg-green-600"
-            )}>
-              <Zap className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className={cn(
-                "text-sm mb-1 rounded-lg",
-                isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {t.adminStatus.healthScore}
-              </p>
-              <p className={cn(
-                "text-xl font-bold rounded-lg",
-                getHealthScoreColor(status.health.score)
-              )}>
-                {status.health.score}/100
-              </p>
-            </div>
+        <article className={pageStyles.statusDetailPanel}>
+          <h2>{t.adminUi.storageProviders}</h2>
+          <div className={pageStyles.statusProviderList}>
+            <div><Cloud aria-hidden /><span><strong>Cloudinary</strong><small>{status.services.cloudinary.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.cloudinary.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.cloudinary.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><Database aria-hidden /><span><strong>TgState</strong><small>{status.services.database.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.database.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.database.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><Server aria-hidden /><span><strong>{t.adminStatus.apiService}</strong><small>{status.services.api.parametersCount ?? 0} {t.adminUi.configuredParameters}</small></span><b className={status.services.api.enabled ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.api.enabled ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
           </div>
+        </article>
+      </section>
 
-          <div className={cn(
-            "border p-6 flex items-center gap-4 rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-lg",
-              isLight ? "bg-purple-500" : "bg-purple-600"
-            )}>
-              <Activity className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className={cn(
-                "text-sm mb-1 rounded-lg",
-                isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {t.adminStatus.responseTime}
-              </p>
-              <p className={cn(
-                "text-xl font-bold rounded-lg",
-                isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {status.performance.responseTime}
-              </p>
-            </div>
-          </div>
-
-          <div className={cn(
-            "border p-6 flex items-center gap-4 rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-lg",
-              isLight ? "bg-orange-500" : "bg-orange-600"
-            )}>
-              <Cpu className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className={cn(
-                "text-sm mb-1 rounded-lg",
-                isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {t.adminStatus.version}
-              </p>
-              <p className={cn(
-                "text-xl font-bold rounded-lg",
-                isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                v{status.version}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Services Status */}
-        <div className={cn(
-          "border p-6 rounded-lg",
-          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-        )}>
-          <h2 className={cn(
-            "text-lg font-semibold mb-4 rounded-lg",
-            isLight ? "text-gray-900" : "text-gray-100"
-          )}>
-            {t.adminStatus.serviceStatus}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
-            <div className={cn(
-              "border p-4 rounded-lg",
-              isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-            )}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={cn(
-                  "text-sm font-medium rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminStatus.database}
-                </span>
-                <div className={cn(
-                  "w-3 h-3",
-                  status.services.database.healthy ? 'bg-green-500' : 'bg-red-500'
-                )}></div>
-              </div>
-              {status.services.database.responseTime && (
-                <p className={cn(
-                  "text-xs rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {status.services.database.responseTime}ms
-                </p>
-              )}
-            </div>
-
-            <div className={cn(
-              "border p-4 rounded-lg",
-              isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-            )}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={cn(
-                  "text-sm font-medium rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminStatus.cloudinary}
-                </span>
-                <div className={cn(
-                  "w-3 h-3",
-                  status.services.cloudinary.healthy ? 'bg-green-500' : 'bg-red-500'
-                )}></div>
-              </div>
-              {status.services.cloudinary.responseTime && (
-                <p className={cn(
-                  "text-xs rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {status.services.cloudinary.responseTime}ms
-                </p>
-              )}
-            </div>
-
-            <div className={cn(
-              "border p-4 rounded-lg",
-              isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-            )}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={cn(
-                  "text-sm font-medium rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminStatus.apiService}
-                </span>
-                <div className={cn(
-                  "w-3 h-3",
-                  status.services.api.enabled ? 'bg-green-500' : 'bg-red-500'
-                )}></div>
-              </div>
-              {status.services.api.parametersCount !== undefined && (
-                <p className={cn(
-                  "text-xs rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {status.services.api.parametersCount} {t.adminStatus.parameters}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Health Issues */}
-        {status.health.issues.length > 0 && (
-          <div className={cn(
-            "border p-6 rounded-lg",
-            isLight ? "bg-yellow-50 border-yellow-300" : "bg-yellow-900/20 border-yellow-800"
-          )}>
-            <h2 className={cn(
-              "text-lg font-semibold mb-4 rounded-lg",
-              isLight ? "text-yellow-900" : "text-yellow-200"
-            )}>
-              {t.adminStatus.healthIssues}
-            </h2>
-            <div className="space-y-2 rounded-lg">
-              {status.health.issues.map((issue, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-3 p-3 border rounded-lg",
-                    isLight
-                      ? "bg-white border-yellow-300"
-                      : "bg-gray-800 border-yellow-800"
-                  )}
-                >
-                  <span className={cn(
-                    "w-1.5 h-1.5",
-                    isLight ? "bg-yellow-500" : "bg-yellow-400"
-                  )}></span>
-                  <span className={cn(
-                    "text-sm rounded-lg",
-                    isLight ? "text-yellow-800" : "text-yellow-200"
-                  )}>
-                    {issue}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+      {status.health.issues.length > 0 ? (
+        <section className={pageStyles.statusIssues} aria-label={t.adminStatus.healthIssues}>
+          <h2>{t.adminStatus.healthIssues}</h2>
+          {status.health.issues.map((issue) => <p key={issue}>{issue}</p>)}
+        </section>
+      ) : null}
+    </div>
+  );
 }

@@ -21,7 +21,7 @@ interface RateLimitManagementProps {
 }
 
 export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimitManagementProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [showSetDialog, setShowSetDialog] = useState(false);
   const [ip, setIP] = useState('');
   const [maxRequests, setMaxRequests] = useState('60');
@@ -96,12 +96,12 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
   const formatWindowMs = (ms: number) => {
     if (ms < 1000) return `${ms}ms`;
     if (ms < 60000) return `${ms / 1000}s`;
-    if (ms < 3600000) return `${ms / 60000}min`;
-    return `${ms / 3600000}h`;
+    if (ms < 3600000) return `${ms / 60000} ${t.adminStatus.minutes}`;
+    return `${ms / 3600000} ${t.adminStatus.hours}`;
   };
 
   const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleString('zh-CN', {
+    return new Date(date).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -152,7 +152,7 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
                   {t.adminSecurity.maxTotal}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  创建时间
+                  {t.adminGroups.createdAt}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   {t.adminSecurity.actions}

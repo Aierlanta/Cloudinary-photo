@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, Globe2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { useLocale } from '@/hooks/useLocale';
 
 interface IPLocationInfo {
   ip: string;
@@ -20,13 +21,16 @@ interface IPLocationInfo {
 const globalLocationCache = new Map<string, IPLocationInfo>();
 
 // 格式化位置显示
-function formatLocation(location: IPLocationInfo): string {
+function formatLocation(
+  location: IPLocationInfo,
+  labels: { privateNetwork: string; unknownLocation: string },
+): string {
   if (location.status === 'private') {
-    return '本地/内网';
+    return labels.privateNetwork;
   }
   
   if (location.status === 'fail') {
-    return '未知';
+    return labels.unknownLocation;
   }
 
   const parts: string[] = [];
@@ -41,7 +45,7 @@ function formatLocation(location: IPLocationInfo): string {
     parts.push(location.region);
   }
 
-  return parts.join(' · ') || '未知';
+  return parts.join(' · ') || labels.unknownLocation;
 }
 
 // 获取国旗 emoji
@@ -75,6 +79,7 @@ export function IPLocationBadge({
   compact = false,
 }: IPLocationBadgeProps) {
   const isLight = useTheme();
+  const { t } = useLocale();
   const [location, setLocation] = useState<IPLocationInfo | null>(() => 
     globalLocationCache.get(ip) || null
   );
@@ -137,7 +142,7 @@ export function IPLocationBadge({
     return null;
   }
 
-  const locationText = formatLocation(location);
+  const locationText = formatLocation(location, t.adminUi);
   const flag = showFlag ? getCountryFlag(location.countryCode) : null;
 
   if (compact) {

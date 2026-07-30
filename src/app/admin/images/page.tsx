@@ -4,22 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import ImageUpload from "@/components/admin/ImageUpload";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
-import { useLocale } from "@/hooks/useLocale";
-import { cn } from "@/lib/utils";
-import { useTheme } from "@/hooks/useTheme";
-import { Upload, Database, Grid } from "lucide-react";
 import { useAdminApi } from "@/lib/admin-api-client";
-
-interface Image {
-  id: string;
-  publicId: string;
-  url: string;
-  title?: string;
-  description?: string;
-  groupId?: string;
-  uploadedAt: string;
-  tags?: string[];
-}
+import styles from "../admin-pages.module.css";
 
 interface Group {
   id: string;
@@ -30,13 +16,8 @@ interface Group {
 }
 
 export default function ImagesPage() {
-  const { t } = useLocale();
-  const isLight = useTheme();
   const { adminFetch, selectedNodeId } = useAdminApi();
   const [groups, setGroups] = useState<Group[]>([]);
-  const [totalImages, setTotalImages] = useState(0);
-
-  // Toast通知
   const { toasts, removeToast } = useToast();
 
   const loadSummary = useCallback(async () => {
@@ -46,7 +27,6 @@ export default function ImagesPage() {
         const data = await response.json();
         const groupsData = data.data?.groups || [];
         setGroups(Array.isArray(groupsData) ? groupsData : []);
-        setTotalImages(data.data?.stats?.totalImages || 0);
       } else {
         console.error("加载后台概要失败:", response.statusText);
       }
@@ -55,7 +35,6 @@ export default function ImagesPage() {
     }
   }, [adminFetch]);
 
-  // 加载分组列表和总图片数
   useEffect(() => {
     loadSummary();
   }, [loadSummary, selectedNodeId]);
@@ -64,104 +43,9 @@ export default function ImagesPage() {
     loadSummary();
   };
 
-
   return (
-    <div className="space-y-6 max-w-[1800px] mx-auto rounded-lg">
-      {/* Header */}
-      <div className={cn(
-        "border p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <div>
-          <h1 className={cn(
-            "text-3xl font-bold flex items-center gap-3 mb-2 rounded-lg",
-            isLight ? "text-gray-900" : "text-gray-100"
-          )}>
-            <Upload className={cn(
-              "w-8 h-8",
-              isLight ? "text-blue-500" : "text-blue-400"
-            )} />
-            {t.adminUpload?.title || "图片上传"}
-          </h1>
-          <p className={cn(
-            "text-sm rounded-lg",
-            isLight ? "text-gray-600" : "text-gray-400"
-          )}>
-            {t.adminUpload?.description || "上传和管理您的图片"}
-          </p>
-        </div>
-        <div className={cn(
-          "flex flex-wrap items-center gap-6 p-4 border rounded-lg",
-          isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-        )}>
-          <div className="flex items-center gap-3 rounded-lg">
-            <div className={cn(
-              "w-10 h-10 flex items-center justify-center rounded-lg",
-              isLight ? "bg-blue-500" : "bg-blue-600"
-            )}>
-              <Upload className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className={cn(
-                "text-xs rounded-lg",
-                isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {t.adminImages.totalImages}
-              </p>
-              <p className={cn(
-                "text-xl font-bold rounded-lg",
-                isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {totalImages}
-              </p>
-            </div>
-          </div>
-          <div className={cn(
-            "w-px h-10 rounded-lg",
-            isLight ? "bg-gray-300" : "bg-gray-600"
-          )} />
-          <div className="flex items-center gap-3 rounded-lg">
-            <div className={cn(
-              "w-10 h-10 flex items-center justify-center rounded-lg",
-              isLight ? "bg-green-500" : "bg-green-600"
-            )}>
-              <Grid className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className={cn(
-                "text-xs rounded-lg",
-                isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {t.adminImages.groupCount}
-              </p>
-              <p className={cn(
-                "text-xl font-bold rounded-lg",
-                isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {groups.length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Upload */}
-      <div className={cn(
-        "border p-6 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <h2 className={cn(
-          "text-lg font-semibold mb-4 flex items-center gap-2 rounded-lg",
-          isLight ? "text-gray-900" : "text-gray-100"
-        )}>
-          <Database className={cn(
-            "w-5 h-5 rounded-lg",
-            isLight ? "text-blue-500" : "text-blue-400"
-          )} />
-          {t.adminImages.uploadImage}
-        </h2>
-        <ImageUpload groups={groups} onUploadSuccess={handleUploadSuccess} />
-      </div>
+    <div className={`${styles.page} admin-upload-page`}>
+      <ImageUpload groups={groups} onUploadSuccess={handleUploadSuccess} />
 
       <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
     </div>

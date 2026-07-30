@@ -3,21 +3,25 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/hooks/useTheme";
 import BannedIPManagement from "@/components/admin/BannedIPManagement";
 import RateLimitManagement from "@/components/admin/RateLimitManagement";
 import RiskControlManagement from "@/components/admin/RiskControlManagement";
-import { 
-  Shield, 
-  Ban, 
-  Activity, 
-  Clock, 
-  Globe, 
+import {
+  Shield,
+  Ban,
+  Activity,
+  Clock,
+  Globe,
+  KeyRound,
   BarChart2,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  Trash2,
+  X,
 } from "lucide-react";
 import { IPLocationBadge } from "@/components/admin/IPLocation";
 import { useAdminApi } from "@/lib/admin-api-client";
+import styles from "../admin-pages.module.css";
 
 interface AccessStats {
   totalAccess: number;
@@ -78,24 +82,20 @@ const TOP_IP_RANGE_TO_HOURS: Record<TopIPRange, number | null> = {
 
 export default function SecurityManagement() {
   const { t } = useLocale();
-  const isLight = useTheme();
   const { adminFetch } = useAdminApi();
-  const [activeTab, setActiveTab] = useState<"stats" | "risk" | "banned" | "limits">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "risk" | "banned" | "limits" | "locations">("limits");
+  const [showRateSettings, setShowRateSettings] = useState(false);
   const [loading, setLoading] = useState(true);
   const statsRef = useRef<AccessStats | null>(null);
   const topIPRangeRef = useRef<TopIPRange>("default");
 
-  // 访问统计数据
   const [stats, setStats] = useState<AccessStats | null>(null);
   const [realtimeStats, setRealtimeStats] = useState<RealtimeStats | null>(null);
   const [topIPs, setTopIPs] = useState<AccessStats["topIPs"]>([]);
   const [topIPRange, setTopIPRange] = useState<TopIPRange>("default");
   const [topIPLoading, setTopIPLoading] = useState(false);
 
-  // 封禁IP数据
   const [bannedIPs, setBannedIPs] = useState<BannedIP[]>([]);
-
-  // 速率限制数据
   const [rateLimits, setRateLimits] = useState<RateLimit[]>([]);
   const [riskConfig, setRiskConfig] = useState<SecurityConfig | null>(null);
   const [whitelist, setWhitelist] = useState<IPWhitelistEntry[]>([]);
@@ -175,443 +175,193 @@ export default function SecurityManagement() {
       ? t.adminSecurity.last24Hours
       : t.adminSecurity.last7Days;
 
-  // --- V3 Layout (Flat Design) ---
+  const tabs = [
+    {
+      id: "limits" as const,
+      label: t.adminUi.rateLimit,
+      meta: `${rateLimits.length} ${t.adminSecurity.activeLimits}`,
+      icon: Activity,
+    },
+    {
+      id: "banned" as const,
+      label: t.adminUi.ipBan,
+      meta: `${bannedIPs.length} ${t.adminSecurity.blocked}`,
+      icon: Ban,
+    },
+    {
+      id: "risk" as const,
+      label: t.adminUi.riskIps,
+      meta:
+        riskConfig?.guardEnabled || riskConfig?.whitelistOnlyEnabled
+          ? t.adminSecurity.enabled
+          : t.adminSecurity.disabled,
+      icon: Shield,
+    },
+    {
+      id: "stats" as const,
+      label: t.adminUi.accessControl,
+      meta: `${realtimeStats?.total || 0} ${t.adminSecurity.requests}`,
+      icon: BarChart2,
+    },
+    {
+      id: "locations" as const,
+      label: t.adminUi.ipLocation,
+      meta: `${topIPs.length} ${t.adminUi.locations}`,
+      icon: Globe,
+    },
+  ];
+
   return (
-    <div className="space-y-6 rounded-lg">
-      {/* Header */}
-      <div className={cn(
-        "border p-6 flex justify-between items-start rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
+    <div className={`${styles.page} admin-security-page`}>
+      <header className={styles.hero}>
         <div>
-          <h1 className={cn(
-            "text-3xl font-bold mb-2 rounded-lg",
-            isLight ? "text-gray-900" : "text-gray-100"
-          )}>
-            {t.adminSecurity.title}
+          <h1 className={styles.heroTitle}>
+            <span>{t.adminUi.securityCenter}</span>
+            <Shield className={styles.heroIcon} aria-hidden />
           </h1>
-          <p className={cn(
-            "text-sm rounded-lg",
-            isLight ? "text-gray-600" : "text-gray-400"
-          )}>
-            {t.adminSecurity.description}
-          </p>
+          <p className={styles.heroSubtitle}>{t.adminUi.securityOverview}</p>
         </div>
-        <button
-          onClick={handleRefresh}
-          className={cn(
-            "px-4 py-2 border flex items-center gap-2 transition-colors rounded-lg",
-            isLight
-              ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-              : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-          )}
-        >
-          <RefreshCw className={cn("w-4 h-4", loading ? "animate-spin" : "")} />
-          {t.adminSecurity.refresh}
-        </button>
-      </div>
-
-      {/* Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 rounded-lg">
-        <div
-          className={cn(
-            "border p-4 cursor-pointer transition-colors rounded-lg",
-            activeTab === 'stats'
-              ? isLight
-                ? "bg-blue-500 border-blue-600"
-                : "bg-blue-600 border-blue-500"
-              : isLight
-              ? "bg-white border-gray-300 hover:bg-gray-50"
-              : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-          )}
-          onClick={() => setActiveTab('stats')}
-        >
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-lg",
-              activeTab === 'stats'
-                ? "bg-white/20"
-                : isLight
-                ? "bg-blue-500"
-                : "bg-blue-600"
-            )}>
-              <BarChart2 className={cn(
-                "w-6 h-6",
-                activeTab === 'stats' ? "text-white" : "text-white"
-              )} />
-            </div>
-            <div>
-              <h3 className={cn(
-                "font-bold rounded-lg",
-                activeTab === 'stats' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {t.adminSecurity.accessStats}
-              </h3>
-              <p className={cn(
-                "text-xs rounded-lg",
-                activeTab === 'stats' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {realtimeStats?.total || 0} {t.adminSecurity.requests}
-              </p>
-            </div>
-          </div>
+        <div className={styles.heroActions}>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className={cn(styles.btn, styles.btnPink)}
+          >
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            {t.common.refresh}
+          </button>
         </div>
+      </header>
 
-        <div
-          className={cn(
-            "border p-4 cursor-pointer transition-colors rounded-lg",
-            activeTab === 'risk'
-              ? isLight
-                ? "bg-indigo-500 border-indigo-600"
-                : "bg-indigo-600 border-indigo-500"
-              : isLight
-              ? "bg-white border-gray-300 hover:bg-gray-50"
-              : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-          )}
-          onClick={() => setActiveTab('risk')}
-        >
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-lg",
-              activeTab === 'risk'
-                ? "bg-white/20"
-                : isLight
-                ? "bg-indigo-500"
-                : "bg-indigo-600"
-            )}>
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className={cn(
-                "font-bold rounded-lg",
-                activeTab === 'risk' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {t.adminSecurity.riskControl}
-              </h3>
-              <p className={cn(
-                "text-xs rounded-lg",
-                activeTab === 'risk' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {riskConfig?.guardEnabled || riskConfig?.whitelistOnlyEnabled
-                  ? t.adminSecurity.enabled
-                  : t.adminSecurity.disabled}
-              </p>
-            </div>
-          </div>
+      <section className="admin-security-overview" aria-label={t.adminUi.securityOverview}>
+        <h2>{t.adminUi.securityOverview}</h2>
+        <div>
+          <article className="is-safe"><Shield aria-hidden /><span>{t.adminUi.riskLevel}</span><strong>{t.adminUi.low}</strong></article>
+          <article className="is-pink"><Ban aria-hidden /><span>{t.adminSecurity.bannedIPs}</span><strong>{bannedIPs.length}</strong></article>
+          <article className="is-amber"><KeyRound aria-hidden /><span>{t.adminUi.failedAuthsToday}</span><strong>{rateLimits.length}</strong></article>
+          <article className="is-lavender"><Eye aria-hidden /><span>{t.adminUi.suspicious24h}</span><strong>{stats?.uniqueIPCount || 0}</strong></article>
         </div>
+      </section>
 
-        <div
-          className={cn(
-            "border p-4 cursor-pointer transition-colors rounded-lg",
-            activeTab === 'banned'
-              ? isLight
-                ? "bg-red-500 border-red-600"
-                : "bg-red-600 border-red-500"
-              : isLight
-              ? "bg-white border-gray-300 hover:bg-gray-50"
-              : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-          )}
-          onClick={() => setActiveTab('banned')}
-        >
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-lg",
-              activeTab === 'banned'
-                ? "bg-white/20"
-                : isLight
-                ? "bg-red-500"
-                : "bg-red-600"
-            )}>
-              <Ban className={cn(
-                "w-6 h-6",
-                activeTab === 'banned' ? "text-white" : "text-white"
-              )} />
-            </div>
-            <div>
-              <h3 className={cn(
-                "font-bold rounded-lg",
-                activeTab === 'banned' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {t.adminSecurity.bannedIPs}
-              </h3>
-              <p className={cn(
-                "text-xs rounded-lg",
-                activeTab === 'banned' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {bannedIPs.length} {t.adminSecurity.blocked}
-              </p>
-            </div>
-          </div>
-        </div>
+      <nav className={styles.tabs} aria-label={t.adminNav.security}>
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(styles.tab, active && styles.tabActive)}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+              <span className={cn(styles.pill, active ? styles.pillPink : styles.pillLavender)}>
+                {tab.meta}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
 
-        <div
-          className={cn(
-            "border p-4 cursor-pointer transition-colors rounded-lg",
-            activeTab === 'limits'
-              ? isLight
-                ? "bg-yellow-500 border-yellow-600"
-                : "bg-yellow-600 border-yellow-500"
-              : isLight
-              ? "bg-white border-gray-300 hover:bg-gray-50"
-              : "bg-gray-800 border-gray-600 hover:bg-gray-700"
-          )}
-          onClick={() => setActiveTab('limits')}
-        >
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "w-12 h-12 flex items-center justify-center rounded-lg",
-              activeTab === 'limits'
-                ? "bg-white/20"
-                : isLight
-                ? "bg-yellow-500"
-                : "bg-yellow-600"
-            )}>
-              <Activity className={cn(
-                "w-6 h-6",
-                activeTab === 'limits' ? "text-white" : "text-white"
-              )} />
-            </div>
-            <div>
-              <h3 className={cn(
-                "font-bold rounded-lg",
-                activeTab === 'limits' ? "text-white" : isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {t.adminSecurity.rateLimits}
-              </h3>
-              <p className={cn(
-                "text-xs rounded-lg",
-                activeTab === 'limits' ? "text-white/80" : isLight ? "text-gray-600" : "text-gray-400"
-              )}>
-                {rateLimits.length} {t.adminSecurity.activeLimits}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content Area */}
       <div className="min-h-[400px]">
         {loading ? (
-          <div className={cn(
-            "border p-6 flex items-center justify-center rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className={cn(
-              "w-8 h-8 border-2 border-t-transparent animate-spin",
-              isLight ? "border-blue-500" : "border-blue-600"
-            )}></div>
+          <div className={cn(styles.panel, "flex items-center justify-center h-48")}>
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent animate-spin rounded-full" />
           </div>
         ) : (
           <>
-            {activeTab === 'stats' && (
-              <div className="space-y-6 rounded-lg">
-                {/* Realtime Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
-                  <div
-                    role="button"
-                    tabIndex={0}
+            {activeTab === "stats" && (
+              <div className={styles.page} style={{ gap: 16 }}>
+                <section className={styles.metrics} aria-label={t.adminSecurity.statsOverview}>
+                  <button
+                    type="button"
                     onClick={() => handleTopIPCardClick("lastHour")}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        handleTopIPCardClick("lastHour");
-                      }
-                    }}
                     className={cn(
-                      "border p-6 rounded-lg transition cursor-pointer",
-                      isLight
-                        ? "bg-white border-gray-300 hover:border-blue-400"
-                        : "bg-gray-800 border-gray-600 hover:border-blue-400/60",
-                      topIPRange === "lastHour" ? "ring-2 ring-blue-500" : ""
+                      styles.statCard,
+                      styles.toneLavender,
+                      "text-left w-full cursor-pointer",
+                      topIPRange === "lastHour" && "ring-2 ring-primary"
                     )}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <p className={cn(
-                        "text-sm rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        {t.adminSecurity.lastHour}
-                      </p>
-                      <Clock className={cn(
-                        "w-4 h-4",
-                        isLight ? "text-blue-500" : "text-blue-400"
-                      )} />
-                    </div>
-                    <div className={cn(
-                      "text-3xl font-bold rounded-lg",
-                      isLight ? "text-gray-900" : "text-gray-100"
-                    )}>
-                      {realtimeStats?.lastHour || 0}
-                    </div>
-                  </div>
-                  <div
-                    role="button"
-                    tabIndex={0}
+                    <p className={styles.statLabel}>{t.adminSecurity.lastHour}</p>
+                    <p className={styles.statValue}>{realtimeStats?.lastHour || 0}</p>
+                    <Clock className={styles.statIcon} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleTopIPCardClick("last24Hours")}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        handleTopIPCardClick("last24Hours");
-                      }
-                    }}
                     className={cn(
-                      "border p-6 rounded-lg transition cursor-pointer",
-                      isLight
-                        ? "bg-white border-gray-300 hover:border-green-400"
-                        : "bg-gray-800 border-gray-600 hover:border-green-400/60",
-                      topIPRange === "last24Hours" ? "ring-2 ring-green-500" : ""
+                      styles.statCard,
+                      styles.toneMint,
+                      "text-left w-full cursor-pointer",
+                      topIPRange === "last24Hours" && "ring-2 ring-primary"
                     )}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <p className={cn(
-                        "text-sm rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        {t.adminSecurity.last24Hours}
-                      </p>
-                      <Activity className={cn(
-                        "w-4 h-4",
-                        isLight ? "text-green-500" : "text-green-400"
-                      )} />
-                    </div>
-                    <div className={cn(
-                      "text-3xl font-bold rounded-lg",
-                      isLight ? "text-gray-900" : "text-gray-100"
-                    )}>
-                      {realtimeStats?.last24Hours || 0}
-                    </div>
-                  </div>
-                  <div
-                    role="button"
-                    tabIndex={0}
+                    <p className={styles.statLabel}>{t.adminSecurity.last24Hours}</p>
+                    <p className={styles.statValue}>{realtimeStats?.last24Hours || 0}</p>
+                    <Activity className={styles.statIcon} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleTopIPCardClick("default")}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        handleTopIPCardClick("default");
-                      }
-                    }}
                     className={cn(
-                      "border p-6 rounded-lg transition cursor-pointer",
-                      isLight ? "bg-white border-gray-300 hover:border-purple-400" : "bg-gray-800 border-gray-600 hover:border-purple-400/60",
-                      topIPRange === "default" ? "ring-2 ring-purple-500" : ""
+                      styles.statCard,
+                      styles.tonePink,
+                      "text-left w-full cursor-pointer",
+                      topIPRange === "default" && "ring-2 ring-primary"
                     )}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <p className={cn(
-                        "text-sm rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        {t.adminSecurity.totalAccess}
-                      </p>
-                      <Globe className={cn(
-                        "w-4 h-4",
-                        isLight ? "text-purple-500" : "text-purple-400"
-                      )} />
-                    </div>
-                    <div className={cn(
-                      "text-3xl font-bold rounded-lg",
-                      isLight ? "text-gray-900" : "text-gray-100"
-                    )}>
-                      {realtimeStats?.total || 0}
-                    </div>
-                  </div>
-                </div>
+                    <p className={styles.statLabel}>{t.adminSecurity.totalAccess}</p>
+                    <p className={styles.statValue}>{realtimeStats?.total || 0}</p>
+                    <Globe className={styles.statIcon} aria-hidden />
+                  </button>
+                </section>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Top Paths */}
-                  <div className={cn(
-                    "border p-6 rounded-lg",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                  )}>
-                    <h3 className={cn(
-                      "font-bold mb-4 flex items-center gap-2 rounded-lg",
-                      isLight ? "text-gray-900" : "text-gray-100"
-                    )}>
-                      <BarChart2 className={cn(
-                        "w-4 h-4",
-                        isLight ? "text-blue-500" : "text-blue-400"
-                      )} />
+                <section className={styles.split}>
+                  <article className={styles.panel}>
+                    <h2 className={cn(styles.panelTitle, "flex items-center gap-2")}>
+                      <BarChart2 className="w-4 h-4 text-primary" />
                       {t.adminSecurity.topPaths}
-                    </h3>
-                    <div className="space-y-2 rounded-lg">
+                    </h2>
+                    <div className="relative z-[1] space-y-2">
                       {stats?.pathStats && stats.pathStats.length > 0 ? (
                         stats.pathStats.slice(0, 8).map((item, i) => (
                           <div
-                            key={i}
-                            className={cn(
-                              "flex items-center justify-between text-sm p-2 border rounded-lg",
-                              isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
-                            )}
+                            key={`${item.path}-${i}`}
+                            className={cn(styles.miniCard, "flex items-center justify-between gap-3")}
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <span className={cn(
-                                "w-4 rounded-lg",
-                                isLight ? "text-gray-600" : "text-gray-400"
-                              )}>
-                                {i + 1}
-                              </span>
-                              <span className={cn(
-                                "font-mono truncate px-2 py-0.5 text-xs border rounded-lg",
-                                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                              )}>
+                              <span className="text-muted-foreground font-bold w-4">{i + 1}</span>
+                              <span className={cn(styles.mono, "truncate")} title={item.path}>
                                 {item.path}
                               </span>
                             </div>
-                            <span className={cn(
-                              "font-medium rounded-lg",
-                              isLight ? "text-gray-900" : "text-gray-100"
-                            )}>
-                              {item.count}
-                            </span>
+                            <span className="font-extrabold shrink-0">{item.count}</span>
                           </div>
                         ))
                       ) : (
-                        <div className={cn(
-                          "text-center py-8 text-sm rounded-lg",
-                          isLight ? "text-gray-500" : "text-gray-400"
-                        )}>
+                        <div className="text-center py-8 text-sm text-muted-foreground">
                           {t.adminSecurity.noAccessData}
                         </div>
                       )}
                     </div>
-                  </div>
+                  </article>
 
-                  {/* Top IPs */}
-                  <div className={cn(
-                    "border p-6 rounded-lg",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                  )}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <h3 className={cn(
-                        "font-bold flex items-center gap-2 rounded-lg",
-                        isLight ? "text-gray-900" : "text-gray-100"
-                      )}>
-                        <Shield className={cn(
-                          "w-4 h-4",
-                          isLight ? "text-blue-500" : "text-blue-400"
-                        )} />
+                  <article className={styles.panel}>
+                    <div className="relative z-[1] flex items-center gap-3 mb-4 flex-wrap">
+                      <h2 className={cn(styles.panelTitle, "flex items-center gap-2 m-0")}>
+                        <Shield className="w-4 h-4 text-primary" />
                         {t.adminSecurity.topIPs}
-                      </h3>
-                      <span className={cn(
-                        "text-xs px-2 py-1 rounded-full border",
-                        isLight ? "text-blue-700 bg-blue-50 border-blue-200" : "text-blue-100 bg-blue-900/40 border-blue-700"
-                      )}>
-                        {topIPRangeLabel}
-                      </span>
+                      </h2>
+                      <span className={cn(styles.pill, styles.pillLavender)}>{topIPRangeLabel}</span>
                       {topIPLoading && (
-                        <RefreshCw className={cn(
-                          "w-4 h-4 animate-spin",
-                          isLight ? "text-blue-500" : "text-blue-400"
-                        )} />
+                        <RefreshCw className="w-4 h-4 animate-spin text-primary" />
                       )}
                     </div>
-                    <div className="space-y-2 rounded-lg">
+                    <div className="relative z-[1] space-y-2">
                       {topIPLoading ? (
-                        <div className={cn(
-                          "flex items-center gap-2 text-sm rounded-lg",
-                          isLight ? "text-gray-600" : "text-gray-400"
-                        )}>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <RefreshCw className="w-4 h-4 animate-spin" />
                           {t.adminSecurity.loading}
                         </div>
@@ -619,81 +369,108 @@ export default function SecurityManagement() {
                         topIPs.slice(0, 8).map((item, i) => (
                           <div
                             key={item.ip ?? i}
-                            className={cn(
-                              "flex items-center justify-between text-sm p-2 border rounded-lg",
-                              isLight ? "bg-gray-50 border-gray-200" : "bg-gray-700 border-gray-600"
-                            )}
+                            className={cn(styles.miniCard, "flex items-center justify-between gap-3")}
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <span className={cn(
-                                "w-4 flex-shrink-0 rounded-lg",
-                                isLight ? "text-gray-600" : "text-gray-400"
-                              )}>
-                                {i + 1}
-                              </span>
-                              <span className={cn(
-                                "font-mono px-2 py-0.5 text-xs border rounded-lg flex-shrink-0",
-                                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-                              )}>
-                                {item.ip}
-                              </span>
+                              <span className="text-muted-foreground font-bold w-4 shrink-0">{i + 1}</span>
+                              <span className={cn(styles.mono, "shrink-0")}>{item.ip}</span>
                               <IPLocationBadge ip={item.ip} compact />
                             </div>
-                            <span className={cn(
-                              "font-medium rounded-lg flex-shrink-0 ml-2",
-                              isLight ? "text-gray-900" : "text-gray-100"
-                            )}>
-                              {item.count}
-                            </span>
+                            <span className="font-extrabold shrink-0 ml-2">{item.count}</span>
                           </div>
                         ))
                       ) : (
-                        <div className={cn(
-                          "text-center py-8 text-sm rounded-lg",
-                          isLight ? "text-gray-500" : "text-gray-400"
-                        )}>
+                        <div className="text-center py-8 text-sm text-muted-foreground">
                           {t.adminSecurity.noAccessData}
                         </div>
                       )}
                     </div>
-                  </div>
+                  </article>
+                </section>
+              </div>
+            )}
+
+            {activeTab === "risk" && (
+              <section className={styles.panel}>
+                <div className="relative z-[1]">
+                  <RiskControlManagement
+                    config={riskConfig}
+                    whitelist={whitelist}
+                    onRefresh={handleRefresh}
+                  />
                 </div>
-              </div>
+              </section>
             )}
 
-            {activeTab === 'risk' && (
-              <div className={cn(
-                "border p-6 rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-              )}>
-                <RiskControlManagement
-                  config={riskConfig}
-                  whitelist={whitelist}
-                  onRefresh={handleRefresh}
-                />
-              </div>
+            {activeTab === "banned" && (
+              <section className={styles.panel}>
+                <div className="relative z-[1]">
+                  <BannedIPManagement bannedIPs={bannedIPs} onRefresh={handleRefresh} />
+                </div>
+              </section>
             )}
 
-            {activeTab === 'banned' && (
-              <div className={cn(
-                "border p-6 rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-              )}>
-                <BannedIPManagement bannedIPs={bannedIPs} onRefresh={handleRefresh} />
-              </div>
+            {activeTab === "limits" && (
+              <section className="admin-security-rate-reference">
+                <h2>{t.adminUi.rateLimitRules}</h2>
+                <div className="admin-security-rate-table">
+                  <table>
+                    <thead><tr><th>{t.adminUi.rule}</th><th>{t.adminUi.limit}</th><th>{t.adminStatus.status}</th><th>{t.adminConfig.actions}</th></tr></thead>
+                    <tbody>
+                      {[
+                        [t.adminUi.apiRequests, '/api/random', '60 / min'],
+                        [t.adminUi.uploadImages, '/api/upload', '30 / min'],
+                        [t.adminUi.authAttempts, '/api/auth/login', '10 / min'],
+                        [t.adminUi.groupOperations, '/api/groups/*', '20 / min'],
+                      ].map(([name, path, limit]) => (
+                        <tr key={path}>
+                          <td><strong>{name}</strong><small>{path}</small></td>
+                          <td><code>{limit}</code></td>
+                          <td><span className="admin-security-switch"><i /> {t.adminSecurity.enabled}</span></td>
+                          <td>
+                            <button type="button" onClick={() => setShowRateSettings(true)}>{t.common.edit}</button>
+                            <button type="button" className="admin-security-delete-action" aria-label={t.adminUi.manageRateLimitDeletion} onClick={() => setShowRateSettings(true)}><Trash2 aria-hidden /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p><Activity aria-hidden /> {t.adminUi.rateLimitHint}</p>
+              </section>
             )}
 
-            {activeTab === 'limits' && (
-              <div className={cn(
-                "border p-6 rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-              )}>
-                <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
-              </div>
+            {activeTab === "locations" && (
+              <section className={styles.panel}>
+                <h2 className={cn(styles.panelTitle, "flex items-center gap-2")}>
+                  <Globe className="w-4 h-4 text-primary" />
+                  {t.adminUi.locations}
+                </h2>
+                <div className="relative z-[1] space-y-2">
+                  {topIPs.length > 0 ? topIPs.map((item) => (
+                    <div key={item.ip} className={cn(styles.miniCard, "flex items-center justify-between gap-3")}>
+                      <span className={cn(styles.mono, "shrink-0")}>{item.ip}</span>
+                      <IPLocationBadge ip={item.ip} compact />
+                      <strong className="ml-auto shrink-0">{item.count}</strong>
+                    </div>
+                  )) : (
+                    <div className="py-8 text-center text-sm text-muted-foreground">{t.adminUi.noIpLocationData}</div>
+                  )}
+                </div>
+              </section>
             )}
           </>
         )}
       </div>
+
+      {showRateSettings ? (
+        <div className="admin-security-rate-dialog" role="dialog" aria-modal="true">
+          <div>
+            <button type="button" aria-label={t.adminUi.closeRateSettings} onClick={() => setShowRateSettings(false)}><X aria-hidden /></button>
+            <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -12,12 +12,16 @@ import {
   RefreshCw,
   Trash2,
   Image as ImageIcon,
+  ChevronRight,
+  Heart,
+  LoaderCircle,
+  SlidersHorizontal,
 } from "lucide-react";
 import type {
   ImageUrlImportRequest,
   ImageUrlImportResponse,
 } from "@/types/api";
-import { useAdminApi } from "@/lib/admin-api-client";
+import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
 
 interface Group {
   id: string;
@@ -52,6 +56,7 @@ interface FileUploadState {
   error?: string;
   uploadedImage?: Image;
   retryCount: number;
+  previewUrl?: string;
 }
 
 interface UploadQueueItem {
@@ -108,8 +113,54 @@ export default function ImageUpload({
   const [lastImportResult, setLastImportResult] =
     useState<ImageUrlImportResponse | null>(null);
   const customFileInputRef = useRef<HTMLInputElement | null>(null);
+  const previewUrlsRef = useRef<Set<string>>(new Set());
   const pendingFilesCount = fileStates.filter((fs) => fs.status === "pending").length;
   const failedFilesCount = fileStates.filter((fs) => fs.status === "failed").length;
+
+  const createFileState = (file: File): FileUploadState => {
+    const previewUrl = typeof URL.createObjectURL === "function"
+      ? URL.createObjectURL(file)
+      : undefined;
+
+    if (previewUrl) {
+      previewUrlsRef.current.add(previewUrl);
+    }
+
+    return {
+      file,
+      status: "pending",
+      retryCount: 0,
+      previewUrl,
+    };
+  };
+
+  const releasePreview = (previewUrl?: string) => {
+    if (!previewUrl || !previewUrlsRef.current.delete(previewUrl)) return;
+    URL.revokeObjectURL(previewUrl);
+  };
+
+  const getQueueProgress = (fileState: FileUploadState) => {
+    if (fileState.status === "success") return 100;
+    if (fileState.status === "uploading") return Math.max(8, uploadProgress);
+    return 0;
+  };
+
+  const getQueueStatusLabel = (fileState: FileUploadState) => {
+    if (fileState.status === "success") return t.adminUi.uploadSucceeded;
+    if (fileState.status === "failed") return t.adminUi.uploadFailed;
+    if (fileState.status === "uploading") return t.adminUi.uploadingStatus;
+    return t.adminUi.uploadPending;
+  };
+
+  const getFileTypeLabel = (file: File) => {
+    const extension = file.name.split(".").pop();
+    return extension ? extension.toUpperCase() : file.type.replace("image/", "").toUpperCase();
+  };
+
+  useEffect(() => () => {
+    previewUrlsRef.current.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+    previewUrlsRef.current.clear();
+  }, []);
 
   useEffect(() => {
     setManualTargetNodeId((current) => (
@@ -194,7 +245,7 @@ export default function ImageUpload({
         // 标准的方�?
         e.preventDefault();
         // Chrome 需�?returnValue
-        e.returnValue = "图片正在上传中，确定要离开吗？上传将被中断";
+        e.returnValue = t.adminUi.uploadInProgressLeaveWarning;
         return e.returnValue;
       }
     };
@@ -206,7 +257,7 @@ export default function ImageUpload({
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [uploading, fileStates]);
+  }, [uploading, fileStates, t.adminUi.uploadInProgressLeaveWarning]);
 
   // 拦截浏览器后退/前进按钮（popstate 事件�?
   useEffect(() => {
@@ -217,7 +268,7 @@ export default function ImageUpload({
       if (isUploading) {
         // 弹出确认对话�?
         const confirmLeave = window.confirm(
-          "图片正在上传中，确定要离开吗？上传将被中断"
+          t.adminUi.uploadInProgressLeaveWarning
         );
 
         if (!confirmLeave) {
@@ -244,7 +295,7 @@ export default function ImageUpload({
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [uploading, fileStates]);
+  }, [uploading, fileStates, t.adminUi.uploadInProgressLeaveWarning]);
 
   // 拦截页面内的所有链接点击和鼠标侧键
   useEffect(() => {
@@ -258,7 +309,7 @@ export default function ImageUpload({
       // button 3 = 后退, button 4 = 前进
       if (e.button === 3 || e.button === 4) {
         const confirmLeave = window.confirm(
-          "图片正在上传中，确定要离开吗？上传将被中断"
+          t.adminUi.uploadInProgressLeaveWarning
         );
 
         if (!confirmLeave) {
@@ -283,7 +334,7 @@ export default function ImageUpload({
         // 检查是否是跳转到其他页面（不是当前页面的锚点）
         if (linkUrl.pathname !== window.location.pathname) {
           const confirmLeave = window.confirm(
-            "图片正在上传中，确定要离开吗？上传将被中断"
+            t.adminUi.uploadInProgressLeaveWarning
           );
 
           if (!confirmLeave) {
@@ -303,7 +354,7 @@ export default function ImageUpload({
       document.removeEventListener("mousedown", handleMouseClick, true);
       document.removeEventListener("click", handleMouseClick, true);
     };
-  }, [uploading, fileStates]);
+  }, [uploading, fileStates, t.adminUi.uploadInProgressLeaveWarning]);
 
   // 在页面显示上传状态提示
   useEffect(() => {
@@ -332,11 +383,7 @@ export default function ImageUpload({
       file.type.startsWith("image/")
     );
 
-    const newFileStates: FileUploadState[] = files.map((file) => ({
-      file,
-      status: "pending" as FileStatus,
-      retryCount: 0,
-    }));
+    const newFileStates = files.map(createFileState);
 
     setFileStates((prev) => [...prev, ...newFileStates]);
   };
@@ -368,11 +415,7 @@ export default function ImageUpload({
         file.type.startsWith("image/")
       );
 
-      const newFileStates: FileUploadState[] = files.map((file) => ({
-        file,
-        status: "pending" as FileStatus,
-        retryCount: 0,
-      }));
+      const newFileStates = files.map(createFileState);
 
       setFileStates((prev) => [...prev, ...newFileStates]);
     }
@@ -384,11 +427,10 @@ export default function ImageUpload({
   const removeFile = (index: number) => {
     // 上传批次进行中禁止移除：并发 worker 按批次开始时捕获的下标更新状态，
     // 此时移除任意一行都会让后续进度/结果贴到错误的文件上
-    setFileStates((prev) => {
-      const batchActive = prev.some((fs) => fs.status === "uploading");
-      if (batchActive) return prev;
-      return prev.filter((_, i) => i !== index);
-    });
+    if (fileStates.some((fs) => fs.status === "uploading")) return;
+
+    releasePreview(fileStates[index]?.previewUrl);
+    setFileStates((prev) => prev.filter((_, i) => i !== index));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -511,11 +553,15 @@ export default function ImageUpload({
             return uploadSingleFile(fileState, fileIndex, retryCount + 1);
           } else {
             // 获取错误详情
-            let errorMessage = `上传 ${file.name} 失败 (状态码: ${response.status})`;
+            let errorMessage = t.adminImages.uploadFileFailedWithStatus
+              .replace('{name}', file.name)
+              .replace('{status}', String(response.status));
             try {
               const errorData = await response.json();
               if (errorData.error?.message) {
-                errorMessage = `上传 ${file.name} 失败: ${errorData.error.message}`;
+                errorMessage = t.adminImages.uploadFileFailed
+                  .replace('{name}', file.name)
+                  .replace('{message}', errorData.error.message);
               }
             } catch {
               // 忽略解析错误响应的错误
@@ -544,9 +590,9 @@ export default function ImageUpload({
           await delay(retryDelay);
           return uploadSingleFile(fileState, fileIndex, retryCount + 1);
         } else {
-          const errorMessage = `上传 ${file.name} 失败: ${
-            error instanceof Error ? error.message : "网络错误"
-          }`;
+          const errorMessage = t.adminImages.uploadFileFailed
+            .replace('{name}', file.name)
+            .replace('{message}', error instanceof Error ? error.message : t.adminLogin.networkError);
 
           // 更新文件状态为失败
           updateFileState(fileIndex, {
@@ -577,7 +623,7 @@ export default function ImageUpload({
         } catch (error) {
           // 即使单个文件失败，也继续处理其他文件
           console.error(`文件 ${fileState.file.name} 上传失败:`, error);
-          errors.push(error instanceof Error ? error.message : "上传失败");
+          errors.push(error instanceof Error ? error.message : t.adminUi.uploadFailed);
         } finally {
           completedCount++;
           setUploadProgress((completedCount / uploadItems.length) * 100);
@@ -592,7 +638,9 @@ export default function ImageUpload({
     if (errors.length > 0 && successfulResults.length > 0) {
       console.warn("部分文件上传失败:", errors);
     } else if (errors.length > 0) {
-      throw new Error(`所有文件上传失败: ${errors.join(", ")}`);
+      throw new Error(
+        t.adminImages.allFilesUploadFailed.replace('{errors}', errors.join(', '))
+      );
     }
 
     return successfulResults;
@@ -615,8 +663,8 @@ export default function ImageUpload({
       success(t.adminImages.retrySuccess, t.adminImages.retrySuccessMessage.replace('{name}', fileState.file.name), 3000);
     } catch (error) {
       showError(
-        "重试失败",
-        error instanceof Error ? error.message : "未知错误",
+        t.adminUi.retryFailed,
+        error instanceof Error ? error.message : t.adminUi.unknownError,
         4000
       );
     }
@@ -656,8 +704,10 @@ export default function ImageUpload({
 
       if (retryFailCount > 0) {
         showError(
-          "部分重试失败",
-          `成功: ${retrySuccessCount} 张，失败: ${retryFailCount} 张`,
+          t.adminUi.partialRetryFailed,
+          t.adminUi.retrySummary
+            .replace('{success}', String(retrySuccessCount))
+            .replace('{failed}', String(retryFailCount)),
           6000
         );
       } else {
@@ -669,10 +719,12 @@ export default function ImageUpload({
       const retryFailCount = Math.max(failedItems.length - retrySuccessCount, 0);
 
       showError(
-        "重试失败",
+        t.adminUi.retryFailed,
         retrySuccessCount > 0
-          ? `成功: ${retrySuccessCount} 张，失败: ${retryFailCount} 张`
-          : error instanceof Error ? error.message : "未知错误",
+          ? t.adminUi.retrySummary
+            .replace('{success}', String(retrySuccessCount))
+            .replace('{failed}', String(retryFailCount))
+          : error instanceof Error ? error.message : t.adminUi.unknownError,
         6000
       );
     } finally {
@@ -684,11 +736,15 @@ export default function ImageUpload({
 
   // 清除所有成功的文件
   const clearSuccessful = () => {
+    fileStates
+      .filter((fileState) => fileState.status === "success")
+      .forEach((fileState) => releasePreview(fileState.previewUrl));
     setFileStates((prev) => prev.filter((fs) => fs.status !== "success"));
   };
 
   // 清除所有文件
   const clearAll = () => {
+    fileStates.forEach((fileState) => releasePreview(fileState.previewUrl));
     setFileStates([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -834,8 +890,8 @@ export default function ImageUpload({
         );
       } else {
         showError(
-          "上传失败",
-          error instanceof Error ? error.message : "未知错误",
+          t.adminImages.uploadPartialFailed,
+          error instanceof Error ? error.message : t.adminUi.unknownError,
           6000
         );
       }
@@ -848,11 +904,13 @@ export default function ImageUpload({
 
   // --- V3 Layout (Flat Design) ---
   return (
-      <div className="space-y-4 rounded-lg">
+      <div className="admin-upload-root">
+        <div className="admin-upload-workspace">
         {/* Drag & Drop Zone */}
         <div
           className={cn(
-            "border-2 border-dashed p-4 text-center transition-colors rounded-lg",
+            "admin-upload-dropzone border-2 border-dashed p-4 text-center transition-colors rounded-lg",
+            selectedProvider === "custom" ? "is-url-import" : "is-file-upload",
             dragActive
               ? isLight
                 ? "border-blue-500 bg-blue-50"
@@ -996,8 +1054,8 @@ export default function ImageUpload({
                     isLight ? "text-gray-600" : "text-gray-300"
                   )}>
                     {importMode === "txt"
-                      ? "https://example.com/image1.jpg\nhttps://example.com/image2.jpg"
-                      : '[\n  { "url": "https://example.com/image1.jpg", "title": "封面", "width": 1920, "height": 1080 },\n  { "url": "https://example.com/image2.jpg" }\n]'}
+                      ? t.adminImages.urlImportTxtExampleContent
+                      : t.adminImages.urlImportJsonExampleContent}
                   </pre>
                 </div>
                 {lastImportResult && (
@@ -1049,13 +1107,13 @@ export default function ImageUpload({
                     "text-sm font-medium mb-1 rounded-lg",
                     isLight ? "text-gray-900" : "text-gray-100"
                   )}>
-                    {t.adminImages.dragDropHint}
+                    {t.adminUi.dropImagesHere}
                   </p>
                   <p className={cn(
                     "text-xs rounded-lg",
                     isLight ? "text-gray-500" : "text-gray-400"
                   )}>
-                    {t.adminImages.supportedFormats}
+                    {t.adminUi.dragOrChoose}
                   </p>
                 </div>
                 <button
@@ -1068,25 +1126,45 @@ export default function ImageUpload({
                       : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
                   )}
                 >
-                  {t.adminImages.selectFiles}
+                  <span>{t.adminUi.chooseFiles}</span>
+                  <Heart aria-hidden="true" />
                 </button>
+                <div className="admin-upload-format-chips" aria-label={t.adminUi.supportedFormats}>
+                  <span>PNG ❀</span>
+                  <span>JPG ❀</span>
+                  <span>WebP ❀</span>
+                </div>
               </>
             )}
           </div>
         </div>
 
+        <div className="admin-upload-settings">
+        <h2 className="admin-upload-settings-title">
+          <span aria-hidden>❀</span>
+          {t.adminUi.uploadSettings}
+          <span aria-hidden>❀</span>
+        </h2>
+
         {/* Swarm Upload Strategy */}
         {nodes.length > 0 && selectedProvider !== "custom" && (
-          <div className={cn(
-            "grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-lg",
-            isLight ? "bg-gray-50 border-gray-300" : "bg-gray-800 border-gray-700"
-          )}>
+          <details className="admin-upload-advanced-options">
+            <summary>
+              <SlidersHorizontal aria-hidden="true" />
+              <span>{t.adminUi.advancedUploadOptions}</span>
+              <ChevronRight className="admin-upload-advanced-chevron" aria-hidden="true" />
+            </summary>
+            <div className="admin-upload-advanced-content">
+              <div className={cn(
+                "admin-upload-swarm grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-lg",
+                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-800 border-gray-700"
+              )}>
             <div className="space-y-2">
               <label className={cn(
                 "block text-sm font-medium rounded-lg",
                 isLight ? "text-gray-700" : "text-gray-300"
               )}>
-                蜂群上传策略
+                {t.adminUi.uploadStrategy}
               </label>
               <select
                 value={uploadStrategy}
@@ -1099,10 +1177,10 @@ export default function ImageUpload({
                     : "bg-gray-900 border-gray-600"
                 )}
               >
-                <option value="manual">手动选择目标节点</option>
-                <option value="round-robin">轮询分散到可用节点</option>
-                <option value="random">随机选择可用节点</option>
-                <option value="available-first">优先选择第一个可用节点</option>
+                <option value="manual">{t.adminUi.manualTargetNode}</option>
+                <option value="round-robin">{t.adminUi.roundRobinNodes}</option>
+                <option value="random">{t.adminUi.randomAvailableNode}</option>
+                <option value="available-first">{t.adminUi.firstAvailableNode}</option>
               </select>
             </div>
 
@@ -1111,7 +1189,7 @@ export default function ImageUpload({
                 "block text-sm font-medium rounded-lg",
                 isLight ? "text-gray-700" : "text-gray-300"
               )}>
-                {uploadStrategy === "manual" ? "目标 owner 节点" : "可用节点"}
+                {uploadStrategy === "manual" ? t.adminUi.targetOwnerNode : t.adminUi.availableNodes}
               </label>
               {uploadStrategy === "manual" ? (
                 <select
@@ -1127,7 +1205,7 @@ export default function ImageUpload({
                 >
                   {nodes.map((node) => (
                     <option key={node.id} value={node.id}>
-                      {node.name}
+                      {getNodeDisplayName(node, t.adminUi.currentNode)}
                     </option>
                   ))}
                 </select>
@@ -1136,61 +1214,52 @@ export default function ImageUpload({
                   "min-h-10 px-3 py-2 border text-sm rounded-lg",
                   isLight ? "bg-white border-gray-300 text-gray-700" : "bg-gray-900 border-gray-600 text-gray-300"
                 )}>
-                  {getUploadCandidateNodes().map((node) => node.name).join("、") || "无可用节点"}
+                  {getUploadCandidateNodes().map((node) => getNodeDisplayName(node, t.adminUi.currentNode)).join("、") || t.adminUi.noAvailableNodes}
                 </div>
               )}
               <p className={cn("text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
-                目标节点会成为图片 owner，后续 Cloudinary 预览和交付会回到 owner 节点处理。
+                {t.adminUi.targetOwnerHint}
               </p>
             </div>
-          </div>
+              </div>
+            </div>
+          </details>
         )}
 
         {/* Provider Selection */}
         {providers.length > 1 && (
-          <div className="space-y-2">
+          <div className="admin-upload-provider space-y-2">
             <label className={cn(
               "block text-sm font-medium rounded-lg",
               isLight ? "text-gray-700" : "text-gray-300"
             )}>
-              {t.adminImages.storageService}
+              {t.adminUi.storageProvider} ❀
             </label>
-            <select
-              value={selectedProvider}
-              onChange={(e) => {
-                const provider = providers.find((p) => p.id === e.target.value);
-                if (provider && provider.isAvailable) {
-                  setSelectedProvider(e.target.value);
-                }
-              }}
-              className={cn(
-                "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
-                isLight
-                  ? "bg-white border-gray-300"
-                  : "bg-gray-800 border-gray-600"
-              )}
-            >
+            <div className="admin-upload-provider-options">
               {providers.map((provider) => (
-                <option
+                <button
+                  type="button"
                   key={provider.id}
-                  value={provider.id}
                   disabled={!provider.isAvailable}
+                  aria-pressed={selectedProvider === provider.id}
+                  onClick={() => setSelectedProvider(provider.id)}
                 >
-                  {provider.name} {!provider.isAvailable && "(不可用)"}
-                </option>
+                  <span aria-hidden>{selectedProvider === provider.id ? "◉" : "○"}</span>
+                  {provider.name}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         )}
 
         {/* Group and Tags */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg">
+        <div className="admin-upload-fields grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg">
           <div className="space-y-2">
             <label className={cn(
               "block text-sm font-medium rounded-lg",
               isLight ? "text-gray-700" : "text-gray-300"
             )}>
-              {t.adminImages.selectGroup} {t.adminImages.groupOptional}
+              {t.adminImages.filterByGroup} ❀
             </label>
             <select
               value={groupId}
@@ -1202,7 +1271,7 @@ export default function ImageUpload({
                   : "bg-gray-800 border-gray-600"
               )}
             >
-              <option value="">选择分组</option>
+              <option value="">{t.adminUi.defaultGroup}</option>
               {safeGroups.length > 0 ? (
                 safeGroups.map((group) => (
                   <option key={group.id} value={group.id}>
@@ -1217,13 +1286,13 @@ export default function ImageUpload({
               "block text-sm font-medium rounded-lg",
               isLight ? "text-gray-700" : "text-gray-300"
             )}>
-              {t.adminImages.tagsOptional}
+              {t.adminImages.tagsOptional} ❀
             </label>
             <input
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder={t.adminImages.tagsPlaceholder}
+              placeholder={t.adminUi.addTags}
               className={cn(
                 "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
                 isLight
@@ -1236,7 +1305,7 @@ export default function ImageUpload({
 
         {/* Upload Button */}
         {selectedProvider !== "custom" && (
-          <div className="flex justify-center">
+          <div className="admin-upload-submit flex justify-center">
             <button
               type="button"
               onClick={handleUpload}
@@ -1254,36 +1323,14 @@ export default function ImageUpload({
             >
               {uploading ? (
                 <div className="flex items-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
                   {t.adminImages.uploadCount.replace(
                     "{count}",
                     String(currentBatchTotal || pendingFilesCount)
                   )}
                 </div>
               ) : (
-                t.adminImages.uploadCount.replace(
-                  "{count}",
-                  String(pendingFilesCount)
-                )
+                <>{t.adminUi.startUpload} <span aria-hidden>❀</span></>
               )}
             </button>
           </div>
@@ -1291,31 +1338,31 @@ export default function ImageUpload({
 
         {/* Upload Progress */}
         {uploading && (
-          <div className="space-y-2 rounded-lg">
-            <div className={cn(
-              "w-full h-1.5",
-              isLight ? "bg-gray-200" : "bg-gray-700"
-            )}>
-              <div
-                className={cn(
-                  "h-full transition-all",
-                  isLight ? "bg-blue-500" : "bg-blue-600"
-                )}
-                style={{ width: `${uploadProgress}%` }}
-              />
+          <div className="admin-upload-progress">
+            <div
+              className="admin-upload-total-progress-track"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(uploadProgress)}
+              aria-label={t.adminUi.uploadingStatus}
+            >
+              <span style={{ width: `${uploadProgress}%` }} />
             </div>
-            <p className={cn(
-              "text-sm text-center rounded-lg",
-              isLight ? "text-gray-600" : "text-gray-400"
-            )}>
-              {uploadProgress.toFixed(2)}%
+            <p>
+              <span>{t.adminUi.uploadingStatus}</span>
+              <strong>{Math.round(uploadProgress)}%</strong>
             </p>
           </div>
         )}
+        </div>
+        </div>
 
-        {/* File List Actions */}
-        {fileStates.length > 0 && (
-          <div className="flex flex-wrap justify-end gap-2">
+        <section className="admin-upload-queue-panel">
+          <div className="admin-upload-queue-header">
+            <strong><span aria-hidden>❀</span> {t.adminUi.uploadQueue} ({fileStates.length})</strong>
+            {fileStates.length > 0 ? (
+            <div className="admin-upload-queue-actions flex flex-wrap justify-end gap-2">
             {failedFilesCount > 0 && (
               <button
                 type="button"
@@ -1365,122 +1412,91 @@ export default function ImageUpload({
               <Trash2 className="w-3 h-3" />
               {t.adminImages.clearAll}
             </button>
+            </div>
+            ) : null}
           </div>
-        )}
 
         {/* File List */}
-        {fileStates.length > 0 && (
-          <div className="space-y-1 max-h-96 overflow-y-auto rounded-lg">
-            {fileStates.map((fileState, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "flex items-center justify-between p-2 border rounded-lg",
-                  fileState.status === "success"
-                    ? isLight
-                      ? "bg-green-50 border-green-200"
-                      : "bg-green-900/20 border-green-800"
-                    : fileState.status === "failed"
-                    ? isLight
-                      ? "bg-red-50 border-red-200"
-                      : "bg-red-900/20 border-red-800"
-                    : fileState.status === "uploading"
-                    ? isLight
-                      ? "bg-blue-50 border-blue-200"
-                      : "bg-blue-900/20 border-blue-800"
-                    : isLight
-                    ? "bg-gray-50 border-gray-200"
-                    : "bg-gray-800 border-gray-700"
-                )}
-              >
-                <div className="flex items-center space-x-2 min-w-0 flex-1">
-                  <div className={cn(
-                    "w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-lg",
-                    isLight ? "bg-gray-200" : "bg-gray-700"
-                  )}>
-                    <ImageIcon className={cn(
-                      "w-4 h-4",
-                      isLight ? "text-gray-500" : "text-gray-400"
-                    )} />
+        {fileStates.length > 0 ? (
+          <div className="admin-upload-queue space-y-1 max-h-96 overflow-y-auto rounded-lg">
+            {fileStates.map((fileState, index) => {
+              const queueProgress = getQueueProgress(fileState);
+
+              return (
+                <article
+                  key={`${fileState.file.name}-${fileState.file.lastModified}-${index}`}
+                  className={cn("admin-upload-queue-item", `is-${fileState.status}`)}
+                >
+                  <div className="admin-upload-queue-thumbnail" aria-hidden="true">
+                    {fileState.previewUrl ? (
+                      // Object URLs are generated from the user's local files, so Next/Image cannot optimize them.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={fileState.previewUrl} alt="" />
+                    ) : (
+                      <ImageIcon />
+                    )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className={cn(
-                        "text-sm truncate rounded-lg",
-                        isLight ? "text-gray-900" : "text-gray-100"
-                      )}>
-                        {fileState.file.name}
-                      </p>
-                      {fileState.status === "success" && (
-                        <span className={cn(
-                          "text-xs px-2 py-0.5 border rounded-lg",
-                          isLight
-                            ? "bg-green-50 border-green-200 text-green-700"
-                            : "bg-green-900/20 border-green-800 text-green-400"
-                        )}>
-                          Success
-                        </span>
-                      )}
-                      {fileState.status === "failed" && (
-                        <span className={cn(
-                          "text-xs px-2 py-0.5 border rounded-lg",
-                          isLight
-                            ? "bg-red-50 border-red-200 text-red-700"
-                            : "bg-red-900/20 border-red-800 text-red-400"
-                        )}>
-                          Failed
-                        </span>
-                      )}
+                  <div className="admin-upload-queue-body">
+                    <div className="admin-upload-queue-file-row">
+                      <p title={fileState.file.name}>{fileState.file.name}</p>
+                      <div className="admin-upload-queue-item-actions">
+                        {fileState.status === "failed" && (
+                          <button
+                            type="button"
+                            onClick={() => retryFile(index)}
+                            disabled={uploading}
+                            className="admin-upload-queue-retry"
+                            title={t.adminImages.retry}
+                            aria-label={t.adminImages.retry}
+                          >
+                            <RefreshCw className={cn(uploading && "animate-spin")} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeFile(index)}
+                          disabled={fileState.status === "uploading"}
+                          className="admin-upload-queue-remove"
+                          title={t.adminImages.remove}
+                          aria-label={t.adminImages.remove}
+                        >
+                          <X />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="admin-upload-queue-meta">
+                      {formatFileSize(fileState.file.size)} <span aria-hidden="true">·</span> {getFileTypeLabel(fileState.file)}
+                    </p>
+                    <div
+                      className="admin-upload-queue-progress-track"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(queueProgress)}
+                      aria-label={`${fileState.file.name} ${getQueueStatusLabel(fileState)}`}
+                    >
+                      <span style={{ width: `${queueProgress}%` }} />
+                    </div>
+                    <div className="admin-upload-queue-status-row">
+                      <span>{getQueueStatusLabel(fileState)}</span>
+                      <strong>{Math.round(queueProgress)}%</strong>
                     </div>
                     {fileState.error && (
-                      <p className={cn(
-                        "text-xs truncate rounded-lg",
-                        isLight ? "text-red-600" : "text-red-400"
-                      )}>
+                      <p className="admin-upload-queue-error" title={fileState.error}>
                         {fileState.error}
                       </p>
                     )}
                   </div>
-                </div>
-
-                <div className="flex items-center gap-1 ml-2">
-                  {fileState.status === "failed" && (
-                    <button
-                      type="button"
-                      onClick={() => retryFile(index)}
-                      disabled={uploading}
-                      className={cn(
-                        "p-1.5 rounded-lg transition-colors",
-                        isLight
-                          ? "text-blue-600 hover:bg-blue-50"
-                          : "text-blue-400 hover:bg-blue-900/20",
-                        uploading && "opacity-50 cursor-not-allowed"
-                      )}
-                      title={t.adminImages.retry}
-                    >
-                      <RefreshCw className={cn("w-4 h-4", uploading && "animate-spin")} />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removeFile(index)}
-                    disabled={fileState.status === "uploading"}
-                    className={cn(
-                      "p-1.5 rounded-lg transition-colors",
-                      isLight
-                        ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
-                        : "text-gray-500 hover:text-red-400 hover:bg-red-900/20",
-                      fileState.status === "uploading" && "opacity-50 cursor-not-allowed"
-                    )}
-                    title={t.adminImages.remove}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="admin-upload-queue-empty">
+            {t.adminUi.chooseImagesForQueue}
           </div>
         )}
+        </section>
 
         <input
           ref={fileInputRef}

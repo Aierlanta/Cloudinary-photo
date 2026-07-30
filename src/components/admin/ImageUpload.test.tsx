@@ -71,6 +71,28 @@ const groups: Group[] = [
   },
 ];
 
+async function selectCustomProvider() {
+  await waitFor(() => {
+    expect(
+      screen.getByRole("button", { name: /自定义外链/ })
+    ).toBeTruthy();
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: /自定义外链/ }));
+}
+
+function selectTestGroup() {
+  const groupSelect = (screen.getAllByRole("combobox") as HTMLSelectElement[])
+    .find((select) =>
+      Array.from(select.options).some((opt) => opt.value === groups[0].id)
+    );
+
+  expect(groupSelect).toBeDefined();
+  fireEvent.change(groupSelect as HTMLSelectElement, {
+    target: { value: groups[0].id },
+  });
+}
+
 describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
   const originalFetch = global.fetch as typeof fetch | undefined;
 
@@ -155,33 +177,8 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
 
     render(<ImageUpload groups={groups} onUploadSuccess={onUploadSuccess} />);
 
-    await waitFor(() => {
-      const selects = screen.getAllByRole("combobox");
-      expect(
-        selects.some((select) =>
-          Array.from((select as HTMLSelectElement).options).some(
-            (opt) => opt.value === "custom"
-          )
-        )
-      ).toBe(true);
-    });
-    const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
-    const provider = selects.find((select) =>
-      Array.from(select.options).some((opt) => opt.value === "custom")
-    );
-    expect(provider).toBeDefined();
-
-    // 选择自定义图床 provider（包含 custom 选项的那个下拉框）
-    const providerSelect = selects.find((select) =>
-      Array.from(select.options).some((opt) => opt.value === "custom")
-    ) as HTMLSelectElement;
-    fireEvent.change(providerSelect, { target: { value: "custom" } });
-
-    // 选择分组（其余的下拉框）
-    const groupSelect = selects.find((select) =>
-      Array.from(select.options).some((opt) => opt.value === groups[0].id)
-    ) as HTMLSelectElement;
-    fireEvent.change(groupSelect, { target: { value: groups[0].id } });
+    await selectCustomProvider();
+    selectTestGroup();
 
     // 填写 TXT 内容
     const txtPlaceholder: string =
@@ -284,33 +281,8 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
 
     render(<ImageUpload groups={groups} onUploadSuccess={onUploadSuccess} />);
 
-    await waitFor(() => {
-      const selects = screen.getAllByRole("combobox");
-      expect(
-        selects.some((select) =>
-          Array.from((select as HTMLSelectElement).options).some(
-            (opt) => opt.value === "custom"
-          )
-        )
-      ).toBe(true);
-    });
-    const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
-    const provider = selects.find((select) =>
-      Array.from(select.options).some((opt) => opt.value === "custom")
-    );
-    expect(provider).toBeDefined();
-
-    // 选择自定义图床 provider（包含 custom 选项的那个下拉框）
-    const providerSelect = selects.find((select) =>
-      Array.from(select.options).some((opt) => opt.value === "custom")
-    ) as HTMLSelectElement;
-    fireEvent.change(providerSelect, { target: { value: "custom" } });
-
-    // 选择分组（其余的下拉框）
-    const groupSelect = selects.find((select) =>
-      Array.from(select.options).some((opt) => opt.value === groups[0].id)
-    ) as HTMLSelectElement;
-    fireEvent.change(groupSelect, { target: { value: groups[0].id } });
+    await selectCustomProvider();
+    selectTestGroup();
 
     // 切换到 JSON 模式
     const jsonModeBtn = screen.getByRole("button", {
@@ -399,26 +371,7 @@ describe("ImageUpload 自定义外链导入 - 前后端联动", () => {
 
     render(<ImageUpload groups={groups} onUploadSuccess={onUploadSuccess} />);
 
-    await waitFor(() => {
-      const selects = screen.getAllByRole("combobox");
-      expect(
-        selects.some((select) =>
-          Array.from((select as HTMLSelectElement).options).some(
-            (opt) => opt.value === "custom"
-          )
-        )
-      ).toBe(true);
-    });
-    const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
-    const provider = selects.find((select) =>
-      Array.from(select.options).some((opt) => opt.value === "custom")
-    );
-    expect(provider).toBeDefined();
-
-    const providerSelect = selects.find((select) =>
-      Array.from(select.options).some((opt) => opt.value === "custom")
-    ) as HTMLSelectElement;
-    fireEvent.change(providerSelect, { target: { value: "custom" } });
+    await selectCustomProvider();
 
     // 填写 TXT 内容
     const txtPlaceholder: string =

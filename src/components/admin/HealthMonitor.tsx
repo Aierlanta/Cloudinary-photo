@@ -84,7 +84,7 @@ export default function HealthMonitor() {
   if (loading) {
     return (
       <div className={cn(
-        "border p-6 flex items-center justify-center h-48 rounded-lg",
+        "admin-health-monitor border p-6 flex items-center justify-center h-48 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <div className={cn(
@@ -97,7 +97,7 @@ export default function HealthMonitor() {
 
   return (
       <div className={cn(
-        "border p-6 rounded-lg",
+        "admin-health-monitor border p-6 rounded-lg",
         isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
       )}>
         <div className="flex items-center justify-between mb-6">

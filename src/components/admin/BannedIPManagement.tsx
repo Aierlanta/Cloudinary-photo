@@ -21,7 +21,7 @@ interface BannedIPManagementProps {
 }
 
 export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPManagementProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [showBanDialog, setShowBanDialog] = useState(false);
   const [banIP, setBanIP] = useState('');
   const [banReason, setBanReason] = useState('');
@@ -91,7 +91,7 @@ export default function BannedIPManagement({ bannedIPs, onRefresh }: BannedIPMan
   };
 
   const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleString('zh-CN', {
+    return new Date(date).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

@@ -29,9 +29,12 @@ import {
   Copy, 
   ExternalLink, 
   Play, 
-  Save
+  Save,
+  Flower2,
+  RefreshCw,
 } from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
+import pageStyles from '../admin-pages.module.css'
 
 interface APIParameter {
   name: string
@@ -247,7 +250,7 @@ const {
       }
     } catch (error) {
       console.error('保存配置失败:', error)
-      showError(`${t.adminConfig.saveFailed}: ${error instanceof Error ? error.message : '网络错误'}`)
+      showError(`${t.adminConfig.saveFailed}: ${error instanceof Error ? error.message : t.adminLogin.networkError}`)
     } finally {
       setSaving(false)
     }
@@ -371,7 +374,7 @@ const {
       })
     } catch (error) {
       setTestResult({
-        error: error instanceof Error ? error.message : '测试失败',
+        error: error instanceof Error ? error.message : t.adminConfig.testFailed,
         success: false
       })
     } finally {
@@ -383,7 +386,7 @@ const {
     return (
       <div className={cn(
         "border p-6 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        pageStyles.surface
       )}>
         <div className="animate-pulse rounded-lg">
           <div className={cn(
@@ -403,7 +406,7 @@ const {
     return (
       <div className={cn(
         "border p-6 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+        pageStyles.surface
       )}>
         <h1 className={cn(
           "text-2xl font-bold mb-4 rounded-lg",
@@ -422,55 +425,102 @@ const {
   }
 
   return (
-      <div className="space-y-6 pb-20 rounded-lg">
-        {/* Header */}
-        <div className={cn(
-          "border p-6 flex justify-between items-start rounded-lg",
-          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-        )}>
+      <div className={cn(pageStyles.page, "admin-config-page pb-20")}>
+        <header className={pageStyles.hero}>
           <div>
-            <h1 className={cn(
-              "text-3xl font-bold mb-2 rounded-lg",
-              isLight ? "text-gray-900" : "text-gray-100"
-            )}>
-              {t.adminConfig.title}
+            <h1 className={pageStyles.heroTitle}>
+              <span>{t.adminNav.apiConfig}</span>
+              <Flower2 className={pageStyles.heroIcon} aria-hidden />
             </h1>
-            <p className={cn(
-              "text-gray-600 rounded-lg",
-              isLight ? "text-gray-600" : "text-gray-400"
-            )}>
-              {t.adminConfig.description}
-            </p>
+            <p className={pageStyles.heroSubtitle}>{t.adminConfig.description}</p>
           </div>
-          <button
-            onClick={saveConfig}
-            disabled={saving}
-            className={cn(
-              "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
-              isLight
-                ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-            )}
-          >
-            <Save className="w-4 h-4" />
-            {saving ? t.adminConfig.saving : t.adminConfig.saveConfig}
-          </button>
-        </div>
+          <div className={pageStyles.heroActions}>
+            <button
+              type="button"
+              onClick={() => { loadConfig(); loadGroups(); }}
+              className={cn(pageStyles.btn, pageStyles.btnLavender)}
+            >
+              <RefreshCw className="w-4 h-4" />
+              {t.common.refresh}
+            </button>
+            <button
+              type="button"
+              onClick={saveConfig}
+              disabled={saving}
+              className={cn(pageStyles.btn, pageStyles.btnPink)}
+            >
+              <Save className="w-4 h-4" />
+              {saving ? t.adminConfig.saving : t.common.save}
+            </button>
+          </div>
+        </header>
+
+        <section className="admin-config-reference" aria-label={t.adminUi.currentConfig}>
+          <article className="admin-config-current">
+            <h2>{t.adminUi.currentConfig}</h2>
+            <label>
+              <span>{t.adminConfig.apiStatus}</span>
+              <span className="admin-config-switch">
+                <input type="checkbox" checked={config.isEnabled} onChange={(event) => setConfig({ ...config, isEnabled: event.target.checked })} />
+                <i />
+                <b>{config.isEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+              </span>
+            </label>
+            <label>
+              <span>API Key</span>
+              <input type="text" value={config.apiKey || ''} onChange={(event) => setConfig({ ...config, apiKey: event.target.value })} placeholder={t.adminStatus.notConfigured} />
+            </label>
+            <label>
+              <span>{t.adminConfig.defaultScope}</span>
+              <select value={config.defaultScope} onChange={(event) => setConfig({ ...config, defaultScope: event.target.value as 'all' | 'groups' })}>
+                <option value="all">{t.adminConfig.scopeAll}</option>
+                <option value="groups">{t.adminConfig.scopeGroups}</option>
+              </select>
+            </label>
+            <label>
+              <span>{t.adminUi.responseMode}</span>
+              <span className="admin-config-switch">
+                <input type="checkbox" checked={config.enableDirectResponse} onChange={(event) => setConfig({ ...config, enableDirectResponse: event.target.checked })} />
+                <i />
+                <b>{config.enableDirectResponse ? t.adminUi.directResponse : t.adminUi.redirectResponse}</b>
+              </span>
+            </label>
+            <label>
+              <span>{t.adminUi.defaultFormats}</span>
+              <output>{config.responseParams.format.allowedValues.map((format) => format === 'jpeg' ? 'JPEG' : 'WebP').join(' · ') || t.adminConfig.none}</output>
+            </label>
+          </article>
+
+          <article className="admin-config-environment">
+            <h2>{t.adminUi.environmentVariables}</h2>
+            <table>
+              <thead><tr><th>{t.adminStatus.serviceStatus}</th><th>{t.adminStatus.status}</th><th>{t.adminUi.valueReadOnly}</th></tr></thead>
+              <tbody>
+                <tr><td>Cloudinary</td><td><span>{t.adminStatus.configured}</span></td><td>{t.adminUi.configurationAvailable}</td></tr>
+                <tr><td>{t.adminStatus.database}</td><td><span>{t.adminStatus.configured}</span></td><td>{selectedNode.baseUrl}</td></tr>
+                <tr><td>{t.adminUi.publicApi}</td><td><span>{config.isEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}</span></td><td>{generateApiUrl()}</td></tr>
+                <tr><td>API Key</td><td><span>{config.apiKeyEnabled ? t.adminStatus.configured : t.adminUi.optional}</span></td><td>{config.apiKey ? '************' : t.adminUi.noApiKey}</td></tr>
+              </tbody>
+            </table>
+            <p>{t.adminUi.deploymentCredentials}</p>
+          </article>
+        </section>
 
         {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-lg">
+        <div className="admin-config-advanced">
+        <div className={cn(pageStyles.metrics, "md:grid-cols-3")}>
           <div className={cn(
-            "border p-6 flex items-center justify-between rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            pageStyles.metric,
+            "flex items-center justify-between text-left !text-left"
           )}>
             <div className="flex items-center gap-4">
               <div className={cn(
-                "w-12 h-12 flex items-center justify-center rounded-lg",
+                "w-12 h-12 flex items-center justify-center rounded-2xl",
                 config.isEnabled
-                  ? isLight ? "bg-green-500" : "bg-green-600"
-                  : isLight ? "bg-red-500" : "bg-red-600"
+                  ? "bg-emerald-500"
+                  : "bg-rose-500"
               )}>
-                <Globe className="w-6 h-6 text-white rounded-lg" />
+                <Globe className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h3 className={cn(
@@ -503,8 +553,7 @@ const {
                   : isLight ? "bg-gray-300" : "bg-gray-600"
               )}></span>
               <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
                 config.isEnabled ? "translate-x-6" : "translate-x-0"
               )}></span>
             </label>
@@ -512,7 +561,7 @@ const {
 
           <div className={cn(
             "border p-6 flex items-center justify-between rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            pageStyles.surface
           )}>
             <div className="flex items-center gap-4 rounded-lg">
               <div className={cn(
@@ -554,8 +603,7 @@ const {
                   : isLight ? "bg-gray-300" : "bg-gray-600"
               )}></span>
               <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
                 config.apiKeyEnabled ? "translate-x-6" : "translate-x-0"
               )}></span>
             </label>
@@ -563,7 +611,7 @@ const {
 
           <div className={cn(
             "border p-6 flex items-center justify-between rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+            pageStyles.surface
           )}>
             <div className="flex items-center gap-4 rounded-lg">
               <div className={cn(
@@ -585,7 +633,7 @@ const {
                   "text-sm rounded-lg",
                   isLight ? "text-gray-600" : "text-gray-400"
                 )}>
-                  Allow non-redirect
+                  {t.adminConfig.enableDirectResponseDesc}
                 </p>
               </div>
             </div>
@@ -605,8 +653,7 @@ const {
                   : isLight ? "bg-gray-300" : "bg-gray-600"
               )}></span>
               <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
                 config.enableDirectResponse ? "translate-x-6" : "translate-x-0"
               )}></span>
             </label>
@@ -620,7 +667,7 @@ const {
             {config.apiKeyEnabled && (
               <div className={cn(
                 "border p-6 space-y-4 rounded-lg",
-                isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                pageStyles.surface
               )}>
                 <div className="flex items-center gap-3 mb-4 rounded-lg">
                   <Shield className={cn(
@@ -674,7 +721,7 @@ const {
             {/* Response Params Config */}
             <div className={cn(
               "border p-6 space-y-6 rounded-lg",
-              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              pageStyles.surface
             )}>
               <div className="flex items-center gap-3 mb-2 rounded-lg">
                 <ExternalLink className={cn(
@@ -700,7 +747,7 @@ const {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
                 <div className={cn(
                   "border p-4 space-y-4 rounded-lg",
-                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                  pageStyles.surfaceSoft
                 )}>
                   <div className="flex items-center justify-between gap-3 rounded-lg">
                     <div>
@@ -740,8 +787,7 @@ const {
                           : isLight ? "bg-gray-300" : "bg-gray-600"
                       )}></span>
                       <span className={cn(
-                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
                         config.responseParams.format.enabled ? "translate-x-6" : "translate-x-0"
                       )}></span>
                     </label>
@@ -753,7 +799,7 @@ const {
                         key={format}
                         className={cn(
                           "flex items-center gap-3 p-3 border rounded-lg",
-                          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                          pageStyles.surface
                         )}
                       >
                         <input
@@ -793,7 +839,7 @@ const {
 
                 <div className={cn(
                   "border p-4 space-y-4 rounded-lg",
-                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                  pageStyles.surfaceSoft
                 )}>
                   <div className="flex items-center justify-between gap-3 rounded-lg">
                     <div>
@@ -832,8 +878,7 @@ const {
                           : isLight ? "bg-gray-300" : "bg-gray-600"
                       )}></span>
                       <span className={cn(
-                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
                         config.responseParams.quality.enabled ? "translate-x-6" : "translate-x-0"
                       )}></span>
                     </label>
@@ -841,7 +886,7 @@ const {
 
                   <div className={cn(
                     "text-sm border rounded-lg p-3",
-                    isLight ? "bg-white border-gray-300 text-gray-600" : "bg-gray-800 border-gray-600 text-gray-300"
+                    cn(pageStyles.surfaceSoft, "text-muted-foreground")
                   )}>
                     {t.adminConfig.qualityParamHint}
                   </div>
@@ -850,7 +895,7 @@ const {
 
               <div className={cn(
                 "border p-4 rounded-lg space-y-4",
-                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                pageStyles.surfaceSoft
               )}>
                 <div>
                   <h4 className={cn(
@@ -870,7 +915,7 @@ const {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
                   <div className={cn(
                     "border p-4 rounded-lg flex items-center justify-between gap-4",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+                    pageStyles.surface
                   )}>
                     <div>
                       <h5 className={cn(
@@ -909,8 +954,7 @@ const {
                           : isLight ? "bg-gray-300" : "bg-gray-600"
                       )}></span>
                       <span className={cn(
-                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
                         config.responseParams.defaultWebpDelivery.random ? "translate-x-6" : "translate-x-0"
                       )}></span>
                     </label>
@@ -918,7 +962,7 @@ const {
 
                   <div className={cn(
                     "border p-4 rounded-lg flex items-center justify-between gap-4",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                    pageStyles.surface,
                     !config.enableDirectResponse && (isLight ? "opacity-60" : "opacity-50")
                   )}>
                     <div>
@@ -964,8 +1008,7 @@ const {
                           : isLight ? "bg-gray-300" : "bg-gray-600"
                       )}></span>
                       <span className={cn(
-                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
                         config.responseParams.defaultWebpDelivery.response && config.enableDirectResponse
                           ? "translate-x-6"
                           : "translate-x-0"
@@ -979,7 +1022,7 @@ const {
             {/* Selection Params Config */}
             <div className={cn(
               "border p-6 space-y-6 rounded-lg",
-              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              pageStyles.surface
             )}>
               <div className="flex items-center gap-3 mb-2 rounded-lg">
                 <Settings className={cn(
@@ -1004,7 +1047,7 @@ const {
 
               <div className={cn(
                 "border p-4 rounded-lg flex items-center justify-between gap-4",
-                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                pageStyles.surfaceSoft
               )}>
                 <div>
                   <h4 className={cn(
@@ -1048,8 +1091,7 @@ const {
                       : isLight ? "bg-gray-300" : "bg-gray-600"
                   )}></span>
                   <span className={cn(
-                    "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                    isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
+                    "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
                     config.selectionParams.timeWeighting.enabled ? "translate-x-6" : "translate-x-0"
                   )}></span>
                 </label>
@@ -1059,7 +1101,7 @@ const {
             {/* Scope Config */}
             <div className={cn(
               "border p-6 space-y-6 rounded-lg",
-              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              pageStyles.surface
             )}>
               <div className="flex items-center gap-3 mb-4 rounded-lg">
                 <Database className={cn(
@@ -1099,7 +1141,7 @@ const {
               {config.defaultScope === 'groups' && (
                 <div className={cn(
                   "p-4 border rounded-lg",
-                  isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
+                  pageStyles.surfaceSoft
                 )}>
                   <label className={cn(
                     "block text-sm font-medium mb-3 rounded-lg",
@@ -1113,9 +1155,7 @@ const {
                         key={group.id}
                         className={cn(
                           "flex items-center gap-2 p-2 border cursor-pointer transition-colors rounded-lg",
-                          isLight
-                            ? "bg-white border-gray-300 hover:bg-gray-50"
-                            : "bg-gray-800 border-gray-600 hover:bg-gray-700"
+                          pageStyles.pagerBtn
                         )}
                       >
                         <input
@@ -1151,7 +1191,7 @@ const {
             {/* Parameter Management */}
             <div className={cn(
               "border p-6 rounded-lg",
-              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              pageStyles.surface
             )}>
               <div className="flex items-center justify-between mb-6 rounded-lg">
                 <div className="flex items-center gap-3">
@@ -1283,7 +1323,7 @@ const {
           <div className="space-y-6 rounded-lg">
             <div className={cn(
               "border p-6 space-y-6 sticky top-24 rounded-lg",
-              isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+              pageStyles.surface
             )}>
               <h3 className={cn(
                 "font-bold text-lg mb-4 rounded-lg",
@@ -1450,7 +1490,7 @@ const {
                         "opacity-70 mt-2 rounded-lg",
                         isLight ? "text-gray-600" : "text-gray-400"
                       )}>
-                        <div className="uppercase text-[10px] mb-1">Response Headers:</div>
+                        <div className="uppercase text-[10px] mb-1">{t.adminConfig.headers}</div>
                         <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg">
                           {JSON.stringify(testResult.headers, null, 2)}
                         </pre>
@@ -1461,6 +1501,8 @@ const {
               </div>
             </div>
           </div>
+        </div>
+
         </div>
 
         <ParameterModal

@@ -5,20 +5,21 @@ import { useToast } from '@/hooks/useToast';
 import { useLocale } from '@/hooks/useLocale';
 import { ToastContainer } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils'
-import { useTheme } from '@/hooks/useTheme'
-import { 
-  Database, 
-  RotateCcw, 
-  RefreshCw, 
-  Settings, 
-  Clock, 
-  AlertTriangle, 
+import {
+  Database,
+  RotateCcw,
+  RefreshCw,
+  Settings,
+  Clock,
+  AlertTriangle,
   CheckCircle,
   Play,
   HardDrive,
-  History
+  History,
+  Flower2,
 } from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
+import styles from '../admin-pages.module.css'
 
 interface BackupStatus {
   lastBackupTime: string | null;
@@ -40,15 +41,13 @@ interface BackupStatus {
 }
 
 export default function BackupPage() {
-  const { t } = useLocale();
-  const isLight = useTheme();
+  const { t, locale } = useLocale();
   const { adminFetch } = useAdminApi();
-  // 使用 ref 保存最新的翻译对象，避免在 useCallback 依赖中包含 t
   const tRef = useRef(t);
   useEffect(() => {
     tRef.current = t;
   }, [t]);
-  
+
   const [backupStatus, setBackupStatus] = useState<BackupStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -56,13 +55,12 @@ export default function BackupPage() {
   const [isInitializing, setIsInitializing] = useState(false);
   const { toasts, removeToast, success: showSuccess, error: showError } = useToast();
 
-  // 格式化时间为上海时区
   const formatShanghaiTime = (timeString: string | null): string => {
     if (!timeString) return t.adminBackup.neverBackedUp;
 
     try {
       const date = new Date(timeString);
-      return date.toLocaleString('zh-CN', {
+      return date.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
         timeZone: 'Asia/Shanghai',
         year: 'numeric',
         month: '2-digit',
@@ -72,12 +70,11 @@ export default function BackupPage() {
         second: '2-digit',
         hour12: false
       });
-    } catch (error) {
+    } catch {
       return timeString;
     }
   };
 
-  // 获取备份状态
   const fetchBackupStatus = useCallback(async () => {
     try {
       const response = await adminFetch('/api/admin/backup/status');
@@ -86,47 +83,44 @@ export default function BackupPage() {
       if (data.success) {
         setBackupStatus(data.data);
       } else {
-        // 使用 ref 访问最新的翻译，避免将 t 加入依赖数组导致语言切换时重新获取
         showError(tRef.current.adminBackup.getStatusFailed);
       }
-    } catch (error) {
+    } catch {
       showError(tRef.current.adminBackup.networkError);
     } finally {
       setLoading(false);
     }
   }, [adminFetch, showError]);
 
-  // 创建备份
   const createBackup = async () => {
     setIsCreatingBackup(true);
-    
+
     try {
       const response = await adminFetch('/api/admin/backup/create', {
         method: 'POST'
       });
       const data = await response.json();
-      
+
       if (data.success) {
         showSuccess(t.adminBackup.backupCreated);
         await fetchBackupStatus();
       } else {
         showError(data.message || t.adminBackup.backupCreateFailed);
       }
-    } catch (error) {
+    } catch {
       showError(t.adminBackup.networkError);
     } finally {
       setIsCreatingBackup(false);
     }
   };
 
-  // 还原备份
   const restoreBackup = async () => {
     if (!confirm(t.adminBackup.restoreConfirm)) {
       return;
     }
 
     setIsRestoring(true);
-    
+
     try {
       const response = await adminFetch('/api/admin/backup/restore', {
         method: 'POST',
@@ -136,43 +130,41 @@ export default function BackupPage() {
         body: JSON.stringify({ confirm: true })
       });
       const data = await response.json();
-      
+
       if (data.success) {
         showSuccess(t.adminBackup.dataRestored);
         await fetchBackupStatus();
       } else {
         showError(data.message || t.adminBackup.dataRestoreFailed);
       }
-    } catch (error) {
+    } catch {
       showError(t.adminBackup.networkError);
     } finally {
       setIsRestoring(false);
     }
   };
 
-  // 初始化备份数据库
   const initializeBackupDatabase = async () => {
     setIsInitializing(true);
-    
+
     try {
       const response = await adminFetch('/api/admin/backup/init', {
         method: 'POST'
       });
       const data = await response.json();
-      
+
       if (data.success) {
         showSuccess(t.adminBackup.backupDbInitialized);
       } else {
         showError(data.message || t.adminBackup.backupDbInitFailed);
       }
-    } catch (error) {
+    } catch {
       showError(t.adminBackup.networkError);
     } finally {
       setIsInitializing(false);
     }
   };
 
-  // 更新自动备份设置
   const updateAutoBackupSetting = async (enabled: boolean) => {
     try {
       const response = await adminFetch('/api/admin/backup/settings', {
@@ -183,14 +175,14 @@ export default function BackupPage() {
         body: JSON.stringify({ isAutoBackupEnabled: enabled })
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setBackupStatus(prev => prev ? { ...prev, isAutoBackupEnabled: enabled } : null);
         showSuccess(t.adminBackup.settingsUpdated);
       } else {
         showError(data.message || t.adminBackup.settingsUpdateFailed);
       }
-    } catch (error) {
+    } catch {
       showError(t.adminBackup.networkError);
     }
   };
@@ -201,406 +193,233 @@ export default function BackupPage() {
 
   if (loading) {
     return (
-      <div className={cn(
-        "border p-6 flex items-center justify-center h-64 rounded-lg",
-        isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-      )}>
-        <div className={cn(
-          "w-8 h-8 border-2 border-t-transparent animate-spin rounded-lg",
-          isLight ? "border-blue-500" : "border-blue-600"
-        )}></div>
+      <div className={`${styles.page} admin-backup-page`}>
+        <div className={cn(styles.panel, 'flex items-center justify-center h-64')}>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent animate-spin rounded-full" />
+        </div>
       </div>
     );
   }
 
-  // --- V3 Layout (Flat Design) ---
+  const backupHistory = backupStatus?.lastBackupTime
+    ? [{
+        id: backupStatus.activeSnapshotId || backupStatus.lastBackupTime,
+        name: backupStatus.activeSnapshotId || `backup-${backupStatus.lastBackupTime.slice(0, 10)}.snapshot`,
+        time: formatShanghaiTime(backupStatus.lastBackupTime),
+        status: backupStatus.lastBackupSuccess ? 'success' : 'failed',
+        size: backupStatus.lastBackupRowCount ? `${backupStatus.lastBackupRowCount.toLocaleString()} ${t.adminUi.rows}` : t.adminUi.activeSnapshot,
+      }]
+    : [];
+
   return (
-      <div className="space-y-6 rounded-lg">
-        {/* Header */}
-        <div className={cn(
-          "border p-6 flex justify-between items-start rounded-lg",
-          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-        )}>
-          <div>
-            <h1 className={cn(
-              "text-3xl font-bold mb-2 rounded-lg",
-              isLight ? "text-gray-900" : "text-gray-100"
-            )}>
-              {t.adminBackup.title}
-            </h1>
-            <p className={cn(
-              "text-gray-600 rounded-lg",
-              isLight ? "text-gray-600" : "text-gray-400"
-            )}>
-              {t.adminBackup.description}
-            </p>
-          </div>
+    <div className={`${styles.page} admin-backup-page`}>
+      <header className={styles.hero}>
+        <div>
+          <h1 className={styles.heroTitle}>
+            <span>{t.adminNav.backup}</span>
+            <Flower2 className={styles.heroIcon} aria-hidden />
+          </h1>
+          <p className={styles.heroSubtitle}>{t.adminBackup.description}</p>
+        </div>
+        <div className={styles.heroActions}>
           <button
+            type="button"
             onClick={createBackup}
             disabled={isCreatingBackup}
-            className={cn(
-              "px-4 py-2 border flex items-center gap-2 transition-colors disabled:opacity-50 rounded-lg",
-              isLight
-                ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-            )}
+            className={cn(styles.btn, styles.btnPink)}
           >
-            <Play className="w-4 h-4 rounded-lg" />
+            <Play className="w-4 h-4" />
             {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
           </button>
         </div>
+      </header>
 
-        <ToastContainer toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))} />
+      <ToastContainer toasts={toasts.map(toast => ({ ...toast, onClose: removeToast }))} />
 
-        {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 rounded-lg">
-          {/* Database Health */}
-          <div className={cn(
-            "border p-6 flex flex-col justify-between rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className="flex justify-between items-start mb-4">
+      <section className={styles.statGrid} aria-label={t.adminNav.backup}>
+        <article className={cn(styles.statCard, styles.toneMint)}>
+          <p className={styles.statLabel}>{t.adminBackup.autoBackupSettings}</p>
+          <p className={styles.statValue} style={{ fontSize: '1.35rem' }}>
+            {backupStatus?.isAutoBackupEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}
+          </p>
+          <div className="relative z-[1] mt-3">
+            <label className="admin-backup-auto-toggle" aria-label={t.adminBackup.enableAutoBackup}>
+              <input
+                type="checkbox"
+                checked={backupStatus?.isAutoBackupEnabled || false}
+                onChange={(event) => updateAutoBackupSetting(event.target.checked)}
+              />
+              <span />
+            </label>
+          </div>
+          <Settings className={styles.statIcon} aria-hidden />
+        </article>
+
+        <article className={cn(styles.statCard, styles.toneLavender)}>
+          <p className={styles.statLabel}>{t.adminBackup.lastBackupTime}</p>
+          <p className={styles.statValue} style={{ fontSize: '1.05rem', lineHeight: 1.25 }}>
+            {formatShanghaiTime(backupStatus?.lastBackupTime ?? null)}
+          </p>
+          <Clock className={styles.statIcon} aria-hidden />
+        </article>
+
+        <article className={cn(styles.statCard, styles.toneAmber)}>
+          <p className={styles.statLabel}>{t.adminBackup.backupCount}</p>
+          <p className={styles.statValue} style={{ fontSize: '1.35rem' }}>
+            {backupStatus?.backupCount || 0}
+          </p>
+          <History className={styles.statIcon} aria-hidden />
+        </article>
+
+        <article className={cn(styles.statCard, styles.tonePink)}>
+          <p className={styles.statLabel}>{t.adminStatus.database}</p>
+          <p className={styles.statValue} style={{ fontSize: '1.35rem' }}>{backupStatus?.isDatabaseHealthy ? t.adminStatus.healthy : t.adminUi.check}</p>
+          {backupStatus?.isDatabaseHealthy ? <CheckCircle className={styles.statIcon} aria-hidden /> : <AlertTriangle className={styles.statIcon} aria-hidden />}
+        </article>
+      </section>
+
+      <section className="admin-backup-action-row" aria-label={t.adminBackup.backupOperations}>
+        <button type="button" className={cn(styles.btn, styles.btnPink)} onClick={createBackup} disabled={isCreatingBackup}>
+          <Play aria-hidden /> {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
+        </button>
+        <button type="button" className={cn(styles.btn, styles.btnLavender)} onClick={initializeBackupDatabase} disabled={isInitializing}>
+          <Database aria-hidden /> {isInitializing ? t.adminBackup.initializing : t.adminBackup.initializeBackupDb}
+        </button>
+        <button type="button" className={cn(styles.btn, styles.btnGhost)} onClick={fetchBackupStatus}>
+          <RefreshCw aria-hidden /> {t.common.refresh}
+        </button>
+      </section>
+
+      <section className="admin-backup-history" aria-label={t.adminUi.backupHistory}>
+        <h2>{t.adminUi.backupHistory}</h2>
+        <div className="admin-backup-table-wrap">
+          <table>
+            <thead><tr><th>{t.adminUi.file}</th><th>{t.adminUi.size}</th><th>{t.adminUi.time}</th><th>{t.adminStatus.status}</th><th>{t.adminConfig.actions}</th></tr></thead>
+            <tbody>
+              {backupHistory.length ? backupHistory.map((backup) => (
+                <tr key={backup.id}>
+                  <td>{backup.name}</td><td>{backup.size}</td><td>{backup.time}</td>
+                  <td><span className={backup.status === 'success' ? styles.pillMint : styles.pillPink}>{backup.status === 'success' ? t.adminBackup.success : t.adminBackup.failed}</span></td>
+                  <td><button type="button" onClick={restoreBackup} disabled={isRestoring}>{isRestoring ? t.adminBackup.restoring : t.adminBackup.restoreFromBackup}</button></td>
+                </tr>
+              )) : <tr><td colSpan={5} className="admin-backup-empty">{t.adminUi.noBackupsYet}</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div className="admin-backup-settings">
+      <section className={styles.panel}>
+        <div className="relative z-[1] flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h2 className={styles.panelTitle} style={{ marginBottom: 0 }}>{t.adminUi.snapshotStatus}</h2>
+          <span
+            className={cn(
+              styles.pill,
+              backupStatus?.backupDatabaseConfigured && backupStatus?.isBackupDatabaseHealthy
+                ? styles.pillMint
+                : styles.pillPink
+            )}
+          >
+            {t.adminUi.backupStore}{backupStatus?.isBackupDatabaseHealthy ? t.adminStatus.healthy : `${t.adminStatus.abnormal}/${t.adminStatus.notConfigured}`}
+          </span>
+        </div>
+        <div className={cn(styles.miniGrid)} style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+          <div className={styles.miniCard}>
+            <p className={styles.miniLabel}>{t.adminUi.activeSnapshot}</p>
+            <p className={cn(styles.mono, 'mt-2 break-all')} title={backupStatus?.activeSnapshotId}>
+              {backupStatus?.activeSnapshotId || t.adminUi.notAvailable}
+            </p>
+          </div>
+          <div className={styles.miniCard}>
+            <p className={styles.miniLabel}>{t.adminUi.tableCount}</p>
+            <p className={styles.miniValue}>{backupStatus?.lastBackupTableCount ?? 0}</p>
+          </div>
+          <div className={styles.miniCard}>
+            <p className={styles.miniLabel}>{t.adminUi.rowCount}</p>
+            <p className={styles.miniValue}>{backupStatus?.lastBackupRowCount ?? 0}</p>
+          </div>
+          <div className={styles.miniCard}>
+            <p className={styles.miniLabel}>{t.adminUi.duration}</p>
+            <p className={styles.miniValue} style={{ fontSize: '1.35rem' }}>
+              {backupStatus?.lastBackupDurationMs != null ? `${backupStatus.lastBackupDurationMs}ms` : t.adminUi.notAvailable}
+            </p>
+          </div>
+        </div>
+        {backupStatus?.lastBackupFailedTables && backupStatus.lastBackupFailedTables.length > 0 && (
+          <div className="relative z-[1] mt-4 p-3 rounded-2xl border-2 border-red-300/60 bg-red-50/80 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">
+            <p className="font-bold mb-2">{t.adminUi.failedTables}</p>
+            <ul className="space-y-1">
+              {backupStatus.lastBackupFailedTables.map((table) => (
+                <li key={table.tableName} className="truncate" title={table.error}>
+                  {table.tableName}: {table.error || `${t.adminUi.unknown}${t.adminUi.error}`}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      <section className={styles.split}>
+        <article className={styles.panel}>
+          <h2 className={cn(styles.panelTitle, 'flex items-center gap-2')}>
+            <Settings className="w-5 h-5 text-primary" />
+            {t.adminBackup.backupOperations}
+          </h2>
+          <div className={cn(styles.miniCard, 'relative z-[1]')}>
+            <div className="flex justify-between items-start gap-3 mb-4">
               <div>
-                <p className={cn(
-                  "text-sm font-medium mb-1 rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminBackup.databaseHealth}
-                </p>
-                <h3 className={cn(
-                  "text-xl font-bold flex items-center gap-2 rounded-lg",
-                  backupStatus?.isDatabaseHealthy
-                    ? isLight ? "text-green-600" : "text-green-400"
-                    : isLight ? "text-red-600" : "text-red-400"
-                )}>
-                  {backupStatus?.isDatabaseHealthy ? (
-                    <CheckCircle className="w-5 h-5 rounded-lg" />
-                  ) : (
-                    <AlertTriangle className="w-5 h-5" />
-                  )}
-                  {backupStatus?.isDatabaseHealthy ? t.adminBackup.healthy : t.adminBackup.abnormal}
-                </h3>
+                <h3 className="font-extrabold m-0">{t.adminBackup.restoreFromBackup}</h3>
+                <p className="text-sm text-muted-foreground mt-1 mb-0">{t.adminBackup.restoreWarning}</p>
               </div>
-              <div className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-lg",
-                backupStatus?.isDatabaseHealthy
-                  ? isLight ? "bg-green-500" : "bg-green-600"
-                  : isLight ? "bg-red-500" : "bg-red-600"
-              )}>
-                <Database className="w-5 h-5 text-white rounded-lg" />
-              </div>
+              <span className="w-10 h-10 rounded-2xl bg-amber-400 flex items-center justify-center text-white shrink-0">
+                <RotateCcw className="w-5 h-5" />
+              </span>
             </div>
             <button
-              onClick={initializeBackupDatabase}
-              disabled={isInitializing}
-              className={cn(
-                "w-full px-3 py-2 text-xs border transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg",
-                isLight
-                  ? "bg-gray-100 border-gray-300 hover:bg-gray-200 text-gray-700"
-                  : "bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
-              )}
+              type="button"
+              onClick={restoreBackup}
+              disabled={isRestoring}
+              className={cn(styles.btn, styles.btnLavender, 'w-full justify-center')}
             >
-              <RefreshCw className={cn("w-4 h-4 rounded-lg", isInitializing ? "animate-spin" : "")} />
-              {isInitializing ? t.adminBackup.initializing : t.adminBackup.initializeBackupDb}
+              {isRestoring ? t.adminBackup.restoring : t.adminBackup.restoreFromBackup}
             </button>
           </div>
+        </article>
 
-          {/* Last Backup Time */}
-          <div className={cn(
-            "border p-6 flex flex-col justify-between rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className="flex justify-between items-start mb-4 rounded-lg">
-              <div>
-                <p className={cn(
-                  "text-sm font-medium mb-1 rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminBackup.lastBackupTime}
-                </p>
-                <h3 className={cn(
-                  "text-lg font-bold rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {backupStatus?.lastBackupTime ? (
-                    <div className="flex flex-col">
-                      <span>{new Date(backupStatus.lastBackupTime).toLocaleDateString()}</span>
-                      <span className={cn(
-                        "text-sm rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        {backupStatus.lastBackupTime ? new Date(backupStatus.lastBackupTime).toLocaleTimeString() : ''}
-                      </span>
-                    </div>
-                  ) : (
-                    t.adminBackup.neverBackedUp
-                  )}
-                </h3>
-              </div>
-              <div className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-lg",
-                isLight ? "bg-blue-500" : "bg-blue-600"
-              )}>
-                <Clock className="w-5 h-5 text-white rounded-lg" />
-              </div>
-            </div>
-          </div>
-
-          {/* Backup Status */}
-          <div className={cn(
-            "border p-6 flex flex-col justify-between rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className="flex justify-between items-start mb-4 rounded-lg">
-              <div>
-                <p className={cn(
-                  "text-sm font-medium mb-1 rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminBackup.backupStatusLabel}
-                </p>
-                <h3 className={cn(
-                  "text-xl font-bold flex items-center gap-2 rounded-lg",
-                  backupStatus?.lastBackupSuccess
-                    ? isLight ? "text-green-600" : "text-green-400"
-                    : isLight ? "text-yellow-600" : "text-yellow-400"
-                )}>
-                  {backupStatus?.lastBackupSuccess ? (
-                    <CheckCircle className="w-5 h-5 rounded-lg" />
-                  ) : (
-                    <AlertTriangle className="w-5 h-5" />
-                  )}
-                  {backupStatus?.lastBackupSuccess ? t.adminBackup.success : t.adminBackup.failed}
-                </h3>
-              </div>
-              <div className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-lg",
-                isLight ? "bg-purple-500" : "bg-purple-600"
-              )}>
-                <History className="w-5 h-5 text-white rounded-lg" />
-              </div>
-            </div>
-            {backupStatus?.lastBackupError && (
-              <p className={cn(
-                "text-xs truncate mt-2 rounded-lg",
-                isLight ? "text-red-600" : "text-red-400"
-              )} title={backupStatus?.lastBackupError}>
-                {backupStatus?.lastBackupError}
-              </p>
-            )}
-          </div>
-
-          {/* Backup Count */}
-          <div className={cn(
-            "border p-6 flex flex-col justify-between rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <div className="flex justify-between items-start mb-4 rounded-lg">
-              <div>
-                <p className={cn(
-                  "text-sm font-medium mb-1 rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminBackup.backupCount}
-                </p>
-                <h3 className={cn(
-                  "text-3xl font-bold rounded-lg",
-                  isLight ? "text-blue-600" : "text-blue-400"
-                )}>
-                  {backupStatus?.backupCount || 0}
-                </h3>
-              </div>
-              <div className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-lg",
-                isLight ? "bg-blue-500" : "bg-blue-600"
-              )}>
-                <HardDrive className="w-5 h-5 text-white rounded-lg" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Snapshot Observability */}
-        <div className={cn(
-          "border p-6 rounded-lg",
-          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-        )}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={cn(
-              "text-lg font-bold rounded-lg",
-              isLight ? "text-gray-900" : "text-gray-100"
-            )}>
-              Snapshot 状态
-            </h3>
-            <span className={cn(
-              "px-3 py-1 text-xs rounded-lg",
-              backupStatus?.backupDatabaseConfigured && backupStatus?.isBackupDatabaseHealthy
-                ? isLight ? "bg-green-100 text-green-700" : "bg-green-900 text-green-200"
-                : isLight ? "bg-red-100 text-red-700" : "bg-red-900 text-red-200"
-            )}>
-              备份库{backupStatus?.isBackupDatabaseHealthy ? '正常' : '异常或未配置'}
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <article className={styles.panel}>
+          <h2 className={cn(styles.panelTitle, 'flex items-center gap-2')}>
+            <Database className="w-5 h-5 text-primary" />
+            {t.adminBackup.autoBackupSettings}
+          </h2>
+          <div className={cn(styles.miniCard, 'relative z-[1] flex items-center justify-between gap-4')}>
             <div>
-              <p className={cn("text-xs mb-1", isLight ? "text-gray-500" : "text-gray-400")}>Active Snapshot</p>
-              <p className={cn("font-mono text-sm truncate", isLight ? "text-gray-900" : "text-gray-100")} title={backupStatus?.activeSnapshotId}>
-                {backupStatus?.activeSnapshotId || '暂无'}
-              </p>
+              <h3 className="font-extrabold m-0">{t.adminBackup.enableAutoBackup}</h3>
+              <p className="text-sm text-muted-foreground mt-1 mb-0">{t.adminBackup.autoBackupDescription}</p>
             </div>
-            <div>
-              <p className={cn("text-xs mb-1", isLight ? "text-gray-500" : "text-gray-400")}>表数量</p>
-              <p className={cn("text-sm font-semibold", isLight ? "text-gray-900" : "text-gray-100")}>
-                {backupStatus?.lastBackupTableCount ?? 0}
-              </p>
-            </div>
-            <div>
-              <p className={cn("text-xs mb-1", isLight ? "text-gray-500" : "text-gray-400")}>行数量</p>
-              <p className={cn("text-sm font-semibold", isLight ? "text-gray-900" : "text-gray-100")}>
-                {backupStatus?.lastBackupRowCount ?? 0}
-              </p>
-            </div>
-            <div>
-              <p className={cn("text-xs mb-1", isLight ? "text-gray-500" : "text-gray-400")}>耗时</p>
-              <p className={cn("text-sm font-semibold", isLight ? "text-gray-900" : "text-gray-100")}>
-                {backupStatus?.lastBackupDurationMs != null ? `${backupStatus.lastBackupDurationMs}ms` : '暂无'}
-              </p>
-            </div>
-          </div>
-          {backupStatus?.lastBackupFailedTables && backupStatus.lastBackupFailedTables.length > 0 && (
-            <div className={cn(
-              "mt-4 p-3 rounded-lg text-sm",
-              isLight ? "bg-red-50 text-red-700" : "bg-red-950 text-red-200"
-            )}>
-              <p className="font-semibold mb-2">失败表</p>
-              <ul className="space-y-1">
-                {backupStatus.lastBackupFailedTables.map((table) => (
-                  <li key={table.tableName} className="truncate" title={table.error}>
-                    {table.tableName}: {table.error || '未知错误'}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Operations and Settings */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-lg">
-          {/* Operations */}
-          <div className={cn(
-            "border p-6 rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <h3 className={cn(
-              "text-lg font-bold mb-6 flex items-center gap-2 rounded-lg",
-              isLight ? "text-gray-900" : "text-gray-100"
-            )}>
-              <Settings className={cn(
-                "w-5 h-5 rounded-lg",
-                isLight ? "text-blue-500" : "text-blue-400"
-              )} />
-              {t.adminBackup.backupOperations}
-            </h3>
-
-            <div className={cn(
-              "border p-4 mb-4 rounded-lg",
-              isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-            )}>
-              <div className="flex justify-between items-center mb-4 rounded-lg">
-                <div>
-                  <h4 className={cn(
-                    "font-medium mb-1 rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminBackup.restoreFromBackup}
-                  </h4>
-                  <p className={cn(
-                    "text-sm rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminBackup.restoreWarning}
-                  </p>
-                </div>
-                <div className={cn(
-                  "w-10 h-10 flex items-center justify-center rounded-lg",
-                  isLight ? "bg-orange-500" : "bg-orange-600"
-                )}>
-                  <RotateCcw className="w-5 h-5 text-white rounded-lg" />
-                </div>
-              </div>
-              <button
-                onClick={restoreBackup}
-                disabled={isRestoring}
+            <label className="relative inline-block w-12 h-6 cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={backupStatus?.isAutoBackupEnabled || false}
+                onChange={(e) => updateAutoBackupSetting(e.target.checked)}
+                className="sr-only"
+              />
+              <span
                 className={cn(
-                  "w-full px-4 py-2 border transition-colors disabled:opacity-50 rounded-lg",
-                  isLight
-                    ? "bg-orange-500 text-white border-orange-600 hover:bg-orange-600"
-                    : "bg-orange-600 text-white border-orange-500 hover:bg-orange-700"
+                  'absolute inset-0 rounded-full transition-colors',
+                  backupStatus?.isAutoBackupEnabled ? 'bg-primary' : 'bg-muted'
                 )}
-              >
-                {isRestoring ? t.adminBackup.restoring : t.adminBackup.restoreFromBackup}
-              </button>
-            </div>
+              />
+              <span
+                className={cn(
+                  'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white border border-border transition-transform',
+                  backupStatus?.isAutoBackupEnabled && 'translate-x-6'
+                )}
+              />
+            </label>
           </div>
-
-          {/* Settings */}
-          <div className={cn(
-            "border p-6 rounded-lg",
-            isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
-          )}>
-            <h3 className={cn(
-              "text-lg font-bold mb-6 flex items-center gap-2 rounded-lg",
-              isLight ? "text-gray-900" : "text-gray-100"
-            )}>
-              <Settings className={cn(
-                "w-5 h-5 rounded-lg",
-                isLight ? "text-blue-500" : "text-blue-400"
-              )} />
-              {t.adminBackup.autoBackupSettings}
-            </h3>
-
-            <div className={cn(
-              "flex items-center justify-between p-4 border rounded-lg",
-              isLight ? "bg-gray-50 border-gray-300" : "bg-gray-700 border-gray-600"
-            )}>
-              <div>
-                <h4 className={cn(
-                  "font-medium mb-1 rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminBackup.enableAutoBackup}
-                </h4>
-                <p className={cn(
-                  "text-sm mt-1 rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminBackup.autoBackupDescription}
-                </p>
-              </div>
-              <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
-                <input
-                  type="checkbox"
-                  name="toggle"
-                  id="toggle-auto"
-                  checked={backupStatus?.isAutoBackupEnabled || false}
-                  onChange={(e) => updateAutoBackupSetting(e.target.checked)}
-                  className="sr-only"
-                />
-                <span className={cn(
-                  "absolute inset-0 transition-colors rounded-lg",
-                  backupStatus?.isAutoBackupEnabled
-                    ? isLight ? "bg-blue-500" : "bg-blue-600"
-                    : isLight ? "bg-gray-300" : "bg-gray-600"
-                )}></span>
-                <span className={cn(
-                  "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-lg",
-                  isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600",
-                  backupStatus?.isAutoBackupEnabled ? "translate-x-6" : "translate-x-0"
-                )}></span>
-              </label>
-            </div>
-          </div>
-        </div>
+        </article>
+      </section>
       </div>
-    );
+    </div>
+  );
 }
