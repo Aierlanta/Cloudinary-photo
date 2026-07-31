@@ -6,23 +6,9 @@ import { cn } from "@/lib/utils";
 import BannedIPManagement from "@/components/admin/BannedIPManagement";
 import RateLimitManagement from "@/components/admin/RateLimitManagement";
 import RiskControlManagement from "@/components/admin/RiskControlManagement";
-import {
-  Shield,
-  Ban,
-  Activity,
-  Clock,
-  Globe,
-  KeyRound,
-  BarChart2,
-  RefreshCw,
-  Eye,
-  Trash2,
-  X,
-} from "lucide-react";
 import { IPLocationBadge } from "@/components/admin/IPLocation";
 import { useAdminApi } from "@/lib/admin-api-client";
 import AdminPortal from "@/components/admin/AdminPortal";
-import { OrnateIcon } from "@/components/ui/ornate-icon";
 import styles from "../admin-pages.module.css";
 import securityStyles from "./security.module.css";
 
@@ -183,13 +169,13 @@ export default function SecurityManagement() {
       id: "limits" as const,
       label: t.adminUi.rateLimit,
       meta: `${rateLimits.length} ${t.adminSecurity.activeLimits}`,
-      icon: Activity,
+      icon: "key",
     },
     {
       id: "banned" as const,
       label: t.adminUi.ipBan,
       meta: `${bannedIPs.length} ${t.adminSecurity.blocked}`,
-      icon: Ban,
+      icon: "ban",
     },
     {
       id: "risk" as const,
@@ -198,19 +184,19 @@ export default function SecurityManagement() {
         riskConfig?.guardEnabled || riskConfig?.whitelistOnlyEnabled
           ? t.adminSecurity.enabled
           : t.adminSecurity.disabled,
-      icon: Shield,
+      icon: "shield",
     },
     {
       id: "stats" as const,
       label: t.adminUi.accessControl,
       meta: `${realtimeStats?.total || 0} ${t.adminSecurity.requests}`,
-      icon: BarChart2,
+      icon: "chart",
     },
     {
       id: "locations" as const,
       label: t.adminUi.ipLocation,
       meta: `${topIPs.length} ${t.adminUi.locations}`,
-      icon: Globe,
+      icon: "location",
     },
   ];
 
@@ -220,7 +206,7 @@ export default function SecurityManagement() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminUi.securityCenter}</span>
-            <OrnateIcon icon={Shield} tone="mint" size="sm" className={styles.heroIconBadge} />
+            <span className="admin-security-artwork admin-security-artworkHero" aria-hidden="true" />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminUi.securityOverview}</p>
         </div>
@@ -230,7 +216,7 @@ export default function SecurityManagement() {
             onClick={handleRefresh}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <OrnateIcon icon={RefreshCw} tone="cream" size="sm" className={loading ? "animate-spin" : undefined} />
+            <span className={cn("admin-security-action-artwork securityActionRefresh", loading && "animate-spin")} aria-hidden="true" />
             {t.common.refresh}
           </button>
         </div>
@@ -239,16 +225,15 @@ export default function SecurityManagement() {
       <section className="admin-security-overview" aria-label={t.adminUi.securityOverview}>
         <h2>{t.adminUi.securityOverview}</h2>
         <div>
-          <article className="is-safe"><OrnateIcon icon={Shield} tone="mint" size="sm" /><span>{t.adminUi.riskLevel}</span><strong>{t.adminUi.low}</strong></article>
-          <article className="is-pink"><OrnateIcon icon={Ban} tone="pink" size="sm" /><span>{t.adminSecurity.bannedIPs}</span><strong>{bannedIPs.length}</strong></article>
-          <article className="is-amber"><OrnateIcon icon={KeyRound} tone="amber" size="sm" /><span>{t.adminUi.failedAuthsToday}</span><strong>{rateLimits.length}</strong></article>
-          <article className="is-lavender"><OrnateIcon icon={Eye} tone="lavender" size="sm" /><span>{t.adminUi.suspicious24h}</span><strong>{stats?.uniqueIPCount || 0}</strong></article>
+          <article className="is-safe"><span className="admin-security-artwork admin-security-artworkShield" aria-hidden="true" /><span>{t.adminUi.riskLevel}</span><strong>{t.adminUi.low}</strong></article>
+          <article className="is-pink"><span className="admin-security-artwork admin-security-artworkBan" aria-hidden="true" /><span>{t.adminSecurity.bannedIPs}</span><strong>{bannedIPs.length}</strong></article>
+          <article className="is-amber"><span className="admin-security-action-artwork securityActionKey" aria-hidden="true" /><span>{t.adminUi.failedAuthsToday}</span><strong>{rateLimits.length}</strong></article>
+          <article className="is-lavender"><span className="admin-security-action-artwork securityActionLocation" aria-hidden="true" /><span>{t.adminUi.suspicious24h}</span><strong>{stats?.uniqueIPCount || 0}</strong></article>
         </div>
       </section>
 
       <nav className={styles.tabs} aria-label={t.adminNav.security}>
         {tabs.map((tab) => {
-          const Icon = tab.icon;
           const active = activeTab === tab.id;
           return (
             <button
@@ -257,7 +242,7 @@ export default function SecurityManagement() {
               onClick={() => setActiveTab(tab.id)}
               className={cn(styles.tab, active && styles.tabActive)}
             >
-              <OrnateIcon icon={Icon} tone={active ? "pink" : "lavender"} size="sm" />
+              <span className={cn("admin-security-action-artwork", `securityAction${tab.icon[0].toUpperCase()}${tab.icon.slice(1)}`)} aria-hidden="true" />
               <span>{tab.label}</span>
               <span className={cn(styles.pill, active ? styles.pillPink : styles.pillLavender)}>
                 {tab.meta}
@@ -289,7 +274,7 @@ export default function SecurityManagement() {
                   >
                     <p className={styles.statLabel}>{t.adminSecurity.lastHour}</p>
                     <p className={styles.statValue}>{realtimeStats?.lastHour || 0}</p>
-                    <span className={styles.statIcon}><OrnateIcon icon={Clock} tone="lavender" size="sm" /></span>
+                    <span className={cn(styles.statIcon, "admin-security-artwork admin-security-artworkClock")} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -303,7 +288,7 @@ export default function SecurityManagement() {
                   >
                     <p className={styles.statLabel}>{t.adminSecurity.last24Hours}</p>
                     <p className={styles.statValue}>{realtimeStats?.last24Hours || 0}</p>
-                    <span className={styles.statIcon}><OrnateIcon icon={Activity} tone="mint" size="sm" /></span>
+                    <span className={cn(styles.statIcon, "admin-security-action-artwork securityActionChart")} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -317,14 +302,14 @@ export default function SecurityManagement() {
                   >
                     <p className={styles.statLabel}>{t.adminSecurity.totalAccess}</p>
                     <p className={styles.statValue}>{realtimeStats?.total || 0}</p>
-                    <span className={styles.statIcon}><OrnateIcon icon={Globe} tone="pink" size="sm" /></span>
+                    <span className={cn(styles.statIcon, "admin-security-action-artwork securityActionLocation")} aria-hidden="true" />
                   </button>
                 </section>
 
                 <section className={styles.split}>
                   <article className={styles.panel}>
                     <h2 className={cn(styles.panelTitle, "flex items-center gap-2")}>
-                      <OrnateIcon icon={BarChart2} tone="lavender" size="sm" />
+                      <span className="admin-security-action-artwork securityActionChart" aria-hidden="true" />
                       {t.adminSecurity.topPaths}
                     </h2>
                     <div className="relative z-[1] space-y-2">
@@ -354,18 +339,18 @@ export default function SecurityManagement() {
                   <article className={styles.panel}>
                     <div className="relative z-[1] flex items-center gap-3 mb-4 flex-wrap">
                       <h2 className={cn(styles.panelTitle, "flex items-center gap-2 m-0")}>
-                        <OrnateIcon icon={Shield} tone="mint" size="sm" />
+                        <span className="admin-security-artwork admin-security-artworkShield" aria-hidden="true" />
                         {t.adminSecurity.topIPs}
                       </h2>
                       <span className={cn(styles.pill, styles.pillLavender)}>{topIPRangeLabel}</span>
                       {topIPLoading && (
-                        <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" className="animate-spin" />
+                        <span className="admin-security-action-artwork securityActionRefresh animate-spin" aria-hidden="true" />
                       )}
                     </div>
                     <div className="relative z-[1] space-y-2">
                       {topIPLoading ? (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" className="animate-spin" />
+                          <span className="admin-security-action-artwork securityActionRefresh animate-spin" aria-hidden="true" />
                           {t.adminSecurity.loading}
                         </div>
                       ) : topIPs.length > 0 ? (
@@ -432,21 +417,21 @@ export default function SecurityManagement() {
                           <td><span className="admin-security-switch"><i /> {t.adminSecurity.enabled}</span></td>
                           <td>
                             <button type="button" onClick={() => setShowRateSettings(true)}>{t.common.edit}</button>
-                            <button type="button" className="admin-security-delete-action" aria-label={t.adminUi.manageRateLimitDeletion} onClick={() => setShowRateSettings(true)}><OrnateIcon icon={Trash2} tone="pink" size="sm" /></button>
+                            <button type="button" className="admin-security-delete-action" aria-label={t.adminUi.manageRateLimitDeletion} onClick={() => setShowRateSettings(true)}><span className="admin-security-action-artwork securityActionTrash" aria-hidden="true" /></button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p><OrnateIcon icon={Activity} tone="lavender" size="sm" /> {t.adminUi.rateLimitHint}</p>
+                <p><span className="admin-security-action-artwork securityActionAlert" aria-hidden="true" /> {t.adminUi.rateLimitHint}</p>
               </section>
             )}
 
             {activeTab === "locations" && (
               <section className={styles.panel}>
                 <h2 className={cn(styles.panelTitle, "flex items-center gap-2")}>
-                  <OrnateIcon icon={Globe} tone="mint" size="sm" />
+                  <span className="admin-security-action-artwork securityActionLocation" aria-hidden="true" />
                   {t.adminUi.locations}
                 </h2>
                 <div className="relative z-[1] space-y-2">
@@ -484,7 +469,7 @@ export default function SecurityManagement() {
                 aria-label={t.adminUi.closeRateSettings}
                 onClick={() => setShowRateSettings(false)}
               >
-                <OrnateIcon icon={X} tone="pink" size="sm" />
+                <span className="admin-security-action-artwork securityActionClose" aria-hidden="true" />
               </button>
               <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
             </div>

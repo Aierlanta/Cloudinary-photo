@@ -2,11 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { OrnateIcon } from "@/components/ui/ornate-icon";
-import { OrnateStatus } from "@/components/ui/ornate-status";
-import {
-  Flower2,
-} from "lucide-react";
 import Link from "next/link";
 import { useAdminApi } from "@/lib/admin-api-client";
 import { useLocale } from "@/hooks/useLocale";
@@ -65,7 +60,7 @@ export default function AdminDashboard() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.dashboard}</span>
-            <OrnateIcon icon={Flower2} tone="pink" size="sm" className={styles.heroIconBadge} />
+            <span className={styles.dashboardHeroArtwork} aria-hidden="true" />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminDashboard.welcome}</p>
         </div>
@@ -111,11 +106,14 @@ export default function AdminDashboard() {
               <p className={styles.miniValue}>
                 {loading ? "…" : stats?.backup?.isDatabaseHealthy ? "100%" : "0%"}
               </p>
-              <OrnateStatus
-                className={styles.miniStatus}
-                label={t.adminUi.databaseHealth}
-                tone={stats?.backup?.isDatabaseHealthy === false ? "danger" : "healthy"}
-              />
+              <span className={cn(
+                styles.statusPill,
+                styles.miniStatus,
+                stats?.backup?.isDatabaseHealthy === false ? styles.statusPillDanger : styles.statusPillHealthy
+              )}>
+                <span className={styles.statusPillArtwork} aria-hidden="true" />
+                <span>{t.adminUi.databaseHealth}</span>
+              </span>
             </div>
             <div className={styles.miniCard}>
               <p className={styles.miniLabel}>{t.adminStatus.responseTime}</p>
@@ -136,14 +134,17 @@ export default function AdminDashboard() {
             <Link href="/admin/images" className={cn(styles.actionLink, styles.actionPink)}>
               <span className={cn(styles.actionArtwork, styles.actionArtworkUpload)} aria-hidden="true" />
               <span><p className={styles.actionTitle}>{t.adminDashboard.uploadImage}</p></span>
+              <span className={cn(styles.actionArrow, styles.actionArrowPink)} aria-hidden="true" />
             </Link>
             <Link href="/admin/groups" className={cn(styles.actionLink, styles.actionLavender)}>
               <span className={cn(styles.actionArtwork, styles.actionArtworkFolder)} aria-hidden="true" />
               <span><p className={styles.actionTitle}>{t.adminDashboard.manageGroups}</p></span>
+              <span className={cn(styles.actionArrow, styles.actionArrowLavender)} aria-hidden="true" />
             </Link>
             <Link href="/admin/status" className={cn(styles.actionLink, styles.actionMint)}>
               <span className={cn(styles.actionArtwork, styles.actionArtworkApi)} aria-hidden="true" />
               <span><p className={styles.actionTitle}>{t.adminUi.viewApiStatus}</p></span>
+              <span className={cn(styles.actionArrow, styles.actionArrowMint)} aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -151,11 +152,14 @@ export default function AdminDashboard() {
         <div className={cn(styles.panel, styles.healthPanel)}>
           <h2 className={styles.panelTitle}>{t.adminUi.databaseHealth}</h2>
           <span className={styles.healthArtwork} aria-hidden="true" />
-          <OrnateStatus
-            className={styles.healthStatus}
-            label={stats?.backup?.isDatabaseHealthy === false ? t.adminBackup.abnormal : t.adminBackup.healthy}
-            tone={stats?.backup?.isDatabaseHealthy === false ? "danger" : "healthy"}
-          />
+          <span className={cn(
+            styles.statusPill,
+            styles.healthStatus,
+            stats?.backup?.isDatabaseHealthy === false ? styles.statusPillDanger : styles.statusPillHealthy
+          )}>
+            <span className={styles.statusPillArtwork} aria-hidden="true" />
+            <span>{stats?.backup?.isDatabaseHealthy === false ? t.adminBackup.abnormal : t.adminBackup.healthy}</span>
+          </span>
           <dl className={styles.healthFacts}>
             <div><dt>{t.adminStatus.responseTime}</dt><dd>{loading ? "…" : `${summaryLatency}ms`}</dd></div>
             <div><dt>{t.adminBackup.backupCount}</dt><dd>{loading ? "…" : stats?.backup?.backupCount || 0}</dd></div>

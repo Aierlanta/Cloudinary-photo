@@ -5,21 +5,7 @@ import { useToast } from '@/hooks/useToast';
 import { useLocale } from '@/hooks/useLocale';
 import { ToastContainer } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils'
-import {
-  Database,
-  RotateCcw,
-  RefreshCw,
-  Settings,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Play,
-  HardDrive,
-  History,
-  Flower2,
-} from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
-import { OrnateIcon } from '@/components/ui/ornate-icon'
 import styles from '../admin-pages.module.css'
 
 interface BackupStatus {
@@ -218,7 +204,7 @@ export default function BackupPage() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.backup}</span>
-            <OrnateIcon icon={Flower2} tone="pink" size="sm" className={styles.heroIconBadge} />
+            <span className="admin-backup-action-artwork admin-backup-action-hero" aria-hidden="true" />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminBackup.description}</p>
         </div>
@@ -229,7 +215,7 @@ export default function BackupPage() {
             disabled={isCreatingBackup}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <OrnateIcon icon={Play} tone="cream" size="sm" />
+            <span className="admin-backup-action-artwork admin-backup-action-create" aria-hidden="true" />
             {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
           </button>
         </div>
@@ -253,7 +239,7 @@ export default function BackupPage() {
               <span />
             </label>
           </div>
-          <span className={styles.statIcon}><OrnateIcon icon={Settings} tone="mint" size="sm" /></span>
+          <span className={styles.statIcon} aria-hidden="true" />
         </article>
 
         <article className={cn(styles.statCard, styles.toneLavender)}>
@@ -261,7 +247,7 @@ export default function BackupPage() {
           <p className={styles.statValue} style={{ fontSize: '1.05rem', lineHeight: 1.25 }}>
             {formatShanghaiTime(backupStatus?.lastBackupTime ?? null)}
           </p>
-          <span className={styles.statIcon}><OrnateIcon icon={Clock} tone="lavender" size="sm" /></span>
+          <span className={styles.statIcon} aria-hidden="true" />
         </article>
 
         <article className={cn(styles.statCard, styles.toneAmber)}>
@@ -269,31 +255,25 @@ export default function BackupPage() {
           <p className={styles.statValue} style={{ fontSize: '1.35rem' }}>
             {backupStatus?.backupCount || 0}
           </p>
-          <span className={styles.statIcon}><OrnateIcon icon={History} tone="amber" size="sm" /></span>
+          <span className={styles.statIcon} aria-hidden="true" />
         </article>
 
         <article className={cn(styles.statCard, styles.tonePink)}>
           <p className={styles.statLabel}>{t.adminStatus.database}</p>
           <p className={styles.statValue} style={{ fontSize: '1.35rem' }}>{backupStatus?.isDatabaseHealthy ? t.adminStatus.healthy : t.adminUi.check}</p>
-          <span className={styles.statIcon}>
-            <OrnateIcon
-              icon={backupStatus?.isDatabaseHealthy ? CheckCircle : AlertTriangle}
-              tone={backupStatus?.isDatabaseHealthy ? "mint" : "pink"}
-              size="sm"
-            />
-          </span>
+          <span className={styles.statIcon} aria-hidden="true" />
         </article>
       </section>
 
       <section className="admin-backup-action-row" aria-label={t.adminBackup.backupOperations}>
         <button type="button" className={cn(styles.btn, styles.btnPink)} onClick={createBackup} disabled={isCreatingBackup}>
-          <OrnateIcon icon={Play} tone="cream" size="sm" /> {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
+          <span className="admin-backup-action-artwork admin-backup-action-create" aria-hidden="true" /> {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
         </button>
         <button type="button" className={cn(styles.btn, styles.btnLavender)} onClick={initializeBackupDatabase} disabled={isInitializing}>
-          <OrnateIcon icon={Database} tone="cream" size="sm" /> {isInitializing ? t.adminBackup.initializing : t.adminBackup.initializeBackupDb}
+          <span className="admin-backup-action-artwork admin-backup-action-initialize" aria-hidden="true" /> {isInitializing ? t.adminBackup.initializing : t.adminBackup.initializeBackupDb}
         </button>
         <button type="button" className={cn(styles.btn, styles.btnGhost)} onClick={fetchBackupStatus}>
-          <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" /> {t.common.refresh}
+          <span className="admin-backup-action-artwork admin-backup-action-refresh" aria-hidden="true" /> {t.common.refresh}
         </button>
       </section>
 
@@ -369,7 +349,7 @@ export default function BackupPage() {
       <section className={styles.split}>
         <article className={styles.panel}>
           <h2 className={cn(styles.panelTitle, 'flex items-center gap-2')}>
-            <OrnateIcon icon={Settings} tone="lavender" size="sm" />
+            <span className="admin-backup-action-artwork admin-backup-action-settings" aria-hidden="true" />
             {t.adminBackup.backupOperations}
           </h2>
           <div className={cn(styles.miniCard, 'relative z-[1]')}>
@@ -379,7 +359,7 @@ export default function BackupPage() {
                 <p className="text-sm text-muted-foreground mt-1 mb-0">{t.adminBackup.restoreWarning}</p>
               </div>
               <span className="w-10 h-10 rounded-2xl bg-amber-400 flex items-center justify-center text-white shrink-0">
-                <OrnateIcon icon={RotateCcw} tone="amber" size="sm" />
+                <span className="admin-backup-action-artwork admin-backup-action-restore" aria-hidden="true" />
               </span>
             </div>
             <button
@@ -395,7 +375,7 @@ export default function BackupPage() {
 
         <article className={styles.panel}>
           <h2 className={cn(styles.panelTitle, 'flex items-center gap-2')}>
-            <OrnateIcon icon={Database} tone="mint" size="sm" />
+            <span className="admin-backup-action-artwork admin-backup-action-initialize" aria-hidden="true" />
             {t.adminBackup.autoBackupSettings}
           </h2>
           <div className={cn(styles.miniCard, 'relative z-[1] flex items-center justify-between gap-4')}>

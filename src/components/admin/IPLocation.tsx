@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, Globe2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { useLocale } from '@/hooks/useLocale';
-import { OrnateIcon } from '@/components/ui/ornate-icon';
 
 interface IPLocationInfo {
   ip: string;
@@ -49,17 +47,10 @@ function formatLocation(
   return parts.join(' · ') || labels.unknownLocation;
 }
 
-// 获取国旗 emoji
+// 使用两位国家代码作为稳定的纸牌徽章，避免依赖平台 emoji 字体。
 function getCountryFlag(countryCode?: string): string {
-  if (!countryCode || countryCode.length !== 2) return '🌐';
-  
-  // 将国家代码转换为国旗 emoji
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map(char => 127397 + char.charCodeAt(0));
-  
-  return String.fromCodePoint(...codePoints);
+  if (!countryCode || countryCode.length !== 2) return '??';
+  return countryCode.toUpperCase();
 }
 
 interface IPLocationBadgeProps {
@@ -134,7 +125,9 @@ export function IPLocationBadge({
         isLight ? "text-gray-400" : "text-gray-500",
         className
       )}>
-        <OrnateIcon icon={Loader2} tone="lavender" size="sm" className="animate-spin" />
+        <span className="admin-security-location-loader" aria-hidden="true">
+          <span className="admin-security-action-artwork securityActionRefresh animate-spin" />
+        </span>
       </span>
     );
   }
@@ -156,7 +149,7 @@ export function IPLocationBadge({
         )}
         title={`${location.country || ''} ${location.region || ''} ${location.city || ''} ${location.isp || ''}`.trim()}
       >
-        {flag && <span>{flag}</span>}
+        {flag && <span className="admin-security-country-badge">{flag}</span>}
         <span>{locationText}</span>
       </span>
     );
@@ -175,7 +168,7 @@ export function IPLocationBadge({
       )}
       title={`${location.country || ''} ${location.region || ''} ${location.city || ''} ${location.isp || ''}`.trim()}
     >
-      {flag && <span>{flag}</span>}
+      {flag && <span className="admin-security-country-badge">{flag}</span>}
       <span>{locationText}</span>
     </span>
   );

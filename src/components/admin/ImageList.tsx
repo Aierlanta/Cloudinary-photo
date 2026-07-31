@@ -15,24 +15,8 @@ import { useImageCachePrewarming } from "@/hooks/useImageCachePrewarming";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
-import {
-  MoreVertical,
-  Edit2,
-  Trash2,
-  Check,
-  CheckCheck,
-  ListChecks,
-  Move,
-  Layers,
-  Tag,
-  ExternalLink,
-  Download,
-  Copy,
-  X
-} from "lucide-react";
 import { useAdminApi } from "@/lib/admin-api-client";
 import AdminPortal from "@/components/admin/AdminPortal";
-import { OrnateIcon } from "@/components/ui/ornate-icon";
 
 interface ImageItem {
   id: string;
@@ -779,11 +763,11 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                 {t.adminImages.selectedImageCount.replace("{count}", selectedImages.size.toString())}
               </span>
               <button type="button" onClick={handleExitBulkMode} className="admin-gallery-bulk-action admin-gallery-bulk-exit">
-                <OrnateIcon icon={X} tone="pink" size="sm" />
+                <span className="galleryArtwork galleryArtworkClose" aria-hidden="true" />
                 {t.adminImages.exitBulkMode}
               </button>
               <button type="button" onClick={handleSelectAll} className="admin-gallery-bulk-action admin-gallery-bulk-select-all">
-                <OrnateIcon icon={CheckCheck} tone="mint" size="sm" />
+                <span className="galleryArtwork galleryArtworkChecklist" aria-hidden="true" />
                 {allImagesSelected ? t.adminImages.clearSelection : t.adminImages.selectAll}
               </button>
               <button
@@ -792,7 +776,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                 disabled={!hasSelectedImages}
                 className="admin-gallery-bulk-action admin-gallery-bulk-move"
               >
-                <OrnateIcon icon={Move} tone="lavender" size="sm" />
+                <span className="galleryArtwork galleryArtworkMove" aria-hidden="true" />
                 {t.adminImages.moveToGroup}
               </button>
               <button
@@ -801,7 +785,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                 disabled={!hasSelectedImages}
                 className="admin-gallery-bulk-action admin-gallery-bulk-delete"
               >
-                <OrnateIcon icon={Trash2} tone="pink" size="sm" />
+                <span className="galleryArtwork galleryArtworkTrash" aria-hidden="true" />
                 {t.common.delete}
               </button>
               {isGroupPickerOpen ? (
@@ -844,7 +828,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
           <div className="admin-gallery-list-toolbar is-idle flex justify-between items-center">
             <div className="flex items-center gap-2">
               <button type="button" onClick={handleEnterBulkMode} className="admin-gallery-bulk-mode-trigger">
-                <OrnateIcon icon={ListChecks} tone="lavender" size="sm" />
+                <span className="galleryArtwork galleryArtworkChecklist" aria-hidden="true" />
                 {t.adminImages.enterBulkMode}
               </button>
             </div>
@@ -918,12 +902,12 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                         aria-label={selectedImages.has(image.id) ? t.adminImages.deselectImage : t.adminImages.selectImage}
                         aria-pressed={selectedImages.has(image.id)}
                         title={selectedImages.has(image.id) ? t.adminImages.deselectImage : t.adminImages.selectImage}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleImageSelection(image.id);
-                        }}
-                      >
-                        <OrnateIcon icon={Check} tone="mint" size="sm" />
+                         onClick={(event) => {
+                           event.stopPropagation();
+                           toggleImageSelection(image.id);
+                         }}
+                       >
+                        <span className="galleryArtwork galleryArtworkCheck" aria-hidden="true" />
                       </button>
                     </>
                   ) : null}
@@ -940,9 +924,9 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                           ? "bg-red-500 text-white hover:bg-red-600 shadow-lg"
                           : "bg-red-600 text-white hover:bg-red-700 shadow-lg"
                       )}
-                      title={t.adminImages.deleteImage}
-                    >
-                      <OrnateIcon icon={Trash2} tone="pink" size="sm" />
+                       title={t.adminImages.deleteImage}
+                     >
+                      <span className="galleryArtwork galleryArtworkTrash" aria-hidden="true" />
                     </button>
                   )}
                 </div>

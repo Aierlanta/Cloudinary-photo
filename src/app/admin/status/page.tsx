@@ -4,21 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
-import { 
-  Activity, 
-  RefreshCw, 
-  Database, 
-  Cloud, 
-  Server, 
-  Cpu, 
-  AlertTriangle, 
-  CheckCircle, 
-  Info,
-  Zap,
-  Flower2,
-} from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
-import { OrnateIcon } from '@/components/ui/ornate-icon'
 import pageStyles from '../admin-pages.module.css'
 
 interface SystemStatus {
@@ -175,13 +161,13 @@ export default function SystemStatusPage() {
           <div>
             <h1 className={pageStyles.heroTitle}>
               <span>{t.adminNav.status}</span>
-              <OrnateIcon icon={Flower2} tone="pink" size="sm" className={pageStyles.heroIconBadge} />
+              <span className="admin-status-artwork admin-status-artwork-calendar" aria-hidden="true" />
             </h1>
           </div>
         </header>
         <div className={cn(pageStyles.panel, "border-rose-300")}>
           <div className="relative z-[1] flex items-center gap-2 mb-3 text-rose-600">
-            <OrnateIcon icon={AlertTriangle} tone="pink" size="sm" />
+            <span className="admin-status-alert" aria-hidden="true" />
             <span>{error}</span>
           </div>
           <button
@@ -208,27 +194,27 @@ export default function SystemStatusPage() {
       <header className={pageStyles.hero}>
         <h1 className={pageStyles.heroTitle}>
           <span>{t.adminStatus.systemStatus}</span>
-          <OrnateIcon icon={Activity} tone="mint" size="sm" className={pageStyles.heroIconBadge} />
+          <span className="admin-status-artwork admin-status-artwork-shield" aria-hidden="true" />
         </h1>
         <button type="button" onClick={loadStatus} className={cn(pageStyles.btn, pageStyles.btnLavender)}>
-          <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
+          <span className="admin-status-refresh" aria-hidden="true" />
           {t.common.refresh}
         </button>
       </header>
 
-      <section className={pageStyles.statusServiceGrid} aria-label={t.adminStatus.serviceStatus}>
+        <section className={pageStyles.statusServiceGrid} aria-label={t.adminStatus.serviceStatus}>
         {[
-          { label: t.adminStatus.apiService, healthy: status.services.api.enabled, icon: Server, artwork: pageStyles.statusArtworkShield },
-          { label: t.adminUi.storageService, healthy: status.services.cloudinary.healthy, icon: Cloud, artwork: pageStyles.statusArtworkClock },
-          { label: t.adminStatus.database, healthy: status.services.database.healthy, icon: Database, artwork: pageStyles.statusArtworkServer },
-        ].map(({ label, healthy, icon: Icon, artwork }) => (
+          { label: t.adminStatus.apiService, healthy: status.services.api.enabled, artwork: pageStyles.statusArtworkShield },
+          { label: t.adminUi.storageService, healthy: status.services.cloudinary.healthy, artwork: pageStyles.statusArtworkClock },
+          { label: t.adminStatus.database, healthy: status.services.database.healthy, artwork: pageStyles.statusArtworkServer },
+        ].map(({ label, healthy, artwork }) => (
           <article key={label} className={cn(pageStyles.statusServiceCard, healthy ? pageStyles.statusHealthy : pageStyles.statusWarning)}>
             <span className={cn(pageStyles.statusServiceArtwork, artwork)} aria-hidden="true" />
             <div>
               <h2>{label}</h2>
               <p>{t.adminUi.checkedAt.replace('{time}', checkedAt)}</p>
             </div>
-            <OrnateIcon icon={Icon} tone={healthy ? "mint" : "amber"} size="sm" className={pageStyles.statusCardAccent} />
+            <span className={cn("admin-status-artwork", healthy ? "admin-status-artwork-check" : "admin-status-artwork-clock")} aria-hidden="true" />
           </article>
         ))}
       </section>
@@ -237,19 +223,19 @@ export default function SystemStatusPage() {
         <article className={pageStyles.statusDetailPanel}>
           <h2>{t.adminUi.systemInfo}</h2>
           <div className={pageStyles.statusMetricGrid}>
-            <div className={pageStyles.statusMetric}><OrnateIcon icon={Info} tone="lavender" size="sm" /><span>{t.adminStatus.version}</span><strong>v{status.version}</strong></div>
-            <div className={pageStyles.statusMetric}><OrnateIcon icon={Activity} tone="mint" size="sm" /><span>{t.adminStatus.uptime}</span><strong>{formatUptime(status.uptime)}</strong></div>
-            <div className={pageStyles.statusMetric}><OrnateIcon icon={Cpu} tone="amber" size="sm" /><span>{t.adminStatus.memoryUsage}</span><strong>{memoryUsed} MB</strong><progress max="100" value={memoryPercent} /></div>
-            <div className={pageStyles.statusMetric}><OrnateIcon icon={Server} tone="pink" size="sm" /><span>Node.js</span><strong>{status.environment || t.adminUi.running}</strong></div>
+            <div className={pageStyles.statusMetric}><span className="admin-status-artwork admin-status-artwork-calendar" aria-hidden="true" /><span>{t.adminStatus.version}</span><strong>v{status.version}</strong></div>
+            <div className={pageStyles.statusMetric}><span className="admin-status-artwork admin-status-artwork-clock" aria-hidden="true" /><span>{t.adminStatus.uptime}</span><strong>{formatUptime(status.uptime)}</strong></div>
+            <div className={pageStyles.statusMetric}><span className="admin-status-artwork admin-status-artwork-server" aria-hidden="true" /><span>{t.adminStatus.memoryUsage}</span><strong>{memoryUsed} MB</strong><progress max="100" value={memoryPercent} /></div>
+            <div className={pageStyles.statusMetric}><span className="admin-status-artwork admin-status-artwork-shield" aria-hidden="true" /><span>Node.js</span><strong>{status.environment || t.adminUi.running}</strong></div>
           </div>
         </article>
 
         <article className={pageStyles.statusDetailPanel}>
           <h2>{t.adminUi.storageProviders}</h2>
           <div className={pageStyles.statusProviderList}>
-            <div><OrnateIcon icon={Cloud} tone="mint" size="sm" /><span><strong>Cloudinary</strong><small>{status.services.cloudinary.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.cloudinary.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.cloudinary.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
-            <div><OrnateIcon icon={Database} tone="lavender" size="sm" /><span><strong>TgState</strong><small>{status.services.database.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.database.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.database.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
-            <div><OrnateIcon icon={Server} tone="pink" size="sm" /><span><strong>{t.adminStatus.apiService}</strong><small>{status.services.api.parametersCount ?? 0} {t.adminUi.configuredParameters}</small></span><b className={status.services.api.enabled ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.api.enabled ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><span className="admin-status-artwork admin-status-artwork-shield" aria-hidden="true" /><span><strong>Cloudinary</strong><small>{status.services.cloudinary.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.cloudinary.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.cloudinary.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><span className="admin-status-artwork admin-status-artwork-server" aria-hidden="true" /><span><strong>TgState</strong><small>{status.services.database.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.database.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.database.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><span className="admin-status-artwork admin-status-artwork-calendar" aria-hidden="true" /><span><strong>{t.adminStatus.apiService}</strong><small>{status.services.api.parametersCount ?? 0} {t.adminUi.configuredParameters}</small></span><b className={status.services.api.enabled ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.api.enabled ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
           </div>
         </article>
       </section>

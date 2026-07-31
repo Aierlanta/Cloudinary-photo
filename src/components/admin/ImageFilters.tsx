@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useLocale } from "@/hooks/useLocale";
-import { Search, SlidersHorizontal, X, RotateCcw } from "lucide-react";
-import { OrnateIcon } from "@/components/ui/ornate-icon";
 
 interface Group {
   id: string;
@@ -99,7 +97,7 @@ export default function ImageFilters({
   return (
       <div className="admin-gallery-filters">
         <div className="admin-gallery-search relative">
-          <OrnateIcon icon={Search} tone="lavender" size="sm" className="admin-gallery-search-icon" />
+          <span className="galleryArtwork galleryArtworkSearch admin-gallery-search-icon" aria-hidden="true" />
           <input
             type="text"
             value={searchInput}
@@ -113,7 +111,7 @@ export default function ImageFilters({
               className="admin-gallery-search-clear"
               aria-label={t.common.clear}
             >
-              <OrnateIcon icon={X} tone="pink" size="sm" />
+              <span className="galleryArtwork galleryArtworkClose" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -157,13 +155,13 @@ export default function ImageFilters({
             className={`admin-gallery-advanced-toggle${showAdvanced ? " is-active" : ""}`}
             aria-expanded={showAdvanced}
           >
-            <OrnateIcon icon={SlidersHorizontal} tone="lavender" size="sm" />
+            <span className="galleryArtwork galleryArtworkChecklist" aria-hidden="true" />
             {t.adminUi.moreFilters}
           </button>
 
           {hasActiveFilters ? (
             <button type="button" onClick={handleReset} className="admin-gallery-reset">
-              <OrnateIcon icon={RotateCcw} tone="mint" size="sm" />
+              <span className="galleryArtwork galleryArtworkRefresh" aria-hidden="true" />
               {t.adminImages.reset}
             </button>
           ) : null}

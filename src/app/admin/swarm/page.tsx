@@ -1,13 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Database, Flower2, Network, RefreshCw, Save } from "lucide-react";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
-import { OrnateIcon } from "@/components/ui/ornate-icon";
 import styles from "../admin-pages.module.css";
 
 type UploadStrategy = "manual" | "round-robin" | "random" | "available-first";
@@ -152,7 +150,7 @@ export default function SwarmPage() {
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.swarm}</span>
             <span style={{ color: "var(--secondary)" }}> {t.adminUi.nodes}</span>
-            <OrnateIcon icon={Flower2} tone="pink" size="sm" className={styles.heroIconBadge} />
+            <span className="admin-swarm-artwork admin-swarm-artworkHero" aria-hidden="true" />
           </h1>
           <p className={styles.heroSubtitle}>
             {t.adminUi.swarmSubtitle}
@@ -164,7 +162,7 @@ export default function SwarmPage() {
             onClick={() => refreshNodeStatuses().catch(() => {})}
             className={cn(styles.btn, styles.btnLavender)}
           >
-            <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
+            <span className="admin-swarm-action-artwork swarmActionRefresh" aria-hidden="true" />
             {t.common.refresh}
           </button>
           <button
@@ -173,7 +171,7 @@ export default function SwarmPage() {
             disabled={saving}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <OrnateIcon icon={Save} tone="cream" size="sm" />
+            <span className="admin-swarm-action-artwork swarmActionSave" aria-hidden="true" />
             {saving ? t.adminConfig.saving : t.adminUi.saveSwarmConfig}
           </button>
         </div>
@@ -183,22 +181,22 @@ export default function SwarmPage() {
         <article className={cn(styles.statCard, styles.toneMint)}>
           <p className={styles.statLabel}>{t.adminUi.totalNodes}</p>
           <p className={styles.statValue}>{nodes.length}</p>
-          <span className={styles.statIcon}><OrnateIcon icon={Network} tone="mint" size="sm" /></span>
+          <span className={cn(styles.statIcon, "admin-swarm-action-artwork swarmActionNetwork")} aria-hidden="true" />
         </article>
         <article className={cn(styles.statCard, styles.toneLavender)}>
           <p className={styles.statLabel}>{t.adminUi.online}</p>
           <p className={styles.statValue}>{statusCounts.online}</p>
-          <span className={styles.statIcon}><OrnateIcon icon={Database} tone="lavender" size="sm" /></span>
+          <span className={cn(styles.statIcon, "admin-swarm-action-artwork swarmActionDatabase")} aria-hidden="true" />
         </article>
         <article className={cn(styles.statCard, styles.toneAmber)}>
           <p className={styles.statLabel}>{t.adminUi.degraded}</p>
           <p className={styles.statValue}>{statusCounts.degraded}</p>
-          <span className={styles.statIcon}><OrnateIcon icon={AlertTriangle} tone="amber" size="sm" /></span>
+          <span className={cn(styles.statIcon, "admin-swarm-action-artwork swarmActionWarning")} aria-hidden="true" />
         </article>
         <article className={cn(styles.statCard, styles.tonePink)}>
           <p className={styles.statLabel}>{t.adminUi.offline}</p>
           <p className={styles.statValue}>{statusCounts.offline}</p>
-          <span className={styles.statIcon}><OrnateIcon icon={Network} tone="pink" size="sm" /></span>
+          <span className={cn(styles.statIcon, "admin-swarm-action-artwork swarmActionShield")} aria-hidden="true" />
         </article>
       </section>
 
@@ -254,15 +252,15 @@ export default function SwarmPage() {
 
       <section className={styles.swarmFeatureGrid} aria-label={t.adminUi.swarmCapabilities}>
         <article>
-          <OrnateIcon icon={Database} tone="mint" size="sm" />
+          <span className="admin-swarm-action-artwork swarmActionDatabase" aria-hidden="true" />
           <div><h2>{t.adminUi.sharedStorage}</h2><p>{t.adminUi.sharedStorageDescription}</p></div>
         </article>
         <article>
-          <OrnateIcon icon={Network} tone="lavender" size="sm" />
+          <span className="admin-swarm-action-artwork swarmActionNetwork" aria-hidden="true" />
           <div><h2>{t.adminUi.crossNodeScheduling}</h2><p>{t.adminUi.crossNodeSchedulingDescription}</p></div>
         </article>
         <article>
-          <OrnateIcon icon={AlertTriangle} tone="amber" size="sm" />
+          <span className="admin-swarm-action-artwork swarmActionWarning" aria-hidden="true" />
           <div><h2>{t.adminUi.failover}</h2><p>{t.adminUi.failoverDescription}</p></div>
         </article>
       </section>
@@ -335,7 +333,7 @@ export default function SwarmPage() {
 
         {swarmConfig.providerDeliveryPolicy.cloudinary.mode !== "owner-node" && (
           <div className="admin-swarm-warning">
-            <OrnateIcon icon={AlertTriangle} tone="amber" size="sm" />
+            <span className="admin-swarm-action-artwork swarmActionWarning" aria-hidden="true" />
             <p>{t.adminUi.cloudinaryDeliveryWarning}</p>
           </div>
         )}

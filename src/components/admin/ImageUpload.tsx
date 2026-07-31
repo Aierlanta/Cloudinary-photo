@@ -6,23 +6,11 @@ import { ToastContainer } from "@/components/ui/Toast";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
-import {
-  UploadCloud,
-  X,
-  RefreshCw,
-  Trash2,
-  Image as ImageIcon,
-  ChevronRight,
-  Heart,
-  LoaderCircle,
-  SlidersHorizontal,
-} from "lucide-react";
 import type {
   ImageUrlImportRequest,
   ImageUrlImportResponse,
 } from "@/types/api";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
-import { OrnateIcon } from "@/components/ui/ornate-icon";
 
 interface Group {
   id: string;
@@ -932,7 +920,7 @@ export default function ImageUpload({
                   "mx-auto w-12 h-12 flex items-center justify-center rounded-lg",
                   isLight ? "bg-gray-100" : "bg-gray-800"
                 )}>
-                  <OrnateIcon icon={ImageIcon} tone="lavender" size="md" />
+                  <span className="uploadArtwork uploadArtworkImage" aria-hidden="true" />
                 </div>
                 <div>
                   <p className={cn(
@@ -1006,7 +994,7 @@ export default function ImageUpload({
                         : "border-gray-600 text-gray-300 hover:border-gray-500"
                     )}
                   >
-                    <OrnateIcon icon={UploadCloud} tone="mint" size="sm" />
+                    <span className="uploadArtwork uploadArtworkCloud" aria-hidden="true" />
                     {t.adminImages.urlImportSelectFile}
                   </button>
                   {importFileName && (
@@ -1095,7 +1083,7 @@ export default function ImageUpload({
                   "mx-auto w-12 h-12 flex items-center justify-center rounded-lg",
                   isLight ? "bg-gray-100" : "bg-gray-800"
                 )}>
-                  <OrnateIcon icon={UploadCloud} tone="mint" size="md" />
+                  <span className="uploadArtwork uploadArtworkCloud" aria-hidden="true" />
                 </div>
                 <div>
                   <p className={cn(
@@ -1122,7 +1110,7 @@ export default function ImageUpload({
                   )}
                 >
                   <span>{t.adminUi.chooseFiles}</span>
-                  <OrnateIcon icon={Heart} tone="pink" size="sm" />
+                  <span className="uploadArtwork uploadArtworkHeart" aria-hidden="true" />
                 </button>
                 <div className="admin-upload-format-chips" aria-label={t.adminUi.supportedFormats}>
                   <span>PNG ❀</span>
@@ -1142,12 +1130,12 @@ export default function ImageUpload({
         </h2>
 
         {/* Swarm Upload Strategy */}
-        {nodes.length > 0 && selectedProvider !== "custom" && (
-          <details className="admin-upload-advanced-options">
+          {nodes.length > 0 && selectedProvider !== "custom" && (
+            <details className="admin-upload-advanced-options">
             <summary>
-              <OrnateIcon icon={SlidersHorizontal} tone="lavender" size="sm" />
+              <span className="uploadArtwork uploadArtworkSettings" aria-hidden="true" />
               <span>{t.adminUi.advancedUploadOptions}</span>
-              <OrnateIcon icon={ChevronRight} tone="lavender" size="sm" className="admin-upload-advanced-chevron" />
+              <span className="uploadAdvancedChevron" aria-hidden="true" />
             </summary>
             <div className="admin-upload-advanced-content">
               <div className="admin-upload-swarm">
@@ -1288,7 +1276,7 @@ export default function ImageUpload({
             >
               {uploading ? (
                 <div className="flex items-center gap-2">
-                  <OrnateIcon icon={LoaderCircle} tone="cream" size="sm" className="animate-spin" />
+                  <span className="uploadArtwork uploadArtworkRefresh animate-spin" aria-hidden="true" />
                   {t.adminImages.uploadCount.replace(
                     "{count}",
                     String(currentBatchTotal || pendingFilesCount)
@@ -1341,7 +1329,7 @@ export default function ImageUpload({
                   uploading && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" className={uploading ? "animate-spin" : undefined} />
+                <span className={cn("uploadArtwork uploadArtworkRefresh", uploading && "animate-spin")} aria-hidden="true" />
                 {t.adminImages.retryAllFailed.replace("{count}", String(failedFilesCount))}
               </button>
             )}
@@ -1358,7 +1346,7 @@ export default function ImageUpload({
                   uploading && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <OrnateIcon icon={Trash2} tone="pink" size="sm" />
+                <span className="uploadArtwork uploadArtworkTrash" aria-hidden="true" />
                 {t.adminImages.clearSuccessful}
               </button>
             )}
@@ -1374,7 +1362,7 @@ export default function ImageUpload({
                 uploading && "opacity-50 cursor-not-allowed"
               )}
             >
-              <OrnateIcon icon={Trash2} tone="pink" size="sm" />
+              <span className="uploadArtwork uploadArtworkTrash" aria-hidden="true" />
               {t.adminImages.clearAll}
             </button>
             </div>
@@ -1398,7 +1386,7 @@ export default function ImageUpload({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={fileState.previewUrl} alt="" />
                     ) : (
-                      <OrnateIcon icon={ImageIcon} tone="lavender" size="sm" />
+                      <span className="uploadArtwork uploadArtworkImage" aria-hidden="true" />
                     )}
                   </div>
                   <div className="admin-upload-queue-body">
@@ -1414,7 +1402,7 @@ export default function ImageUpload({
                             title={t.adminImages.retry}
                             aria-label={t.adminImages.retry}
                           >
-                            <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" className={uploading ? "animate-spin" : undefined} />
+                            <span className={cn("uploadArtwork uploadArtworkRefresh", uploading && "animate-spin")} aria-hidden="true" />
                           </button>
                         )}
                         <button
@@ -1425,7 +1413,7 @@ export default function ImageUpload({
                           title={t.adminImages.remove}
                           aria-label={t.adminImages.remove}
                         >
-                          <OrnateIcon icon={X} tone="pink" size="sm" />
+                          <span className="uploadArtwork uploadArtworkClose" aria-hidden="true" />
                         </button>
                       </div>
                     </div>

@@ -5,10 +5,8 @@ import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
 import { useLocale } from '@/hooks/useLocale'
 import { StorageProvider } from '@/lib/storage/base'
-import { X } from 'lucide-react'
 import AdminPortal from '@/components/admin/AdminPortal'
 import pageStyles from '@/app/admin/admin-pages.module.css'
-import { OrnateIcon } from '@/components/ui/ornate-icon'
 
 interface APIParameter {
   name: string
@@ -156,7 +154,7 @@ export default function ParameterModal({
         <header>
           <h3>{isEditing ? t.adminConfig.editApiParameter : t.adminConfig.addApiParameter}</h3>
           <button type="button" onClick={onClose} aria-label={t.common.close}>
-            <OrnateIcon icon={X} tone="pink" size="sm" />
+            <span className="admin-config-modal-close-artwork" aria-hidden="true" />
           </button>
         </header>
 
@@ -224,7 +222,7 @@ export default function ParameterModal({
                 <span key={index}>
                   {value}
                   <button type="button" aria-label={t.common.delete} onClick={() => removeValue(index)}>
-                    <OrnateIcon icon={X} tone="pink" size="sm" />
+                    <span className="admin-config-action admin-config-action-trash" aria-hidden="true" />
                   </button>
                 </span>
               ))}

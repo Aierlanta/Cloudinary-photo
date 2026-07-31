@@ -520,6 +520,7 @@
 }
 
 .dashboardPage .actionLink {
+  position: relative;
   min-height: 72px;
   padding: 8px 48px 8px 76px;
   overflow: hidden;
@@ -535,22 +536,7 @@
 }
 
 .dashboardPage .actionLink::after {
-  content: "→";
-  position: absolute;
-  right: 13px;
-  display: grid;
-  width: 31px;
-  height: 31px;
-  place-items: center;
-  margin-left: auto;
-  border: 1.5px solid color-mix(in srgb, var(--tone, var(--admin-pink)) 80%, #825369);
-  border-radius: 50%;
-  color: #fff8ed;
-  background: var(--tone, var(--admin-pink));
-  font-family: var(--font-display), ui-rounded, sans-serif;
-  font-size: 1.15rem;
-  line-height: 1;
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.28);
+  content: none;
 }
 
 .dashboardPage .actionPink {
@@ -607,6 +593,24 @@
 .actionArtworkFolder { background-position: 100% 0; }
 .actionArtworkApi { background-position: 0 100%; }
 
+.actionArrow {
+  position: absolute;
+  z-index: 2;
+  right: 11px;
+  display: block;
+  width: 34px;
+  height: 34px;
+  background-image: url("/admin/ui/dashboard-action-arrows.png");
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+  filter: drop-shadow(0 3px 3px rgba(56, 36, 62, 0.24));
+  pointer-events: none;
+}
+
+.actionArrowPink { background-position: 0 0; }
+.actionArrowLavender { background-position: 50% 0; }
+.actionArrowMint { background-position: 100% 0; }
+
 .healthPanel {
   display: grid;
   justify-items: center;
@@ -619,6 +623,71 @@
   height: 138px;
   margin: -4px auto -10px;
   background-position: 100% 100%;
+}
+
+.dashboardHeroArtwork {
+  display: inline-block;
+  width: 52px;
+  height: 52px;
+  margin-left: 9px;
+  vertical-align: middle;
+  background-image: url("/admin/ui/dashboard-action-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  background-position: 100% 100%;
+  filter: drop-shadow(0 5px 4px rgba(56, 36, 62, 0.24));
+  transform: translateY(4px) rotate(4deg);
+}
+
+.statusPill {
+  --status-tone: #79d2b3;
+  --status-soft: #b3ead6;
+  position: relative;
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 4px 11px 4px 7px;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--status-tone) 72%, #fff0df);
+  border-radius: 999px;
+  color: #fff8ed;
+  background: color-mix(in srgb, var(--status-tone) 22%, var(--admin-panel));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 3px 7px rgba(8, 5, 18, 0.24);
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.statusPill::after {
+  position: absolute;
+  inset: 2px;
+  border: 1px dashed color-mix(in srgb, var(--status-soft) 54%, transparent);
+  border-radius: inherit;
+  content: "";
+  pointer-events: none;
+}
+
+.statusPillHealthy { --status-tone: #79d2b3; --status-soft: #b3ead6; }
+.statusPillDanger { --status-tone: #ff7198; --status-soft: #ffd0dc; }
+
+.statusPillArtwork {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/dashboard-action-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  background-position: 100% 100%;
+  filter: drop-shadow(0 2px 2px rgba(12, 8, 21, 0.32));
+}
+
+.statusPill > span:last-child {
+  position: relative;
+  z-index: 1;
 }
 
 .healthStatus {
@@ -2285,6 +2354,119 @@
   height: 20px;
 }
 
+/* Gallery controls use their own paper-cut sprite so this page does not fall
+   back to the dashboard's generic SVG ornaments. The sprite is a 4 x 2 sheet:
+   each position carries the gallery's pink, lavender, mint, or cream accent. */
+.page :global(.galleryArtwork) {
+  display: inline-block;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/gallery-actions.png");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  filter: drop-shadow(0 2px 2px rgba(22, 13, 30, 0.3));
+  vertical-align: middle;
+}
+
+.page :global(.galleryArtworkAdd) {
+  background-position: 0 0;
+}
+
+.page :global(.galleryArtworkRefresh) {
+  background-position: 33.333333% 0;
+}
+
+.page :global(.galleryArtworkDownload) {
+  background-position: 66.666667% 0;
+}
+
+.page :global(.galleryArtworkChecklist) {
+  background-position: 100% 0;
+}
+
+.page :global(.galleryArtworkCheck) {
+  background-position: 0 100%;
+}
+
+.page :global(.galleryArtworkMove) {
+  background-position: 33.333333% 100%;
+}
+
+.page :global(.galleryArtworkTrash) {
+  background-position: 66.666667% 100%;
+}
+
+.page :global(.galleryArtworkClose) {
+  background-position: 100% 100%;
+}
+
+.page :global(.admin-gallery-search-icon.galleryArtwork) {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  filter: none;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.page :global(.admin-gallery-search-icon.galleryArtwork::before) {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--admin-lavender);
+  border-radius: 50%;
+}
+
+.page :global(.admin-gallery-search-icon.galleryArtwork::after) {
+  content: "";
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 7px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--admin-lavender);
+  transform: rotate(45deg);
+  transform-origin: right center;
+}
+
+.page :global(.admin-gallery-card-selector .galleryArtwork) {
+  position: relative;
+  z-index: 1;
+  width: 31px;
+  height: 31px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.page :global(.admin-gallery-card-selector.is-selected .galleryArtwork) {
+  opacity: 1;
+}
+
+.page :global(.galleryPageChevron) {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-top: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+  border-radius: 2px;
+}
+
+.page :global(.galleryPageChevronPrev) {
+  transform: rotate(-135deg) translate(-1px, -1px);
+}
+
+.page :global(.galleryPageChevronNext) {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
 .page :global(.admin-gallery-owner-filter),
 .page :global(.admin-gallery-page-size),
 .page :global(.admin-gallery-advanced-toggle),
@@ -3564,6 +3746,58 @@
 .page :global(.admin-log-action svg) {
   width: 17px;
   height: 17px;
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-artwork-action) {
+  display: inline-block;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/logs-actions.png");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  filter: drop-shadow(0 2px 2px rgba(42, 25, 52, 0.3));
+  vertical-align: middle;
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-artwork-refresh) { background-position: 0 0; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork-export) { background-position: 33.333333% 0; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork-trash) { background-position: 66.666667% 0; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork-search) { background-position: 100% 0; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork-warning) { background-position: 0 100%; }
+
+.page:global(.admin-logs-page) :global(.admin-log-chevron) {
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin-left: 1px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  border-radius: 1px;
+  transform: rotate(45deg) translateY(-2px);
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-page-chevron) {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-top: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+  border-radius: 2px;
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-page-chevron-prev) {
+  transform: rotate(-135deg) translate(-1px, -1px);
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-page-chevron-next) {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-page-ellipsis) {
+  color: var(--admin-cream);
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
 }
 
 .page :global(.admin-log-action-refresh) {
@@ -4882,6 +5116,119 @@
   grid-template-columns: 64px minmax(0, 1fr);
 }
 
+/* API configuration keeps its own shield/lock/notebook language for the
+   large toggles, while the smaller controls use a separate stationery sprite. */
+.page:global(.admin-config-page) :global(.admin-config-illustration) {
+  display: inline-block;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/config-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 5px 4px rgba(54, 34, 59, 0.26));
+  vertical-align: middle;
+}
+
+.page:global(.admin-config-page) :global(.admin-config-illustration-shield) { background-position: 0 0; }
+.page:global(.admin-config-page) :global(.admin-config-illustration-lock) { background-position: 100% 0; }
+.page:global(.admin-config-page) :global(.admin-config-illustration-notebook) { background-position: 100% 100%; }
+
+.page:global(.admin-config-page) :global(.admin-config-illustration-hero) {
+  width: 42px;
+  height: 42px;
+  background-size: 200% 200%;
+  background-position: 0 0;
+}
+
+.page:global(.admin-config-page) :global(.admin-config-action) {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/config-actions.png");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  filter: drop-shadow(0 3px 3px rgba(54, 34, 59, 0.28));
+  vertical-align: middle;
+}
+
+.page:global(.admin-config-page) :global(.admin-config-action-refresh) { background-position: 0 0; }
+.page:global(.admin-config-page) :global(.admin-config-action-save) { background-position: 33.333333% 0; }
+.page:global(.admin-config-page) :global(.admin-config-action-add) { background-position: 66.666667% 0; }
+.page:global(.admin-config-page) :global(.admin-config-action-edit) { background-position: 100% 0; }
+.page:global(.admin-config-page) :global(.admin-config-action-trash) { background-position: 0 100%; }
+.page:global(.admin-config-page) :global(.admin-config-action-copy) { background-position: 33.333333% 100%; }
+.page:global(.admin-config-page) :global(.admin-config-action-external) { background-position: 66.666667% 100%; }
+.page:global(.admin-config-page) :global(.admin-config-action-play) { background-position: 100% 100%; }
+
+.page:global(.admin-config-page) :global(.admin-config-modal-close-artwork) {
+  position: relative;
+  display: inline-block;
+  width: 31px;
+  height: 31px;
+  border: 1.5px solid #f07e9f;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #fff4e5, #f7c2d5);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.55), 0 3px 4px rgba(54, 34, 59, 0.22);
+  vertical-align: middle;
+}
+
+.page:global(.admin-config-page) :global(.admin-config-modal-close-artwork)::before,
+.page:global(.admin-config-page) :global(.admin-config-modal-close-artwork)::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 17px;
+  height: 2px;
+  border-radius: 999px;
+  background: #a84d72;
+  content: "";
+}
+
+.page:global(.admin-config-page) :global(.admin-config-modal-close-artwork)::before { transform: translate(-50%, -50%) rotate(45deg); }
+.page:global(.admin-config-page) :global(.admin-config-modal-close-artwork)::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+.page:global(.admin-config-page) :global(.admin-config-result-mark) {
+  position: relative;
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.page:global(.admin-config-page) :global(.admin-config-result-mark::before) {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  width: 8px;
+  height: 4px;
+  border-bottom: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.page:global(.admin-config-page) :global(.admin-config-result-mark.is-error::before),
+.page:global(.admin-config-page) :global(.admin-config-result-mark.is-error::after) {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 4px;
+  width: 11px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+.page:global(.admin-config-page) :global(.admin-config-result-mark.is-error::before) {
+  transform: rotate(-45deg);
+}
+
 .page:global(.admin-config-page) :global(.admin-config-panel) {
   border-color: color-mix(in srgb, var(--admin-pink) 58%, var(--admin-lavender));
   background:
@@ -5509,6 +5856,104 @@
 .statusArtworkCalendar { background-position: 0 100%; }
 .statusArtworkServer { background-position: 100% 100%; }
 
+.page:global(.admin-status-page) :global(.admin-status-artwork) {
+  display: inline-block;
+  width: 49px;
+  height: 49px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/status-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 4px 4px rgba(32, 83, 75, 0.22));
+  vertical-align: middle;
+}
+
+.page:global(.admin-status-page) :global(.admin-status-artwork-shield) { background-position: 0 0; }
+.page:global(.admin-status-page) :global(.admin-status-artwork-clock) { background-position: 100% 0; }
+.page:global(.admin-status-page) :global(.admin-status-artwork-calendar) { background-position: 0 100%; }
+.page:global(.admin-status-page) :global(.admin-status-artwork-server) { background-position: 100% 100%; }
+.page:global(.admin-status-page) :global(.admin-status-artwork-check) { background-position: 0 0; }
+
+.page:global(.admin-status-page) :global(.admin-status-artwork-calendar):first-child {
+  width: 42px;
+  height: 42px;
+}
+
+.page:global(.admin-status-page) .statusMetric > :global(.admin-status-artwork) {
+  grid-row: 1 / span 2;
+  width: 49px;
+  height: 49px;
+  color: transparent;
+  border-radius: 12px;
+  background-color: var(--admin-cream);
+}
+
+.page:global(.admin-status-page) .statusProviderList > div > :global(.admin-status-artwork) {
+  display: block;
+  width: 68px;
+  height: 68px;
+  color: transparent;
+  border-radius: 15px;
+  background-color: var(--admin-cream);
+}
+
+.page:global(.admin-status-page) .statusServiceCard > :global(.admin-status-artwork) {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
+  width: 36px;
+  height: 36px;
+  color: transparent;
+  border-radius: 12px;
+  background-color: transparent;
+}
+
+.page:global(.admin-status-page) :global(.admin-status-refresh) {
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 3px solid var(--admin-lavender);
+  border-right-color: transparent;
+  border-radius: 50%;
+  filter: drop-shadow(0 2px 2px rgba(31, 20, 45, 0.3));
+  animation: status-refresh-spin 3s linear infinite;
+}
+
+.page:global(.admin-status-page) :global(.admin-status-refresh::after) {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+  border-right: 3px solid var(--admin-lavender);
+  border-bottom: 3px solid var(--admin-lavender);
+  transform: rotate(24deg);
+}
+
+.page:global(.admin-status-page) :global(.admin-status-alert) {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  color: #fff0df;
+  border: 2px solid #fff0df;
+  border-radius: 50%;
+  background: var(--admin-pink);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.page:global(.admin-status-page) :global(.admin-status-alert)::before {
+  content: "!";
+}
+
+@keyframes status-refresh-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Page-local materials. The rail remains consistent, while each workspace
    borrows the paper, object shape and accent balance from its own reference. */
 .dashboardHero {
@@ -5628,6 +6073,35 @@
   display: none;
 }
 
+.page:global(.admin-backup-page) :global(.admin-backup-action-artwork) {
+  display: inline-block;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/backup-actions.png");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  filter: drop-shadow(0 3px 3px rgba(52, 34, 57, 0.28));
+  vertical-align: middle;
+}
+
+.page:global(.admin-backup-page) :global(.admin-backup-action-create) { background-position: 0 0; }
+.page:global(.admin-backup-page) :global(.admin-backup-action-initialize) { background-position: 33.333333% 0; }
+.page:global(.admin-backup-page) :global(.admin-backup-action-refresh) { background-position: 66.666667% 0; }
+.page:global(.admin-backup-page) :global(.admin-backup-action-settings) { background-position: 100% 0; }
+.page:global(.admin-backup-page) :global(.admin-backup-action-restore) { background-position: 0 100%; }
+.page:global(.admin-backup-page) :global(.admin-backup-action-warning) { background-position: 33.333333% 100%; }
+.page:global(.admin-backup-page) :global(.admin-backup-action-close) { background-position: 66.666667% 100%; }
+.page:global(.admin-backup-page) :global(.admin-backup-action-health) { background-position: 100% 100%; }
+
+.page:global(.admin-backup-page) :global(.admin-backup-action-hero) {
+  width: 48px;
+  height: 48px;
+  background-image: url("/admin/ui/backup-icons.png");
+  background-size: 200% 200%;
+  background-position: 100% 0;
+}
+
 .page:global(.admin-security-page) :global(.admin-security-overview article) {
   color: #53384b;
   background:
@@ -5734,6 +6208,78 @@
   display: none;
 }
 
+/* Upload-page controls use a dedicated stationery set. The large file-drop
+   cloud above is intentionally kept separate from these small action charms. */
+.page:global(.admin-upload-page) :global(.uploadArtwork) {
+  display: inline-block;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/upload-actions.png");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  filter: drop-shadow(0 3px 3px rgba(24, 14, 32, 0.28));
+  vertical-align: middle;
+}
+
+.page:global(.admin-upload-page) :global(.uploadArtworkImage) { background-position: 0 0; }
+.page:global(.admin-upload-page) :global(.uploadArtworkCloud) { background-position: 33.333333% 0; }
+.page:global(.admin-upload-page) :global(.uploadArtworkHeart) { background-position: 66.666667% 0; }
+.page:global(.admin-upload-page) :global(.uploadArtworkSettings) { background-position: 100% 0; }
+.page:global(.admin-upload-page) :global(.uploadArtworkRefresh) { background-position: 0 100%; }
+.page:global(.admin-upload-page) :global(.uploadArtworkTrash) { background-position: 33.333333% 100%; }
+.page:global(.admin-upload-page) :global(.uploadArtworkClose) { background-position: 66.666667% 100%; }
+.page:global(.admin-upload-page) :global(.uploadArtworkCheck) { background-position: 100% 100%; }
+
+.page:global(.admin-upload-page) :global(.admin-upload-dropzone.is-file-upload .w-12 > .uploadArtwork) {
+  display: none;
+}
+
+.page:global(.admin-upload-page) :global(.admin-upload-dropzone.is-url-import .w-12) {
+  width: 92px !important;
+  height: 82px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.page:global(.admin-upload-page) :global(.admin-upload-dropzone.is-url-import .w-12 > .uploadArtworkImage) {
+  width: 78px;
+  height: 78px;
+}
+
+.page:global(.admin-upload-page) :global(.admin-upload-advanced-options summary > .uploadArtworkSettings) {
+  width: 26px;
+  height: 26px;
+}
+
+.page:global(.admin-upload-page) :global(.uploadAdvancedChevron) {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid var(--admin-lavender);
+  border-right: 2px solid var(--admin-lavender);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.page:global(.admin-upload-page) :global(.admin-upload-advanced-options[open] .uploadAdvancedChevron) {
+  transform: rotate(135deg);
+}
+
+.page:global(.admin-upload-page) :global(.admin-upload-queue-thumbnail .uploadArtworkImage) {
+  width: 28px;
+  height: 28px;
+}
+
+.page:global(.admin-upload-page) :global(.admin-upload-queue-retry .uploadArtwork),
+.page:global(.admin-upload-page) :global(.admin-upload-queue-remove .uploadArtwork) {
+  width: 19px;
+  height: 19px;
+}
+
 /* Log rows use stationery objects with level-specific materials. */
 .page:global(.admin-logs-page) :global(.admin-log-entry-layout) {
   display: grid !important;
@@ -5747,16 +6293,23 @@
   width: 64px;
   height: 64px;
   align-self: start;
-  background-image: url("/admin/ui/logs-icons.png");
+  background-image: url("/admin/ui/logs-levels.png");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 5px 5px rgba(76, 47, 59, 0.17));
 }
 
-.page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="0"]) { background-position: 0 0; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork-hero) {
+  width: 54px;
+  height: 54px;
+  align-self: center;
+  background-position: 100% 0;
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="0"]) { background-position: 100% 0; }
 .page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="1"]) { background-position: 0 100%; }
 .page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="2"]) { background-position: 100% 100%; }
-.page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="3"]) { background-position: 100% 0; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="3"]) { background-position: 0 0; }
 
 /* Group cards use the album object from their own stationery set. */
 .page:global(.admin-groups-page) .groupCard > div:first-child > :global([data-ornate-icon]) {
@@ -5793,6 +6346,74 @@
 
 .page:global(.admin-groups-page) .createPlus > :global([data-ornate-icon]) {
   display: none;
+}
+
+/* Group actions are paper charms rather than the former line-icon buttons. */
+.page:global(.admin-groups-page) :global(.admin-groups-action-artwork) {
+  display: inline-block;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  background-image: url("/admin/ui/groups-actions.png");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  filter: drop-shadow(0 3px 3px rgba(54, 31, 58, 0.28));
+  vertical-align: middle;
+}
+
+.page:global(.admin-groups-page) :global(.admin-groups-action-refresh) { background-position: 0 0; }
+.page:global(.admin-groups-page) :global(.admin-groups-action-create) { background-position: 33.333333% 0; }
+.page:global(.admin-groups-page) :global(.admin-groups-action-edit) { background-position: 66.666667% 0; }
+.page:global(.admin-groups-page) :global(.admin-groups-action-trash) { background-position: 100% 0; }
+.page:global(.admin-groups-page) :global(.admin-groups-action-close) { background-position: 0 100%; }
+.page:global(.admin-groups-page) :global(.admin-groups-action-save) { background-position: 33.333333% 100%; }
+.page:global(.admin-groups-page) :global(.admin-groups-action-album) { background-position: 66.666667% 100%; }
+.page:global(.admin-groups-page) :global(.admin-groups-action-view) { background-position: 100% 100%; }
+
+.page:global(.admin-groups-page) :global(.admin-groups-action-hero) {
+  width: 42px;
+  height: 42px;
+  background-image: url("/admin/ui/groups-icons.png");
+  background-size: 200% 200%;
+  background-position: 0 0;
+}
+
+.page:global(.admin-groups-page) :global(.admin-groups-action-album) {
+  width: 64px;
+  height: 58px;
+}
+
+.page:global(.admin-groups-page) .groupCard > div:first-child > :global(.admin-groups-action-album) {
+  width: 72px;
+  height: 66px;
+  margin-top: -6px;
+}
+
+.page:global(.admin-groups-page) .groupCount > :global(.admin-groups-action-album) {
+  width: 26px;
+  height: 26px;
+}
+
+.page:global(.admin-groups-page) :global(.admin-groups-ribbon-mark) {
+  color: var(--admin-pink-soft);
+  font-size: 1.2rem;
+  line-height: 1;
+  text-shadow: 0 2px 0 rgba(255, 240, 223, 0.65);
+}
+
+.page:global(.admin-groups-page) :global(.admin-groups-ribbon-mark.is-lavender) {
+  color: var(--admin-lavender);
+}
+
+.page:global(.admin-groups-page) .createPlus {
+  display: grid;
+  place-items: center;
+  background-image: none;
+}
+
+.page:global(.admin-groups-page) .createPlus > :global(.admin-groups-action-create) {
+  width: 92px;
+  height: 92px;
 }
 
 /* Status details share the page's luminous service-object set while each row
@@ -6782,4 +7403,217 @@
   .actionLink {
     transition: none;
   }
+}
+
+/* Security reference artwork: the route uses a dedicated paper-and-enamel
+   sprite so its controls do not fall back to the shared SVG treatment. */
+.page:global(.admin-security-page) :global(.admin-security-artwork),
+.page:global(.admin-security-page) :global(.admin-security-action-artwork) {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  line-height: 0;
+  font-size: 0;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-artwork) {
+  width: 62px;
+  height: 62px;
+  background-image: url("/admin/ui/security-icons.png");
+  background-size: 200% 200%;
+  filter: drop-shadow(0 6px 5px rgba(75, 46, 57, 0.24));
+}
+
+.page:global(.admin-security-page) :global(.admin-security-artworkShield) { background-position: 0 0; }
+.page:global(.admin-security-page) :global(.admin-security-artworkBan) { background-position: 100% 0; }
+.page:global(.admin-security-page) :global(.admin-security-artworkClock) { background-position: 0 100%; }
+
+.page:global(.admin-security-page) :global(.admin-security-artworkHero) {
+  width: 53px;
+  height: 53px;
+  margin-left: 7px;
+  transform: translateY(4px) rotate(3deg);
+}
+
+.page:global(.admin-security-page) :global(.admin-security-inline-artwork) {
+  width: 34px;
+  height: 34px;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-overview article > .admin-security-artwork),
+.page:global(.admin-security-page) :global(.admin-security-overview article > .admin-security-action-artwork) {
+  position: absolute;
+  top: 16px;
+  left: 13px;
+  width: 78px;
+  height: 78px;
+  filter: drop-shadow(0 7px 6px rgba(73, 44, 69, 0.2));
+}
+
+.page:global(.admin-security-page) :global(.admin-security-action-artwork) {
+  width: 34px;
+  height: 34px;
+  background-image: url("/admin/ui/security-actions.png");
+  background-size: 400% 200%;
+  filter: drop-shadow(0 4px 4px rgba(73, 44, 69, 0.2));
+}
+
+.page:global(.admin-security-page) :global(.securityActionRefresh) { background-position: 0 0; }
+.page:global(.admin-security-page) :global(.securityActionChart) { background-position: 33.333333% 0; }
+.page:global(.admin-security-page) :global(.securityActionLocation) { background-position: 66.666667% 0; }
+.page:global(.admin-security-page) :global(.securityActionTrash) { background-position: 100% 0; }
+.page:global(.admin-security-page) :global(.securityActionClose) { background-position: 0 100%; }
+.page:global(.admin-security-page) :global(.securityActionKey) { background-position: 33.333333% 100%; }
+.page:global(.admin-security-page) :global(.securityActionAlert) { background-position: 66.666667% 100%; }
+.page:global(.admin-security-page) :global(.securityActionArrow) { background-position: 100% 100%; }
+
+.page:global(.admin-security-page) :global(.securityActionShield),
+.page:global(.admin-security-page) :global(.securityActionBan) {
+  background-image: url("/admin/ui/security-icons.png");
+  background-size: 200% 200%;
+}
+
+.page:global(.admin-security-page) :global(.securityActionShield) { background-position: 0 0; }
+.page:global(.admin-security-page) :global(.securityActionBan) { background-position: 100% 0; }
+
+.page:global(.admin-security-page) > .hero :global(.admin-security-action-artwork) {
+  width: 32px;
+  height: 32px;
+}
+
+.page:global(.admin-security-page) > .tabs :global(.admin-security-action-artwork) {
+  width: 34px;
+  height: 34px;
+  margin-right: 2px;
+}
+
+.page:global(.admin-security-page) .statIcon {
+  right: 13px;
+  bottom: 12px;
+  width: 58px;
+  height: 58px;
+}
+
+.page:global(.admin-security-page) .panelTitle :global(.admin-security-action-artwork),
+.page:global(.admin-security-page) .panelTitle :global(.admin-security-artwork) {
+  width: 35px;
+  height: 35px;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-delete-action .admin-security-action-artwork) {
+  width: 29px;
+  height: 29px;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-rate-reference > p .admin-security-action-artwork) {
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-location-loader) {
+  display: inline-grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-location-loader .admin-security-action-artwork) {
+  width: 25px;
+  height: 25px;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-country-badge) {
+  display: inline-flex;
+  min-width: 25px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--admin-pink) 55%, var(--admin-cream));
+  border-radius: 6px;
+  color: #6d435a;
+  background: linear-gradient(135deg, #fff8e9, #f6d5dc);
+  box-shadow: 0 2px 4px rgba(73, 44, 69, 0.16);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+/* Swarm reference artwork: storage, node health, and delivery controls use
+   their own bee-and-stationery sprite. */
+.page:global(.admin-swarm-page) :global(.admin-swarm-artwork),
+.page:global(.admin-swarm-page) :global(.admin-swarm-action-artwork) {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  line-height: 0;
+  font-size: 0;
+}
+
+.page:global(.admin-swarm-page) :global(.admin-swarm-artwork) {
+  width: 56px;
+  height: 56px;
+  background-image: url("/admin/ui/swarm-icons.png");
+  background-size: 200% 200%;
+  background-position: 100% 100%;
+  filter: drop-shadow(0 6px 5px rgba(75, 46, 57, 0.24));
+}
+
+.page:global(.admin-swarm-page) :global(.admin-swarm-artworkHero) {
+  width: 52px;
+  height: 52px;
+  margin-left: 8px;
+  transform: translateY(4px) rotate(3deg);
+}
+
+.page:global(.admin-swarm-page) :global(.admin-swarm-action-artwork) {
+  width: 34px;
+  height: 34px;
+  background-image: url("/admin/ui/swarm-actions.png");
+  background-size: 400% 200%;
+  filter: drop-shadow(0 4px 4px rgba(73, 44, 69, 0.2));
+}
+
+.page:global(.admin-swarm-page) :global(.swarmActionRefresh) { background-position: 0 0; }
+.page:global(.admin-swarm-page) :global(.swarmActionSave) { background-position: 33.333333% 0; }
+.page:global(.admin-swarm-page) :global(.swarmActionNetwork) { background-position: 66.666667% 0; }
+.page:global(.admin-swarm-page) :global(.swarmActionWarning) { background-position: 100% 0; }
+.page:global(.admin-swarm-page) :global(.swarmActionDatabase) { background-position: 0 100%; }
+.page:global(.admin-swarm-page) :global(.swarmActionSettings) { background-position: 33.333333% 100%; }
+.page:global(.admin-swarm-page) :global(.swarmActionShield) { background-position: 66.666667% 100%; }
+.page:global(.admin-swarm-page) :global(.swarmActionArrow) { background-position: 100% 100%; }
+
+.page:global(.admin-swarm-page) > .hero :global(.admin-swarm-action-artwork) {
+  width: 32px;
+  height: 32px;
+}
+
+.page:global(.admin-swarm-page) > .statGrid .statCard .statIcon:global(.admin-swarm-action-artwork) {
+  top: 20px;
+  right: auto;
+  bottom: auto;
+  left: 20px;
+  width: 88px;
+  height: 88px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+.page:global(.admin-swarm-page) .swarmFeatureGrid :global(article > .admin-swarm-action-artwork) {
+  width: 78px;
+  height: 78px;
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+.page:global(.admin-swarm-page) :global(.admin-swarm-warning > .admin-swarm-action-artwork) {
+  width: 30px;
+  height: 30px;
 }

@@ -45,6 +45,11 @@
   filter: brightness(1.08);
 }
 
+.closeBtn :global(.admin-security-action-artwork) {
+  width: 27px;
+  height: 27px;
+}
+
 .modalBackdrop {
   position: fixed;
   z-index: 240;

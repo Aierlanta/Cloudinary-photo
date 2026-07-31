@@ -5,21 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
 import { useLocale } from '@/hooks/useLocale'
-import {
-  Layers,
-  Plus,
-  Edit2,
-  Trash2,
-  Image as ImageIcon,
-  X,
-  Save,
-  Flower2,
-  RefreshCw,
-  Sparkles,
-} from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
 import AdminPortal from '@/components/admin/AdminPortal'
-import { OrnateIcon } from '@/components/ui/ornate-icon'
 import { cn } from '@/lib/utils'
 import styles from '../admin-pages.module.css'
 
@@ -220,27 +207,27 @@ export default function GroupsPage() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.groups}</span>
-            <OrnateIcon icon={Flower2} tone="pink" size="sm" className={styles.heroIconBadge} />
+            <span className="admin-groups-action-artwork admin-groups-action-hero" aria-hidden="true" />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminGroups.description}</p>
         </div>
         <div className={styles.heroActions}>
           <button type="button" className={cn(styles.btn, styles.btnLavender)} onClick={loadGroups}>
-            <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
+            <span className="admin-groups-action-artwork admin-groups-action-refresh" aria-hidden="true" />
             {t.common.refresh}
           </button>
           <button type="button" className={cn(styles.btn, styles.btnPink)} onClick={startCreate}>
-            <OrnateIcon icon={Plus} tone="cream" size="sm" />
+            <span className="admin-groups-action-artwork admin-groups-action-create" aria-hidden="true" />
             {t.adminGroups.createGroup}
           </button>
         </div>
       </header>
 
       <div className={styles.ribbon}>
-        <OrnateIcon icon={Sparkles} tone="pink" size="sm" />
-        <OrnateIcon icon={Layers} tone="lavender" size="sm" />
+        <span className="admin-groups-ribbon-mark" aria-hidden="true">✦</span>
+        <span className="admin-groups-ribbon-mark is-lavender" aria-hidden="true">✿</span>
         <span>{t.adminUi.allGroups}</span>
-        <OrnateIcon icon={Sparkles} tone="pink" size="sm" />
+        <span className="admin-groups-ribbon-mark" aria-hidden="true">✦</span>
       </div>
 
       <section className={styles.metrics} aria-label={t.adminNav.groups}>
@@ -283,7 +270,7 @@ export default function GroupsPage() {
                   className={styles.iconBtn}
                   aria-label={t.common.close}
                 >
-                  <OrnateIcon icon={X} tone="pink" size="sm" />
+                  <span className="admin-groups-action-artwork admin-groups-action-close" aria-hidden="true" />
                 </button>
               </div>
               <form onSubmit={handleSubmit}>
@@ -308,7 +295,7 @@ export default function GroupsPage() {
                 </div>
                 <div className={styles.modalActions}>
                   <button type="submit" disabled={submitting} className={cn(styles.btn, styles.btnPink, 'flex-1 justify-center')}>
-                    <OrnateIcon icon={Save} tone="cream" size="sm" />
+                    <span className="admin-groups-action-artwork admin-groups-action-save" aria-hidden="true" />
                     {submitting ? (editingGroup ? t.adminGroups.updating : t.adminGroups.creating) : t.common.save}
                   </button>
                   <button
@@ -335,7 +322,7 @@ export default function GroupsPage() {
             {groups.map((group) => (
               <article key={group.id} className={styles.groupCard}>
                 <div className="relative z-[1] flex items-start justify-between gap-2">
-                  <OrnateIcon icon={Layers} tone="lavender" size="sm" className="shrink-0 mt-1" />
+                  <span className="admin-groups-action-artwork admin-groups-action-album shrink-0 mt-1" aria-hidden="true" />
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -343,7 +330,7 @@ export default function GroupsPage() {
                       className={styles.iconBtn}
                       aria-label={t.common.edit}
                     >
-                      <OrnateIcon icon={Edit2} tone="lavender" size="sm" />
+                      <span className="admin-groups-action-artwork admin-groups-action-edit" aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -351,7 +338,7 @@ export default function GroupsPage() {
                       className={cn(styles.iconBtn, styles.iconBtnDanger)}
                       aria-label={t.common.delete}
                     >
-                      <OrnateIcon icon={Trash2} tone="pink" size="sm" />
+                      <span className="admin-groups-action-artwork admin-groups-action-trash" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -362,7 +349,7 @@ export default function GroupsPage() {
                 </p>
                 <div className={styles.groupMeta}>
                   <span className={styles.groupCount}>
-                    <OrnateIcon icon={ImageIcon} tone="pink" size="sm" />
+                    <span className="admin-groups-action-artwork admin-groups-action-album" aria-hidden="true" />
                     {group.imageCount} {t.adminGroups.images}
                   </span>
                   <button
@@ -379,7 +366,7 @@ export default function GroupsPage() {
 
             <button type="button" className={styles.createCard} onClick={startCreate}>
               <span className={styles.createPlus}>
-                <OrnateIcon icon={Plus} tone="pink" size="md" />
+                <span className="admin-groups-action-artwork admin-groups-action-create" aria-hidden="true" />
               </span>
               <strong>{t.adminGroups.createGroup}</strong>
               <small>{t.adminGroups.description}</small>

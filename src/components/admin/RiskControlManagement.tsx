@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Shield, Plus, Save, Trash2 } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
 import { useAdminApi } from '@/lib/admin-api-client';
 import { cn } from '@/lib/utils';
-import { OrnateIcon } from '@/components/ui/ornate-icon';
 import styles from '@/app/admin/security/security.module.css';
 
 interface SecurityConfig {
@@ -206,7 +204,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
         <div className={styles.toolbar}>
           <div>
             <h3 className={cn(styles.toolbarTitle, 'flex items-center gap-2')}>
-              <OrnateIcon icon={Shield} tone="mint" size="sm" className={styles.iconAccent} />
+              <span className="admin-security-artwork admin-security-artworkShield admin-security-inline-artwork" aria-hidden="true" />
               {t.adminSecurity.riskControl}
             </h3>
             {config?.guardTriggeredReason ? (
@@ -219,7 +217,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
             disabled={savingConfig}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <OrnateIcon icon={Save} tone="cream" size="sm" />
+            <span className="admin-security-action-artwork securityActionArrow" aria-hidden="true" />
             {savingConfig ? t.adminSecurity.loading : t.adminSecurity.save}
           </button>
         </div>
@@ -310,7 +308,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
               disabled={addingEntry}
               className={cn(styles.btn, styles.btnLavender)}
             >
-              <OrnateIcon icon={Plus} tone="cream" size="sm" />
+              <span className="admin-security-action-artwork securityActionKey" aria-hidden="true" />
               {t.adminSecurity.addWhitelist}
             </button>
           </div>
@@ -348,7 +346,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
                             onClick={() => deleteWhitelistEntry(entry)}
                             className={cn(styles.linkDanger, 'inline-flex items-center gap-1')}
                           >
-                            <OrnateIcon icon={Trash2} tone="pink" size="sm" />
+                            <span className="admin-security-action-artwork securityActionTrash" aria-hidden="true" />
                             {t.adminSecurity.delete}
                           </button>
                         </div>

@@ -15,24 +15,7 @@ import {
   createDefaultSelectionParamsConfig,
   normalizeSelectionParamsConfig
 } from '@/lib/selection-params'
-import { 
-  Shield, 
-  Globe, 
-  Key, 
-  Plus, 
-  Trash2, 
-  Edit2, 
-  Check, 
-  X, 
-  Copy, 
-  ExternalLink, 
-  Play, 
-  Save,
-  Flower2,
-  RefreshCw,
-} from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
-import { OrnateIcon } from '@/components/ui/ornate-icon'
 import pageStyles from '../admin-pages.module.css'
 
 interface APIParameter {
@@ -429,7 +412,7 @@ const {
           <div>
             <h1 className={pageStyles.heroTitle}>
               <span>{t.adminNav.apiConfig}</span>
-              <OrnateIcon icon={Flower2} tone="pink" size="sm" className={pageStyles.heroIconBadge} />
+              <span className="admin-config-illustration admin-config-illustration-hero" aria-hidden="true" />
             </h1>
             <p className={pageStyles.heroSubtitle}>{t.adminConfig.description}</p>
           </div>
@@ -439,7 +422,7 @@ const {
               onClick={() => { loadConfig(); loadGroups(); }}
               className={cn(pageStyles.btn, pageStyles.btnLavender)}
             >
-              <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
+              <span className="admin-config-action admin-config-action-refresh" aria-hidden="true" />
               {t.common.refresh}
             </button>
             <button
@@ -448,7 +431,7 @@ const {
               disabled={saving}
               className={cn(pageStyles.btn, pageStyles.btnPink)}
             >
-              <OrnateIcon icon={Save} tone="cream" size="sm" />
+              <span className="admin-config-action admin-config-action-save" aria-hidden="true" />
               {saving ? t.adminConfig.saving : t.common.save}
             </button>
           </div>
@@ -590,7 +573,7 @@ const {
               <div className="admin-config-toggle-grid">
                 <label>
                   <span>
-                    <OrnateIcon icon={Globe} tone="mint" size="sm" />
+                    <span className="admin-config-illustration admin-config-illustration-shield" aria-hidden="true" />
                     <b>{t.adminConfig.apiStatus}</b>
                     <small>{t.adminConfig.enablePublicAPI}</small>
                   </span>
@@ -606,7 +589,7 @@ const {
                 </label>
                 <label>
                   <span>
-                    <OrnateIcon icon={Key} tone="lavender" size="sm" />
+                    <span className="admin-config-illustration admin-config-illustration-lock" aria-hidden="true" />
                     <b>{t.adminConfig.apiKeyAuth}</b>
                     <small>{t.adminConfig.enableApiKey}</small>
                   </span>
@@ -622,7 +605,7 @@ const {
                 </label>
                 <label>
                   <span>
-                    <OrnateIcon icon={ExternalLink} tone="pink" size="sm" />
+                    <span className="admin-config-illustration admin-config-illustration-notebook" aria-hidden="true" />
                     <b>{t.adminConfig.enableDirectResponse}</b>
                     <small>{t.adminConfig.enableDirectResponseDesc}</small>
                   </span>
@@ -644,7 +627,7 @@ const {
                 <h2>{t.adminConfig.apiKeyValue}</h2>
                 <p className="admin-config-panel-desc">{t.adminConfig.apiKeyValueDesc}</p>
                 <label className="admin-config-inline-field">
-                  <span><OrnateIcon icon={Shield} tone="mint" size="sm" /> {t.adminConfig.apiKeyValue}</span>
+                  <span><span className="admin-config-illustration admin-config-illustration-shield" aria-hidden="true" /> {t.adminConfig.apiKeyValue}</span>
                   <div className="admin-config-inline-controls">
                     <input
                       type="text"
@@ -863,7 +846,7 @@ const {
                   className={cn(pageStyles.btn, pageStyles.btnPink)}
                   onClick={() => setShowAddParameter(true)}
                 >
-                  <OrnateIcon icon={Plus} tone="cream" size="sm" />
+                  <span className="admin-config-action admin-config-action-add" aria-hidden="true" />
                   {t.adminConfig.addParameter}
                 </button>
               </div>
@@ -892,10 +875,10 @@ const {
                       </div>
                       <div className="admin-config-param-actions">
                         <button type="button" aria-label={t.common.edit} onClick={() => setEditingParameter(param)}>
-                          <OrnateIcon icon={Edit2} tone="lavender" size="sm" />
+                          <span className="admin-config-action admin-config-action-edit" aria-hidden="true" />
                         </button>
                         <button type="button" aria-label={t.common.delete} onClick={() => deleteParameter(index)}>
-                          <OrnateIcon icon={Trash2} tone="pink" size="sm" />
+                          <span className="admin-config-action admin-config-action-trash" aria-hidden="true" />
                         </button>
                       </div>
                     </li>
@@ -917,7 +900,7 @@ const {
                   onClick={() => navigator.clipboard.writeText(generateApiUrl())}
                   aria-label={t.common.copy}
                 >
-                  <OrnateIcon icon={Copy} tone="lavender" size="sm" />
+                  <span className="admin-config-action admin-config-action-copy" aria-hidden="true" />
                 </button>
               </div>
             </label>
@@ -930,10 +913,10 @@ const {
                     <div>
                       <code title={example.url}>{example.url}</code>
                       <button type="button" aria-label={t.common.copy} onClick={() => navigator.clipboard.writeText(example.url)}>
-                        <OrnateIcon icon={Copy} tone="lavender" size="sm" />
+                        <span className="admin-config-action admin-config-action-copy" aria-hidden="true" />
                       </button>
                       <button type="button" aria-label="open" onClick={() => window.open(example.url, '_blank')}>
-                        <OrnateIcon icon={ExternalLink} tone="mint" size="sm" />
+                        <span className="admin-config-action admin-config-action-external" aria-hidden="true" />
                       </button>
                     </div>
                   </li>
@@ -956,13 +939,13 @@ const {
                   disabled={!testUrl || testing}
                   aria-label={t.adminConfig.apiTest}
                 >
-                  <OrnateIcon icon={Play} tone="cream" size="sm" />
+                  <span className="admin-config-action admin-config-action-play" aria-hidden="true" />
                 </button>
               </div>
               {testResult && (
                 <div className={cn('admin-config-test-result', testResult.success ? 'is-ok' : 'is-err')}>
                   <p>
-                    <OrnateIcon icon={testResult.success ? Check : X} tone={testResult.success ? "mint" : "pink"} size="sm" />
+                    <span className={cn('admin-config-result-mark', testResult.success ? 'is-ok' : 'is-error')} aria-hidden="true" />
                     <span>{testResult.status} {testResult.statusText}</span>
                   </p>
                   {testResult.error && <p>{testResult.error}</p>}
