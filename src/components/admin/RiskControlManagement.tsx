@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
 import { useAdminApi } from '@/lib/admin-api-client';
 import { cn } from '@/lib/utils';
+import { OrnateIcon } from '@/components/ui/ornate-icon';
 import styles from '@/app/admin/security/security.module.css';
 
 interface SecurityConfig {
@@ -205,7 +206,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
         <div className={styles.toolbar}>
           <div>
             <h3 className={cn(styles.toolbarTitle, 'flex items-center gap-2')}>
-              <Shield className={cn('w-5 h-5', styles.iconAccent)} />
+              <OrnateIcon icon={Shield} tone="mint" size="sm" className={styles.iconAccent} />
               {t.adminSecurity.riskControl}
             </h3>
             {config?.guardTriggeredReason ? (
@@ -218,7 +219,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
             disabled={savingConfig}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <Save className="w-4 h-4" />
+            <OrnateIcon icon={Save} tone="cream" size="sm" />
             {savingConfig ? t.adminSecurity.loading : t.adminSecurity.save}
           </button>
         </div>
@@ -309,7 +310,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
               disabled={addingEntry}
               className={cn(styles.btn, styles.btnLavender)}
             >
-              <Plus className="w-4 h-4" />
+              <OrnateIcon icon={Plus} tone="cream" size="sm" />
               {t.adminSecurity.addWhitelist}
             </button>
           </div>
@@ -347,7 +348,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
                             onClick={() => deleteWhitelistEntry(entry)}
                             className={cn(styles.linkDanger, 'inline-flex items-center gap-1')}
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <OrnateIcon icon={Trash2} tone="pink" size="sm" />
                             {t.adminSecurity.delete}
                           </button>
                         </div>

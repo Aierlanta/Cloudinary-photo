@@ -16,10 +16,10 @@ import {
   Flower2,
   RefreshCw,
   Sparkles,
-  Star,
 } from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
 import AdminPortal from '@/components/admin/AdminPortal'
+import { OrnateIcon } from '@/components/ui/ornate-icon'
 import { cn } from '@/lib/utils'
 import styles from '../admin-pages.module.css'
 
@@ -220,42 +220,42 @@ export default function GroupsPage() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.groups}</span>
-            <Flower2 className={styles.heroIcon} aria-hidden />
+            <OrnateIcon icon={Flower2} tone="pink" size="sm" className={styles.heroIconBadge} />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminGroups.description}</p>
         </div>
         <div className={styles.heroActions}>
           <button type="button" className={cn(styles.btn, styles.btnLavender)} onClick={loadGroups}>
-            <RefreshCw className="w-4 h-4" />
+            <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
             {t.common.refresh}
           </button>
           <button type="button" className={cn(styles.btn, styles.btnPink)} onClick={startCreate}>
-            <Plus className="w-4 h-4" />
+            <OrnateIcon icon={Plus} tone="cream" size="sm" />
             {t.adminGroups.createGroup}
           </button>
         </div>
       </header>
 
       <div className={styles.ribbon}>
-        <Sparkles className="w-4 h-4" aria-hidden />
-        <Layers className="w-4 h-4" aria-hidden />
+        <OrnateIcon icon={Sparkles} tone="pink" size="sm" />
+        <OrnateIcon icon={Layers} tone="lavender" size="sm" />
         <span>{t.adminUi.allGroups}</span>
-        <Sparkles className="w-4 h-4" aria-hidden />
+        <OrnateIcon icon={Sparkles} tone="pink" size="sm" />
       </div>
 
       <section className={styles.metrics} aria-label={t.adminNav.groups}>
         <article className={styles.metric}>
-          <Star className="w-4 h-4 mx-auto text-amber-400" aria-hidden />
+          <span className={cn(styles.metricArtwork, styles.groupArtworkTag)} aria-hidden="true" />
           <span>{t.adminDashboard.groupCount}</span>
           <strong>{groups.length}</strong>
         </article>
         <article className={styles.metric}>
-          <Star className="w-4 h-4 mx-auto text-amber-400" aria-hidden />
+          <span className={cn(styles.metricArtwork, styles.groupArtworkAlbum)} aria-hidden="true" />
           <span>{t.adminGroups.totalImages}</span>
           <strong>{totalImages}</strong>
         </article>
         <article className={styles.metric}>
-          <Star className="w-4 h-4 mx-auto text-amber-400" aria-hidden />
+          <span className={cn(styles.metricArtwork, styles.groupArtworkCheck)} aria-hidden="true" />
           <span>{t.adminUi.avgPerGroup}</span>
           <strong>{averageImages}</strong>
         </article>
@@ -283,7 +283,7 @@ export default function GroupsPage() {
                   className={styles.iconBtn}
                   aria-label={t.common.close}
                 >
-                  <X className="w-4 h-4" />
+                  <OrnateIcon icon={X} tone="pink" size="sm" />
                 </button>
               </div>
               <form onSubmit={handleSubmit}>
@@ -308,7 +308,7 @@ export default function GroupsPage() {
                 </div>
                 <div className={styles.modalActions}>
                   <button type="submit" disabled={submitting} className={cn(styles.btn, styles.btnPink, 'flex-1 justify-center')}>
-                    <Save className="w-4 h-4" />
+                    <OrnateIcon icon={Save} tone="cream" size="sm" />
                     {submitting ? (editingGroup ? t.adminGroups.updating : t.adminGroups.creating) : t.common.save}
                   </button>
                   <button
@@ -335,7 +335,7 @@ export default function GroupsPage() {
             {groups.map((group) => (
               <article key={group.id} className={styles.groupCard}>
                 <div className="relative z-[1] flex items-start justify-between gap-2">
-                  <Layers className="w-5 h-5 text-primary shrink-0 mt-1" aria-hidden />
+                  <OrnateIcon icon={Layers} tone="lavender" size="sm" className="shrink-0 mt-1" />
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -343,7 +343,7 @@ export default function GroupsPage() {
                       className={styles.iconBtn}
                       aria-label={t.common.edit}
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <OrnateIcon icon={Edit2} tone="lavender" size="sm" />
                     </button>
                     <button
                       type="button"
@@ -351,7 +351,7 @@ export default function GroupsPage() {
                       className={cn(styles.iconBtn, styles.iconBtnDanger)}
                       aria-label={t.common.delete}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <OrnateIcon icon={Trash2} tone="pink" size="sm" />
                     </button>
                   </div>
                 </div>
@@ -362,7 +362,7 @@ export default function GroupsPage() {
                 </p>
                 <div className={styles.groupMeta}>
                   <span className={styles.groupCount}>
-                    <ImageIcon className="w-4 h-4" aria-hidden />
+                    <OrnateIcon icon={ImageIcon} tone="pink" size="sm" />
                     {group.imageCount} {t.adminGroups.images}
                   </span>
                   <button
@@ -379,7 +379,7 @@ export default function GroupsPage() {
 
             <button type="button" className={styles.createCard} onClick={startCreate}>
               <span className={styles.createPlus}>
-                <Plus className="w-8 h-8" />
+                <OrnateIcon icon={Plus} tone="pink" size="md" />
               </span>
               <strong>{t.adminGroups.createGroup}</strong>
               <small>{t.adminGroups.description}</small>

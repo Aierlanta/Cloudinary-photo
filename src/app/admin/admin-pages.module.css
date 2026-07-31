@@ -97,6 +97,21 @@
   filter: drop-shadow(0 3px 0 rgba(11, 7, 24, 0.36));
 }
 
+.heroIconBadge {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  transform: translateY(4px) rotate(4deg);
+}
+
+.heroTitle .heroIconBadge,
+.heroTitle .heroIconBadge * {
+  max-width: none;
+  overflow: visible;
+  -webkit-text-stroke: 0;
+  paint-order: normal;
+}
+
 .heroSubtitle {
   max-width: 46rem;
   margin: 11px 0 0;
@@ -217,11 +232,44 @@
 }
 
 .dashboardPage .statCard {
-  align-items: center;
-  min-height: 276px;
-  padding: 145px 14px 18px;
-  justify-content: flex-start;
-  text-align: center;
+  min-height: 158px;
+  padding: 24px 20px 22px 138px;
+  justify-content: center;
+  overflow: visible;
+  border-width: 3px;
+  border-radius: 13px;
+  color: #5d3d50;
+  background:
+    radial-gradient(circle at 15% 18%, rgba(255, 255, 255, 0.82) 0 2px, transparent 3px),
+    repeating-linear-gradient(0deg, rgba(116, 79, 91, 0.04) 0 1px, transparent 1px 5px),
+    linear-gradient(145deg, #fff9ec, #f5e2c7);
+  box-shadow:
+    inset 0 0 0 4px color-mix(in srgb, var(--tone) 16%, transparent),
+    0 10px 0 color-mix(in srgb, var(--tone) 24%, #6d4c5c),
+    0 16px 26px rgba(42, 24, 48, 0.2);
+  clip-path: polygon(
+    10px 0, calc(100% - 10px) 0,
+    100% 10px, 100% calc(100% - 10px),
+    calc(100% - 10px) 100%, 10px 100%,
+    0 calc(100% - 10px), 0 10px
+  );
+}
+
+.dashboardPage .statCard::before {
+  inset: 9px;
+  border-width: 1.5px;
+  border-color: color-mix(in srgb, var(--tone) 76%, #9a756f);
+  border-radius: 8px;
+}
+
+.dashboardPage .statCard::after {
+  content: "⌜";
+  top: 11px;
+  right: 13px;
+  font-family: Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  transform: rotate(90deg);
 }
 
 .tonePink { --tone: var(--admin-pink); }
@@ -229,21 +277,10 @@
 .toneMint { --tone: var(--admin-mint); }
 .toneAmber { --tone: var(--admin-amber); }
 
-.dashboardPage .tonePink {
-  background: linear-gradient(145deg, #ef759d, #d85d88);
-}
-
-.dashboardPage .toneLavender {
-  background: linear-gradient(145deg, #a789d0, #8769b3);
-}
-
-.dashboardPage .toneMint {
-  background: linear-gradient(145deg, #75c9ad, #53a98c);
-}
-
-.dashboardPage .toneAmber {
-  background: linear-gradient(145deg, #f2b54f, #d99331);
-}
+.dashboardPage .tonePink { --tone: #e96591; }
+.dashboardPage .toneLavender { --tone: #a27ccb; }
+.dashboardPage .toneMint { --tone: #66aa9d; }
+.dashboardPage .toneAmber { --tone: #d98a38; }
 
 .statLabel {
   position: relative;
@@ -255,10 +292,12 @@
 }
 
 .dashboardPage .statLabel {
-  order: 3;
-  margin-top: 14px;
-  color: #231a2f;
-  font-size: 1.02rem;
+  margin: 0;
+  color: #5d3d50;
+  font-family: var(--font-display-zh), var(--font-display), ui-serif, serif;
+  font-size: clamp(0.9rem, 1.08vw, 1.12rem);
+  font-weight: 650;
+  letter-spacing: 0.04em;
 }
 
 .statValue {
@@ -274,14 +313,39 @@
 }
 
 .dashboardPage .statValue {
-  order: 2;
-  margin-top: 0;
-  color: var(--admin-cream);
-  font-size: clamp(3.25rem, 4.15vw, 4rem);
-  paint-order: stroke fill;
-  -webkit-text-stroke: 4px color-mix(in srgb, var(--tone) 85%, #5a2847);
-  text-shadow: 0 4px 0 rgba(61, 32, 53, 0.35);
+  margin-top: 9px;
+  color: color-mix(in srgb, var(--tone) 88%, #62394f);
+  font-family: var(--font-display-zh), var(--font-display), ui-serif, serif;
+  font-size: clamp(1.85rem, 2.65vw, 2.75rem);
+  font-weight: 650;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.86);
 }
+
+.statCopy {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+}
+
+.statArtwork {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 13px;
+  width: 116px;
+  height: 116px;
+  transform: translateY(-50%);
+  background-image: url("/admin/ui/dashboard-stat-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 6px 5px rgba(75, 46, 57, 0.24));
+  pointer-events: none;
+}
+
+.statArtworkPhoto { background-position: 0 0; }
+.statArtworkFolder { background-position: 100% 0; }
+.statArtworkClock { background-position: 0 100%; }
+.statArtworkShield { background-position: 100% 100%; }
 
 .statIcon {
   position: absolute;
@@ -294,18 +358,20 @@
 }
 
 .dashboardPage .statIcon {
+  display: grid;
+  place-items: center;
   top: 31px;
   right: 50%;
   bottom: auto;
   width: 108px;
   height: 108px;
-  padding: 24px;
+  padding: 0;
   transform: translateX(50%);
-  color: color-mix(in srgb, var(--tone) 90%, #624666);
-  border: 3px solid color-mix(in srgb, var(--admin-cream) 85%, transparent);
-  border-radius: 24px;
-  background: var(--admin-cream);
-  box-shadow: 0 7px 12px rgba(6, 4, 15, 0.24);
+  color: inherit;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .split {
@@ -392,6 +458,10 @@
   padding-top: 35px;
 }
 
+.dashboardPage .split {
+  grid-template-columns: minmax(0, 1.45fr) minmax(270px, 0.78fr) minmax(250px, 0.72fr);
+}
+
 .dashboardPage .miniGrid {
   transform: translateY(3px);
 }
@@ -407,6 +477,11 @@
 
 .dashboardPage .miniValue {
   font-size: 2.15rem;
+}
+
+.miniStatus {
+  align-self: center;
+  margin-top: 12px;
 }
 
 .miniTrend {
@@ -445,47 +520,141 @@
 }
 
 .dashboardPage .actionLink {
-  min-height: 48px;
-  padding: 8px 14px;
-  border-color: color-mix(in srgb, var(--admin-cream) 74%, var(--admin-pink));
-  color: #fffaf4;
+  min-height: 72px;
+  padding: 8px 48px 8px 76px;
+  overflow: hidden;
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--tone, var(--admin-pink)) 72%, #fff7e7);
+  border-radius: 14px;
+  color: #57394d;
+  background:
+    repeating-linear-gradient(0deg, rgba(91, 57, 73, 0.045) 0 1px, transparent 1px 5px),
+    linear-gradient(145deg, #fff7e9, color-mix(in srgb, var(--tone, var(--admin-pink)) 24%, #fff4e5));
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.52), 0 6px 0 rgba(52, 34, 58, 0.23);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
 }
 
 .dashboardPage .actionLink::after {
-  content: "›";
+  content: "→";
+  position: absolute;
+  right: 13px;
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
   margin-left: auto;
-  color: #fffaf4;
+  border: 1.5px solid color-mix(in srgb, var(--tone, var(--admin-pink)) 80%, #825369);
+  border-radius: 50%;
+  color: #fff8ed;
+  background: var(--tone, var(--admin-pink));
   font-family: var(--font-display), ui-rounded, sans-serif;
-  font-size: 2rem;
+  font-size: 1.15rem;
   line-height: 1;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.28);
 }
 
 .dashboardPage .actionPink {
-  background: linear-gradient(100deg, #ef658d, #f58ba7);
+  --tone: #ed6d96;
 }
 
 .dashboardPage .actionLavender {
-  background: linear-gradient(100deg, #8d72bd, #ad8bd7);
+  --tone: #9e7bc8;
 }
 
 .dashboardPage .actionMint {
-  background: linear-gradient(100deg, #52aa8d, #75c7ad);
+  --tone: #65ae9c;
 }
 
 .dashboardPage .actionIcon {
-  width: 33px;
-  height: 33px;
+  width: 44px;
+  height: 44px;
   color: #fffaf4;
   background: transparent;
 }
 
-.dashboardPage .actionIcon svg {
+.dashboardPage .actionIcon > :global([data-ornate-icon]) {
   width: 27px;
   height: 27px;
 }
 
 .dashboardPage .actionTitle {
-  font-size: 0.94rem;
+  color: #57394d;
+  font-family: var(--font-display-zh), var(--font-display), ui-serif, serif;
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.actionArtwork,
+.healthArtwork {
+  position: absolute;
+  z-index: 2;
+  background-image: url("/admin/ui/dashboard-action-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 5px 4px rgba(56, 36, 62, 0.24));
+  pointer-events: none;
+}
+
+.actionArtwork {
+  top: 50%;
+  left: 9px;
+  width: 58px;
+  height: 58px;
+  transform: translateY(-50%);
+}
+
+.actionArtworkUpload { background-position: 0 0; }
+.actionArtworkFolder { background-position: 100% 0; }
+.actionArtworkApi { background-position: 0 100%; }
+
+.healthPanel {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+}
+
+.healthArtwork {
+  position: relative;
+  width: 138px;
+  height: 138px;
+  margin: -4px auto -10px;
+  background-position: 100% 100%;
+}
+
+.healthStatus {
+  position: relative;
+  z-index: 3;
+  margin-bottom: 8px;
+}
+
+.healthFacts {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 100%;
+  margin: 2px 0 0;
+  gap: 5px;
+}
+
+.healthFacts div {
+  display: grid;
+  padding: 4px 2px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--admin-lavender) 56%, transparent);
+}
+
+.healthFacts dt,
+.healthFacts dd {
+  margin: 0;
+  color: var(--admin-cream);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+
+.healthFacts dd {
+  color: var(--admin-mint);
+  font-weight: 850;
 }
 
 .actionLink:nth-child(2n) {
@@ -1561,7 +1730,7 @@
   display: none;
 }
 
-.page :global(.admin-upload-advanced-options summary > svg) {
+.page :global(.admin-upload-advanced-options summary > [data-ornate-icon]) {
   width: 18px;
   height: 18px;
   color: var(--admin-pink-soft);
@@ -2772,13 +2941,17 @@
 }
 
 .page:global(.admin-groups-page) > .metrics .metric {
-  min-height: 102px;
-  padding: 13px 16px;
-  border-width: 2px;
-  border-radius: 16px;
+  min-height: 126px;
+  padding: 20px 18px 18px 118px;
+  border-width: 3px;
+  border-style: solid;
+  border-radius: 12px;
+  text-align: left;
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,.55), 0 8px 0 rgba(76,48,64,.18);
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px), 0 9px);
 }
 
-.page:global(.admin-groups-page) > .metrics .metric svg {
+.page:global(.admin-groups-page) > .metrics .metric > :global([data-ornate-icon]) {
   width: 47px;
   height: 47px;
   margin: 0 13px 0 0;
@@ -2787,14 +2960,42 @@
 }
 
 .page:global(.admin-groups-page) > .metrics .metric span {
-  padding-top: 6px;
+  padding-top: 0;
+  color: #664759;
+  font-family: var(--font-display-zh), var(--font-display), ui-serif, serif;
   font-size: 1rem;
+  font-weight: 700;
 }
 
 .page:global(.admin-groups-page) > .metrics .metric strong {
   margin-top: 8px;
-  font-size: 2.25rem;
+  color: color-mix(in srgb, var(--tone, var(--admin-pink)) 84%, #684052);
+  font-family: var(--font-display-zh), var(--font-display), ui-serif, serif;
+  font-size: 2.2rem;
 }
+
+.page:global(.admin-groups-page) > .metrics .metric:nth-child(1) { --tone: #e66591; }
+.page:global(.admin-groups-page) > .metrics .metric:nth-child(2) { --tone: #9d7ac6; }
+.page:global(.admin-groups-page) > .metrics .metric:nth-child(3) { --tone: #65a998; }
+
+.metricArtwork {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 10px;
+  width: 101px;
+  height: 101px;
+  padding: 0 !important;
+  transform: translateY(-50%);
+  background-image: url("/admin/ui/groups-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 5px 4px rgba(76, 46, 58, .22));
+}
+
+.groupArtworkTag { background-position: 0 0; }
+.groupArtworkAlbum { background-position: 100% 0; }
+.groupArtworkCheck { background-position: 0 100%; }
 
 .page:global(.admin-groups-page) > .cardGrid {
   margin: 0 0 0 -5px;
@@ -2809,7 +3010,7 @@
   border-radius: 21px;
 }
 
-.page:global(.admin-groups-page) .groupCard > div:first-child > svg {
+.page:global(.admin-groups-page) .groupCard > div:first-child > :global([data-ornate-icon]) {
   width: 88px;
   height: 78px;
   padding: 16px;
@@ -2893,7 +3094,7 @@
   display: grid;
   min-width: 0;
   padding: 16px 20px;
-  grid-template-columns: 90px minmax(0, 1fr);
+  grid-template-columns: 106px minmax(0, 1fr);
   align-items: center;
   gap: 18px;
   overflow: hidden;
@@ -2913,7 +3114,7 @@
   pointer-events: none;
 }
 
-.statusServiceCard > svg:first-child {
+.statusServiceCard > :global([data-ornate-icon]):first-child {
   position: relative;
   z-index: 1;
   width: 90px;
@@ -2960,7 +3161,7 @@
   border-color: var(--admin-amber);
 }
 
-.statusWarning > svg:first-child {
+.statusWarning > :global([data-ornate-icon]):first-child {
   color: #9d5b09;
   background: var(--admin-amber);
   box-shadow: 0 5px 0 rgba(112, 63, 0, 0.48);
@@ -3010,7 +3211,7 @@
   background: var(--admin-secondary-surface);
 }
 
-.statusMetric > svg {
+.statusMetric > :global([data-ornate-icon]) {
   grid-row: 1 / span 2;
   width: 49px;
   height: 49px;
@@ -3068,7 +3269,7 @@
   border-bottom: 0;
 }
 
-.statusProviderList > div > svg {
+.statusProviderList > div > :global([data-ornate-icon]) {
   width: 68px;
   height: 68px;
   padding: 16px;
@@ -3231,7 +3432,7 @@
 .swarmFeatureGrid article:nth-child(2) { border-color: var(--admin-lavender); }
 .swarmFeatureGrid article:nth-child(3) { border-color: var(--admin-mint); }
 
-.swarmFeatureGrid article > svg {
+.swarmFeatureGrid article > :global([data-ornate-icon]) {
   width: 78px;
   height: 78px;
   padding: 18px;
@@ -4068,7 +4269,7 @@
 .page :global(.admin-security-overview article.is-amber) { border-color: var(--admin-amber); }
 .page :global(.admin-security-overview article.is-lavender) { border-color: var(--admin-lavender); }
 
-.page :global(.admin-security-overview article > svg) {
+.page :global(.admin-security-overview article > [data-ornate-icon]) {
   position: absolute;
   top: 19px;
   left: 20px;
@@ -4081,9 +4282,9 @@
   background: var(--admin-contrast-icon-bg);
 }
 
-.page :global(.admin-security-overview .is-pink > svg) { color: var(--admin-pink); }
-.page :global(.admin-security-overview .is-amber > svg) { color: var(--admin-amber); }
-.page :global(.admin-security-overview .is-lavender > svg) { color: var(--admin-lavender); }
+.page :global(.admin-security-overview .is-pink > [data-ornate-icon]) { color: var(--admin-pink); }
+.page :global(.admin-security-overview .is-amber > [data-ornate-icon]) { color: var(--admin-amber); }
+.page :global(.admin-security-overview .is-lavender > [data-ornate-icon]) { color: var(--admin-lavender); }
 
 .page :global(.admin-security-overview span) {
   color: var(--admin-cream);
@@ -4122,7 +4323,7 @@
 }
 
 .page:global(.admin-security-page) > .tabs .tab .pill,
-.page:global(.admin-security-page) > .tabs .tab svg {
+.page:global(.admin-security-page) > .tabs .tab :global([data-ornate-icon]) {
   display: none;
 }
 
@@ -4652,11 +4853,41 @@
   align-items: center;
 }
 
-.page :global(.admin-config-toggle-grid > label > span:first-child > svg) {
+.page :global(.admin-config-toggle-grid > label > span:first-child > [data-ornate-icon]) {
   grid-row: 1 / span 2;
-  width: 20px;
-  height: 20px;
-  color: var(--admin-pink-soft);
+  width: 58px;
+  height: 58px;
+  margin-right: 5px;
+  border: 0;
+  border-radius: 0;
+  background-image: url("/admin/ui/config-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  box-shadow: none;
+  clip-path: none;
+  filter: drop-shadow(0 5px 4px rgba(54, 34, 59, .26));
+}
+
+.page :global(.admin-config-toggle-grid > label:nth-child(1) > span:first-child > [data-ornate-icon]) { background-position: 0 0; }
+.page :global(.admin-config-toggle-grid > label:nth-child(2) > span:first-child > [data-ornate-icon]) { background-position: 100% 0; }
+.page :global(.admin-config-toggle-grid > label:nth-child(3) > span:first-child > [data-ornate-icon]) { background-position: 0 100%; }
+
+.page :global(.admin-config-toggle-grid > label > span:first-child > [data-ornate-icon]::before),
+.page :global(.admin-config-toggle-grid > label > span:first-child > [data-ornate-icon]::after),
+.page :global(.admin-config-toggle-grid > label > span:first-child > [data-ornate-icon] > *) {
+  display: none;
+}
+
+.page :global(.admin-config-toggle-grid > label > span:first-child) {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.page:global(.admin-config-page) :global(.admin-config-panel) {
+  border-color: color-mix(in srgb, var(--admin-pink) 58%, var(--admin-lavender));
+  background:
+    radial-gradient(circle at 92% 12%, rgba(244, 147, 181, .09) 0 28px, transparent 29px),
+    linear-gradient(145deg, #342741, #221b33);
+  box-shadow: inset 0 0 0 5px rgba(255,255,255,.025), 0 10px 22px rgba(7,4,16,.28);
 }
 
 .page :global(.admin-config-toggle-grid > label > span:first-child > b) {
@@ -5262,6 +5493,359 @@
   font-weight: 700;
 }
 
+.statusServiceArtwork {
+  position: relative;
+  z-index: 2;
+  width: 106px;
+  height: 106px;
+  background-image: url("/admin/ui/status-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 0 11px rgba(112, 222, 181, .2));
+}
+
+.statusArtworkShield { background-position: 0 0; }
+.statusArtworkClock { background-position: 100% 0; }
+.statusArtworkCalendar { background-position: 0 100%; }
+.statusArtworkServer { background-position: 100% 100%; }
+
+/* Page-local materials. The rail remains consistent, while each workspace
+   borrows the paper, object shape and accent balance from its own reference. */
+.dashboardHero {
+  border-color: #e89ab3;
+  background:
+    radial-gradient(circle at 14% 26%, rgba(244, 151, 181, 0.2) 0 9%, transparent 10%),
+    radial-gradient(circle at 87% 74%, rgba(126, 196, 164, 0.18) 0 8%, transparent 9%),
+    linear-gradient(145deg, #fff9e9, #f7e5ca);
+  box-shadow: inset 0 0 0 7px rgba(255, 255, 255, 0.68), 0 11px 24px rgba(91, 53, 75, 0.18);
+}
+
+.dashboardHero .heroTitle {
+  color: #7a3f5c;
+  filter: drop-shadow(0 5px 0 rgba(218, 172, 190, 0.34));
+}
+
+.dashboardHero .heroTitle span {
+  -webkit-text-stroke-color: #fff8ea;
+}
+
+.dashboardHero .heroSubtitle {
+  color: #765a68;
+}
+
+.page:global(.admin-groups-page) > .metrics .metric,
+.page:global(.admin-groups-page) .groupCard,
+.page:global(.admin-groups-page) .createCard {
+  color: #57394b;
+  border-color: #e4a0b8;
+  background:
+    repeating-linear-gradient(0deg, rgba(116, 75, 88, 0.045) 0 1px, transparent 1px 7px),
+    linear-gradient(145deg, #fffaf0, #f5e3c8);
+  box-shadow: 0 10px 20px rgba(86, 52, 72, 0.16);
+}
+
+.page:global(.admin-groups-page) > .metrics .metric:nth-child(2),
+.page:global(.admin-groups-page) .groupCard:nth-child(2n) {
+  border-color: #bba1d4;
+  background: linear-gradient(145deg, #fff9ee, #ebdef3);
+}
+
+.page:global(.admin-groups-page) > .metrics .metric:nth-child(3),
+.page:global(.admin-groups-page) .groupCard:nth-child(3n) {
+  border-color: #86cbb1;
+  background: linear-gradient(145deg, #fff9ed, #dceee2);
+}
+
+.page:global(.admin-groups-page) .groupName,
+.page:global(.admin-groups-page) .groupDesc,
+.page:global(.admin-groups-page) .groupId,
+.page:global(.admin-groups-page) .createCard small {
+  color: #654959;
+}
+
+.page:global(.admin-groups-page) .groupId {
+  border-color: rgba(116, 76, 96, 0.28);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.page:global(.admin-groups-page) .iconBtn {
+  color: #654959;
+  background: #fff8ea;
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-entry) {
+  color: #533848;
+  border-color: #dfb5a5 !important;
+  background:
+    linear-gradient(90deg, rgba(230, 135, 163, 0.16) 0 4px, transparent 4px),
+    repeating-linear-gradient(0deg, #fff9ec 0 23px, #ead8ca 24px, #fff9ec 25px) !important;
+  box-shadow: 0 6px 13px rgba(91, 55, 69, 0.12);
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-time),
+.page:global(.admin-logs-page) :global(.admin-log-message) {
+  color: #5b4050 !important;
+}
+
+.page:global(.admin-backup-page) > .statGrid .statCard {
+  color: #5d4160;
+  border-color: #c5a3d6;
+  background:
+    repeating-linear-gradient(0deg, rgba(105, 75, 115, 0.06) 0 2px, transparent 2px 8px),
+    linear-gradient(145deg, #fff8ea, #e8d9ef);
+  box-shadow: 0 10px 20px rgba(82, 57, 92, 0.16);
+}
+
+.page:global(.admin-backup-page) > .statGrid .statCard:nth-child(2) {
+  border-color: #86cbb1;
+  background: linear-gradient(145deg, #fff9eb, #dceee3);
+}
+
+.page:global(.admin-backup-page) > .statGrid .statLabel {
+  color: #735a70;
+}
+
+/* The backup reference uses four different database objects, not one shared
+   line icon. The wrapper remains data-driven while the illustration changes
+   with the card's meaning. */
+.page:global(.admin-backup-page) > .statGrid .statIcon {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/admin/ui/backup-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 7px 6px rgba(73, 44, 69, 0.22));
+}
+
+.page:global(.admin-backup-page) > .statGrid .statCard:nth-child(1) .statIcon { background-position: 100% 100%; }
+.page:global(.admin-backup-page) > .statGrid .statCard:nth-child(2) .statIcon { background-position: 100% 0; }
+.page:global(.admin-backup-page) > .statGrid .statCard:nth-child(3) .statIcon { background-position: 0 100%; }
+.page:global(.admin-backup-page) > .statGrid .statCard:nth-child(4) .statIcon { background-position: 0 0; }
+
+.page:global(.admin-backup-page) > .statGrid .statIcon > :global([data-ornate-icon]) {
+  display: none;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-overview article) {
+  color: #53384b;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.84) 0 4px, transparent 5px),
+    linear-gradient(145deg, #fff9eb, #f3e2c9);
+  box-shadow: 0 9px 18px rgba(89, 52, 73, 0.15);
+}
+
+.page:global(.admin-security-page) :global(.admin-security-overview span) {
+  color: #74586a;
+}
+
+.page:global(.admin-security-page) :global(.admin-security-overview article > [data-ornate-icon]) {
+  padding: 0;
+  border-color: #fff7e8;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/admin/ui/security-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 7px 6px rgba(73, 44, 69, 0.2));
+}
+
+.page:global(.admin-security-page) :global(.admin-security-overview article:nth-child(1) > [data-ornate-icon]) { background-position: 0 0; }
+.page:global(.admin-security-page) :global(.admin-security-overview article:nth-child(2) > [data-ornate-icon]) { background-position: 100% 0; }
+.page:global(.admin-security-page) :global(.admin-security-overview article:nth-child(3) > [data-ornate-icon]) { background-position: 0 100%; }
+.page:global(.admin-security-page) :global(.admin-security-overview article:nth-child(4) > [data-ornate-icon]) { background-position: 100% 100%; }
+
+.page:global(.admin-security-page) :global(.admin-security-overview article > [data-ornate-icon] > *),
+.page:global(.admin-security-page) :global(.admin-security-overview article > [data-ornate-icon]::before),
+.page:global(.admin-security-page) :global(.admin-security-overview article > [data-ornate-icon]::after) {
+  display: none;
+}
+
+.page:global(.admin-swarm-page) .swarmFeatureGrid article {
+  background:
+    radial-gradient(circle at 92% 16%, rgba(132, 91, 55, 0.1) 0 18px, transparent 19px),
+    linear-gradient(145deg, #fff8e7, #eed6b3);
+  box-shadow: 0 9px 18px rgba(91, 61, 43, 0.16);
+}
+
+.page:global(.admin-swarm-page) .swarmFeatureGrid h2,
+.page:global(.admin-swarm-page) .swarmFeatureGrid p {
+  color: #5d4638;
+}
+
+.page:global(.admin-swarm-page) > .statGrid .statIcon {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/admin/ui/swarm-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 7px 6px rgba(55, 48, 83, 0.22));
+}
+
+.page:global(.admin-swarm-page) > .statGrid .statCard:nth-child(1) .statIcon { background-position: 0 0; }
+.page:global(.admin-swarm-page) > .statGrid .statCard:nth-child(2) .statIcon { background-position: 100% 0; }
+.page:global(.admin-swarm-page) > .statGrid .statCard:nth-child(3) .statIcon { background-position: 0 100%; }
+.page:global(.admin-swarm-page) > .statGrid .statCard:nth-child(4) .statIcon { background-position: 100% 100%; }
+
+.page:global(.admin-swarm-page) > .statGrid .statIcon > :global([data-ornate-icon]) {
+  display: none;
+}
+
+.page:global(.admin-swarm-page) .swarmFeatureGrid article > :global([data-ornate-icon]) {
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/admin/ui/swarm-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 7px 6px rgba(76, 49, 41, 0.2));
+}
+
+.page:global(.admin-swarm-page) .swarmFeatureGrid article:nth-child(1) > :global([data-ornate-icon]) { background-position: 0 0; }
+.page:global(.admin-swarm-page) .swarmFeatureGrid article:nth-child(2) > :global([data-ornate-icon]) { background-position: 100% 0; }
+.page:global(.admin-swarm-page) .swarmFeatureGrid article:nth-child(3) > :global([data-ornate-icon]) { background-position: 100% 100%; }
+
+.page:global(.admin-swarm-page) .swarmFeatureGrid article > :global([data-ornate-icon] > *),
+.page:global(.admin-swarm-page) .swarmFeatureGrid article > :global([data-ornate-icon]::before),
+.page:global(.admin-swarm-page) .swarmFeatureGrid article > :global([data-ornate-icon]::after) {
+  display: none;
+}
+
+/* Upload page: replace the old rounded SVG badge with the cloud/photo object
+   from this page's own reference artwork. */
+.page:global(.admin-upload-page) :global(.admin-upload-dropzone.is-file-upload .w-12) {
+  width: 268px !important;
+  height: 188px !important;
+  border: 0;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url("/admin/ui/upload-hero.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+  box-shadow: none;
+  filter: drop-shadow(0 12px 10px rgba(43, 29, 62, 0.25));
+}
+
+.page:global(.admin-upload-page) :global(.admin-upload-dropzone.is-file-upload .w-12 > [data-ornate-icon]) {
+  display: none;
+}
+
+/* Log rows use stationery objects with level-specific materials. */
+.page:global(.admin-logs-page) :global(.admin-log-entry-layout) {
+  display: grid !important;
+  grid-template-columns: 66px minmax(0, 1fr);
+  align-items: center !important;
+  gap: 15px;
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-artwork) {
+  display: block;
+  width: 64px;
+  height: 64px;
+  align-self: start;
+  background-image: url("/admin/ui/logs-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 5px 5px rgba(76, 47, 59, 0.17));
+}
+
+.page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="0"]) { background-position: 0 0; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="1"]) { background-position: 0 100%; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="2"]) { background-position: 100% 100%; }
+.page:global(.admin-logs-page) :global(.admin-log-artwork[data-level="3"]) { background-position: 100% 0; }
+
+/* Group cards use the album object from their own stationery set. */
+.page:global(.admin-groups-page) .groupCard > div:first-child > :global([data-ornate-icon]) {
+  width: 92px;
+  height: 82px;
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/admin/ui/groups-icons.png");
+  background-repeat: no-repeat;
+  background-position: 100% 0;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 6px 5px rgba(72, 45, 65, 0.2));
+}
+
+.page:global(.admin-groups-page) .groupCard > div:first-child > :global([data-ornate-icon] > *),
+.page:global(.admin-groups-page) .groupCard > div:first-child > :global([data-ornate-icon]::before),
+.page:global(.admin-groups-page) .groupCard > div:first-child > :global([data-ornate-icon]::after) {
+  display: none;
+}
+
+.page:global(.admin-groups-page) .createPlus {
+  width: 104px;
+  height: 104px;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/admin/ui/groups-icons.png");
+  background-repeat: no-repeat;
+  background-position: 100% 100%;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 6px 5px rgba(72, 45, 65, 0.18));
+}
+
+.page:global(.admin-groups-page) .createPlus > :global([data-ornate-icon]) {
+  display: none;
+}
+
+/* Status details share the page's luminous service-object set while each row
+   keeps its original live values and health logic. */
+.page:global(.admin-status-page) .statusMetric > :global([data-ornate-icon]),
+.page:global(.admin-status-page) .statusProviderList > div > :global([data-ornate-icon]) {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("/admin/ui/status-icons.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 5px 5px rgba(32, 83, 75, 0.22));
+}
+
+.page:global(.admin-status-page) .statusMetric:nth-child(1) > :global([data-ornate-icon]) { background-position: 0 0; }
+.page:global(.admin-status-page) .statusMetric:nth-child(2) > :global([data-ornate-icon]) { background-position: 100% 0; }
+.page:global(.admin-status-page) .statusMetric:nth-child(3) > :global([data-ornate-icon]) { background-position: 0 100%; }
+.page:global(.admin-status-page) .statusMetric:nth-child(4) > :global([data-ornate-icon]) { background-position: 100% 100%; }
+.page:global(.admin-status-page) .statusProviderList > div:nth-child(1) > :global([data-ornate-icon]) { background-position: 0 0; }
+.page:global(.admin-status-page) .statusProviderList > div:nth-child(2) > :global([data-ornate-icon]) { background-position: 100% 100%; }
+.page:global(.admin-status-page) .statusProviderList > div:nth-child(3) > :global([data-ornate-icon]) { background-position: 0 100%; }
+
+.page:global(.admin-status-page) .statusMetric > :global([data-ornate-icon] > *),
+.page:global(.admin-status-page) .statusMetric > :global([data-ornate-icon]::before),
+.page:global(.admin-status-page) .statusMetric > :global([data-ornate-icon]::after),
+.page:global(.admin-status-page) .statusProviderList > div > :global([data-ornate-icon] > *),
+.page:global(.admin-status-page) .statusProviderList > div > :global([data-ornate-icon]::before),
+.page:global(.admin-status-page) .statusProviderList > div > :global([data-ornate-icon]::after) {
+  display: none;
+}
+
+.page:global(.admin-swarm-page) :global(.admin-swarm-field),
+.page:global(.admin-swarm-page) :global(.admin-swarm-switch-row),
+.page:global(.admin-swarm-page) :global(.admin-swarm-provider-card) {
+  border-color: #c99c67;
+  background:
+    linear-gradient(30deg, transparent 24%, rgba(133, 91, 51, 0.07) 25% 26%, transparent 27% 74%, rgba(133, 91, 51, 0.07) 75% 76%, transparent 77%),
+    linear-gradient(145deg, #fff5df, #ead2ad);
+}
+
+.page:global(.admin-swarm-page) :global(.admin-swarm-field > span),
+.page:global(.admin-swarm-page) :global(.admin-swarm-switch-row strong),
+.page:global(.admin-swarm-page) :global(.admin-swarm-provider-card strong) {
+  color: #5d4638;
+}
+
+.page:global(.admin-swarm-page) :global(.admin-swarm-switch-row small),
+.page:global(.admin-swarm-page) :global(.admin-swarm-provider-card small) {
+  color: #7a6250;
+}
+
 @media (max-width: 1180px) {
   .page :global(.admin-config-advanced) {
     grid-template-columns: 1fr;
@@ -5649,6 +6233,27 @@
     margin-top: 7px;
   }
 
+  .dashboardPage .statCard {
+    min-height: 126px;
+    padding: 18px 14px 18px 124px;
+    align-items: stretch;
+  }
+
+  .dashboardPage .statArtwork {
+    left: 9px;
+    width: 106px;
+    height: 106px;
+  }
+
+  .dashboardPage .statLabel {
+    color: #5d3d50;
+  }
+
+  .dashboardPage .actionLink {
+    min-height: 68px;
+    padding-left: 72px;
+  }
+
   .groupCard,
   .createCard {
     min-height: 190px;
@@ -5939,7 +6544,7 @@
     border-radius: 15px;
   }
 
-  .page :global(.admin-security-overview article > svg) {
+  .page :global(.admin-security-overview article > [data-ornate-icon]) {
     top: 18px;
     left: 12px;
     width: 44px;
@@ -5986,7 +6591,7 @@
   .statusDetailPanel { min-height: 0; margin-top: 12px; }
   .statusMetricGrid { grid-template-columns: 1fr; }
   .statusProviderList > div { grid-template-columns: 55px minmax(0, 1fr) auto; gap: 10px; }
-  .statusProviderList > div > svg { width: 55px; height: 55px; padding: 12px; }
+  .statusProviderList > div > :global([data-ornate-icon]) { width: 55px; height: 55px; padding: 12px; }
   .statusProviderList strong { font-size: 1.1rem; }
 
   .page:global(.admin-swarm-page) > .statGrid,
@@ -6044,7 +6649,7 @@
   .page:global(.admin-groups-page) > .cardGrid { transform: none; }
   .page:global(.admin-groups-page) > .metrics { gap: 10px; }
   .page:global(.admin-groups-page) > .metrics .metric { min-height: 86px; }
-  .page:global(.admin-groups-page) > .metrics .metric svg { width: 31px; height: 31px; margin-right: 8px; }
+  .page:global(.admin-groups-page) > .metrics .metric > :global([data-ornate-icon]) { width: 31px; height: 31px; margin-right: 8px; }
   .page:global(.admin-groups-page) .groupName,
   .page:global(.admin-groups-page) .groupId { margin-left: 0; }
   .page:global(.admin-groups-page) .groupName { margin-top: 0; }

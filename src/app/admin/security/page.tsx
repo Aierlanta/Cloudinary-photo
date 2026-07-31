@@ -22,6 +22,7 @@ import {
 import { IPLocationBadge } from "@/components/admin/IPLocation";
 import { useAdminApi } from "@/lib/admin-api-client";
 import AdminPortal from "@/components/admin/AdminPortal";
+import { OrnateIcon } from "@/components/ui/ornate-icon";
 import styles from "../admin-pages.module.css";
 import securityStyles from "./security.module.css";
 
@@ -219,7 +220,7 @@ export default function SecurityManagement() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminUi.securityCenter}</span>
-            <Shield className={styles.heroIcon} aria-hidden />
+            <OrnateIcon icon={Shield} tone="mint" size="sm" className={styles.heroIconBadge} />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminUi.securityOverview}</p>
         </div>
@@ -229,7 +230,7 @@ export default function SecurityManagement() {
             onClick={handleRefresh}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+            <OrnateIcon icon={RefreshCw} tone="cream" size="sm" className={loading ? "animate-spin" : undefined} />
             {t.common.refresh}
           </button>
         </div>
@@ -238,10 +239,10 @@ export default function SecurityManagement() {
       <section className="admin-security-overview" aria-label={t.adminUi.securityOverview}>
         <h2>{t.adminUi.securityOverview}</h2>
         <div>
-          <article className="is-safe"><Shield aria-hidden /><span>{t.adminUi.riskLevel}</span><strong>{t.adminUi.low}</strong></article>
-          <article className="is-pink"><Ban aria-hidden /><span>{t.adminSecurity.bannedIPs}</span><strong>{bannedIPs.length}</strong></article>
-          <article className="is-amber"><KeyRound aria-hidden /><span>{t.adminUi.failedAuthsToday}</span><strong>{rateLimits.length}</strong></article>
-          <article className="is-lavender"><Eye aria-hidden /><span>{t.adminUi.suspicious24h}</span><strong>{stats?.uniqueIPCount || 0}</strong></article>
+          <article className="is-safe"><OrnateIcon icon={Shield} tone="mint" size="sm" /><span>{t.adminUi.riskLevel}</span><strong>{t.adminUi.low}</strong></article>
+          <article className="is-pink"><OrnateIcon icon={Ban} tone="pink" size="sm" /><span>{t.adminSecurity.bannedIPs}</span><strong>{bannedIPs.length}</strong></article>
+          <article className="is-amber"><OrnateIcon icon={KeyRound} tone="amber" size="sm" /><span>{t.adminUi.failedAuthsToday}</span><strong>{rateLimits.length}</strong></article>
+          <article className="is-lavender"><OrnateIcon icon={Eye} tone="lavender" size="sm" /><span>{t.adminUi.suspicious24h}</span><strong>{stats?.uniqueIPCount || 0}</strong></article>
         </div>
       </section>
 
@@ -256,7 +257,7 @@ export default function SecurityManagement() {
               onClick={() => setActiveTab(tab.id)}
               className={cn(styles.tab, active && styles.tabActive)}
             >
-              <Icon className="w-4 h-4" />
+              <OrnateIcon icon={Icon} tone={active ? "pink" : "lavender"} size="sm" />
               <span>{tab.label}</span>
               <span className={cn(styles.pill, active ? styles.pillPink : styles.pillLavender)}>
                 {tab.meta}
@@ -288,7 +289,7 @@ export default function SecurityManagement() {
                   >
                     <p className={styles.statLabel}>{t.adminSecurity.lastHour}</p>
                     <p className={styles.statValue}>{realtimeStats?.lastHour || 0}</p>
-                    <Clock className={styles.statIcon} aria-hidden />
+                    <span className={styles.statIcon}><OrnateIcon icon={Clock} tone="lavender" size="sm" /></span>
                   </button>
                   <button
                     type="button"
@@ -302,7 +303,7 @@ export default function SecurityManagement() {
                   >
                     <p className={styles.statLabel}>{t.adminSecurity.last24Hours}</p>
                     <p className={styles.statValue}>{realtimeStats?.last24Hours || 0}</p>
-                    <Activity className={styles.statIcon} aria-hidden />
+                    <span className={styles.statIcon}><OrnateIcon icon={Activity} tone="mint" size="sm" /></span>
                   </button>
                   <button
                     type="button"
@@ -316,14 +317,14 @@ export default function SecurityManagement() {
                   >
                     <p className={styles.statLabel}>{t.adminSecurity.totalAccess}</p>
                     <p className={styles.statValue}>{realtimeStats?.total || 0}</p>
-                    <Globe className={styles.statIcon} aria-hidden />
+                    <span className={styles.statIcon}><OrnateIcon icon={Globe} tone="pink" size="sm" /></span>
                   </button>
                 </section>
 
                 <section className={styles.split}>
                   <article className={styles.panel}>
                     <h2 className={cn(styles.panelTitle, "flex items-center gap-2")}>
-                      <BarChart2 className="w-4 h-4 text-primary" />
+                      <OrnateIcon icon={BarChart2} tone="lavender" size="sm" />
                       {t.adminSecurity.topPaths}
                     </h2>
                     <div className="relative z-[1] space-y-2">
@@ -353,18 +354,18 @@ export default function SecurityManagement() {
                   <article className={styles.panel}>
                     <div className="relative z-[1] flex items-center gap-3 mb-4 flex-wrap">
                       <h2 className={cn(styles.panelTitle, "flex items-center gap-2 m-0")}>
-                        <Shield className="w-4 h-4 text-primary" />
+                        <OrnateIcon icon={Shield} tone="mint" size="sm" />
                         {t.adminSecurity.topIPs}
                       </h2>
                       <span className={cn(styles.pill, styles.pillLavender)}>{topIPRangeLabel}</span>
                       {topIPLoading && (
-                        <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                        <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" className="animate-spin" />
                       )}
                     </div>
                     <div className="relative z-[1] space-y-2">
                       {topIPLoading ? (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" className="animate-spin" />
                           {t.adminSecurity.loading}
                         </div>
                       ) : topIPs.length > 0 ? (
@@ -431,21 +432,21 @@ export default function SecurityManagement() {
                           <td><span className="admin-security-switch"><i /> {t.adminSecurity.enabled}</span></td>
                           <td>
                             <button type="button" onClick={() => setShowRateSettings(true)}>{t.common.edit}</button>
-                            <button type="button" className="admin-security-delete-action" aria-label={t.adminUi.manageRateLimitDeletion} onClick={() => setShowRateSettings(true)}><Trash2 aria-hidden /></button>
+                            <button type="button" className="admin-security-delete-action" aria-label={t.adminUi.manageRateLimitDeletion} onClick={() => setShowRateSettings(true)}><OrnateIcon icon={Trash2} tone="pink" size="sm" /></button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p><Activity aria-hidden /> {t.adminUi.rateLimitHint}</p>
+                <p><OrnateIcon icon={Activity} tone="lavender" size="sm" /> {t.adminUi.rateLimitHint}</p>
               </section>
             )}
 
             {activeTab === "locations" && (
               <section className={styles.panel}>
                 <h2 className={cn(styles.panelTitle, "flex items-center gap-2")}>
-                  <Globe className="w-4 h-4 text-primary" />
+                  <OrnateIcon icon={Globe} tone="mint" size="sm" />
                   {t.adminUi.locations}
                 </h2>
                 <div className="relative z-[1] space-y-2">
@@ -483,7 +484,7 @@ export default function SecurityManagement() {
                 aria-label={t.adminUi.closeRateSettings}
                 onClick={() => setShowRateSettings(false)}
               >
-                <X aria-hidden />
+                <OrnateIcon icon={X} tone="pink" size="sm" />
               </button>
               <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
             </div>

@@ -5,13 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  BookOpen,
-  Github,
   Heart,
   Image as ImageIcon,
-  Languages,
-  Moon,
-  Sun,
 } from "lucide-react";
 
 import { LocaleProvider, useLocale } from "@/hooks/useLocale";
@@ -22,6 +17,7 @@ import {
   type Theme,
 } from "@/lib/adminTheme";
 import { cn } from "@/lib/utils";
+import { OrnateIcon } from "@/components/ui/ornate-icon";
 
 import styles from "./home.module.css";
 
@@ -63,209 +59,23 @@ const itemVariants = {
 };
 
 function FourPointStar({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <path
-        d="M16 1.8c1.5 8.2 3.9 10.6 12.2 12.2C19.9 15.5 17.5 18 16 26.2 14.5 18 12.1 15.5 3.8 14 12.1 12.4 14.5 10 16 1.8Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
+  return <span className={cn(styles.mark, styles.markSpark, className)} aria-hidden />;
 }
 
 function Sakura({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <g fill="currentColor">
-        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" />
-        <ellipse
-          cx="16"
-          cy="7.2"
-          rx="4.2"
-          ry="5.6"
-          transform="rotate(72 16 16)"
-        />
-        <ellipse
-          cx="16"
-          cy="7.2"
-          rx="4.2"
-          ry="5.6"
-          transform="rotate(144 16 16)"
-        />
-        <ellipse
-          cx="16"
-          cy="7.2"
-          rx="4.2"
-          ry="5.6"
-          transform="rotate(216 16 16)"
-        />
-        <ellipse
-          cx="16"
-          cy="7.2"
-          rx="4.2"
-          ry="5.6"
-          transform="rotate(288 16 16)"
-        />
-        <circle cx="16" cy="16" r="3.1" fill="#fff5f2" />
-        <circle cx="16" cy="16" r="1.45" fill="#ff9fbd" />
-      </g>
-    </svg>
-  );
+  return <span className={cn(styles.mark, styles.markFlower, className)} aria-hidden />;
 }
 
 function DoodleHeart({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 56 52" className={className} aria-hidden>
-      <path
-        d="M28 45.2C22.7 39.8 7.3 31.7 5.9 17.9 5.1 9.7 10.2 5 16.5 5c5.2 0 9.1 3.1 11.5 7.1C30.4 8.1 34.3 5 39.5 5c6.3 0 11.4 4.7 10.6 12.9C48.7 31.7 33.3 39.8 28 45.2Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M27.8 39.1C23.6 35.2 11.7 28.1 10.4 18.4c-.8-5.9 2.7-9.2 7-9.2 4.7 0 8.2 3.9 10.4 7.8 2.2-3.9 5.8-7.8 10.5-7.8 4.3 0 7.8 3.3 7 9.2-1.3 9.7-13.2 16.8-17.5 20.7Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity=".65"
-      />
-    </svg>
-  );
+  return <span className={cn(styles.mark, styles.markHeart, className)} aria-hidden />;
 }
 
 function DoodleStar({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 52 52" className={className} aria-hidden>
-      <path
-        d="m26 4.8 6.1 12.4 13.7 2-9.9 9.7 2.3 13.6L26 36.1l-12.2 6.4 2.3-13.6-9.9-9.7 13.7-2L26 4.8Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m26 10.9 4.3 8.8 9.7 1.4-7 6.8 1.7 9.6-8.7-4.6-8.7 4.6 1.7-9.6-7-6.8 9.7-1.4 4.3-8.8Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity=".55"
-      />
-    </svg>
-  );
-}
-
-function PictureStatIcon() {
-  return (
-    <svg viewBox="0 0 58 58" aria-hidden>
-      <rect
-        x="8"
-        y="9"
-        width="42"
-        height="40"
-        rx="5"
-        fill="#fff7f5"
-        stroke="currentColor"
-        strokeWidth="2.8"
-      />
-      <circle cx="20" cy="21" r="4.3" fill="#ffd5df" />
-      <path
-        d="m12.5 43 11.8-12 8.1 7 5.5-5.5L46 43Z"
-        fill="#ff9cb4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function FolderStarIcon() {
-  return (
-    <svg viewBox="0 0 64 58" aria-hidden>
-      <path
-        d="M7 15.5h18l5.2 5H57v28H7Z"
-        fill="#b898e4"
-        stroke="#7650ad"
-        strokeWidth="2.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M7 15.5v-5h17l5.2 5H57v5H30.2l-5.2-5Z"
-        fill="#d4bff0"
-        stroke="#7650ad"
-        strokeWidth="2.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m39 27.2 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8Z"
-        fill="#ffd36a"
-        stroke="#8b68be"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ShieldBadgeIcon() {
-  return (
-    <svg viewBox="0 0 60 64" aria-hidden>
-      <path
-        d="M30 4.5 51 12v17.5c0 14.8-9.1 24.4-21 30-11.9-5.6-21-15.2-21-30V12Z"
-        fill="#6dcbb6"
-        stroke="#218f7b"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M30 11.5 44 16v13.1c0 10.2-5.7 17.2-14 21.6-8.3-4.4-14-11.4-14-21.6V16Z"
-        fill="#a9e2d5"
-        stroke="#f8fffd"
-        strokeWidth="2"
-      />
-      <path
-        d="m22.8 30.8 4.8 4.7 9.9-10"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <span className={cn(styles.mark, styles.markStar, className)} aria-hidden />;
 }
 
 function RibbonBow({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 150 82" className={className} aria-hidden>
-      <g stroke="#b95b72" strokeWidth="2.2" strokeLinejoin="round">
-        <path d="M67 37C50 11 19 5 12 18 5 32 31 50 64 47Z" fill="#ff9fba" />
-        <path d="M83 37c17-26 48-32 55-19 7 14-19 32-52 29Z" fill="#ff9fba" />
-        <path d="M61 44 43 76l30-15 2-18Z" fill="#ef87aa" />
-        <path d="m89 44 18 32-30-15-2-18Z" fill="#ef87aa" />
-        <rect x="64" y="30" width="22" height="22" rx="7" fill="#ffbfd0" />
-        <path
-          d="M21 20c12 0 25 7 38 19M129 20c-12 0-25 7-38 19"
-          fill="none"
-          opacity=".55"
-        />
-      </g>
-      <path
-        d="M70 35c3-2 7-2 10 0"
-        fill="none"
-        stroke="#fff7f8"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+  return <span className={cn(styles.bowBadge, className)} aria-hidden />;
 }
 
 function FloatingDecor() {
@@ -304,9 +114,9 @@ function EmptyPreview({ title, hint }: { title: string; hint: string }) {
   return (
     <div className={styles.emptyPreview}>
       <div className={styles.emptyIconWrap}>
-        <ImageIcon className={styles.emptyIcon} />
+        <OrnateIcon icon={ImageIcon} tone="pink" size="md" surface="light" className={styles.emptyIcon} />
         <Sakura className={styles.emptyFlower} />
-        <Heart className={styles.emptyHeart} fill="currentColor" />
+        <OrnateIcon icon={Heart} tone="pink" size="sm" surface="light" className={styles.emptyHeart} />
       </div>
       <p className={styles.emptyTitle}>{title}</p>
       <p className={styles.emptyHint}>{hint}</p>
@@ -316,7 +126,7 @@ function EmptyPreview({ title, hint }: { title: string; hint: string }) {
 
 interface StatCardProps {
   className: string;
-  icon: ReactNode;
+  artworkClass: string;
   value: string;
   label: string;
   decoration: ReactNode;
@@ -324,7 +134,7 @@ interface StatCardProps {
 
 function StatCard({
   className,
-  icon,
+  artworkClass,
   value,
   label,
   decoration,
@@ -332,7 +142,7 @@ function StatCard({
   return (
     <div className={cn(styles.statCard, className)}>
       {decoration}
-      <div className={styles.statIcon}>{icon}</div>
+      <span className={cn(styles.statArtwork, artworkClass)} aria-hidden="true" />
       <div className={styles.statCopy}>
         <div className={styles.statValue}>{value}</div>
         <div className={styles.statLabel}>{label}</div>
@@ -466,28 +276,28 @@ function HomeContent() {
           <nav className={styles.navigation} aria-label="Primary">
             <Link
               href="/api/docs"
-              className={styles.navButton}
+              className={cn(styles.navButton, styles.artNavButton, styles.docsButton)}
               aria-label={t.home.apiDocs}
             >
-              <BookOpen aria-hidden />
-              <span>{t.home.apiDocs}</span>
+              <span className={cn(styles.navArtwork, styles.docsArtwork)} aria-hidden />
+              <span className={styles.navLabel}>{t.home.apiDocs}</span>
             </Link>
             <Link
               href="https://github.com/Aierlanta/Cloudinary-photo"
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.navButton}
+              className={cn(styles.navButton, styles.artNavButton, styles.githubButton)}
               aria-label="GitHub"
             >
-              <Github aria-hidden />
-              <span>GitHub</span>
+              <span className={cn(styles.navArtwork, styles.githubArtwork)} aria-hidden />
+              <span className={styles.navLabel}>GitHub</span>
             </Link>
             <Link
               href="/admin"
               className={cn(styles.navButton, styles.adminButton)}
             >
-              <Sakura className={styles.adminFlower} />
-              <span>{t.home.managementPanel}</span>
+              <span className={cn(styles.navArtwork, styles.adminArtwork)} aria-hidden />
+              <span className={styles.navLabel}>{t.home.managementPanel}</span>
             </Link>
           </nav>
         </div>
@@ -588,9 +398,7 @@ function HomeContent() {
                     onClick={refreshRandomImage}
                     aria-label={t.home.refreshImage}
                     className={styles.refreshHeart}
-                  >
-                    <Heart fill="currentColor" />
-                  </button>
+                  />
                 </div>
               </div>
             </div>
@@ -603,7 +411,7 @@ function HomeContent() {
             <div className={styles.statsGrid}>
               <StatCard
                 className={styles.statPink}
-                icon={<PictureStatIcon />}
+                artworkClass={styles.statArtworkPicture}
                 value={totalImages.toLocaleString()}
                 label={t.home.statImages}
                 decoration={
@@ -619,7 +427,7 @@ function HomeContent() {
               />
               <StatCard
                 className={styles.statPurple}
-                icon={<FolderStarIcon />}
+                artworkClass={styles.statArtworkAlbum}
                 value={totalGroups.toLocaleString()}
                 label={t.home.statGroups}
                 decoration={
@@ -641,7 +449,7 @@ function HomeContent() {
               />
               <StatCard
                 className={styles.statMint}
-                icon={<ShieldBadgeIcon />}
+                artworkClass={styles.statArtworkShield}
                 value="99.9%"
                 label={t.home.statUptime}
                 decoration={
@@ -671,23 +479,32 @@ function HomeContent() {
               type="button"
               onClick={toggleLocale}
               aria-label={t.home.toggleLanguage}
+              className={styles.footerControlButton}
             >
-              <Languages />
+              <span className={cn(styles.footerArtwork, styles.footerLanguageArtwork)} aria-hidden />
             </button>
             <button
               type="button"
               onClick={handleThemeToggle}
               aria-label={t.home.toggleTheme}
+              className={styles.footerControlButton}
             >
-              {theme === "dark" ? <Sun /> : <Moon />}
+              <span
+                className={cn(
+                  styles.footerArtwork,
+                  theme === "dark" ? styles.footerSunArtwork : styles.footerMoonArtwork,
+                )}
+                aria-hidden
+              />
             </button>
             <Link
               href="https://github.com/Aierlanta/Cloudinary-photo"
               target="_blank"
               rel="noopener noreferrer"
               aria-label={t.footer.github}
+              className={styles.footerControlButton}
             >
-              <Github />
+              <span className={cn(styles.footerArtwork, styles.footerGithubArtwork)} aria-hidden />
             </Link>
           </div>
         </div>

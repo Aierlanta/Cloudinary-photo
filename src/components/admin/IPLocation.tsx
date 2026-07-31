@@ -5,6 +5,7 @@ import { MapPin, Globe2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { useLocale } from '@/hooks/useLocale';
+import { OrnateIcon } from '@/components/ui/ornate-icon';
 
 interface IPLocationInfo {
   ip: string;
@@ -133,7 +134,7 @@ export function IPLocationBadge({
         isLight ? "text-gray-400" : "text-gray-500",
         className
       )}>
-        <Loader2 className="w-3 h-3 animate-spin" />
+        <OrnateIcon icon={Loader2} tone="lavender" size="sm" className="animate-spin" />
       </span>
     );
   }

@@ -24,6 +24,7 @@ import {
   FileImage
 } from 'lucide-react';
 import { useAdminApi } from '@/lib/admin-api-client';
+import { OrnateIcon } from '@/components/ui/ornate-icon';
 
 interface UploadResult {
   success: boolean;
@@ -159,7 +160,7 @@ export default function MultiStorageUpload({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Upload className="h-5 w-5 mr-2" />
+            <OrnateIcon icon={Upload} tone="pink" size="sm" className="mr-2" />
             {t.adminImages.multiStorageUploadTitle}
           </CardTitle>
           <CardDescription>
@@ -189,7 +190,7 @@ export default function MultiStorageUpload({
             
             {uploading ? (
               <div className="space-y-2">
-                <Clock className="h-8 w-8 mx-auto animate-spin text-primary" />
+                <OrnateIcon icon={Clock} tone="lavender" size="sm" className="mx-auto animate-spin" />
                 <p className="text-lg font-medium">{t.adminImages.multiStorageUploading}</p>
                 <p className="text-sm text-muted-foreground">
                   {t.adminImages.multiStorageUploadingDescription}
@@ -197,7 +198,7 @@ export default function MultiStorageUpload({
               </div>
             ) : (
               <div className="space-y-2">
-                <FileImage className="h-8 w-8 mx-auto text-muted-foreground" />
+                <OrnateIcon icon={FileImage} tone="lavender" size="sm" className="mx-auto" />
                 <p className="text-lg font-medium">{t.adminImages.multiStorageSelectHint}</p>
                 <p className="text-sm text-muted-foreground">
                   {t.adminImages.multiStorageFormatHint}
@@ -211,11 +212,11 @@ export default function MultiStorageUpload({
       {/* 错误信息 */}
       {error && (
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
+          <OrnateIcon icon={AlertTriangle} tone="amber" size="sm" />
           <AlertDescription className="flex items-center justify-between">
             <span>{error}</span>
             <Button variant="ghost" size="sm" onClick={clearResult}>
-              <X className="h-4 w-4" />
+              <OrnateIcon icon={X} tone="pink" size="sm" />
             </Button>
           </AlertDescription>
         </Alert>
@@ -227,11 +228,11 @@ export default function MultiStorageUpload({
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                <OrnateIcon icon={CheckCircle} tone="mint" size="sm" className="mr-2" />
                 {t.adminImages.uploadComplete}
               </div>
               <Button variant="ghost" size="sm" onClick={clearResult}>
-                <X className="h-4 w-4" />
+                <OrnateIcon icon={X} tone="pink" size="sm" />
               </Button>
             </CardTitle>
           </CardHeader>
@@ -241,7 +242,7 @@ export default function MultiStorageUpload({
               <div>
                 <p className="text-sm text-muted-foreground">{t.adminImages.primaryStorage}</p>
                 <div className="flex items-center mt-1">
-                  <Cloud className="h-4 w-4 mr-2" />
+                  <OrnateIcon icon={Cloud} tone="mint" size="sm" className="mr-2" />
                   <span className="font-medium">{uploadResult.provider}</span>
                 </div>
               </div>
@@ -275,9 +276,9 @@ export default function MultiStorageUpload({
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center">
                         {record.provider === 'cloudinary' ? (
-                          <Cloud className="h-4 w-4 mr-2" />
+                          <OrnateIcon icon={Cloud} tone="mint" size="sm" className="mr-2" />
                         ) : (
-                          <Database className="h-4 w-4 mr-2" />
+                          <OrnateIcon icon={Database} tone="lavender" size="sm" className="mr-2" />
                         )}
                         <div>
                           <p className="font-medium">{record.provider}</p>

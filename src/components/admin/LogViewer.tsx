@@ -8,6 +8,8 @@ import {
   Download,
   MoreHorizontal,
   RefreshCw,
+  Search,
+  AlertTriangle,
   Trash2,
 } from 'lucide-react'
 
@@ -17,6 +19,7 @@ import { useLocale } from '@/hooks/useLocale'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
 import { useAdminApi } from '@/lib/admin-api-client'
+import { OrnateIcon } from '@/components/ui/ornate-icon'
 
 interface LogEntry {
   id?: string
@@ -418,7 +421,7 @@ export default function LogViewer({
             className="admin-log-action admin-log-action-refresh"
             onClick={() => void loadLogs(pagination.page)}
           >
-            <RefreshCw aria-hidden />
+            <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
             {t.adminLogs.refresh}
           </button>
 
@@ -439,9 +442,9 @@ export default function LogViewer({
               onClick={() => setIsExportMenuOpen((open) => !open)}
               aria-expanded={isExportMenuOpen}
             >
-              <Download aria-hidden />
+              <OrnateIcon icon={Download} tone="mint" size="sm" />
               {t.adminUi.exportData}
-              <ChevronDown aria-hidden />
+              <OrnateIcon icon={ChevronDown} tone="lavender" size="sm" />
             </button>
             {isExportMenuOpen ? (
               <div className="admin-log-export-menu" role="menu">
@@ -464,7 +467,7 @@ export default function LogViewer({
               className="admin-log-action admin-log-action-clear"
               onClick={() => void handleClearLogs()}
             >
-              <Trash2 aria-hidden />
+              <OrnateIcon icon={Trash2} tone="pink" size="sm" />
               {t.adminLogs.clearLogs}
             </button>
           ) : null}
@@ -603,9 +606,7 @@ export default function LogViewer({
                 className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <OrnateIcon icon={Search} tone="lavender" size="sm" />
               </div>
             </div>
           </div>
@@ -634,9 +635,7 @@ export default function LogViewer({
       {error && (
         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shrink-0">
           <div className="flex items-center">
-            <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <OrnateIcon icon={AlertTriangle} tone="pink" size="sm" />
             <span className="text-red-700 dark:text-red-300">{error}</span>
           </div>
         </div>
@@ -666,6 +665,11 @@ export default function LogViewer({
                   className="admin-log-entry bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
                 >
                   <div className="admin-log-entry-layout flex items-start justify-between">
+                    <span
+                      className="admin-log-artwork"
+                      data-level={log.level}
+                      aria-hidden="true"
+                    />
                     <div className="admin-log-entry-main flex-1">
                       <div className="flex items-center space-x-2 mb-1">
                         <span className={`admin-log-level px-2 py-1 rounded text-xs font-medium ${getLevelColor(log.level)}`}>
@@ -730,10 +734,10 @@ export default function LogViewer({
             onClick={() => handlePageChange(pagination.page - 1)}
             disabled={pagination.page <= 1}
           >
-            <ChevronLeft aria-hidden />
+            <OrnateIcon icon={ChevronLeft} tone="lavender" size="sm" />
           </button>
           {visiblePages[0] > 1 ? (
-            <span className="admin-log-page-ellipsis" aria-hidden><MoreHorizontal /></span>
+            <span className="admin-log-page-ellipsis" aria-hidden><OrnateIcon icon={MoreHorizontal} tone="lavender" size="sm" /></span>
           ) : null}
           {visiblePages.map((page) => (
             <button
@@ -749,7 +753,7 @@ export default function LogViewer({
           ))}
           {lastVisiblePage < totalPages ? (
             <>
-              <span className="admin-log-page-ellipsis" aria-hidden><MoreHorizontal /></span>
+                <span className="admin-log-page-ellipsis" aria-hidden><OrnateIcon icon={MoreHorizontal} tone="lavender" size="sm" /></span>
               <button
                 type="button"
                 onClick={() => handlePageChange(totalPages)}
@@ -765,7 +769,7 @@ export default function LogViewer({
             onClick={() => handlePageChange(pagination.page + 1)}
             disabled={pagination.page >= totalPages}
           >
-            <ChevronRight aria-hidden />
+            <OrnateIcon icon={ChevronRight} tone="lavender" size="sm" />
           </button>
         </nav>
         <p className="admin-log-meta">

@@ -32,6 +32,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
+import { OrnateIcon } from '@/components/ui/ornate-icon'
 import pageStyles from '../admin-pages.module.css'
 
 interface APIParameter {
@@ -428,7 +429,7 @@ const {
           <div>
             <h1 className={pageStyles.heroTitle}>
               <span>{t.adminNav.apiConfig}</span>
-              <Flower2 className={pageStyles.heroIcon} aria-hidden />
+              <OrnateIcon icon={Flower2} tone="pink" size="sm" className={pageStyles.heroIconBadge} />
             </h1>
             <p className={pageStyles.heroSubtitle}>{t.adminConfig.description}</p>
           </div>
@@ -438,7 +439,7 @@ const {
               onClick={() => { loadConfig(); loadGroups(); }}
               className={cn(pageStyles.btn, pageStyles.btnLavender)}
             >
-              <RefreshCw className="w-4 h-4" />
+              <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
               {t.common.refresh}
             </button>
             <button
@@ -447,7 +448,7 @@ const {
               disabled={saving}
               className={cn(pageStyles.btn, pageStyles.btnPink)}
             >
-              <Save className="w-4 h-4" />
+              <OrnateIcon icon={Save} tone="cream" size="sm" />
               {saving ? t.adminConfig.saving : t.common.save}
             </button>
           </div>
@@ -589,7 +590,7 @@ const {
               <div className="admin-config-toggle-grid">
                 <label>
                   <span>
-                    <Globe aria-hidden />
+                    <OrnateIcon icon={Globe} tone="mint" size="sm" />
                     <b>{t.adminConfig.apiStatus}</b>
                     <small>{t.adminConfig.enablePublicAPI}</small>
                   </span>
@@ -605,7 +606,7 @@ const {
                 </label>
                 <label>
                   <span>
-                    <Key aria-hidden />
+                    <OrnateIcon icon={Key} tone="lavender" size="sm" />
                     <b>{t.adminConfig.apiKeyAuth}</b>
                     <small>{t.adminConfig.enableApiKey}</small>
                   </span>
@@ -621,7 +622,7 @@ const {
                 </label>
                 <label>
                   <span>
-                    <ExternalLink aria-hidden />
+                    <OrnateIcon icon={ExternalLink} tone="pink" size="sm" />
                     <b>{t.adminConfig.enableDirectResponse}</b>
                     <small>{t.adminConfig.enableDirectResponseDesc}</small>
                   </span>
@@ -643,7 +644,7 @@ const {
                 <h2>{t.adminConfig.apiKeyValue}</h2>
                 <p className="admin-config-panel-desc">{t.adminConfig.apiKeyValueDesc}</p>
                 <label className="admin-config-inline-field">
-                  <span><Shield aria-hidden /> {t.adminConfig.apiKeyValue}</span>
+                  <span><OrnateIcon icon={Shield} tone="mint" size="sm" /> {t.adminConfig.apiKeyValue}</span>
                   <div className="admin-config-inline-controls">
                     <input
                       type="text"
@@ -862,7 +863,7 @@ const {
                   className={cn(pageStyles.btn, pageStyles.btnPink)}
                   onClick={() => setShowAddParameter(true)}
                 >
-                  <Plus className="w-4 h-4" />
+                  <OrnateIcon icon={Plus} tone="cream" size="sm" />
                   {t.adminConfig.addParameter}
                 </button>
               </div>
@@ -891,10 +892,10 @@ const {
                       </div>
                       <div className="admin-config-param-actions">
                         <button type="button" aria-label={t.common.edit} onClick={() => setEditingParameter(param)}>
-                          <Edit2 className="w-4 h-4" />
+                          <OrnateIcon icon={Edit2} tone="lavender" size="sm" />
                         </button>
                         <button type="button" aria-label={t.common.delete} onClick={() => deleteParameter(index)}>
-                          <Trash2 className="w-4 h-4" />
+                          <OrnateIcon icon={Trash2} tone="pink" size="sm" />
                         </button>
                       </div>
                     </li>
@@ -916,7 +917,7 @@ const {
                   onClick={() => navigator.clipboard.writeText(generateApiUrl())}
                   aria-label={t.common.copy}
                 >
-                  <Copy className="w-4 h-4" />
+                  <OrnateIcon icon={Copy} tone="lavender" size="sm" />
                 </button>
               </div>
             </label>
@@ -929,10 +930,10 @@ const {
                     <div>
                       <code title={example.url}>{example.url}</code>
                       <button type="button" aria-label={t.common.copy} onClick={() => navigator.clipboard.writeText(example.url)}>
-                        <Copy className="w-3.5 h-3.5" />
+                        <OrnateIcon icon={Copy} tone="lavender" size="sm" />
                       </button>
                       <button type="button" aria-label="open" onClick={() => window.open(example.url, '_blank')}>
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <OrnateIcon icon={ExternalLink} tone="mint" size="sm" />
                       </button>
                     </div>
                   </li>
@@ -955,13 +956,13 @@ const {
                   disabled={!testUrl || testing}
                   aria-label={t.adminConfig.apiTest}
                 >
-                  <Play className="w-4 h-4" />
+                  <OrnateIcon icon={Play} tone="cream" size="sm" />
                 </button>
               </div>
               {testResult && (
                 <div className={cn('admin-config-test-result', testResult.success ? 'is-ok' : 'is-err')}>
                   <p>
-                    {testResult.success ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                    <OrnateIcon icon={testResult.success ? Check : X} tone={testResult.success ? "mint" : "pink"} size="sm" />
                     <span>{testResult.status} {testResult.statusText}</span>
                   </p>
                   {testResult.error && <p>{testResult.error}</p>}

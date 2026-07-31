@@ -15,6 +15,7 @@ import {
   Clock
 } from 'lucide-react';
 import { useAdminApi } from '@/lib/admin-api-client';
+import { OrnateIcon } from '@/components/ui/ornate-icon';
 
 interface HealthData {
   mainDatabase: {
@@ -106,7 +107,7 @@ export default function HealthMonitor() {
               "w-10 h-10 flex items-center justify-center rounded-lg",
               isLight ? "bg-emerald-500" : "bg-emerald-600"
             )}>
-              <Activity className="w-6 h-6 text-white" />
+              <OrnateIcon icon={Activity} tone="mint" size="sm" />
             </div>
             <div>
               <h2 className={cn(
@@ -134,11 +135,7 @@ export default function HealthMonitor() {
             )}
             title={t.healthMonitor.refresh}
           >
-            <RefreshCw className={cn(
-              "w-5 h-5",
-              isLight ? "text-gray-700" : "text-gray-300",
-              refreshing ? 'animate-spin' : ''
-            )} />
+            <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" className={refreshing ? 'animate-spin' : undefined} />
           </button>
         </div>
 
@@ -156,15 +153,9 @@ export default function HealthMonitor() {
           )}>
             <div className="flex items-center gap-3 mb-2">
               {healthData?.overall.healthy ? (
-                <CheckCircle className={cn(
-                  "w-5 h-5",
-                  isLight ? "text-emerald-600" : "text-emerald-400"
-                )} />
+                <OrnateIcon icon={CheckCircle} tone="mint" size="sm" />
               ) : (
-                <AlertCircle className={cn(
-                  "w-5 h-5",
-                  isLight ? "text-red-600" : "text-red-400"
-                )} />
+                <OrnateIcon icon={AlertCircle} tone="pink" size="sm" />
               )}
               <span className={cn(
                 "font-semibold rounded-lg",
@@ -197,12 +188,7 @@ export default function HealthMonitor() {
               : "bg-red-900/20 border-red-600"
           )}>
             <div className="flex items-center gap-3 mb-2">
-              <Database className={cn(
-                "w-5 h-5",
-                healthData?.mainDatabase.healthy
-                  ? isLight ? "text-blue-600" : "text-blue-400"
-                  : isLight ? "text-red-600" : "text-red-400"
-              )} />
+              <OrnateIcon icon={Database} tone={healthData?.mainDatabase.healthy ? "mint" : "pink"} size="sm" />
               <span className={cn(
                 "font-semibold rounded-lg",
                 healthData?.mainDatabase.healthy
@@ -238,14 +224,11 @@ export default function HealthMonitor() {
               : "bg-red-900/20 border-red-600"
           )}>
             <div className="flex items-center gap-3 mb-2">
-              <Server className={cn(
-                "w-5 h-5",
-                healthData?.backupDatabase.status === 'disabled'
-                  ? isLight ? "text-gray-500" : "text-gray-400"
-                  : healthData?.backupDatabase.healthy
-                  ? isLight ? "text-purple-600" : "text-purple-400"
-                  : isLight ? "text-red-600" : "text-red-400"
-              )} />
+              <OrnateIcon
+                icon={Server}
+                tone={healthData?.backupDatabase.status === 'disabled' ? "cream" : healthData?.backupDatabase.healthy ? "lavender" : "pink"}
+                size="sm"
+              />
               <span className={cn(
                 "font-semibold rounded-lg",
                 healthData?.backupDatabase.status === 'disabled'
@@ -280,7 +263,7 @@ export default function HealthMonitor() {
             isLight ? "border-gray-300 text-gray-600" : "border-gray-600 text-gray-400"
           )}>
             <div className="flex items-center gap-2">
-              <HardDrive className="w-4 h-4 rounded-lg" />
+              <OrnateIcon icon={HardDrive} tone="mint" size="sm" />
               <span>
                 {t.healthMonitor.totalImagesLabel}: <strong className={isLight ? "text-gray-900" : "text-gray-100"}>
                   {healthData.stats.totalImages}
@@ -288,7 +271,7 @@ export default function HealthMonitor() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Server className="w-4 h-4 rounded-lg" />
+              <OrnateIcon icon={Server} tone="lavender" size="sm" />
               <span>
                 {t.healthMonitor.totalGroupsLabel}: <strong className={isLight ? "text-gray-900" : "text-gray-100"}>
                   {healthData.stats.totalGroups}
@@ -296,7 +279,7 @@ export default function HealthMonitor() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 rounded-lg" />
+              <OrnateIcon icon={Clock} tone="amber" size="sm" />
               <span>
                 {t.healthMonitor.lastCheck}: <span className={isLight ? "text-gray-900" : "text-gray-100"}>
                   {new Date(healthData.stats.lastCheck).toLocaleTimeString()}

@@ -26,6 +26,49 @@
   font-family: var(--font-body), ui-rounded, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+/* Lightweight CSS marks keep the public page playful without bringing back
+   the old hand-written SVG icon set. Larger semantic icons use OrnateIcon. */
+.mark {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.markSpark {
+  background: currentColor;
+  clip-path: polygon(50% 0, 62% 37%, 100% 50%, 62% 63%, 50% 100%, 38% 63%, 0 50%, 38% 37%);
+}
+
+.markStar {
+  border: 3px solid currentColor;
+  clip-path: polygon(50% 0, 63% 34%, 100% 50%, 63% 66%, 50% 100%, 37% 66%, 0 50%, 37% 34%);
+  transform: rotate(9deg);
+}
+
+.markHeart {
+  background: currentColor;
+  clip-path: polygon(50% 94%, 8% 48%, 5% 30%, 12% 14%, 28% 8%, 42% 12%, 50% 25%, 58% 12%, 72% 8%, 88% 14%, 95% 30%, 92% 48%);
+}
+
+.markFlower {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #fff8f2 0 14%, #ff9fbd 15% 24%, transparent 25%),
+    radial-gradient(ellipse at 50% 13%, currentColor 0 25%, transparent 26%),
+    radial-gradient(ellipse at 87% 37%, currentColor 0 25%, transparent 26%),
+    radial-gradient(ellipse at 77% 82%, currentColor 0 25%, transparent 26%),
+    radial-gradient(ellipse at 23% 82%, currentColor 0 25%, transparent 26%),
+    radial-gradient(ellipse at 13% 37%, currentColor 0 25%, transparent 26%);
+}
+
+.bowBadge {
+  display: block;
+  background-image: url("/home/ui/home-preview-controls.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  background-position: left top;
+}
+
 .header {
   position: relative;
   z-index: 30;
@@ -201,8 +244,71 @@
     0 12px 20px rgba(104, 47, 31, 0.11);
 }
 
+.artNavButton {
+  --nav-art-accent: #b18ad6;
+  --nav-art-surface: #f6efff;
+  position: relative;
+  isolation: isolate;
+  min-height: 60px;
+  padding: 0 20px 0 12px;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--nav-art-accent) 66%, #f2a19d);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--nav-art-surface) 76%, #fff));
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 255, 255, 0.62),
+    0 4px 0 color-mix(in srgb, var(--nav-art-accent) 16%, transparent),
+    0 9px 16px rgba(72, 43, 78, 0.1);
+}
+
+.artNavButton::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 5px;
+  border: 1px dashed color-mix(in srgb, var(--nav-art-accent) 45%, transparent);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.githubButton {
+  --nav-art-accent: #66bda8;
+  --nav-art-surface: #e8f8f2;
+}
+
+.navArtwork {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  background-image: url("/home/ui/home-nav-medallions.png");
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  filter: drop-shadow(0 3px 3px rgba(75, 42, 60, 0.2));
+  transform: scale(1.16);
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.docsArtwork {
+  background-position: left center;
+}
+
+.githubArtwork {
+  background-position: right center;
+}
+
+.artNavButton:hover {
+  background:
+    linear-gradient(135deg, #fff, color-mix(in srgb, var(--nav-art-surface) 88%, #fff));
+}
+
+.artNavButton:hover .navArtwork {
+  transform: rotate(-4deg) scale(1.24);
+  filter: drop-shadow(0 5px 4px rgba(75, 42, 60, 0.25));
+}
+
 .adminButton {
   min-width: 170px;
+  padding-inline: 12px 20px;
   color: #fff;
   background: linear-gradient(180deg, #ff7195, #f35f85);
   border-color: #f05278;
@@ -212,6 +318,12 @@
     0 7px 14px rgba(214, 66, 105, 0.27);
 }
 
+.adminArtwork {
+  background-image: url("/home/ui/home-admin-medallion.png");
+  background-size: 100% 100%;
+  background-position: center;
+}
+
 .adminButton:hover {
   color: #fff;
   background: linear-gradient(180deg, #ff7e9f, #f5527b);
@@ -219,10 +331,6 @@
     0 0 0 4px #fffaf7,
     0 0 0 6px #ff7e9f,
     0 13px 22px rgba(214, 66, 105, 0.3);
-}
-
-.adminFlower {
-  color: #fff;
 }
 
 .main {
@@ -504,7 +612,8 @@
   top: -13px;
   left: 50%;
   width: 138px;
-  height: auto;
+  aspect-ratio: 1;
+  pointer-events: none;
   transform: translateX(-50%);
   filter:
     drop-shadow(0 3px 0 rgba(255, 255, 255, 0.8))
@@ -587,28 +696,28 @@
   z-index: 2;
   right: 23px;
   bottom: 20px;
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  color: #ff8aa2;
-  background: transparent;
+  width: 54px;
+  height: 54px;
+  background-color: transparent;
+  background-image: url("/home/ui/home-preview-controls.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  background-position: right top;
   border: 0;
   border-radius: 50%;
   cursor: pointer;
-  transition: transform 180ms ease, color 180ms ease, background 180ms ease;
-}
-
-.refreshHeart svg {
-  width: 27px;
-  height: 27px;
-  stroke-width: 1.8;
+  filter: drop-shadow(0 4px 5px rgba(112, 50, 64, 0.22));
+  transition: transform 180ms ease, filter 180ms ease;
 }
 
 .refreshHeart:hover {
-  color: #ef5f80;
-  background: rgba(255, 139, 164, 0.1);
   transform: rotate(-8deg) scale(1.12);
+  filter: drop-shadow(0 7px 7px rgba(112, 50, 64, 0.3));
+}
+
+.refreshHeart:focus-visible {
+  outline: 3px solid #fff4df;
+  outline-offset: 3px;
 }
 
 .emptyPreview {
@@ -710,9 +819,32 @@
 }
 
 .statsGrid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  gap: 0;
+  padding: 14px 20px;
+  overflow: hidden;
+  border: 2px solid #eaa1b4;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 92% 22%, rgba(236, 118, 151, 0.09) 0 3px, transparent 3.6px),
+    repeating-linear-gradient(0deg, rgba(112, 76, 91, 0.035) 0 1px, transparent 1px 7px),
+    linear-gradient(145deg, #fffdf6, #fff2df);
+  box-shadow:
+    inset 0 0 0 6px rgba(255, 255, 255, 0.68),
+    0 7px 0 rgba(199, 122, 141, 0.2),
+    0 15px 25px rgba(77, 48, 67, 0.15);
+}
+
+.statsGrid::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 8px;
+  border: 1.5px dashed rgba(226, 105, 139, 0.48);
+  border-radius: 21px;
+  pointer-events: none;
 }
 
 .statCard {
@@ -723,73 +855,61 @@
   align-items: center;
   justify-content: center;
   gap: 26px;
-  overflow: hidden;
-  border: 2px solid currentColor;
-  border-radius: 28px;
-  box-shadow:
-    0 5px 0 rgba(149, 86, 53, 0.07),
-    0 11px 18px rgba(133, 74, 42, 0.12);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
 
-.statCard::after {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border: 1.5px dashed currentColor;
-  border-radius: 19px;
-  opacity: 0.32;
-  pointer-events: none;
+.statCard + .statCard {
+  border-left: 1.5px dashed rgba(212, 119, 143, 0.5);
 }
 
 .statCard:hover {
   transform: translateY(-4px) rotate(-0.35deg);
-  box-shadow:
-    0 7px 0 rgba(149, 86, 53, 0.07),
-    0 16px 24px rgba(133, 74, 42, 0.15);
+  box-shadow: none;
 }
 
 .statPink {
   color: #f16b88;
-  background: linear-gradient(135deg, rgba(255, 221, 229, 0.78), rgba(255, 253, 250, 0.96));
+  background: transparent;
 }
 
 .statPurple {
   color: #8d69ce;
-  background: linear-gradient(135deg, rgba(234, 224, 253, 0.82), rgba(255, 253, 250, 0.96));
+  background: transparent;
 }
 
 .statMint {
   color: #219779;
-  background: linear-gradient(135deg, rgba(218, 245, 237, 0.82), rgba(255, 253, 250, 0.96));
+  background: transparent;
 }
 
-.statIcon {
+.statArtwork {
   position: relative;
   z-index: 1;
-  width: 69px;
-  height: 69px;
+  width: 118px;
+  height: 118px;
   flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.68);
-  border: 3px solid currentColor;
-  border-radius: 14px;
-  box-shadow:
-    inset 0 0 0 5px rgba(255, 255, 255, 0.56),
-    0 5px 9px rgba(106, 59, 39, 0.08);
+  background-image: url("/home/ui/home-stat-medallions.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 7px 5px rgba(104, 58, 75, 0.22));
 }
 
-.statIcon svg {
-  width: 43px;
-  height: 43px;
-  stroke-width: 1.9;
-}
+.statArtworkPicture { background-position: 0 0; }
+.statArtworkAlbum { background-position: 100% 0; }
+.statArtworkShield { background-position: 0 100%; }
 
 .statCopy {
   position: relative;
   z-index: 1;
+  display: flex;
   min-width: 128px;
+  flex-direction: column-reverse;
+  gap: 9px;
   text-align: center;
 }
 
@@ -805,10 +925,11 @@
 }
 
 .statLabel {
-  margin-top: 10px;
-  color: var(--ink-deep);
-  font-family: var(--font-mono), ui-monospace, Menlo, monospace;
-  font-size: 1.32rem;
+  margin: 0;
+  color: #5e4456;
+  font-family: var(--font-display-zh), var(--font-display), ui-serif, serif;
+  font-size: 1.08rem;
+  font-weight: 750;
   line-height: 1;
 }
 
@@ -1068,9 +1189,42 @@
   transform: translateY(-2px);
 }
 
-.footerActions svg {
-  width: 21px;
-  height: 21px;
+.footerActions .footerControlButton {
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.footerArtwork {
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  background-image: url("/home/ui/home-footer-medallions.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  filter: drop-shadow(0 2px 2px rgba(59, 43, 57, 0.18));
+  transition: filter 180ms ease;
+}
+
+.footerLanguageArtwork {
+  background-position: left top;
+}
+
+.footerSunArtwork {
+  background-position: right top;
+}
+
+.footerMoonArtwork {
+  background-position: left bottom;
+}
+
+.footerGithubArtwork {
+  background-position: right bottom;
+}
+
+.footerControlButton:hover .footerArtwork {
+  filter: drop-shadow(0 4px 3px rgba(59, 43, 57, 0.24));
 }
 
 .srOnly {
@@ -1121,12 +1275,27 @@
   color: #f7e8e1;
 }
 
+:global(html[data-theme="dark"]) .artNavButton {
+  background:
+    linear-gradient(135deg, #41334f, color-mix(in srgb, var(--nav-art-accent) 18%, #32283f));
+  border-color: color-mix(in srgb, var(--nav-art-accent) 74%, #f2a19d);
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 247, 238, 0.05),
+    0 4px 0 rgba(16, 10, 24, 0.2),
+    0 9px 18px rgba(16, 10, 24, 0.26);
+}
+
+:global(html[data-theme="dark"]) .artNavButton:hover {
+  background:
+    linear-gradient(135deg, #49395a, color-mix(in srgb, var(--nav-art-accent) 25%, #352943));
+}
+
 :global(html[data-theme="dark"]) .scrapbookShell::before {
   opacity: 0.25;
 }
 
 :global(html[data-theme="dark"]) .statCard {
-  background: #3a304b;
+  background: transparent;
 }
 
 @keyframes spin {
@@ -1180,7 +1349,7 @@
   }
 
   .statsGrid {
-    gap: 16px;
+    gap: 0;
   }
 
   .statCard {
@@ -1188,14 +1357,9 @@
     gap: 16px;
   }
 
-  .statIcon {
-    width: 58px;
-    height: 58px;
-  }
-
-  .statIcon svg {
-    width: 34px;
-    height: 34px;
+  .statArtwork {
+    width: 88px;
+    height: 88px;
   }
 
   .statValue {
@@ -1259,8 +1423,20 @@
     border-radius: 16px;
   }
 
-  .navButton span {
+  .navLabel {
     display: none;
+  }
+
+  .artNavButton {
+    width: 54px;
+    min-width: 54px;
+    padding: 0;
+  }
+
+  .navArtwork {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
   }
 
   .adminButton {
@@ -1313,7 +1489,13 @@
 
   .statsGrid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 0;
+    padding-block: 12px;
+  }
+
+  .statCard + .statCard {
+    border-top: 1.5px dashed rgba(212, 119, 143, 0.5);
+    border-left: 0;
   }
 
   .statCard {
@@ -1387,6 +1569,17 @@
     padding: 0;
     border-width: 1.5px;
     border-radius: 14px;
+  }
+
+  .artNavButton {
+    width: 44px;
+    min-width: 44px;
+  }
+
+  .navArtwork {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
   }
 
   .navButton svg {
@@ -1518,13 +1711,8 @@
   .refreshHeart {
     right: 8px;
     bottom: 10px;
-    width: 34px;
-    height: 34px;
-  }
-
-  .refreshHeart svg {
-    width: 22px;
-    height: 22px;
+    width: 44px;
+    height: 44px;
   }
 
   .statsSection {
@@ -1532,7 +1720,7 @@
   }
 
   .statsGrid {
-    gap: 12px;
+    gap: 0;
   }
 
   .statCard {
@@ -1583,6 +1771,17 @@
     height: 40px;
   }
 
+  .artNavButton {
+    width: 40px;
+    min-width: 40px;
+  }
+
+  .navArtwork {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
   .heroTitle {
     font-size: clamp(1.7rem, 8.6vw, 2.15rem);
     -webkit-text-stroke-width: 3.5px;
@@ -1618,14 +1817,9 @@
     padding-inline: 18px;
   }
 
-  .statIcon {
-    width: 50px;
-    height: 50px;
-  }
-
-  .statIcon svg {
-    width: 30px;
-    height: 30px;
+  .statArtwork {
+    width: 78px;
+    height: 78px;
   }
 
   .statValue {
@@ -1661,6 +1855,12 @@
     min-width: 164px;
     height: 64px;
     font-size: 1.38rem;
+  }
+
+  .navArtwork {
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
   }
 
   .navigation > .navButton:nth-child(2),
@@ -1722,7 +1922,7 @@
   }
 
   .statsGrid {
-    gap: 28px;
+    gap: 0;
   }
 
   .statCard {
@@ -1731,14 +1931,9 @@
     gap: 28px;
   }
 
-  .statIcon {
-    width: 78px;
-    height: 78px;
-  }
-
-  .statIcon svg {
-    width: 48px;
-    height: 48px;
+  .statArtwork {
+    width: 116px;
+    height: 116px;
   }
 
   .statValue {
@@ -1791,6 +1986,12 @@
     border-radius: 22px;
     font-size: 1.6rem;
     gap: 14px;
+  }
+
+  .navArtwork {
+    width: 60px;
+    height: 60px;
+    flex-basis: 60px;
   }
 
   .navButton svg {
@@ -1891,15 +2092,10 @@
   }
 
   .refreshHeart {
-    width: 46px;
-    height: 46px;
+    width: 62px;
+    height: 62px;
     right: 28px;
     bottom: 24px;
-  }
-
-  .refreshHeart svg {
-    width: 32px;
-    height: 32px;
   }
 
   .statsSection {
@@ -1907,7 +2103,7 @@
   }
 
   .statsGrid {
-    gap: 34px;
+    gap: 0;
   }
 
   .statCard {
@@ -1917,15 +2113,9 @@
     border-radius: 34px;
   }
 
-  .statIcon {
-    width: 92px;
-    height: 92px;
-    border-radius: 18px;
-  }
-
-  .statIcon svg {
-    width: 56px;
-    height: 56px;
+  .statArtwork {
+    width: 136px;
+    height: 136px;
   }
 
   .statValue {
@@ -1996,6 +2186,12 @@
     border-radius: 28px;
     font-size: 1.9rem;
     gap: 16px;
+  }
+
+  .navArtwork {
+    width: 68px;
+    height: 68px;
+    flex-basis: 68px;
   }
 
   .navButton svg {
@@ -2098,15 +2294,10 @@
   }
 
   .refreshHeart {
-    width: 60px;
-    height: 60px;
+    width: 78px;
+    height: 78px;
     right: 36px;
     bottom: 30px;
-  }
-
-  .refreshHeart svg {
-    width: 40px;
-    height: 40px;
   }
 
   .statsSection {
@@ -2114,7 +2305,7 @@
   }
 
   .statsGrid {
-    gap: 44px;
+    gap: 0;
   }
 
   .statCard {
@@ -2125,16 +2316,9 @@
     border-width: 3px;
   }
 
-  .statIcon {
-    width: 116px;
-    height: 116px;
-    border-width: 4px;
-    border-radius: 24px;
-  }
-
-  .statIcon svg {
-    width: 72px;
-    height: 72px;
+  .statArtwork {
+    width: 168px;
+    height: 168px;
   }
 
   .statValue {
@@ -2311,14 +2495,9 @@
     padding: clamp(12px, 1.4dvh, 18px) clamp(18px, 1.8vw, 28px);
   }
 
-  .statIcon {
-    width: clamp(48px, 5.8dvh, 69px);
-    height: clamp(48px, 5.8dvh, 69px);
-  }
-
-  .statIcon svg {
-    width: clamp(28px, 3.6dvh, 43px);
-    height: clamp(28px, 3.6dvh, 43px);
+  .statArtwork {
+    width: clamp(78px, 9dvh, 108px);
+    height: clamp(78px, 9dvh, 108px);
   }
 
   .statValue {

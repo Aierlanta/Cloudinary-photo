@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { CheckCircle2, Compass } from 'lucide-react'
+import { OrnateIcon } from '@/components/ui/ornate-icon'
 
 /**
  * 404 页面未找到
@@ -10,19 +12,7 @@ export default function NotFound() {
         <div className="text-center">
           {/* 404 图标 */}
           <div className="mx-auto w-24 h-24 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-8">
-            <svg 
-              className="w-12 h-12 text-blue-600 dark:text-blue-400" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 20a7.962 7.962 0 01-5.657-2.343m0-11.314A7.962 7.962 0 0112 4a7.962 7.962 0 015.657 2.343M15 11a3 3 0 11-6 0 3 3 0 016 0z" 
-              />
-            </svg>
+            <OrnateIcon icon={Compass} tone="lavender" size="lg" surface="light" />
           </div>
 
           {/* 404 标题 */}
@@ -47,21 +37,15 @@ export default function NotFound() {
             </h3>
             <ul className="text-left space-y-2 text-gray-600 dark:text-gray-400">
               <li className="flex items-center">
-                <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
+                <OrnateIcon icon={CheckCircle2} tone="mint" size="sm" surface="light" />
                 检查URL地址是否正确
               </li>
               <li className="flex items-center">
-                <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
+                <OrnateIcon icon={CheckCircle2} tone="mint" size="sm" surface="light" />
                 返回首页重新导航
               </li>
               <li className="flex items-center">
-                <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
+                <OrnateIcon icon={CheckCircle2} tone="mint" size="sm" surface="light" />
                 使用搜索功能查找内容
               </li>
             </ul>

@@ -260,6 +260,139 @@
   --footer-bottom: 10px;
 }
 
+/* Page-local component identities. These tokens live on the workspace only,
+   so the global navigation rail keeps one stable visual language. */
+.shell[data-admin-route="dashboard"] .panelInner {
+  --page-ornate-panel: #ffe9d2;
+  --page-ornate-panel-raised: #fff9ec;
+  --page-ornate-ink: #60364e;
+  --page-ornate-radius: 50%;
+  --page-ornate-inner-radius: 47%;
+  --page-ornate-inner-turn: 0deg;
+  --page-ornate-tone-mix: 18%;
+  --page-ornate-inner-tone-mix: 24%;
+  --page-ornate-pattern: radial-gradient(circle at 50% 50%, transparent 44%, rgba(255, 255, 255, 0.72) 45% 52%, transparent 53%);
+}
+
+.shell[data-admin-route="images"] .panelInner {
+  --page-ornate-panel: #eadff2;
+  --page-ornate-panel-raised: #fff0f3;
+  --page-ornate-ink: #563c5d;
+  --page-ornate-radius: 42% 48% 40% 46%;
+  --page-ornate-inner-radius: 38% 45% 40% 48%;
+  --page-ornate-inner-turn: -2deg;
+  --page-ornate-tone-mix: 20%;
+  --page-ornate-inner-tone-mix: 27%;
+  --page-ornate-pattern:
+    radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.76) 0 16%, transparent 17%),
+    radial-gradient(circle at 60% 38%, rgba(255, 255, 255, 0.68) 0 18%, transparent 19%);
+}
+
+.shell[data-admin-route="gallery"] .panelInner {
+  --page-ornate-panel: #f5e6c9;
+  --page-ornate-panel-raised: #fffaf0;
+  --page-ornate-ink: #56354d;
+  --page-ornate-radius: 18% 22% 17% 24%;
+  --page-ornate-inner-radius: 11% 16% 12% 18%;
+  --page-ornate-root-turn: -2deg;
+  --page-ornate-inner-turn: 2deg;
+  --page-ornate-border-style: dashed;
+  --page-ornate-tone-mix: 13%;
+  --page-ornate-inner-tone-mix: 18%;
+  --page-ornate-pattern: repeating-linear-gradient(0deg, rgba(123, 82, 91, 0.08) 0 1px, transparent 1px 5px);
+}
+
+.shell[data-admin-route="groups"] .panelInner {
+  --page-ornate-panel: #f8dfbd;
+  --page-ornate-panel-raised: #fff8e9;
+  --page-ornate-ink: #58374e;
+  --page-ornate-radius: 16%;
+  --page-ornate-inner-radius: 12%;
+  --page-ornate-clip-path: polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%);
+  --page-ornate-root-turn: -1deg;
+  --page-ornate-inner-turn: 0deg;
+  --page-ornate-tone-mix: 16%;
+  --page-ornate-inner-tone-mix: 22%;
+  --page-ornate-pattern: radial-gradient(circle at 12% 50%, rgba(93, 55, 78, 0.2) 0 5%, transparent 6%);
+}
+
+.shell[data-admin-route="config"] .panelInner {
+  --page-ornate-panel: #392942;
+  --page-ornate-panel-raised: #563957;
+  --page-ornate-ink: #ffe5bf;
+  --page-ornate-radius: 50%;
+  --page-ornate-inner-radius: 50%;
+  --page-ornate-inner-turn: 0deg;
+  --page-ornate-tone-mix: 31%;
+  --page-ornate-inner-tone-mix: 39%;
+  --page-ornate-pattern: conic-gradient(from 10deg, rgba(255, 229, 191, 0.18), transparent 12% 24%, rgba(255, 229, 191, 0.14) 25% 36%, transparent 37% 100%);
+  --page-ornate-spark-shape: polygon(50% 0, 64% 34%, 100% 50%, 64% 66%, 50% 100%, 36% 66%, 0 50%, 36% 34%);
+}
+
+.shell[data-admin-route="status"] .panelInner {
+  --page-ornate-panel: #d9eee3;
+  --page-ornate-panel-raised: #fff7df;
+  --page-ornate-ink: #285b4c;
+  --page-ornate-radius: 50%;
+  --page-ornate-inner-radius: 50%;
+  --page-ornate-inner-turn: 0deg;
+  --page-ornate-tone-mix: 28%;
+  --page-ornate-inner-tone-mix: 34%;
+  --page-ornate-pattern: radial-gradient(circle, rgba(255, 255, 255, 0.88) 0 31%, transparent 33% 43%, rgba(99, 211, 176, 0.26) 44% 53%, transparent 54%);
+}
+
+.shell[data-admin-route="logs"] .panelInner {
+  --page-ornate-panel: #f4dfc5;
+  --page-ornate-panel-raised: #fff8eb;
+  --page-ornate-ink: #59374b;
+  --page-ornate-radius: 14%;
+  --page-ornate-inner-radius: 9%;
+  --page-ornate-root-turn: -1deg;
+  --page-ornate-inner-turn: 0deg;
+  --page-ornate-border-style: dashed;
+  --page-ornate-tone-mix: 15%;
+  --page-ornate-inner-tone-mix: 20%;
+  --page-ornate-pattern: repeating-linear-gradient(0deg, rgba(111, 68, 84, 0.1) 0 1px, transparent 1px 6px);
+}
+
+.shell[data-admin-route="backup"] .panelInner {
+  --page-ornate-panel: #e7d5ef;
+  --page-ornate-panel-raised: #fff0d8;
+  --page-ornate-ink: #5c4063;
+  --page-ornate-radius: 48% 48% 29% 29%;
+  --page-ornate-inner-radius: 50% 50% 30% 30%;
+  --page-ornate-inner-turn: 0deg;
+  --page-ornate-tone-mix: 22%;
+  --page-ornate-inner-tone-mix: 30%;
+  --page-ornate-pattern: repeating-linear-gradient(0deg, rgba(103, 73, 115, 0.12) 0 2px, transparent 2px 7px);
+}
+
+.shell[data-admin-route="security"] .panelInner {
+  --page-ornate-panel: #7b3551;
+  --page-ornate-panel-raised: #b64a6b;
+  --page-ornate-ink: #fff0d8;
+  --page-ornate-radius: 8%;
+  --page-ornate-inner-radius: 16% 16% 42% 42%;
+  --page-ornate-clip-path: polygon(50% 0, 91% 15%, 86% 67%, 50% 100%, 14% 67%, 9% 15%);
+  --page-ornate-inner-turn: 0deg;
+  --page-ornate-tone-mix: 25%;
+  --page-ornate-inner-tone-mix: 32%;
+  --page-ornate-pattern: linear-gradient(90deg, transparent 47%, rgba(255, 240, 216, 0.18) 48% 52%, transparent 53%);
+}
+
+.shell[data-admin-route="swarm"] .panelInner {
+  --page-ornate-panel: #e7c89f;
+  --page-ornate-panel-raised: #fff0d1;
+  --page-ornate-ink: #5d4636;
+  --page-ornate-radius: 0;
+  --page-ornate-inner-radius: 0;
+  --page-ornate-clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+  --page-ornate-inner-turn: 0deg;
+  --page-ornate-tone-mix: 18%;
+  --page-ornate-inner-tone-mix: 24%;
+  --page-ornate-pattern: radial-gradient(circle at 50% 50%, transparent 0 26%, rgba(117, 79, 50, 0.14) 27% 30%, transparent 31%);
+}
+
 /* Every desktop route shares one physical rail. Route-specific panel offsets
    still control the reference composition, but the navigation column itself
    must not jump in width or overlap the workspace from page to page. */
@@ -482,7 +615,7 @@
   min-width: 0;
   min-height: 48px;
   padding: 8px 16px;
-  grid-template-columns: 24px minmax(0, 1fr) 18px;
+  grid-template-columns: 34px minmax(0, 1fr) 18px;
   gap: 11px;
   align-items: center;
   overflow: hidden;
@@ -518,7 +651,11 @@
   height: 22px;
 }
 
-.navItem span {
+.navIcon {
+  justify-self: center;
+}
+
+.navLabel {
   position: relative;
   z-index: 1;
   overflow: hidden;
@@ -1001,12 +1138,19 @@
 .bow {
   position: absolute;
   z-index: 7;
+  display: grid;
+  place-items: center;
   top: -33px;
   left: 50%;
   width: 150px;
-  height: auto;
+  height: 92px;
   transform: translateX(-50%);
   filter: drop-shadow(0 6px 3px rgba(9, 5, 18, 0.45));
+}
+
+.bow > span {
+  width: 82px;
+  height: 82px;
 }
 
 .shell[data-admin-route="dashboard"] .panel {

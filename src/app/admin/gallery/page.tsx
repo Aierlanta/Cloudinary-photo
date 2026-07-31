@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
 import { ChevronLeft, ChevronRight, Download, MoreHorizontal, Plus, RefreshCw } from "lucide-react";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
+import { OrnateIcon } from "@/components/ui/ornate-icon";
 import pageStyles from "../admin-pages.module.css";
 
 interface Image {
@@ -302,12 +303,12 @@ export default function GalleryPage() {
       <div className="admin-gallery-toolbar">
         <ImageFilters filters={filters} groups={groups} onFilterChange={handleFilterChange} />
         <div className="admin-gallery-toolbar-actions">
-          <Link href="/admin/images"><Plus aria-hidden /> {t.adminNav.upload}</Link>
+          <Link href="/admin/images"><OrnateIcon icon={Plus} tone="pink" size="sm" /> {t.adminNav.upload}</Link>
           <button type="button" onClick={() => setFilters((current) => ({ ...current }))}>
-            <RefreshCw aria-hidden /> {t.common.refresh}
+            <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" /> {t.common.refresh}
           </button>
           <button type="button" onClick={handleExport}>
-            <Download aria-hidden /> {t.adminUi.exportData}
+            <OrnateIcon icon={Download} tone="mint" size="sm" /> {t.adminUi.exportData}
           </button>
         </div>
       </div>
@@ -370,12 +371,12 @@ export default function GalleryPage() {
               aria-label={t.adminImages.previousPage}
               title={t.adminImages.previousPage}
             >
-              <ChevronLeft aria-hidden />
+              <OrnateIcon icon={ChevronLeft} tone="lavender" size="sm" />
             </button>
             {paginationButtons.map((page, index) => (
               <span key={page} className="admin-gallery-page-entry">
                 {index === 0 && page > 1 ? (
-                  <span className="admin-gallery-page-ellipsis" aria-hidden><MoreHorizontal /></span>
+                  <span className="admin-gallery-page-ellipsis" aria-hidden><OrnateIcon icon={MoreHorizontal} tone="lavender" size="sm" /></span>
                 ) : null}
                 <button
                   type="button"
@@ -393,7 +394,7 @@ export default function GalleryPage() {
             ))}
             {lastPaginationButton && lastPaginationButton < totalPages ? (
               <>
-                <span className="admin-gallery-page-ellipsis" aria-hidden><MoreHorizontal /></span>
+                <span className="admin-gallery-page-ellipsis" aria-hidden><OrnateIcon icon={MoreHorizontal} tone="lavender" size="sm" /></span>
                 <button
                   type="button"
                   onClick={() => handleFilterChange({ page: totalPages })}
@@ -412,7 +413,7 @@ export default function GalleryPage() {
               aria-label={t.adminImages.nextPage}
               title={t.adminImages.nextPage}
             >
-              <ChevronRight aria-hidden />
+              <OrnateIcon icon={ChevronRight} tone="lavender" size="sm" />
             </button>
           </nav>
         )}

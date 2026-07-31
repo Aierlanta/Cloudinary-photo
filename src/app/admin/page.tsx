@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { OrnateIcon } from "@/components/ui/ornate-icon";
+import { OrnateStatus } from "@/components/ui/ornate-status";
 import {
-  Image as ImageIcon,
-  Folder,
-  UploadCloud,
-  Activity,
   Flower2,
 } from "lucide-react";
 import Link from "next/link";
@@ -67,7 +65,7 @@ export default function AdminDashboard() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.dashboard}</span>
-            <Flower2 className={styles.heroIcon} aria-hidden />
+            <OrnateIcon icon={Flower2} tone="pink" size="sm" className={styles.heroIconBadge} />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminDashboard.welcome}</p>
         </div>
@@ -75,24 +73,32 @@ export default function AdminDashboard() {
 
       <section className={styles.statGrid} aria-label={t.adminDashboard.accessStats}>
         <article className={cn(styles.statCard, styles.tonePink)}>
-          <p className={styles.statLabel}>{t.adminDashboard.totalImages}</p>
-          <p className={styles.statValue}>{loading ? "…" : stats?.totalImages || 0}</p>
-          <ImageIcon className={styles.statIcon} aria-hidden />
+          <span className={cn(styles.statArtwork, styles.statArtworkPhoto)} aria-hidden="true" />
+          <div className={styles.statCopy}>
+            <p className={styles.statLabel}>{t.adminDashboard.totalImages}</p>
+            <p className={styles.statValue}>{loading ? "…" : stats?.totalImages || 0}</p>
+          </div>
         </article>
         <article className={cn(styles.statCard, styles.toneLavender)}>
-          <p className={styles.statLabel}>{t.adminNav.groups}</p>
-          <p className={styles.statValue}>{loading ? "…" : stats?.totalGroups || 0}</p>
-          <Folder className={styles.statIcon} aria-hidden />
+          <span className={cn(styles.statArtwork, styles.statArtworkFolder)} aria-hidden="true" />
+          <div className={styles.statCopy}>
+            <p className={styles.statLabel}>{t.adminDashboard.groupCount}</p>
+            <p className={styles.statValue}>{loading ? "…" : stats?.totalGroups || 0}</p>
+          </div>
         </article>
         <article className={cn(styles.statCard, styles.toneMint)}>
-          <p className={styles.statLabel}>{t.adminNav.upload}</p>
-          <p className={styles.statValue}>{loading ? "…" : stats?.recentUploads || 0}</p>
-          <UploadCloud className={styles.statIcon} aria-hidden />
+          <span className={cn(styles.statArtwork, styles.statArtworkClock)} aria-hidden="true" />
+          <div className={styles.statCopy}>
+            <p className={styles.statLabel}>{t.adminDashboard.recentUploads}</p>
+            <p className={styles.statValue}>{loading ? "…" : stats?.recentUploads || 0}</p>
+          </div>
         </article>
         <article className={cn(styles.statCard, styles.toneAmber)}>
-          <p className={styles.statLabel}>{t.adminDashboard.last24HoursAccessShort}</p>
-          <p className={styles.statValue}>{loading ? "…" : stats?.access?.last24Hours || 0}</p>
-          <Activity className={styles.statIcon} aria-hidden />
+          <span className={cn(styles.statArtwork, styles.statArtworkShield)} aria-hidden="true" />
+          <div className={styles.statCopy}>
+            <p className={styles.statLabel}>{t.adminDashboard.last24HoursAccessShort}</p>
+            <p className={styles.statValue}>{loading ? "…" : stats?.access?.last24Hours || 0}</p>
+          </div>
         </article>
       </section>
 
@@ -105,7 +111,11 @@ export default function AdminDashboard() {
               <p className={styles.miniValue}>
                 {loading ? "…" : stats?.backup?.isDatabaseHealthy ? "100%" : "0%"}
               </p>
-              <p className={cn(styles.miniTrend, styles.trendUp)}>↑ {t.adminUi.databaseHealth}</p>
+              <OrnateStatus
+                className={styles.miniStatus}
+                label={t.adminUi.databaseHealth}
+                tone={stats?.backup?.isDatabaseHealthy === false ? "danger" : "healthy"}
+              />
             </div>
             <div className={styles.miniCard}>
               <p className={styles.miniLabel}>{t.adminStatus.responseTime}</p>
@@ -124,18 +134,33 @@ export default function AdminDashboard() {
           <h2 className={styles.panelTitle}>{t.adminDashboard.quickActions}</h2>
           <div className={styles.actionGrid}>
             <Link href="/admin/images" className={cn(styles.actionLink, styles.actionPink)}>
-              <span className={styles.actionIcon}><UploadCloud /></span>
+              <span className={cn(styles.actionArtwork, styles.actionArtworkUpload)} aria-hidden="true" />
               <span><p className={styles.actionTitle}>{t.adminDashboard.uploadImage}</p></span>
             </Link>
             <Link href="/admin/groups" className={cn(styles.actionLink, styles.actionLavender)}>
-              <span className={styles.actionIcon}><Folder /></span>
+              <span className={cn(styles.actionArtwork, styles.actionArtworkFolder)} aria-hidden="true" />
               <span><p className={styles.actionTitle}>{t.adminDashboard.manageGroups}</p></span>
             </Link>
             <Link href="/admin/status" className={cn(styles.actionLink, styles.actionMint)}>
-              <span className={styles.actionIcon}><Activity /></span>
+              <span className={cn(styles.actionArtwork, styles.actionArtworkApi)} aria-hidden="true" />
               <span><p className={styles.actionTitle}>{t.adminUi.viewApiStatus}</p></span>
             </Link>
           </div>
+        </div>
+
+        <div className={cn(styles.panel, styles.healthPanel)}>
+          <h2 className={styles.panelTitle}>{t.adminUi.databaseHealth}</h2>
+          <span className={styles.healthArtwork} aria-hidden="true" />
+          <OrnateStatus
+            className={styles.healthStatus}
+            label={stats?.backup?.isDatabaseHealthy === false ? t.adminBackup.abnormal : t.adminBackup.healthy}
+            tone={stats?.backup?.isDatabaseHealthy === false ? "danger" : "healthy"}
+          />
+          <dl className={styles.healthFacts}>
+            <div><dt>{t.adminStatus.responseTime}</dt><dd>{loading ? "…" : `${summaryLatency}ms`}</dd></div>
+            <div><dt>{t.adminBackup.backupCount}</dt><dd>{loading ? "…" : stats?.backup?.backupCount || 0}</dd></div>
+            <div><dt>{t.adminDashboard.last24HoursAccessShort}</dt><dd>{loading ? "…" : stats?.access?.last24Hours || 0}</dd></div>
+          </dl>
         </div>
       </section>
     </div>

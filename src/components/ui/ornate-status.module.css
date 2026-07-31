@@ -1,0 +1,63 @@
+.root {
+  --status-tone: #79d2b3;
+  --status-soft: #b3ead6;
+  display: inline-flex;
+  min-height: 28px;
+  padding: 4px 10px 4px 8px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--status-tone) 70%, var(--admin-cream, #fff0df));
+  border-radius: 999px;
+  color: var(--admin-cream, #fff0df);
+  background: color-mix(in srgb, var(--status-tone) 20%, var(--admin-panel, #2b233d));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 3px 7px var(--admin-depth-shadow, rgba(8, 5, 18, 0.24));
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.root::after {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  border: 1px dashed color-mix(in srgb, var(--status-soft) 52%, transparent);
+  border-radius: inherit;
+  content: "";
+  pointer-events: none;
+}
+
+.root {
+  position: relative;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid color-mix(in srgb, var(--status-soft) 75%, white);
+  border-radius: 50%;
+  background: var(--status-tone);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-tone) 17%, transparent);
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  color: var(--status-soft);
+}
+
+.root[data-tone="warning"] {
+  --status-tone: #f6ba55;
+  --status-soft: #ffe2a3;
+}
+
+.root[data-tone="danger"] {
+  --status-tone: #ff7198;
+  --status-soft: #ffd0dc;
+}
+
+.root[data-tone="neutral"] {
+  --status-tone: #aa87d6;
+  --status-soft: #d7c4f1;
+}
+

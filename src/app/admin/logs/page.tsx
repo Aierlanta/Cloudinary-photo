@@ -4,6 +4,7 @@ import LogViewer from '@/components/admin/LogViewer'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
 import { Flower2 } from 'lucide-react'
+import { OrnateIcon } from '@/components/ui/ornate-icon'
 import styles from '../admin-pages.module.css'
 
 export default function SystemLogsPage() {
@@ -15,7 +16,7 @@ export default function SystemLogsPage() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminUi.accessLogs}</span>
-            <Flower2 className={styles.heroIcon} aria-hidden />
+            <OrnateIcon icon={Flower2} tone="pink" size="sm" className={styles.heroIconBadge} />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminLogs.description}</p>
         </div>

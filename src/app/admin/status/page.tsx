@@ -18,6 +18,7 @@ import {
   Flower2,
 } from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
+import { OrnateIcon } from '@/components/ui/ornate-icon'
 import pageStyles from '../admin-pages.module.css'
 
 interface SystemStatus {
@@ -174,13 +175,13 @@ export default function SystemStatusPage() {
           <div>
             <h1 className={pageStyles.heroTitle}>
               <span>{t.adminNav.status}</span>
-              <Flower2 className={pageStyles.heroIcon} aria-hidden />
+              <OrnateIcon icon={Flower2} tone="pink" size="sm" className={pageStyles.heroIconBadge} />
             </h1>
           </div>
         </header>
         <div className={cn(pageStyles.panel, "border-rose-300")}>
           <div className="relative z-[1] flex items-center gap-2 mb-3 text-rose-600">
-            <AlertTriangle className="w-5 h-5" />
+            <OrnateIcon icon={AlertTriangle} tone="pink" size="sm" />
             <span>{error}</span>
           </div>
           <button
@@ -207,27 +208,27 @@ export default function SystemStatusPage() {
       <header className={pageStyles.hero}>
         <h1 className={pageStyles.heroTitle}>
           <span>{t.adminStatus.systemStatus}</span>
-          <Activity className={pageStyles.heroIcon} aria-hidden />
+          <OrnateIcon icon={Activity} tone="mint" size="sm" className={pageStyles.heroIconBadge} />
         </h1>
         <button type="button" onClick={loadStatus} className={cn(pageStyles.btn, pageStyles.btnLavender)}>
-          <RefreshCw className="w-4 h-4" />
+          <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
           {t.common.refresh}
         </button>
       </header>
 
       <section className={pageStyles.statusServiceGrid} aria-label={t.adminStatus.serviceStatus}>
         {[
-          { label: t.adminStatus.apiService, healthy: status.services.api.enabled, icon: Server },
-          { label: t.adminUi.storageService, healthy: status.services.cloudinary.healthy, icon: Cloud },
-          { label: t.adminStatus.database, healthy: status.services.database.healthy, icon: Database },
-        ].map(({ label, healthy, icon: Icon }) => (
+          { label: t.adminStatus.apiService, healthy: status.services.api.enabled, icon: Server, artwork: pageStyles.statusArtworkShield },
+          { label: t.adminUi.storageService, healthy: status.services.cloudinary.healthy, icon: Cloud, artwork: pageStyles.statusArtworkClock },
+          { label: t.adminStatus.database, healthy: status.services.database.healthy, icon: Database, artwork: pageStyles.statusArtworkServer },
+        ].map(({ label, healthy, icon: Icon, artwork }) => (
           <article key={label} className={cn(pageStyles.statusServiceCard, healthy ? pageStyles.statusHealthy : pageStyles.statusWarning)}>
-            {healthy ? <CheckCircle aria-hidden /> : <AlertTriangle aria-hidden />}
+            <span className={cn(pageStyles.statusServiceArtwork, artwork)} aria-hidden="true" />
             <div>
               <h2>{label}</h2>
               <p>{t.adminUi.checkedAt.replace('{time}', checkedAt)}</p>
             </div>
-            <Icon className={pageStyles.statusCardAccent} aria-hidden />
+            <OrnateIcon icon={Icon} tone={healthy ? "mint" : "amber"} size="sm" className={pageStyles.statusCardAccent} />
           </article>
         ))}
       </section>
@@ -236,19 +237,19 @@ export default function SystemStatusPage() {
         <article className={pageStyles.statusDetailPanel}>
           <h2>{t.adminUi.systemInfo}</h2>
           <div className={pageStyles.statusMetricGrid}>
-            <div className={pageStyles.statusMetric}><Info aria-hidden /><span>{t.adminStatus.version}</span><strong>v{status.version}</strong></div>
-            <div className={pageStyles.statusMetric}><Activity aria-hidden /><span>{t.adminStatus.uptime}</span><strong>{formatUptime(status.uptime)}</strong></div>
-            <div className={pageStyles.statusMetric}><Cpu aria-hidden /><span>{t.adminStatus.memoryUsage}</span><strong>{memoryUsed} MB</strong><progress max="100" value={memoryPercent} /></div>
-            <div className={pageStyles.statusMetric}><Server aria-hidden /><span>Node.js</span><strong>{status.environment || t.adminUi.running}</strong></div>
+            <div className={pageStyles.statusMetric}><OrnateIcon icon={Info} tone="lavender" size="sm" /><span>{t.adminStatus.version}</span><strong>v{status.version}</strong></div>
+            <div className={pageStyles.statusMetric}><OrnateIcon icon={Activity} tone="mint" size="sm" /><span>{t.adminStatus.uptime}</span><strong>{formatUptime(status.uptime)}</strong></div>
+            <div className={pageStyles.statusMetric}><OrnateIcon icon={Cpu} tone="amber" size="sm" /><span>{t.adminStatus.memoryUsage}</span><strong>{memoryUsed} MB</strong><progress max="100" value={memoryPercent} /></div>
+            <div className={pageStyles.statusMetric}><OrnateIcon icon={Server} tone="pink" size="sm" /><span>Node.js</span><strong>{status.environment || t.adminUi.running}</strong></div>
           </div>
         </article>
 
         <article className={pageStyles.statusDetailPanel}>
           <h2>{t.adminUi.storageProviders}</h2>
           <div className={pageStyles.statusProviderList}>
-            <div><Cloud aria-hidden /><span><strong>Cloudinary</strong><small>{status.services.cloudinary.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.cloudinary.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.cloudinary.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
-            <div><Database aria-hidden /><span><strong>TgState</strong><small>{status.services.database.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.database.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.database.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
-            <div><Server aria-hidden /><span><strong>{t.adminStatus.apiService}</strong><small>{status.services.api.parametersCount ?? 0} {t.adminUi.configuredParameters}</small></span><b className={status.services.api.enabled ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.api.enabled ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><OrnateIcon icon={Cloud} tone="mint" size="sm" /><span><strong>Cloudinary</strong><small>{status.services.cloudinary.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.cloudinary.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.cloudinary.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><OrnateIcon icon={Database} tone="lavender" size="sm" /><span><strong>TgState</strong><small>{status.services.database.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.database.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.database.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><OrnateIcon icon={Server} tone="pink" size="sm" /><span><strong>{t.adminStatus.apiService}</strong><small>{status.services.api.parametersCount ?? 0} {t.adminUi.configuredParameters}</small></span><b className={status.services.api.enabled ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.api.enabled ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
           </div>
         </article>
       </section>

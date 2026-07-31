@@ -22,12 +22,15 @@ import {
   Globe,
   Network,
   Sparkles,
+  Heart,
+  RefreshCw,
 } from "lucide-react";
 import { useLocale } from "@/hooks/useLocale";
 import { Theme } from "@/lib/adminTheme";
 import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
+import { OrnateIcon } from "@/components/ui/ornate-icon";
 import styles from "./admin-shell.module.css";
 import mascotStyles from "./sidebar-mascot.module.css";
 import { getSidebarMascotSources } from "./sidebar-mascot";
@@ -46,23 +49,9 @@ interface AdminLayoutV3Props {
 
 function RibbonBow({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 168 92" className={className} aria-hidden>
-      <g stroke="#fff0df" strokeWidth="7" strokeLinejoin="round">
-        <path d="M75 41C54 10 19 5 11 22 4 38 35 56 72 51Z" fill="#ff7198" />
-        <path d="M93 41c21-31 56-36 64-19 7 16-24 34-61 29Z" fill="#ff7198" />
-        <path d="M70 49 49 84l34-17 2-21Z" fill="#f05c8a" />
-        <path d="m98 49 21 35-34-17-2-21Z" fill="#f05c8a" />
-        <rect x="72" y="33" width="24" height="24" rx="8" fill="#ff9cb6" />
-      </g>
-      <g fill="none" stroke="#b73d67" strokeWidth="2.2" strokeLinejoin="round">
-        <path d="M75 41C54 10 19 5 11 22 4 38 35 56 72 51Z" />
-        <path d="M93 41c21-31 56-36 64-19 7 16-24 34-61 29Z" />
-        <path d="M70 49 49 84l34-17 2-21Z" />
-        <path d="m98 49 21 35-34-17-2-21Z" />
-        <rect x="72" y="33" width="24" height="24" rx="8" />
-      </g>
-      <path d="M79 39c4-2 8-2 12 0" fill="none" stroke="#fff0df" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
+    <span className={className} aria-hidden>
+      <OrnateIcon icon={Heart} tone="pink" size="lg" />
+    </span>
   );
 }
 
@@ -176,9 +165,14 @@ export default function AdminLayoutV3({
             className={cn(styles.navItem, active && styles.navItemActive)}
             aria-current={active ? "page" : undefined}
           >
-            <item.icon aria-hidden />
-            <span>{item.name}</span>
-            <Sparkles className={styles.navSpark} aria-hidden />
+            <OrnateIcon
+              icon={item.icon}
+              size="sm"
+              tone={active ? "cream" : "lavender"}
+              className={styles.navIcon}
+            />
+            <span className={styles.navLabel}>{item.name}</span>
+            <OrnateIcon icon={Sparkles} tone="pink" size="sm" className={styles.navSpark} />
           </Link>
         );
       })}
@@ -229,7 +223,7 @@ export default function AdminLayoutV3({
         onClick={() => openSettings(true)}
         aria-expanded={isSettingsOpen}
       >
-        <SettingsIcon aria-hidden />
+        <OrnateIcon icon={SettingsIcon} tone="lavender" size="sm" />
         <span>{t.admin.quickSettings}</span>
       </button>
     </div>
@@ -260,7 +254,7 @@ export default function AdminLayoutV3({
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((open) => !open)}
         >
-          {isMobileMenuOpen ? <X /> : <Menu />}
+          <OrnateIcon icon={isMobileMenuOpen ? X : Menu} tone="lavender" size="sm" />
         </button>
       ) : null}
 
@@ -295,7 +289,7 @@ export default function AdminLayoutV3({
           aria-expanded={isSettingsOpen}
           title={t.admin.quickSettings}
         >
-          <SettingsIcon aria-hidden />
+          <OrnateIcon icon={SettingsIcon} tone="lavender" size="sm" />
         </button>
       </aside>
 
@@ -377,7 +371,7 @@ export default function AdminLayoutV3({
                 aria-label={t.common.close}
                 className={styles.settingsClose}
               >
-                <X />
+                <OrnateIcon icon={X} tone="pink" size="sm" />
               </button>
             </div>
 
@@ -393,6 +387,7 @@ export default function AdminLayoutV3({
                   className={styles.settingsButton}
                   style={{ width: "auto" }}
                 >
+                  <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
                   {t.common.refresh}
                 </button>
               </div>
@@ -486,7 +481,7 @@ export default function AdminLayoutV3({
               <section className={styles.settingsSection}>
                 <label className={styles.settingsLabel}>{t.admin.toggleLanguage}</label>
                 <button type="button" onClick={toggleLocale} className={styles.settingsButton}>
-                  <Globe className="w-4 h-4" />
+                  <OrnateIcon icon={Globe} tone="mint" size="sm" />
                   <span>{locale === "zh" ? t.adminUi.switchToEnglish : t.adminUi.switchToChinese}</span>
                 </button>
               </section>
@@ -494,7 +489,7 @@ export default function AdminLayoutV3({
               <section className={styles.settingsSection}>
                 <label className={styles.settingsLabel}>{t.admin.toggleTheme}</label>
                 <button type="button" onClick={handleThemeToggle} className={styles.settingsButton}>
-                  {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  <OrnateIcon icon={isLight ? Moon : Sun} tone="amber" size="sm" />
                   <span>{isLight ? `→ ${t.admin.dark}` : `→ ${t.admin.light}`}</span>
                 </button>
               </section>
@@ -510,7 +505,7 @@ export default function AdminLayoutV3({
                 onClick={handleLogout}
                 className={cn(styles.settingsButton, styles.settingsLogout)}
               >
-                <LogOut className="w-4 h-4" />
+                <OrnateIcon icon={LogOut} tone="pink" size="sm" />
                 <span>{t.adminNav.logout}</span>
               </button>
             </div>
