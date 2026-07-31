@@ -545,41 +545,17 @@
   color: var(--admin-cream);
 }
 
+/* Note card chrome only — character + copy layout lives in sidebar-mascot.module.css */
 .sidebarNote {
   position: relative;
   z-index: 2;
-  display: flex;
   flex: 0 0 auto;
   min-height: 78px;
   margin-top: 12px;
-  padding: 16px 14px;
-  justify-content: center;
-  flex-direction: column;
   border: 1px dashed var(--admin-stitch);
   border-radius: 17px;
   color: var(--foreground);
   background: color-mix(in srgb, var(--admin-panel) 82%, var(--admin-night-deep));
-  text-align: center;
-}
-
-.sidebarNote span {
-  margin-bottom: 5px;
-  color: var(--admin-mint);
-  font-size: 0.66rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-}
-
-.sidebarNote strong {
-  font-family: var(--font-display), ui-rounded, cursive;
-  font-size: 0.9rem;
-}
-
-.sidebarNote p {
-  margin-top: 6px;
-  color: var(--admin-muted);
-  font-size: 0.73rem;
-  line-height: 1.45;
 }
 
 .sidebarFooter {
@@ -752,7 +728,6 @@
 
 .shell[data-admin-route="backup"] .sidebarNote {
   min-height: 120px;
-  margin-bottom: 37px;
 }
 
 .shell[data-admin-route="gallery"] .brand {
@@ -933,7 +908,10 @@
   position: relative;
   z-index: 2;
   min-width: 0;
+  /* fluid panel height — at least fill the shell panel so 1fr rows can track viewport */
   min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .washiDots,

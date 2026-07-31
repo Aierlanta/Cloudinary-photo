@@ -31,6 +31,7 @@ import {
   X
 } from "lucide-react";
 import { useAdminApi } from "@/lib/admin-api-client";
+import AdminPortal from "@/components/admin/AdminPortal";
 
 interface ImageItem {
   id: string;
@@ -388,10 +389,11 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
 
   // --- V3 Layout (Flat Design) ---
   return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0" onClick={onClose}>
+    <AdminPortal>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[220] p-4 !mt-0" onClick={onClose}>
         <div className={cn(
-          "border max-w-4xl w-full max-h-[90vh] overflow-y-auto",
-          isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+          "border max-w-4xl w-full max-h-[90vh] overflow-y-auto rounded-2xl border-2",
+          isLight ? "bg-white border-gray-300" : "bg-[var(--admin-panel,#2a1f3d)] border-[var(--admin-lavender,#a887dd)]"
         )} onClick={(e) => e.stopPropagation()}>
           <div className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -558,6 +560,7 @@ function ImagePreviewModal({ image, groups, onClose, onSuccess, onError }: Image
           </div>
         </div>
       </div>
+    </AdminPortal>
     );
   }
 
@@ -584,10 +587,11 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
 
    // --- V3 Layout (Flat Design) ---
    return (
-         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !mt-0" onClick={onClose}>
+    <AdminPortal>
+         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[220] p-4 !mt-0" onClick={onClose}>
             <div className={cn(
-               "border max-w-md w-full",
-               isLight ? "bg-white border-gray-300" : "bg-gray-800 border-gray-600"
+               "border max-w-md w-full rounded-2xl border-2",
+               isLight ? "bg-white border-gray-300" : "bg-[var(--admin-panel,#2a1f3d)] border-[var(--admin-lavender,#a887dd)]"
             )} onClick={e => e.stopPropagation()}>
                <div className="p-6">
                   <h3 className={cn(
@@ -670,6 +674,7 @@ function ImageEditModal({ image, groups, onClose, onSave }: ImageEditModalProps)
                </div>
             </div>
          </div>
+    </AdminPortal>
       )
 }
 

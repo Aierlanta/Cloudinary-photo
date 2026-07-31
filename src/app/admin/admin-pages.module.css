@@ -1,6 +1,13 @@
+.overlayHost {
+  display: contents;
+}
+
 .page {
   display: grid;
   min-width: 0;
+  /* fluid panel height — participate in shell panelInner flex column */
+  flex: 1 1 auto;
+  width: 100%;
   gap: 18px;
 }
 
@@ -883,8 +890,9 @@
 }
 
 .fillHeight {
+  /* fluid panel height — fill shell panel, not a fixed 100vh offset */
   display: flex;
-  min-height: calc(100vh - 180px);
+  min-height: 100%;
   flex-direction: column;
 }
 
@@ -908,7 +916,7 @@
 
 .modalBackdrop {
   position: fixed;
-  z-index: 100;
+  z-index: 220;
   inset: 0;
   display: grid;
   place-items: center;
@@ -985,7 +993,8 @@
 .page :global(.admin-upload-workspace) {
   display: grid;
   grid-template-columns: minmax(0, 1.23fr) minmax(420px, 1fr);
-  min-height: 510px;
+  /* fluid panel height */
+  min-height: clamp(280px, 52dvh, 540px);
   margin-right: 10px;
   margin-left: 16px;
   align-items: stretch;
@@ -996,7 +1005,8 @@
   position: relative;
   grid-column: 1;
   display: grid;
-  min-height: 510px;
+  /* fluid panel height */
+  min-height: clamp(280px, 52dvh, 540px);
   place-items: center;
   border: 3px dashed var(--admin-pink-soft) !important;
   border-radius: 30px !important;
@@ -1093,7 +1103,8 @@
   grid-column: 2;
   display: flex;
   min-width: 0;
-  min-height: 510px;
+  /* fluid panel height */
+  min-height: clamp(280px, 52dvh, 540px);
   padding: 19px 30px 34px;
   flex-direction: column;
   gap: 17px;
@@ -1155,16 +1166,8 @@
 }
 
 .page :global(.admin-upload-swarm) {
-  display: none !important;
-}
-
-:global([data-settings-open="true"]) .page :global(.admin-upload-swarm) {
-  position: fixed;
-  z-index: 110;
-  right: 28px;
-  bottom: 28px;
   display: grid !important;
-  width: min(382px, calc(100vw - 56px));
+  margin-top: 12px;
   padding: 14px !important;
   border: 1.5px solid var(--admin-border) !important;
   border-radius: 14px !important;
@@ -1341,13 +1344,15 @@
 
 .page :global(.admin-upload-workspace) {
   grid-template-columns: minmax(0, 1.3fr) minmax(380px, 0.95fr);
-  min-height: 540px;
+  /* fluid panel height */
+  min-height: clamp(280px, 52dvh, 540px);
   margin: 0 10px;
   gap: 14px;
 }
 
 .page :global(.admin-upload-dropzone) {
-  min-height: 540px;
+  /* fluid panel height */
+  min-height: clamp(280px, 52dvh, 540px);
   padding: 20px !important;
   border: 3px dashed var(--admin-pink-soft) !important;
   border-radius: 34px !important;
@@ -1449,7 +1454,8 @@
 
 .page :global(.admin-upload-settings) {
   position: relative;
-  min-height: 540px;
+  /* fluid panel height */
+  min-height: clamp(280px, 52dvh, 540px);
   padding: 24px 28px 28px;
   gap: 18px;
   overflow: hidden;
@@ -1553,7 +1559,39 @@
   background: color-mix(in srgb, var(--admin-panel-raised) 85%, transparent) !important;
 }
 
-:global([data-settings-open="true"]) .page :global(.admin-upload-swarm) {
+.page :global(.admin-upload-swarm > label) {
+  display: grid;
+  gap: 7px;
+}
+
+.page :global(.admin-upload-swarm > label > span) {
+  color: var(--admin-cream) !important;
+  font-size: 0.88rem !important;
+  font-weight: 800 !important;
+}
+
+.page :global(.admin-upload-swarm > label > small) {
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.page :global(.admin-upload-swarm output) {
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 2px solid color-mix(in srgb, var(--admin-pink) 72%, var(--admin-border));
+  border-radius: 14px;
+  color: #34263f;
+  background: var(--admin-form-input-surface);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+/* data-settings-open 作用在壳层：用局部 .page 保持 CSS Modules 纯净 */
+.page :global(.admin-upload-swarm.is-settings-inline),
+.page:global(.admin-upload-root[data-settings-open="true"]) :global(.admin-upload-swarm) {
   position: static;
   right: auto;
   bottom: auto;
@@ -2048,30 +2086,49 @@
 .page :global(.admin-gallery-page-size),
 .page :global(.admin-gallery-advanced-toggle),
 .page :global(.admin-gallery-reset) {
-  display: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-:global([data-settings-open="true"]) .page :global(.admin-gallery-owner-filter) {
-  position: fixed;
-  z-index: 112;
-  right: 28px;
-  bottom: 28px;
-  display: block;
-  width: min(382px, calc(100vw - 56px));
-  padding: 14px;
+.page :global(.admin-gallery-owner-filter) {
+  display: grid;
+  margin-top: 10px;
+  padding: 14px 16px;
+  gap: 8px;
   border: 1.5px solid var(--admin-border);
   border-radius: 14px;
   background: var(--admin-panel-raised);
 }
 
-:global([data-settings-open="true"]) .page :global(.admin-gallery-page-size) {
-  position: fixed;
-  z-index: 113;
-  right: 44px;
-  bottom: 170px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.page :global(.admin-gallery-owner-filter > label) {
+  display: grid;
+  gap: 7px;
+}
+
+.page :global(.admin-gallery-owner-filter > label > span) {
+  color: var(--admin-cream);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.page :global(.admin-gallery-owner-filter select) {
+  width: min(100%, 360px);
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1.5px solid color-mix(in srgb, var(--admin-pink) 62%, var(--admin-border)) !important;
+  border-radius: 10px !important;
+  color: var(--foreground) !important;
+  background: var(--admin-night) !important;
+  outline: none;
+}
+
+.page :global(.admin-gallery-owner-filter > p) {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
 }
 
 .page :global(.admin-gallery-content) {
@@ -2095,6 +2152,35 @@
 
 .page :global(.admin-gallery-search input) {
   padding-inline: 38px !important;
+}
+
+.page :global(.admin-gallery-search-icon) {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  color: var(--admin-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.page :global(.admin-gallery-search-clear) {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  z-index: 1;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  background: transparent;
+  transform: translateY(-50%);
+  cursor: pointer;
 }
 
 .page :global(.admin-gallery-primary-filters) {
@@ -2567,37 +2653,16 @@
   box-shadow: var(--admin-shadow);
 }
 
-/* Keep the reference toolbar to one deliberate row; secondary filters live in Settings. */
+/* Secondary gallery filters stay in the toolbar so advanced options remain usable. */
 .page :global(.admin-gallery-toolbar .admin-gallery-advanced-toggle),
 .page :global(.admin-gallery-toolbar .admin-gallery-reset) {
-  display: none !important;
-}
-
-/* The reference keeps the main toolbar compact; secondary gallery controls remain
-   reachable from the one allowed settings entry point. */
-:global([data-settings-open="true"]) .page :global(.admin-gallery-toolbar .admin-gallery-advanced-toggle) {
-  position: fixed;
-  z-index: 114;
-  right: 44px;
-  bottom: 232px;
   display: inline-flex !important;
 }
 
-:global([data-settings-open="true"]) .page :global(.admin-gallery-toolbar .admin-gallery-reset) {
-  position: fixed;
-  z-index: 114;
-  right: 44px;
-  bottom: 284px;
-  display: inline-flex !important;
-}
-
-:global([data-settings-open="true"]) .page :global(.admin-gallery-toolbar .admin-gallery-advanced) {
-  position: fixed;
-  z-index: 115;
-  right: 28px;
-  bottom: 328px;
+.page :global(.admin-gallery-toolbar .admin-gallery-advanced) {
   display: grid;
-  width: min(382px, calc(100vw - 56px));
+  margin-top: 10px;
+  width: min(100%, 720px);
   padding: 14px;
   border: 1.5px solid var(--admin-border);
   border-radius: 14px;
@@ -2745,9 +2810,11 @@
 /* Status is a compact two-tier operations overview, matching the reference's
    immediate health scan before the deeper provider detail. */
 .page:global(.admin-status-page) {
-  grid-template-rows: 112px 205px minmax(0, 1fr);
+  /* fluid panel height */
+  min-height: 100%;
+  grid-template-rows: auto auto auto;
+  align-content: start;
   gap: 18px;
-  min-height: 0;
 }
 
 .page:global(.admin-status-page) > .hero {
@@ -3016,9 +3083,11 @@
    intentionally available through the shared settings control rather than
    extending the reference screen below the fold. */
 .page:global(.admin-swarm-page) {
-  grid-template-rows: 80px 143px 386px 130px;
+  /* fluid panel height — drop fixed 386px work row */
+  min-height: 100%;
+  grid-template-rows: auto auto auto auto;
+  align-content: start;
   gap: 14px;
-  min-height: 0;
 }
 
 .page:global(.admin-swarm-page) > .hero {
@@ -3038,7 +3107,7 @@
 }
 
 .page:global(.admin-swarm-page) > .hero .heroActions {
-  display: none;
+  display: flex;
 }
 
 .page:global(.admin-swarm-page) > .statGrid {
@@ -3144,33 +3213,17 @@
 }
 
 .page:global(.admin-swarm-page) > :global(.admin-swarm-settings) {
-  display: none;
-}
-
-:global([data-settings-open="true"]) .page:global(.admin-swarm-page) > :global(.admin-swarm-settings) {
-  position: fixed;
-  z-index: 112;
-  right: 28px;
-  bottom: 28px;
   display: block;
-  width: min(560px, calc(100vw - 56px));
-  max-height: min(78vh, 760px);
-  overflow: auto;
-}
-
-:global([data-settings-open="true"]) .page:global(.admin-swarm-page) > .hero .heroActions {
-  position: fixed;
-  z-index: 113;
-  right: 44px;
-  bottom: min(calc(78vh + 42px), 802px);
-  display: flex;
+  min-width: 0;
+  max-width: min(920px, 100%);
 }
 
 /* Logs: the data viewer itself becomes the single compact log surface. */
 .page:global(.admin-logs-page) {
-  grid-template-rows: 70px minmax(0, 1fr);
+  /* fluid panel height */
+  min-height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
-  min-height: 0;
 }
 
 .page:global(.admin-logs-page) > .hero {
@@ -3189,14 +3242,6 @@
   transform: translate(-98px, -3px);
 }
 
-.page:global(.admin-logs-page) > .hero .heroActions {
-  position: absolute;
-  right: 20px;
-  top: 118px;
-  bottom: auto;
-  z-index: 8;
-}
-
 .page:global(.admin-logs-page) > .panel {
   min-height: 0;
   padding: 0 18px 18px;
@@ -3205,12 +3250,11 @@
   box-shadow: none;
 }
 
-.page:global(.admin-logs-page) > .panel::before,
-.page:global(.admin-logs-page) > .panel > div:first-child {
+.page:global(.admin-logs-page) > .panel::before {
   display: none;
 }
 
-.page:global(.admin-logs-page) > .panel > div:nth-child(2) {
+.page:global(.admin-logs-page) > .panel > div:first-child {
   min-height: 0;
   border: 0;
   border-radius: 0;
@@ -3225,31 +3269,163 @@
   box-shadow: none !important;
 }
 
-.page :global(.admin-log-viewer-header) {
-  display: none !important;
+.page :global(.admin-log-toolbar) {
+  position: relative;
+  margin: 0 -8px 12px;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--admin-stitch);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(56, 45, 78, 0.96), rgba(43, 35, 61, 0.98)),
+    var(--admin-panel-raised);
+  box-shadow: 0 10px 22px rgba(7, 4, 16, 0.28);
 }
 
-:global([data-settings-open="true"]) .page :global(.admin-log-viewer-header) {
-  position: fixed;
-  z-index: 114;
-  right: 44px;
-  bottom: 46px;
-  display: flex !important;
-  padding: 12px;
+.page :global(.admin-log-toolbar-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.page :global(.admin-log-action) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 18px;
+  gap: 8px;
+  border: 1.5px solid var(--admin-cream);
+  border-radius: 999px;
+  color: #fffaf4;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(8, 5, 18, 0.22);
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+.page :global(.admin-log-action:hover) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.page :global(.admin-log-action svg) {
+  width: 17px;
+  height: 17px;
+}
+
+.page :global(.admin-log-action-refresh) {
+  background: linear-gradient(105deg, #ef658d, #f58ba7);
+}
+
+.page :global(.admin-log-action-export) {
+  background: linear-gradient(105deg, #8d72bd, #ad8bd7);
+}
+
+.page :global(.admin-log-action-clear) {
+  background: linear-gradient(105deg, #d4577a, #ef658d);
+}
+
+.page :global(.admin-log-autorefresh) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 16px 8px 12px;
+  border: 1.5px solid color-mix(in srgb, var(--admin-lavender) 70%, var(--admin-cream));
+  border-radius: 999px;
+  color: var(--admin-cream);
+  background: color-mix(in srgb, var(--admin-panel-soft) 88%, #1a1528);
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+}
+
+.page :global(.admin-log-autorefresh input) {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page :global(.admin-log-switch) {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1.5px solid var(--admin-lavender);
+  background: #2a243b;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.page :global(.admin-log-switch::after) {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--admin-cream);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.page :global(.admin-log-autorefresh.is-on) {
+  border-color: color-mix(in srgb, var(--admin-mint) 70%, var(--admin-cream));
+  background: color-mix(in srgb, #214b3e 42%, var(--admin-panel-soft));
+}
+
+.page :global(.admin-log-autorefresh.is-on .admin-log-switch) {
+  border-color: var(--admin-mint);
+  background: linear-gradient(105deg, #52aa8d, #79d2b3);
+}
+
+.page :global(.admin-log-autorefresh.is-on .admin-log-switch::after) {
+  transform: translateX(18px);
+  background: #fffaf4;
+}
+
+.page :global(.admin-log-export) {
+  position: relative;
+}
+
+.page :global(.admin-log-export-menu) {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 168px;
+  overflow: hidden;
   border: 1.5px solid var(--admin-border);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--admin-panel-raised);
+  box-shadow: 0 14px 28px rgba(7, 4, 16, 0.38);
 }
 
-:global([data-settings-open="true"]) .page :global(.admin-log-viewer-header h2) {
-  display: none;
+.page :global(.admin-log-export-menu button) {
+  padding: 10px 14px;
+  border: 0;
+  color: var(--admin-cream);
+  background: transparent;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+.page :global(.admin-log-export-menu button:hover) {
+  background: color-mix(in srgb, var(--admin-pink) 22%, transparent);
 }
 
 .page :global(.admin-log-filterbar) {
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: 106px 106px 112px 118px minmax(240px, 1fr);
+  grid-template-columns: 106px 106px 112px 118px minmax(200px, 1fr) 96px;
   align-items: end;
   min-width: 0;
   padding: 18px 20px 18px 35px;
@@ -3333,19 +3509,15 @@
 }
 
 .page :global(.admin-log-filterbar button) {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 88px;
   color: #fffaf4 !important;
   border-color: var(--admin-cream) !important;
   background: linear-gradient(105deg, #ef658d, #f58ba7) !important;
-}
-
-:global([data-settings-open="true"]) .page :global(.admin-log-filterbar button) {
-  position: fixed;
-  z-index: 114;
-  right: 44px;
-  bottom: 108px;
-  display: inline-flex;
-  width: auto;
+  cursor: pointer;
 }
 
 .page :global(.admin-log-list) {
@@ -3422,7 +3594,8 @@
 
 .page :global(.admin-log-entry details),
 .page :global(.admin-log-entry .mt-2) {
-  display: none;
+  display: block;
+  margin-top: 8px;
 }
 
 .page :global(.admin-log-pagination) {
@@ -3447,6 +3620,13 @@
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 1rem;
   font-weight: 800;
+  cursor: pointer;
+  transition: transform 140ms ease, filter 140ms ease, background 140ms ease;
+}
+
+.page :global(.admin-log-pagination button:not(:disabled):hover) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
 }
 
 .page :global(.admin-log-pagination button:disabled) {
@@ -3537,9 +3717,11 @@
 /* Backup mirrors the concise snapshot flow in the reference: health first,
    clear primary actions second, history in the remaining work area. */
 .page:global(.admin-backup-page) {
-  grid-template-rows: 84px 138px 78px minmax(0, 1fr);
+  /* fluid panel height */
+  min-height: 100%;
+  grid-template-rows: auto auto auto auto;
+  align-content: start;
   gap: 12px;
-  min-height: 0;
 }
 
 .page:global(.admin-backup-page) > .hero {
@@ -3559,7 +3741,7 @@
 }
 
 .page:global(.admin-backup-page) > .hero .heroActions {
-  display: none;
+  display: flex;
 }
 
 .page:global(.admin-backup-page) > .statGrid {
@@ -3739,17 +3921,9 @@
 }
 
 .page :global(.admin-backup-settings) {
-  display: none;
-}
-
-:global([data-settings-open="true"]) .page :global(.admin-backup-settings) {
-  position: fixed;
-  z-index: 112;
-  right: 28px;
-  bottom: 28px;
   display: grid;
-  width: min(680px, calc(100vw - 56px));
-  max-height: min(78vh, 760px);
+  width: min(920px, 100%);
+  margin-top: 14px;
   padding: 14px;
   overflow: auto;
   gap: 16px;
@@ -3762,9 +3936,11 @@
 /* Security keeps the reference's risk overview and rate-limit work surface in
    one scan-friendly screen; the richer IP managers remain available by tab. */
 .page:global(.admin-security-page) {
-  grid-template-rows: 136px 130px 56px minmax(0, 1fr);
+  /* fluid panel height — rows hug content; shell panel tracks viewport + scrolls */
+  min-height: 100%;
+  grid-template-rows: auto auto auto auto;
+  align-content: start;
   gap: 13px;
-  min-height: 0;
 }
 
 .page:global(.admin-security-page) > .hero {
@@ -3898,12 +4074,15 @@
   background: linear-gradient(105deg, #ef658d, #f58ba7);
 }
 
-.page:global(.admin-security-page) > div.min-h-\[400px\] {
-  min-height: 0 !important;
+.page :global(.admin-security-content) {
+  /* fluid panel height — no forced 400px / 1fr blank; dense content scrolls via shell */
+  min-height: 0;
+  overflow: visible;
 }
 
 .page :global(.admin-security-rate-reference) {
   position: relative;
+  /* fluid panel height */
   min-height: 0;
   margin-inline: -5px;
   padding: 0;
@@ -4060,49 +4239,17 @@
   font-size: 0.85rem;
 }
 
-.page :global(.admin-security-rate-dialog) {
-  position: fixed;
-  z-index: 130;
-  inset: 0;
-  display: grid;
-  padding: 7vh 8vw;
-  place-items: center;
-  background: rgba(12, 9, 25, 0.72);
-}
+/* Security rate dialog styles live in security/security.module.css
+   and mount via AdminPortal to escape the content-panel stacking context. */
 
-.page :global(.admin-security-rate-dialog > div) {
-  position: relative;
-  width: min(900px, 100%);
-  max-height: 80vh;
-  padding: 28px;
-  overflow: auto;
-  border: 2px solid var(--admin-lavender);
-  border-radius: 20px;
-  background: var(--admin-panel-raised);
-  box-shadow: var(--admin-shadow);
-}
-
-.page :global(.admin-security-rate-dialog > div > button) {
-  position: absolute;
-  top: 13px;
-  right: 13px;
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 1.5px solid var(--admin-pink);
-  border-radius: 50%;
-  color: var(--admin-cream);
-  background: var(--admin-panel);
-}
-
-/* API configuration uses the compact two-panel reference on first view. All
-   existing parameter, endpoint, and test controls remain in the settings
-   entry point instead of being removed. */
+/* API configuration keeps the compact reference panels, then shows the full
+   parameter / endpoint / test controls in normal page flow. */
 .page:global(.admin-config-page) {
-  grid-template-rows: 65px minmax(0, 1fr);
-  min-height: 0;
-  padding-bottom: 0 !important;
+  /* fluid panel height — fill shell; don't stretch auto rows into blank panels */
+  min-height: 100%;
+  grid-template-rows: auto auto auto;
+  align-content: start;
+  padding-bottom: 28px !important;
   gap: 18px;
 }
 
@@ -4138,26 +4285,28 @@
 
 .page :global(.admin-config-reference) {
   display: grid;
-  grid-template-rows: 346px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   min-height: 0;
-  margin-top: 32px;
-  gap: 33px;
+  margin-top: 12px;
+  gap: 24px;
 }
 
-.page :global(.admin-config-current),
-.page :global(.admin-config-environment) {
+.page :global(.admin-config-current) {
   position: relative;
+  /* fluid panel height */
+  height: auto;
   min-height: 0;
+  align-self: start;
   padding: 35px 25px 16px;
-  overflow: hidden;
+  overflow: visible;
   border: 2px solid var(--admin-lavender);
   border-radius: 20px;
   background: var(--admin-contrast-surface);
   box-shadow: 0 10px 21px rgba(6, 4, 15, 0.24);
 }
 
-.page :global(.admin-config-current::before),
-.page :global(.admin-config-environment::before) {
+.page :global(.admin-config-current::before) {
   content: "";
   position: absolute;
   inset: 10px;
@@ -4166,8 +4315,7 @@
   pointer-events: none;
 }
 
-.page :global(.admin-config-current > h2),
-.page :global(.admin-config-environment > h2) {
+.page :global(.admin-config-current > h2) {
   position: absolute;
   z-index: 2;
   top: -15px;
@@ -4223,23 +4371,77 @@
   font-size: 0.86rem;
 }
 
+.page :global(.admin-config-current input[type="text"]:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .page :global(.admin-config-current output) {
   display: flex;
   align-items: center;
 }
 
-.page :global(.admin-config-switch) {
+.page :global(.admin-config-current > label.admin-config-groups),
+.page :global(.admin-config-current > label.admin-config-formats),
+.page :global(.admin-config-panel > label.admin-config-groups),
+.page :global(.admin-config-panel > label.admin-config-formats) {
+  align-items: start;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.page :global(.admin-config-group-list),
+.page :global(.admin-config-format-list) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.page :global(.admin-config-group-list > label),
+.page :global(.admin-config-format-list > label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1.5px solid #ead8ca;
+  border-radius: 999px;
+  color: #2e2535;
+  background: #fff0df;
+  cursor: pointer;
+}
+
+.page :global(.admin-config-group-list > label > b),
+.page :global(.admin-config-format-list > label > b) {
+  color: #2e2535;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.page :global(.admin-config-switch),
+.overlayHost :global(.admin-config-switch)  {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
 }
 
-.page :global(.admin-config-switch input) {
+.page :global(.admin-config-switch input),
+.overlayHost :global(.admin-config-switch input)  {
   position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 75px;
+  height: 35px;
+  margin: 0;
   opacity: 0;
+  cursor: pointer;
 }
 
-.page :global(.admin-config-switch i) {
+.page :global(.admin-config-switch i),
+.overlayHost :global(.admin-config-switch i)  {
   position: relative;
   display: block;
   width: 75px;
@@ -4249,7 +4451,8 @@
   background: var(--admin-panel-soft);
 }
 
-.page :global(.admin-config-switch i::after) {
+.page :global(.admin-config-switch i::after),
+.overlayHost :global(.admin-config-switch i::after)  {
   content: "";
   position: absolute;
   top: 4px;
@@ -4261,85 +4464,759 @@
   transition: transform 150ms ease;
 }
 
-.page :global(.admin-config-switch input:checked + i) { background: var(--admin-mint); }
-.page :global(.admin-config-switch input:checked + i::after) { transform: translateX(39px); }
+.page :global(.admin-config-switch input:checked + i),
+.overlayHost :global(.admin-config-switch input:checked + i)  { background: var(--admin-mint); }
+.page :global(.admin-config-switch input:checked + i::after),
+.overlayHost :global(.admin-config-switch input:checked + i::after)  { transform: translateX(39px); }
 
-.page :global(.admin-config-switch b) {
+.page :global(.admin-config-switch b),
+.overlayHost :global(.admin-config-switch b)  {
   color: var(--admin-cream);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 0.9rem;
 }
 
-.page :global(.admin-config-environment) {
-  padding-top: 35px;
+.page :global(.admin-config-advanced) {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.7fr);
+  /* fluid panel height — columns hug content; no equal-height dead space */
+  align-items: start;
+  gap: 18px;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px 0 12px;
 }
 
-.page :global(.admin-config-environment table) {
+.page :global(.admin-config-advanced-main) {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  /* fluid panel height */
+  min-height: 0;
+  align-content: start;
+  align-self: start;
+}
+
+.page :global(.admin-config-panel) {
+  position: relative;
+  min-width: 0;
+  /* fluid panel height */
+  height: auto;
+  min-height: 0;
+  align-self: start;
+  padding: 34px 22px 18px;
+  overflow: visible;
+  border: 2px solid var(--admin-lavender);
+  border-radius: 20px;
+  background: var(--admin-contrast-surface);
+  box-shadow: 0 10px 21px rgba(6, 4, 15, 0.24);
+}
+
+.page :global(.admin-config-panel::before) {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1.3px dashed var(--admin-pink-soft);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.page :global(.admin-config-panel > h2),
+.page :global(.admin-config-aside > h2) {
+  position: absolute;
+  z-index: 2;
+  top: -15px;
+  left: 15px;
+  margin: 0;
+  padding: 8px 17px;
+  color: #fff8ef;
+  border: 2px solid var(--admin-cream);
+  border-radius: 13px;
+  background: linear-gradient(105deg, #b7668d, #e789aa);
+  font-family: var(--font-display), var(--font-display-zh), ui-rounded, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.page :global(.admin-config-panel-desc),
+.page :global(.admin-config-hint) {
   position: relative;
   z-index: 1;
-  width: 100%;
-  border-collapse: collapse;
-  color: var(--admin-cream);
+  margin: 0 0 12px;
+  color: var(--admin-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
-.page :global(.admin-config-environment th) {
-  padding: 8px 16px;
-  color: var(--admin-cream);
-  border-bottom: 1.4px solid var(--admin-border);
-  background: transparent !important;
-  font-size: 0.79rem;
-  font-weight: 800;
-  text-align: left;
-}
-
-.page :global(.admin-config-environment td) {
-  padding: 7px 16px;
-  border-bottom: 1.2px dashed var(--admin-border);
-  color: var(--admin-cream) !important;
-  background: transparent !important;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.81rem;
-}
-
-.page :global(.admin-config-environment td:nth-child(2) span) {
-  display: inline-flex;
-  padding: 5px 12px;
-  border-radius: 999px;
-  color: #195b48;
-  background: #a6dec7;
-  font-family: inherit;
-  font-weight: 800;
-}
-
-.page :global(.admin-config-environment > p) {
-  position: relative;
-  z-index: 1;
-  margin: 11px 0 0;
-  padding: 10px 15px;
-  border: 1.4px dashed var(--admin-lavender);
+.page :global(.admin-config-hint) {
+  padding: 10px 12px;
+  border: 1.3px dashed var(--admin-lavender);
   border-radius: 12px;
   color: var(--admin-cream);
-  font-size: 0.79rem;
+  background: var(--admin-secondary-surface);
 }
 
-.page :global(.admin-config-advanced) {
-  display: none;
+.page :global(.admin-config-panel > label),
+.page :global(.admin-config-toggle-grid > label) {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-height: 54px;
+  padding: 8px 4px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1.4px dashed var(--admin-pink-soft);
 }
 
-:global([data-settings-open="true"]) .page :global(.admin-config-advanced) {
-  position: fixed;
-  z-index: 112;
-  right: 28px;
-  bottom: 28px;
-  display: block;
-  width: min(920px, calc(100vw - 56px));
-  max-height: min(78vh, 760px);
-  padding: 14px;
+.page :global(.admin-config-panel > label:last-child),
+.page :global(.admin-config-toggle-grid > label:last-child) {
+  border-bottom: 0;
+}
+
+.page :global(.admin-config-panel > label > span:first-child),
+.page :global(.admin-config-toggle-grid > label > span:first-child) {
+  display: grid;
+  gap: 2px;
+  color: var(--admin-cream);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.page :global(.admin-config-toggle-grid > label > span:first-child) {
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  align-items: center;
+}
+
+.page :global(.admin-config-toggle-grid > label > span:first-child > svg) {
+  grid-row: 1 / span 2;
+  width: 20px;
+  height: 20px;
+  color: var(--admin-pink-soft);
+}
+
+.page :global(.admin-config-toggle-grid > label > span:first-child > b) {
+  font: inherit;
+}
+
+.page :global(.admin-config-toggle-grid > label > span:first-child > small) {
+  color: var(--admin-muted);
+  font-family: var(--font-body), ui-rounded, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.page :global(.admin-config-panel > label.is-disabled) {
+  opacity: 0.55;
+}
+
+.page :global(.admin-config-panel input[type="text"]),
+.page :global(.admin-config-panel select),
+.page :global(.admin-config-panel output),
+.page :global(.admin-config-aside input[type="text"]),
+.page :global(.admin-config-aside output) {
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 13px;
+  border: 1.5px solid #ead8ca !important;
+  border-radius: 10px !important;
+  color: #2e2535 !important;
+  background: #fff0df !important;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.86rem;
+}
+
+.page :global(.admin-config-inline-field) {
+  grid-template-columns: 150px minmax(0, 1fr) !important;
+}
+
+.page :global(.admin-config-inline-controls),
+.overlayHost :global(.admin-config-inline-controls)  {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.page :global(.admin-config-inline-controls input),
+.overlayHost :global(.admin-config-inline-controls input),
+.page :global(.admin-config-inline-controls output),
+.overlayHost :global(.admin-config-inline-controls output) {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page :global(.admin-config-inline-controls .btn) {
+  min-height: 40px;
+  flex: 0 0 auto;
+  padding-inline: 12px;
+}
+
+.page :global(.admin-config-params-toolbar) {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.page :global(.admin-config-params-toolbar .admin-config-panel-desc) {
+  margin: 0;
+}
+
+.page :global(.admin-config-empty) {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  min-height: 160px;
+  padding: 24px;
+  border: 1.5px dashed var(--admin-border);
+  border-radius: 14px;
+  color: var(--admin-muted);
+  text-align: center;
+}
+
+.page :global(.admin-config-param-list) {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.page :global(.admin-config-param-list > li) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid color-mix(in srgb, var(--admin-lavender) 70%, var(--admin-border));
+  border-radius: 14px;
+  background: var(--admin-panel-raised);
+}
+
+.page :global(.admin-config-param-list > li > div:first-child) {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.page :global(.admin-config-param-list strong) {
+  color: var(--admin-cream);
+  font-size: 0.95rem;
+}
+
+.page :global(.admin-config-param-list .is-on),
+.page :global(.admin-config-param-list .is-off),
+.page :global(.admin-config-param-list .is-type) {
+  display: inline-flex;
+  min-height: 24px;
+  padding: 2px 10px;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.page :global(.admin-config-param-list .is-on) {
+  color: #195b48;
+  background: #a6dec7;
+}
+
+.page :global(.admin-config-param-list .is-off) {
+  color: #7a2d45;
+  background: #ffb3c7;
+}
+
+.page :global(.admin-config-param-list .is-type) {
+  color: #fff8ef;
+  background: var(--admin-lavender);
+  text-transform: capitalize;
+}
+
+.page :global(.admin-config-param-list small) {
+  width: 100%;
+  color: var(--admin-muted);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+
+.page :global(.admin-config-param-actions) {
+  display: flex;
+  gap: 8px;
+}
+
+.page :global(.admin-config-param-actions button) {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1.5px solid var(--admin-cream);
+  border-radius: 50%;
+  color: var(--admin-cream);
+  background: var(--admin-lavender);
+  cursor: pointer;
+}
+
+.page :global(.admin-config-param-actions button:last-child) {
+  background: #df668b;
+}
+
+.page :global(.admin-config-aside) {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 14px;
+  /* fluid panel height */
+  align-content: start;
+  align-self: start;
+  height: auto;
+  min-height: 0;
+}
+
+.page :global(.admin-config-examples) {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.page :global(.admin-config-examples > span),
+.page :global(.admin-config-test > h3) {
+  color: var(--admin-cream);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.page :global(.admin-config-examples ul) {
+  display: grid;
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  gap: 8px;
   overflow: auto;
-  border: 1.5px solid var(--admin-border);
-  border-radius: 18px;
+  list-style: none;
+}
+
+.page :global(.admin-config-examples li) {
+  padding: 10px 12px;
+  border: 1.4px dashed var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-secondary-surface);
+}
+
+.page :global(.admin-config-examples strong) {
+  display: block;
+  margin-bottom: 6px;
+  overflow: hidden;
+  color: var(--admin-cream);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page :global(.admin-config-examples li > div) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page :global(.admin-config-examples code) {
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: var(--admin-muted);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page :global(.admin-config-examples button),
+.page :global(.admin-config-test .btn) {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1.3px solid var(--admin-border);
+  border-radius: 9px;
+  color: var(--admin-cream);
+  background: var(--admin-panel-raised);
+  cursor: pointer;
+}
+
+.page :global(.admin-config-test) {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1.4px dashed var(--admin-border);
+}
+
+.page :global(.admin-config-test > h3) {
+  margin: 0;
+}
+
+.page :global(.admin-config-test-result) {
+  padding: 10px 12px;
+  border: 1.4px solid var(--admin-border);
+  border-radius: 12px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+}
+
+.page :global(.admin-config-test-result.is-ok) {
+  border-color: var(--admin-mint);
+  color: #a6dec7;
+  background: rgba(121, 210, 179, 0.12);
+}
+
+.page :global(.admin-config-test-result.is-err) {
+  border-color: var(--admin-pink);
+  color: #ffb3c7;
+  background: rgba(255, 113, 152, 0.12);
+}
+
+.page :global(.admin-config-test-result p) {
+  display: flex;
+  margin: 0 0 6px;
+  align-items: center;
+  gap: 6px;
+}
+
+.page :global(.admin-config-test-result pre) {
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.overlayHost :global(.admin-config-modal) {
+  position: fixed;
+  z-index: 220;
+  inset: 0;
+  display: grid;
+  padding: 6vh 5vw;
+  place-items: center;
+  background: rgba(12, 9, 25, 0.72);
+}
+
+.overlayHost :global(.admin-config-modal-panel) {
+  position: relative;
+  width: min(720px, 100%);
+  max-height: 86vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 2px solid var(--admin-lavender);
+  border-radius: 20px;
   background: var(--admin-panel-raised);
   box-shadow: var(--admin-shadow);
+}
+
+.overlayHost :global(.admin-config-modal-panel > header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 10px;
+}
+
+.overlayHost :global(.admin-config-modal-panel > header h3) {
+  margin: 0;
+  color: var(--admin-cream);
+  font-family: var(--font-display), var(--font-display-zh), ui-rounded, sans-serif;
+  font-size: 1.35rem;
+}
+
+.overlayHost :global(.admin-config-modal-panel > header button) {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1.5px solid var(--admin-pink);
+  border-radius: 50%;
+  color: var(--admin-cream);
+  background: var(--admin-panel);
+  cursor: pointer;
+}
+
+.overlayHost :global(.admin-config-modal-panel > header button svg) {
+  width: 18px;
+  height: 18px;
+}
+
+.overlayHost :global(.admin-config-modal-body) {
+  display: grid;
+  gap: 16px;
+  padding: 8px 20px 12px;
+  overflow: auto;
+}
+
+.overlayHost :global(.admin-config-modal-grid) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overlayHost :global(.admin-config-modal-body label),
+.overlayHost :global(.admin-config-modal-section) {
+  display: grid;
+  gap: 7px;
+}
+
+.overlayHost :global(.admin-config-modal-body label > span),
+.overlayHost :global(.admin-config-modal-section > span),
+.page :global(.admin-config-switch-row > span:first-child),
+.overlayHost :global(.admin-config-switch-row > span:first-child)  {
+  color: var(--admin-cream);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.overlayHost :global(.admin-config-modal-body input[type="text"]),
+.overlayHost :global(.admin-config-modal-body select) {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1.5px solid #ead8ca !important;
+  border-radius: 10px !important;
+  color: #2e2535 !important;
+  background: #fff0df !important;
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.page :global(.admin-config-switch-row),
+.overlayHost :global(.admin-config-switch-row)  {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1.4px dashed var(--admin-border);
+  border-radius: 12px;
+}
+
+.overlayHost :global(.admin-config-modal-section > p) {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 0.75rem;
+}
+
+.overlayHost :global(.admin-config-chip-list),
+.overlayHost :global(.admin-config-map-list) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.overlayHost :global(.admin-config-map-list) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 180px;
+  overflow: auto;
+}
+
+.overlayHost :global(.admin-config-chip-list > span),
+.overlayHost :global(.admin-config-map-list > label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1.5px solid #ead8ca;
+  border-radius: 999px;
+  color: #2e2535;
+  background: #fff0df;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.overlayHost :global(.admin-config-chip-list button) {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #7a2d45;
+  background: #ffb3c7;
+  cursor: pointer;
+}
+
+.overlayHost :global(.admin-config-chip-list button svg) {
+  width: 12px;
+  height: 12px;
+}
+
+.overlayHost :global(.admin-config-map-list small) {
+  margin-left: auto;
+  color: #7a5a6d;
+}
+
+.overlayHost :global(.admin-config-modal-panel > footer) {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 18px;
+}
+
+.overlayHost :global(.admin-config-modal-btn) {
+  flex: 1 1 auto;
+  min-height: 44px;
+  border: 1.5px solid transparent;
+  border-radius: 13px;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.overlayHost :global(.admin-config-modal-btn.is-pink) {
+  color: #fff8ef;
+  border-color: color-mix(in srgb, var(--admin-cream) 70%, var(--admin-pink));
+  background: linear-gradient(110deg, #f35e89, #ff86aa);
+}
+
+.overlayHost :global(.admin-config-modal-btn.is-ghost) {
+  color: var(--admin-cream);
+  border-color: color-mix(in srgb, var(--admin-lavender) 72%, var(--admin-border));
+  background: var(--admin-panel);
+}
+
+.page :global(.admin-swarm-settings-desc) {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 14px;
+  color: var(--admin-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.page :global(.admin-swarm-settings-grid) {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.page :global(.admin-swarm-field),
+.page :global(.admin-swarm-switch-row),
+.page :global(.admin-swarm-provider-card) {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1.5px solid color-mix(in srgb, var(--admin-lavender) 65%, var(--admin-border));
+  border-radius: 14px;
+  background: var(--admin-panel-raised);
+}
+
+.page :global(.admin-swarm-switch-row) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.page :global(.admin-swarm-field > span),
+.page :global(.admin-swarm-switch-row strong),
+.page :global(.admin-swarm-provider-card strong) {
+  color: var(--admin-cream);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.page :global(.admin-swarm-switch-row small),
+.page :global(.admin-swarm-provider-card small) {
+  display: block;
+  margin-top: 4px;
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.page :global(.admin-swarm-field select),
+.page :global(.admin-swarm-provider-card select) {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1.5px solid #ead8ca !important;
+  border-radius: 10px !important;
+  color: #2e2535 !important;
+  background: #fff0df !important;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.82rem;
+}
+
+.page :global(.admin-swarm-provider-grid) {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.page :global(.admin-swarm-provider-card) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.page :global(.admin-swarm-warning) {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1.5px solid color-mix(in srgb, var(--admin-amber) 70%, var(--admin-border));
+  border-radius: 14px;
+  color: var(--admin-cream);
+  background: var(--admin-warning-surface);
+}
+
+.page :global(.admin-swarm-warning svg) {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--admin-amber);
+}
+
+.page :global(.admin-swarm-warning p) {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+  .page :global(.admin-config-advanced) {
+    grid-template-columns: 1fr;
+  }
+
+  .page :global(.admin-config-aside) {
+    position: static;
+  }
+
+  .overlayHost :global(.admin-config-modal-grid),
+  .page :global(.admin-swarm-settings-grid),
+  .page :global(.admin-swarm-provider-grid),
+  .overlayHost :global(.admin-config-map-list) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .page:global(.admin-config-page) > .hero,
@@ -4509,11 +5386,6 @@
   border-color: #ead8ca !important;
   color: #2e2535 !important;
   background: #fff0df !important;
-}
-
-.page:global(.admin-config-page) :global(.admin-config-environment th),
-.page:global(.admin-config-page) :global(.admin-config-environment td) {
-  background: transparent !important;
 }
 
 @media (max-width: 1180px) {
@@ -4868,16 +5740,10 @@
     margin-top: 0;
   }
 
-  .page :global(.admin-config-current),
-  .page :global(.admin-config-environment) {
+  .page :global(.admin-config-current) {
     min-height: auto;
     padding: 34px 13px 15px;
     border-radius: 16px;
-  }
-
-  .page :global(.admin-config-environment) {
-    margin-top: 16px;
-    overflow: auto;
   }
 
   .page :global(.admin-config-current > label) {
@@ -4895,25 +5761,23 @@
     font-size: 0.76rem;
   }
 
-  .page :global(.admin-config-environment table) {
-    min-width: 600px;
-  }
-
-  .page :global(.admin-config-environment th),
-  .page :global(.admin-config-environment td) {
-    padding: 7px 10px;
-    font-size: 0.72rem;
-  }
-
   .page:global(.admin-security-page),
   .page:global(.admin-status-page),
   .page:global(.admin-swarm-page),
   .page:global(.admin-backup-page),
   .page:global(.admin-logs-page),
-  .page:global(.admin-groups-page) {
+  .page:global(.admin-groups-page),
+  .page:global(.admin-config-page) {
     display: block;
     min-height: 0;
     padding-bottom: 24px;
+  }
+
+  .page :global(.admin-security-content) {
+    /* fluid panel height — stack naturally on narrow screens */
+    display: block;
+    overflow: visible;
+    min-height: 0;
   }
 
   .page:global(.admin-security-page) > .hero,
@@ -5077,7 +5941,14 @@
   .page :global(.admin-backup-history) { margin-top: 18px; min-height: 280px; overflow: auto; }
   .page :global(.admin-backup-history table) { min-width: 590px; }
 
-  .page:global(.admin-logs-page) > .hero .heroActions { display: none; }
+  .page:global(.admin-logs-page) > .hero .heroActions {
+    position: static !important;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+  }
   .page:global(.admin-logs-page) > .panel,
   .page :global(.admin-log-viewer) { min-height: 0; padding: 0 !important; }
   .page :global(.admin-log-filterbar) { display: grid; margin-top: 0; grid-template-columns: 1fr; padding: 13px; }

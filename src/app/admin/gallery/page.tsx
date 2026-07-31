@@ -313,31 +313,22 @@ export default function GalleryPage() {
       </div>
 
       <div className="admin-gallery-owner-filter">
-          <label className={cn(
-            "block text-xs font-medium mb-2",
-            isLight ? "text-gray-700" : "text-gray-300"
-          )}>
-            {t.adminUi.galleryOwnerNode}
+          <label>
+            <span>{t.adminUi.galleryOwnerNode}</span>
+            <select
+              value={filters.ownerNodeId}
+              onChange={(event) => handleFilterChange({ ownerNodeId: event.target.value })}
+            >
+              <option value="">{t.adminUi.allNodes}</option>
+              {nodes.map((node) => (
+                <option key={node.id} value={node.id}>
+                  {getNodeDisplayName(node, t.adminUi.currentNode)}
+                </option>
+              ))}
+              <option value="unknown">{t.adminUi.unknownOwner}</option>
+            </select>
           </label>
-          <select
-            value={filters.ownerNodeId}
-            onChange={(event) => handleFilterChange({ ownerNodeId: event.target.value })}
-            className={cn(
-              "w-full md:w-80 px-3 py-2 border text-sm outline-none focus:border-blue-500 rounded-lg",
-              pageStyles.input
-            )}
-          >
-            <option value="">{t.adminUi.allNodes}</option>
-            {nodes.map((node) => (
-              <option key={node.id} value={node.id}>
-                {getNodeDisplayName(node, t.adminUi.currentNode)}
-              </option>
-            ))}
-            <option value="unknown">{t.adminUi.unknownOwner}</option>
-          </select>
-          <p className={cn("mt-2 text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
-            {t.adminUi.galleryOwnerHint}
-          </p>
+          <p>{t.adminUi.galleryOwnerHint}</p>
       </div>
 
       <div className="admin-gallery-content">

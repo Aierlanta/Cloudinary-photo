@@ -21,7 +21,9 @@ import {
 } from "lucide-react";
 import { IPLocationBadge } from "@/components/admin/IPLocation";
 import { useAdminApi } from "@/lib/admin-api-client";
+import AdminPortal from "@/components/admin/AdminPortal";
 import styles from "../admin-pages.module.css";
+import securityStyles from "./security.module.css";
 
 interface AccessStats {
   totalAccess: number;
@@ -264,7 +266,7 @@ export default function SecurityManagement() {
         })}
       </nav>
 
-      <div className="min-h-[400px]">
+      <div className="admin-security-content">
         {loading ? (
           <div className={cn(styles.panel, "flex items-center justify-center h-48")}>
             <div className="w-8 h-8 border-2 border-primary border-t-transparent animate-spin rounded-full" />
@@ -464,12 +466,29 @@ export default function SecurityManagement() {
       </div>
 
       {showRateSettings ? (
-        <div className="admin-security-rate-dialog" role="dialog" aria-modal="true">
-          <div>
-            <button type="button" aria-label={t.adminUi.closeRateSettings} onClick={() => setShowRateSettings(false)}><X aria-hidden /></button>
-            <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
+        <AdminPortal>
+          <div
+            className={securityStyles.rateDialog}
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setShowRateSettings(false)}
+          >
+            <div
+              className={securityStyles.rateDialogPanel}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className={securityStyles.closeBtn}
+                aria-label={t.adminUi.closeRateSettings}
+                onClick={() => setShowRateSettings(false)}
+              >
+                <X aria-hidden />
+              </button>
+              <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
+            </div>
           </div>
-        </div>
+        </AdminPortal>
       ) : null}
     </div>
   );

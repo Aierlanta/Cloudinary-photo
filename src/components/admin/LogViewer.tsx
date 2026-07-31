@@ -1,11 +1,21 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  MoreHorizontal,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { LogLevel } from '@/lib/logger'
 import { useLocale } from '@/hooks/useLocale'
+import { useToast } from '@/hooks/useToast'
+import { ToastContainer } from '@/components/ui/Toast'
 import { useAdminApi } from '@/lib/admin-api-client'
 
 interface LogEntry {
@@ -31,6 +41,7 @@ export default function LogViewer({
 }: LogViewerProps) {
   const { t, locale } = useLocale();
   const { adminFetch } = useAdminApi();
+  const { toasts, success, error: showError, removeToast } = useToast();
   const {
     loadFailedFormat,
     loadFailedHttp,
@@ -40,6 +51,7 @@ export default function LogViewer({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [autoRefresh, setAutoRefresh] = useState(initialAutoRefresh)
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
   const [pagination, setPagination] = useState({
     page: 1,
     limit: maxEntries,
@@ -59,28 +71,41 @@ export default function LogViewer({
     type: 'all'
   })
 
-  // 加载日志
-  const loadLogs = useCallback(async (page: number = pagination.page) => {
+  const filterRef = useRef(filter)
+  const limitRef = useRef(pagination.limit)
+  const pageRef = useRef(pagination.page)
+  const logsRef = useRef(logs)
+  filterRef.current = filter
+  limitRef.current = pagination.limit
+  pageRef.current = pagination.page
+  logsRef.current = logs
+
+  // 加载日志：filter/limit 走 ref，避免翻页更新 page 后重建 loadLogs，
+  // 再被下方 useEffect 误当成「筛选变了」把页码打回 1。
+  const loadLogs = useCallback(async (page: number = 1) => {
+    const currentFilter = filterRef.current
+    const limit = limitRef.current
+    pageRef.current = page
     try {
       setLoading(true)
       setError(null)
       const params = new URLSearchParams()
       params.append('page', page.toString())
-      params.append('limit', pagination.limit.toString())
-      if (filter.level !== 'all') {
-        params.append('level', filter.level.toString())
+      params.append('limit', limit.toString())
+      if (currentFilter.level !== 'all') {
+        params.append('level', currentFilter.level.toString())
       }
-      if (filter.search) {
-        params.append('search', filter.search)
+      if (currentFilter.search) {
+        params.append('search', currentFilter.search)
       }
-      if (filter.type !== 'all') {
-        params.append('type', filter.type)
+      if (currentFilter.type !== 'all') {
+        params.append('type', currentFilter.type)
       }
-      if (filter.dateFrom) {
-        params.append('dateFrom', filter.dateFrom)
+      if (currentFilter.dateFrom) {
+        params.append('dateFrom', currentFilter.dateFrom)
       }
-      if (filter.dateTo) {
-        params.append('dateTo', filter.dateTo)
+      if (currentFilter.dateTo) {
+        params.append('dateTo', currentFilter.dateTo)
       }
 
       const response = await adminFetch(`/api/admin/logs?${params}`)
@@ -106,93 +131,131 @@ export default function LogViewer({
     } finally {
       setLoading(false)
     }
-  }, [adminFetch, pagination.page, pagination.limit, filter, loadFailedFormat, loadFailedHttp, loadFailedNetwork])
+  }, [adminFetch, loadFailedFormat, loadFailedHttp, loadFailedNetwork])
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 1 }))
-    loadLogs(1)
+    void loadLogs(1)
   }, [filter, loadLogs])
 
-  // 自动刷新逻辑 - 改为流式更新
+  // 自动刷新：仅第 1 页做流式追加，避免打乱翻页结果
   const fetchNewLogs = useCallback(async () => {
-    if (logs.length === 0) {
-      loadLogs(1);
-      return;
+    if (pageRef.current !== 1) return
+
+    const currentLogs = logsRef.current
+    const currentFilter = filterRef.current
+
+    if (currentLogs.length === 0) {
+      void loadLogs(1)
+      return
     }
 
     try {
-      // 获取最新的一条日志的时间戳
-      const latestLog = logs[0];
-      const dateFrom = typeof latestLog.timestamp === 'string' 
-        ? latestLog.timestamp 
-        : latestLog.timestamp.toISOString();
+      const latestLog = currentLogs[0]
+      const dateFrom = typeof latestLog.timestamp === 'string'
+        ? latestLog.timestamp
+        : latestLog.timestamp.toISOString()
 
-      const params = new URLSearchParams();
-      params.append('page', '1');
-      params.append('limit', '50'); // 获取最新的50条，防止漏掉
-      if (filter.level !== 'all') params.append('level', filter.level.toString());
-      if (filter.search) params.append('search', filter.search);
-      if (filter.type !== 'all') params.append('type', filter.type);
-      
-      // 使用 dateFrom 获取比当前最新日志更新的日志
-      // 注意：API是 gte (大于等于)，所以我们需要在前端去重
-      params.append('dateFrom', dateFrom);
+      const params = new URLSearchParams()
+      params.append('page', '1')
+      params.append('limit', '50')
+      if (currentFilter.level !== 'all') params.append('level', currentFilter.level.toString())
+      if (currentFilter.search) params.append('search', currentFilter.search)
+      if (currentFilter.type !== 'all') params.append('type', currentFilter.type)
+      params.append('dateFrom', dateFrom)
 
-      const response = await adminFetch(`/api/admin/logs?${params}`);
+      const response = await adminFetch(`/api/admin/logs?${params}`)
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json()
         if (data.success && data.data?.logs?.length > 0) {
-          const newLogs = data.data.logs as LogEntry[];
-          
-          // 过滤掉已存在的日志
+          const newLogs = data.data.logs as LogEntry[]
+
           const uniqueNewLogs = newLogs.filter(newLog => {
-            // 如果有ID，使用ID去重
             if (newLog.id && latestLog.id) {
-              // 检查当前日志列表中是否存在该ID
-              return !logs.some(existingLog => existingLog.id === newLog.id);
+              return !currentLogs.some(existingLog => existingLog.id === newLog.id)
             }
-            // 降级使用时间戳+消息内容去重
-            const newTime = typeof newLog.timestamp === 'string' ? newLog.timestamp : new Date(newLog.timestamp).toISOString();
-            return !logs.some(existingLog => {
-              const existingTime = typeof existingLog.timestamp === 'string' ? existingLog.timestamp : new Date(existingLog.timestamp).toISOString();
-              return existingTime === newTime && existingLog.message === newLog.message;
-            });
-          });
+            const newTime = typeof newLog.timestamp === 'string'
+              ? newLog.timestamp
+              : new Date(newLog.timestamp).toISOString()
+            return !currentLogs.some(existingLog => {
+              const existingTime = typeof existingLog.timestamp === 'string'
+                ? existingLog.timestamp
+                : new Date(existingLog.timestamp).toISOString()
+              return existingTime === newTime && existingLog.message === newLog.message
+            })
+          })
 
           if (uniqueNewLogs.length > 0) {
-            setLogs(prevLogs => {
-              // 将新日志插入到顶部
-              const updatedLogs = [...uniqueNewLogs, ...prevLogs];
-              // 保持列表长度不超过一定限制（例如 500 条），避免内存溢出
-              return updatedLogs.slice(0, 500);
-            });
-            
-            // 更新分页总数信息
+            setLogs(prevLogs => [...uniqueNewLogs, ...prevLogs].slice(0, 500))
             setPagination(prev => ({
               ...prev,
               total: (prev.total || 0) + uniqueNewLogs.length
-            }));
+            }))
           }
         }
       }
     } catch (error) {
-      console.error('流式获取日志失败:', error);
+      console.error('流式获取日志失败:', error)
     }
-  }, [adminFetch, logs, filter, loadLogs]);
+  }, [adminFetch, loadLogs])
 
   useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(() => {
-        fetchNewLogs();
-      }, refreshInterval);
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh, refreshInterval, fetchNewLogs]);
+    if (!autoRefresh) return
+    const interval = setInterval(() => {
+      void fetchNewLogs()
+    }, refreshInterval)
+    return () => clearInterval(interval)
+  }, [autoRefresh, refreshInterval, fetchNewLogs])
 
-  // 分页处理
   const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= pagination.totalPages) {
-      loadLogs(newPage)
+    const maxPage = Math.max(1, pagination.totalPages)
+    if (newPage >= 1 && newPage <= maxPage && newPage !== pagination.page) {
+      void loadLogs(newPage)
+    }
+  }
+
+  const handleExportLogs = async (format: 'json' | 'csv' | 'txt') => {
+    try {
+      const response = await adminFetch('/api/admin/logs/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format }),
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `logs_${new Date().toISOString().split('T')[0]}.${format}`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+      } else {
+        showError(t.adminLogs.exportFailed)
+      }
+    } catch (exportError) {
+      console.error('导出日志失败:', exportError)
+      showError(t.adminLogs.exportFailed)
+    }
+    setIsExportMenuOpen(false)
+  }
+
+  const handleClearLogs = async () => {
+    if (!confirm(t.adminLogs.clearConfirm)) return
+
+    try {
+      const response = await adminFetch('/api/admin/logs/clear', { method: 'POST' })
+      if (response.ok) {
+        success(t.adminLogs.cleared)
+        void loadLogs(1)
+      } else {
+        showError(t.adminLogs.clearFailed)
+      }
+    } catch (clearError) {
+      console.error('清空日志失败:', clearError)
+      showError(t.adminLogs.clearFailed)
     }
   }
 
@@ -348,41 +411,63 @@ export default function LogViewer({
 
   return (
     <div className="admin-log-viewer transparent-panel rounded-lg p-6 shadow-lg flex flex-col h-full">
-      <div className="admin-log-viewer-header flex items-center justify-between mb-4 shrink-0">
-        <h2 className="text-lg font-semibold panel-text">{t.adminUi.accessLogs}</h2>
-        <div className="flex items-center space-x-3">
+      <div className="admin-log-toolbar shrink-0">
+        <div className="admin-log-toolbar-actions">
           <button
-            onClick={() => loadLogs()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors rounded-lg"
+            type="button"
+            className="admin-log-action admin-log-action-refresh"
+            onClick={() => void loadLogs(pagination.page)}
           >
+            <RefreshCw aria-hidden />
             {t.adminLogs.refresh}
           </button>
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={async () => {
-                try {
-                  const response = await adminFetch('/api/admin/logs/test', { method: 'POST' });
-                  if (response.ok) {
-                    loadLogs(); // 重新加载日志
-                  }
-                } catch (error) {
-                  console.error('生成测试日志失败:', error);
-                }
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors rounded-lg"
-            >
-              {t.adminLogs.generateTestLog}
-            </button>
-          )}
-          <label className="flex items-center text-sm panel-text rounded-lg">
+
+          <label className={`admin-log-autorefresh${autoRefresh ? ' is-on' : ''}`}>
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="mr-2"
             />
-            {t.adminLogs.autoRefresh}
+            <span className="admin-log-switch" aria-hidden />
+            <span>{t.adminLogs.autoRefresh}</span>
           </label>
+
+          <div className="admin-log-export">
+            <button
+              type="button"
+              className="admin-log-action admin-log-action-export"
+              onClick={() => setIsExportMenuOpen((open) => !open)}
+              aria-expanded={isExportMenuOpen}
+            >
+              <Download aria-hidden />
+              {t.adminUi.exportData}
+              <ChevronDown aria-hidden />
+            </button>
+            {isExportMenuOpen ? (
+              <div className="admin-log-export-menu" role="menu">
+                <button type="button" role="menuitem" onClick={() => void handleExportLogs('json')}>
+                  {t.adminLogs.jsonFormat}
+                </button>
+                <button type="button" role="menuitem" onClick={() => void handleExportLogs('csv')}>
+                  {t.adminLogs.csvFormat}
+                </button>
+                <button type="button" role="menuitem" onClick={() => void handleExportLogs('txt')}>
+                  {t.adminLogs.textFormat}
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          {process.env.NODE_ENV === 'development' ? (
+            <button
+              type="button"
+              className="admin-log-action admin-log-action-clear"
+              onClick={() => void handleClearLogs()}
+            >
+              <Trash2 aria-hidden />
+              {t.adminLogs.clearLogs}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -487,12 +572,14 @@ export default function LogViewer({
             <select
               value={pagination.limit}
               onChange={(e) => {
-                const newLimit = parseInt(e.target.value);
-                setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }));
-                loadLogs(1);
+                const newLimit = parseInt(e.target.value, 10)
+                limitRef.current = newLimit
+                setPagination(prev => ({ ...prev, limit: newLimit, page: 1 }))
+                void loadLogs(1)
               }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
             >
+              <option value="7">7</option>
               <option value="25">{t.adminLogs.items25}</option>
               <option value="50">{t.adminLogs.items50}</option>
               <option value="100">{t.adminLogs.items100}</option>
@@ -688,6 +775,8 @@ export default function LogViewer({
           {filter.type !== 'all' && ` (${t.adminLogs.typeFilter.replace('{type}', filter.type)})`}
         </p>
       </div>
+
+      <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
     </div>
   )
 }

@@ -268,13 +268,13 @@ export default function SwarmPage() {
 
       <section className={cn(styles.panel, "admin-swarm-settings")}>
         <h2 className={styles.panelTitle}>{t.adminUi.sharedPolicy}</h2>
-        <p className="relative z-[1] text-sm text-muted-foreground mb-4">
+        <p className="admin-swarm-settings-desc">
           {t.adminUi.sharedPolicyDescription}
         </p>
 
-        <div className="relative z-[1] grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className={styles.field}>
-            <label htmlFor="upload-strategy">{t.adminUi.uploadStrategy}</label>
+        <div className="admin-swarm-settings-grid">
+          <label className="admin-swarm-field">
+            <span>{t.adminUi.uploadStrategy}</span>
             <select
               id="upload-strategy"
               value={swarmConfig.uploadStrategy}
@@ -287,55 +287,55 @@ export default function SwarmPage() {
               <option value="random">{t.adminUi.randomAvailableNode}</option>
               <option value="available-first">{t.adminUi.firstAvailableNode}</option>
             </select>
-          </div>
+          </label>
 
-          <label className={cn(styles.groupCard, "min-h-0 !flex-row items-center justify-between")}>
-            <span className="relative z-[1]">
-              <strong className="block text-sm">{t.adminUi.previewDelivery}</strong>
-              <small className="text-muted-foreground">{t.adminUi.previewDeliveryDescription}</small>
+          <label className="admin-swarm-switch-row">
+            <span>
+              <strong>{t.adminUi.previewDelivery}</strong>
+              <small>{t.adminUi.previewDeliveryDescription}</small>
             </span>
-            <input
-              type="checkbox"
-              className="relative z-[1]"
-              checked={swarmConfig.previewDeliveryEnabled}
-              onChange={(event) =>
-                setSwarmConfig({ ...swarmConfig, previewDeliveryEnabled: event.target.checked })
-              }
-            />
+            <span className="admin-config-switch">
+              <input
+                type="checkbox"
+                checked={swarmConfig.previewDeliveryEnabled}
+                onChange={(event) =>
+                  setSwarmConfig({ ...swarmConfig, previewDeliveryEnabled: event.target.checked })
+                }
+              />
+              <i />
+              <b>{swarmConfig.previewDeliveryEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+            </span>
           </label>
         </div>
 
-        <div className="relative z-[1] grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+        <div className="admin-swarm-provider-grid">
           {swarmProviders.map((provider) => (
-            <div key={provider} className={cn(styles.miniCard, "flex items-center justify-between gap-3")}>
-              <div>
-                <p className="font-bold text-sm">{provider === "custom" ? t.adminConfig.typeCustom : provider === "cloudinary" ? "Cloudinary" : provider === "tgstate" ? "tgState" : "Telegram"}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+            <label key={provider} className="admin-swarm-provider-card">
+              <span>
+                <strong>{provider === "custom" ? t.adminConfig.typeCustom : provider === "cloudinary" ? "Cloudinary" : provider === "tgstate" ? "tgState" : "Telegram"}</strong>
+                <small>
                   {swarmConfig.providerDeliveryPolicy[provider]?.mode === "owner-node"
                     ? t.adminUi.ownerNodeDelivery
                     : t.adminUi.existingDeliveryChain}
-                </p>
-              </div>
+                </small>
+              </span>
               <select
                 value={swarmConfig.providerDeliveryPolicy[provider]?.mode || "existing-chain"}
                 onChange={(event) =>
                   updateProviderDeliveryMode(provider, event.target.value as ProviderDeliveryMode)
                 }
-                className="px-2 py-1 border-2 border-border rounded-full text-xs bg-card outline-none"
               >
                 <option value="owner-node">{t.adminUi.ownerNode}</option>
                 <option value="existing-chain">{t.adminUi.existingChain}</option>
               </select>
-            </div>
+            </label>
           ))}
         </div>
 
         {swarmConfig.providerDeliveryPolicy.cloudinary.mode !== "owner-node" && (
-          <div className="relative z-[1] flex items-start gap-3 p-3 mt-4 rounded-2xl border-2 border-amber-400/50 bg-amber-400/10">
-            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
-            <p className="text-sm">
-              {t.adminUi.cloudinaryDeliveryWarning}
-            </p>
+          <div className="admin-swarm-warning">
+            <AlertTriangle aria-hidden />
+            <p>{t.adminUi.cloudinaryDeliveryWarning}</p>
           </div>
         )}
       </section>

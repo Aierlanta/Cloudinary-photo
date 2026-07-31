@@ -1,0 +1,86 @@
+/* Sidebar mascot note — keep styles here to avoid colliding with shared admin CSS edits. */
+
+.note.note {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  align-items: end;
+  justify-content: stretch;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 96px;
+  margin-top: auto;
+  margin-bottom: 46px;
+  padding: 8px 12px 6px 6px;
+  overflow: hidden;
+  flex-direction: unset;
+  text-align: left;
+}
+
+.figure {
+  position: relative;
+  z-index: 1;
+  width: 78px;
+  height: 96px;
+  margin-bottom: -6px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 6px 10px rgba(8, 5, 18, 0.38));
+}
+
+.copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  padding: 8px 4px 10px 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.note .eyebrow {
+  margin-bottom: 0;
+  color: var(--admin-mint);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.note .title {
+  color: var(--foreground);
+  font-family: var(--font-display), ui-rounded, cursive;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.note .body {
+  margin: 0;
+  margin-top: 0;
+  color: var(--admin-muted);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .figure {
+    animation: mascot-bob 4.8s ease-in-out infinite;
+  }
+}
+
+@keyframes mascot-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}

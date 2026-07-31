@@ -16,11 +16,9 @@ import {
   normalizeSelectionParamsConfig
 } from '@/lib/selection-params'
 import { 
-  Settings, 
   Shield, 
   Globe, 
   Key, 
-  Database, 
   Plus, 
   Trash2, 
   Edit2, 
@@ -467,8 +465,22 @@ const {
               </span>
             </label>
             <label>
-              <span>API Key</span>
-              <input type="text" value={config.apiKey || ''} onChange={(event) => setConfig({ ...config, apiKey: event.target.value })} placeholder={t.adminStatus.notConfigured} />
+              <span>{t.adminConfig.apiKeyAuth}</span>
+              <span className="admin-config-switch">
+                <input type="checkbox" checked={config.apiKeyEnabled} onChange={(event) => setConfig({ ...config, apiKeyEnabled: event.target.checked })} />
+                <i />
+                <b>{config.apiKeyEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+              </span>
+            </label>
+            <label>
+              <span>{t.adminConfig.apiKeyValue}</span>
+              <input
+                type="text"
+                value={config.apiKey || ''}
+                onChange={(event) => setConfig({ ...config, apiKey: event.target.value })}
+                placeholder={config.apiKeyEnabled ? t.adminConfig.apiKeyPlaceholder : t.adminStatus.notConfigured}
+                disabled={!config.apiKeyEnabled}
+              />
             </label>
             <label>
               <span>{t.adminConfig.defaultScope}</span>
@@ -477,6 +489,36 @@ const {
                 <option value="groups">{t.adminConfig.scopeGroups}</option>
               </select>
             </label>
+            {config.defaultScope === 'groups' && (
+              <label className="admin-config-groups">
+                <span>{t.adminConfig.defaultGroups}</span>
+                <div className="admin-config-group-list">
+                  {groups.length === 0 ? (
+                    <output>{t.adminConfig.none}</output>
+                  ) : (
+                    groups.map((group) => (
+                      <label key={group.id}>
+                        <input
+                          type="checkbox"
+                          checked={config.defaultGroups.includes(group.id)}
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              setConfig({ ...config, defaultGroups: [...config.defaultGroups, group.id] })
+                            } else {
+                              setConfig({
+                                ...config,
+                                defaultGroups: config.defaultGroups.filter((id) => id !== group.id)
+                              })
+                            }
+                          }}
+                        />
+                        <b>{group.name}</b>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </label>
+            )}
             <label>
               <span>{t.adminUi.responseMode}</span>
               <span className="admin-config-switch">
@@ -486,590 +528,268 @@ const {
               </span>
             </label>
             <label>
+              <span>{t.adminConfig.formatParamTitle}</span>
+              <span className="admin-config-switch">
+                <input
+                  type="checkbox"
+                  checked={config.responseParams.format.enabled}
+                  onChange={(event) => setConfig({
+                    ...config,
+                    responseParams: {
+                      ...config.responseParams,
+                      format: {
+                        ...config.responseParams.format,
+                        enabled: event.target.checked
+                      }
+                    }
+                  })}
+                />
+                <i />
+                <b>{config.responseParams.format.enabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+              </span>
+            </label>
+            <label className="admin-config-formats">
               <span>{t.adminUi.defaultFormats}</span>
-              <output>{config.responseParams.format.allowedValues.map((format) => format === 'jpeg' ? 'JPEG' : 'WebP').join(' · ') || t.adminConfig.none}</output>
-            </label>
-          </article>
+              <div className="admin-config-format-list">
+                {(['jpeg', 'webp'] as const).map((format) => (
+                  <label key={format}>
+                    <input
+                      type="checkbox"
+                      checked={config.responseParams.format.allowedValues.includes(format)}
+                      onChange={(event) => {
+                        const nextValues = event.target.checked
+                          ? [...config.responseParams.format.allowedValues, format]
+                          : config.responseParams.format.allowedValues.filter((item) => item !== format)
 
-          <article className="admin-config-environment">
-            <h2>{t.adminUi.environmentVariables}</h2>
-            <table>
-              <thead><tr><th>{t.adminStatus.serviceStatus}</th><th>{t.adminStatus.status}</th><th>{t.adminUi.valueReadOnly}</th></tr></thead>
-              <tbody>
-                <tr><td>Cloudinary</td><td><span>{t.adminStatus.configured}</span></td><td>{t.adminUi.configurationAvailable}</td></tr>
-                <tr><td>{t.adminStatus.database}</td><td><span>{t.adminStatus.configured}</span></td><td>{selectedNode.baseUrl}</td></tr>
-                <tr><td>{t.adminUi.publicApi}</td><td><span>{config.isEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}</span></td><td>{generateApiUrl()}</td></tr>
-                <tr><td>API Key</td><td><span>{config.apiKeyEnabled ? t.adminStatus.configured : t.adminUi.optional}</span></td><td>{config.apiKey ? '************' : t.adminUi.noApiKey}</td></tr>
-              </tbody>
-            </table>
-            <p>{t.adminUi.deploymentCredentials}</p>
-          </article>
-        </section>
-
-        {/* Status Cards */}
-        <div className="admin-config-advanced">
-        <div className={cn(pageStyles.metrics, "md:grid-cols-3")}>
-          <div className={cn(
-            pageStyles.metric,
-            "flex items-center justify-between text-left !text-left"
-          )}>
-            <div className="flex items-center gap-4">
-              <div className={cn(
-                "w-12 h-12 flex items-center justify-center rounded-2xl",
-                config.isEnabled
-                  ? "bg-emerald-500"
-                  : "bg-rose-500"
-              )}>
-                <Globe className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className={cn(
-                  "font-semibold rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminConfig.apiStatus}
-                </h3>
-                <p className={cn(
-                  "text-sm rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminConfig.enablePublicAPI}
-                </p>
-              </div>
-            </div>
-            <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
-              <input
-                type="checkbox"
-                name="toggle"
-                id="toggle-api"
-                checked={config.isEnabled}
-                onChange={(e) => setConfig({ ...config, isEnabled: e.target.checked })}
-                className="sr-only"
-              />
-              <span className={cn(
-                "absolute inset-0 transition-colors rounded-lg",
-                config.isEnabled
-                  ? isLight ? "bg-green-500" : "bg-green-600"
-                  : isLight ? "bg-gray-300" : "bg-gray-600"
-              )}></span>
-              <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
-                config.isEnabled ? "translate-x-6" : "translate-x-0"
-              )}></span>
-            </label>
-          </div>
-
-          <div className={cn(
-            "border p-6 flex items-center justify-between rounded-lg",
-            pageStyles.surface
-          )}>
-            <div className="flex items-center gap-4 rounded-lg">
-              <div className={cn(
-                "w-12 h-12 flex items-center justify-center rounded-lg",
-                config.apiKeyEnabled
-                  ? isLight ? "bg-blue-500" : "bg-blue-600"
-                  : isLight ? "bg-gray-400" : "bg-gray-600"
-              )}>
-                <Key className="w-6 h-6 text-white rounded-lg" />
-              </div>
-              <div>
-                <h3 className={cn(
-                  "font-semibold rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminConfig.apiKeyAuth}
-                </h3>
-                <p className={cn(
-                  "text-sm rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminConfig.enableApiKey}
-                </p>
-              </div>
-            </div>
-            <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
-              <input
-                type="checkbox"
-                name="toggle"
-                id="toggle-key"
-                checked={config.apiKeyEnabled}
-                onChange={(e) => setConfig({ ...config, apiKeyEnabled: e.target.checked })}
-                className="sr-only"
-              />
-              <span className={cn(
-                "absolute inset-0 transition-colors rounded-lg",
-                config.apiKeyEnabled
-                  ? isLight ? "bg-blue-500" : "bg-blue-600"
-                  : isLight ? "bg-gray-300" : "bg-gray-600"
-              )}></span>
-              <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
-                config.apiKeyEnabled ? "translate-x-6" : "translate-x-0"
-              )}></span>
-            </label>
-          </div>
-
-          <div className={cn(
-            "border p-6 flex items-center justify-between rounded-lg",
-            pageStyles.surface
-          )}>
-            <div className="flex items-center gap-4 rounded-lg">
-              <div className={cn(
-                "w-12 h-12 flex items-center justify-center rounded-lg",
-                config.enableDirectResponse
-                  ? isLight ? "bg-purple-500" : "bg-purple-600"
-                  : isLight ? "bg-gray-400" : "bg-gray-600"
-              )}>
-                <ExternalLink className="w-6 h-6 text-white rounded-lg" />
-              </div>
-              <div>
-                <h3 className={cn(
-                  "font-semibold rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminConfig.enableDirectResponse}
-                </h3>
-                <p className={cn(
-                  "text-sm rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminConfig.enableDirectResponseDesc}
-                </p>
-              </div>
-            </div>
-            <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
-              <input
-                type="checkbox"
-                name="toggle"
-                id="toggle-direct"
-                checked={config.enableDirectResponse}
-                onChange={(e) => setConfig({ ...config, enableDirectResponse: e.target.checked })}
-                className="sr-only"
-              />
-              <span className={cn(
-                "absolute inset-0 transition-colors rounded-lg",
-                config.enableDirectResponse
-                  ? isLight ? "bg-purple-500" : "bg-purple-600"
-                  : isLight ? "bg-gray-300" : "bg-gray-600"
-              )}></span>
-              <span className={cn(
-                "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
-                config.enableDirectResponse ? "translate-x-6" : "translate-x-0"
-              )}></span>
-            </label>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 rounded-lg">
-          {/* Left Column: Settings */}
-          <div className="lg:col-span-2 space-y-6 rounded-lg">
-            {/* API Key Config */}
-            {config.apiKeyEnabled && (
-              <div className={cn(
-                "border p-6 space-y-4 rounded-lg",
-                pageStyles.surface
-              )}>
-                <div className="flex items-center gap-3 mb-4 rounded-lg">
-                  <Shield className={cn(
-                    "w-5 h-5 rounded-lg",
-                    isLight ? "text-blue-500" : "text-blue-400"
-                  )} />
-                  <h3 className={cn(
-                    "font-bold text-lg rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminConfig.apiKeyValue}
-                  </h3>
-                </div>
-                <div className="flex gap-3 rounded-lg">
-                  <input
-                    type="text"
-                    value={config.apiKey || ''}
-                    onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
-                    placeholder={t.adminConfig.apiKeyPlaceholder}
-                    className={cn(
-                      "flex-1 p-3 border outline-none focus:border-blue-500 font-mono rounded-lg",
-                      isLight
-                        ? "bg-white border-gray-300"
-                        : "bg-gray-800 border-gray-600"
-                    )}
-                  />
-                  <button
-                    onClick={() => {
-                      const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                      setConfig({ ...config, apiKey: randomKey });
-                    }}
-                    className={cn(
-                      "px-4 py-2 border transition-colors rounded-lg",
-                      isLight
-                        ? "bg-gray-100 border-gray-300 hover:bg-gray-200"
-                        : "bg-gray-700 border-gray-600 hover:bg-gray-600"
-                    )}
-                  >
-                    {t.adminConfig.generateKey}
-                  </button>
-                </div>
-                <p className={cn(
-                  "text-sm rounded-lg",
-                  isLight ? "text-gray-600" : "text-gray-400"
-                )}>
-                  {t.adminConfig.apiKeyValueDesc}
-                </p>
-              </div>
-            )}
-
-            {/* Response Params Config */}
-            <div className={cn(
-              "border p-6 space-y-6 rounded-lg",
-              pageStyles.surface
-            )}>
-              <div className="flex items-center gap-3 mb-2 rounded-lg">
-                <ExternalLink className={cn(
-                  "w-5 h-5 rounded-lg",
-                  isLight ? "text-blue-500" : "text-blue-400"
-                )} />
-                <div>
-                  <h3 className={cn(
-                    "font-bold text-lg rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminConfig.responseParamsTitle}
-                  </h3>
-                  <p className={cn(
-                    "text-sm rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminConfig.responseParamsDesc}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
-                <div className={cn(
-                  "border p-4 space-y-4 rounded-lg",
-                  pageStyles.surfaceSoft
-                )}>
-                  <div className="flex items-center justify-between gap-3 rounded-lg">
-                    <div>
-                      <h4 className={cn(
-                        "font-semibold rounded-lg",
-                        isLight ? "text-gray-900" : "text-gray-100"
-                      )}>
-                        {t.adminConfig.formatParamTitle}
-                      </h4>
-                      <p className={cn(
-                        "text-sm rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        {t.adminConfig.formatParamDesc}
-                      </p>
-                    </div>
-                    <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
-                      <input
-                        type="checkbox"
-                        checked={config.responseParams.format.enabled}
-                        onChange={(e) => setConfig({
+                        setConfig({
                           ...config,
                           responseParams: {
                             ...config.responseParams,
                             format: {
                               ...config.responseParams.format,
-                              enabled: e.target.checked
+                              allowedValues: [...new Set(nextValues)]
                             }
                           }
-                        })}
-                        className="sr-only"
-                      />
-                      <span className={cn(
-                        "absolute inset-0 transition-colors rounded-lg",
-                        config.responseParams.format.enabled
-                          ? isLight ? "bg-blue-500" : "bg-blue-600"
-                          : isLight ? "bg-gray-300" : "bg-gray-600"
-                      )}></span>
-                      <span className={cn(
-                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
-                        config.responseParams.format.enabled ? "translate-x-6" : "translate-x-0"
-                      )}></span>
-                    </label>
+                        })
+                      }}
+                    />
+                    <b>{format === 'jpeg' ? t.adminConfig.formatOptionJpeg : t.adminConfig.formatOptionWebp}</b>
+                  </label>
+                ))}
+              </div>
+            </label>
+          </article>
+        </section>
+
+        <div className="admin-config-advanced">
+          <div className="admin-config-advanced-main">
+            <article className="admin-config-panel">
+              <h2>{t.adminConfig.apiStatus}</h2>
+              <p className="admin-config-panel-desc">{t.adminConfig.enablePublicAPI}</p>
+              <div className="admin-config-toggle-grid">
+                <label>
+                  <span>
+                    <Globe aria-hidden />
+                    <b>{t.adminConfig.apiStatus}</b>
+                    <small>{t.adminConfig.enablePublicAPI}</small>
+                  </span>
+                  <span className="admin-config-switch">
+                    <input
+                      type="checkbox"
+                      checked={config.isEnabled}
+                      onChange={(e) => setConfig({ ...config, isEnabled: e.target.checked })}
+                    />
+                    <i />
+                    <b>{config.isEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+                  </span>
+                </label>
+                <label>
+                  <span>
+                    <Key aria-hidden />
+                    <b>{t.adminConfig.apiKeyAuth}</b>
+                    <small>{t.adminConfig.enableApiKey}</small>
+                  </span>
+                  <span className="admin-config-switch">
+                    <input
+                      type="checkbox"
+                      checked={config.apiKeyEnabled}
+                      onChange={(e) => setConfig({ ...config, apiKeyEnabled: e.target.checked })}
+                    />
+                    <i />
+                    <b>{config.apiKeyEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+                  </span>
+                </label>
+                <label>
+                  <span>
+                    <ExternalLink aria-hidden />
+                    <b>{t.adminConfig.enableDirectResponse}</b>
+                    <small>{t.adminConfig.enableDirectResponseDesc}</small>
+                  </span>
+                  <span className="admin-config-switch">
+                    <input
+                      type="checkbox"
+                      checked={config.enableDirectResponse}
+                      onChange={(e) => setConfig({ ...config, enableDirectResponse: e.target.checked })}
+                    />
+                    <i />
+                    <b>{config.enableDirectResponse ? t.adminUi.directResponse : t.adminUi.redirectResponse}</b>
+                  </span>
+                </label>
+              </div>
+            </article>
+
+            {config.apiKeyEnabled && (
+              <article className="admin-config-panel">
+                <h2>{t.adminConfig.apiKeyValue}</h2>
+                <p className="admin-config-panel-desc">{t.adminConfig.apiKeyValueDesc}</p>
+                <label className="admin-config-inline-field">
+                  <span><Shield aria-hidden /> {t.adminConfig.apiKeyValue}</span>
+                  <div className="admin-config-inline-controls">
+                    <input
+                      type="text"
+                      value={config.apiKey || ''}
+                      onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+                      placeholder={t.adminConfig.apiKeyPlaceholder}
+                    />
+                    <button
+                      type="button"
+                      className={cn(pageStyles.btn, pageStyles.btnLavender)}
+                      onClick={() => {
+                        const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+                        setConfig({ ...config, apiKey: randomKey })
+                      }}
+                    >
+                      {t.adminConfig.generateKey}
+                    </button>
                   </div>
+                </label>
+              </article>
+            )}
 
-                  <div className="space-y-3 rounded-lg">
-                    {(['jpeg', 'webp'] as const).map((format) => (
-                      <label
-                        key={format}
-                        className={cn(
-                          "flex items-center gap-3 p-3 border rounded-lg",
-                          pageStyles.surface
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={config.responseParams.format.allowedValues.includes(format)}
-                          onChange={(e) => {
-                            const nextValues = e.target.checked
-                              ? [...config.responseParams.format.allowedValues, format]
-                              : config.responseParams.format.allowedValues.filter((item) => item !== format)
-
-                            setConfig({
-                              ...config,
-                              responseParams: {
-                                ...config.responseParams,
-                                format: {
-                                  ...config.responseParams.format,
-                                  allowedValues: [...new Set(nextValues)]
-                                }
+            <article className="admin-config-panel">
+              <h2>{t.adminConfig.responseParamsTitle}</h2>
+              <p className="admin-config-panel-desc">{t.adminConfig.responseParamsDesc}</p>
+              <label>
+                <span>{t.adminConfig.formatParamTitle}</span>
+                <span className="admin-config-switch">
+                  <input
+                    type="checkbox"
+                    checked={config.responseParams.format.enabled}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      responseParams: {
+                        ...config.responseParams,
+                        format: { ...config.responseParams.format, enabled: e.target.checked }
+                      }
+                    })}
+                  />
+                  <i />
+                  <b>{config.responseParams.format.enabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+                </span>
+              </label>
+              <label className="admin-config-formats">
+                <span>{t.adminUi.defaultFormats}</span>
+                <div className="admin-config-format-list">
+                  {(['jpeg', 'webp'] as const).map((format) => (
+                    <label key={format}>
+                      <input
+                        type="checkbox"
+                        checked={config.responseParams.format.allowedValues.includes(format)}
+                        onChange={(e) => {
+                          const nextValues = e.target.checked
+                            ? [...config.responseParams.format.allowedValues, format]
+                            : config.responseParams.format.allowedValues.filter((item) => item !== format)
+                          setConfig({
+                            ...config,
+                            responseParams: {
+                              ...config.responseParams,
+                              format: {
+                                ...config.responseParams.format,
+                                allowedValues: [...new Set(nextValues)]
                               }
-                            })
-                          }}
-                          className={cn(
-                            "border rounded-lg",
-                            isLight ? "border-gray-300" : "border-gray-600"
-                          )}
-                        />
-                        <span className={cn(
-                          "text-sm rounded-lg",
-                          isLight ? "text-gray-900" : "text-gray-100"
-                        )}>
-                          {format === 'jpeg' ? t.adminConfig.formatOptionJpeg : t.adminConfig.formatOptionWebp}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={cn(
-                  "border p-4 space-y-4 rounded-lg",
-                  pageStyles.surfaceSoft
-                )}>
-                  <div className="flex items-center justify-between gap-3 rounded-lg">
-                    <div>
-                      <h4 className={cn(
-                        "font-semibold rounded-lg",
-                        isLight ? "text-gray-900" : "text-gray-100"
-                      )}>
-                        {t.adminConfig.qualityParamTitle}
-                      </h4>
-                      <p className={cn(
-                        "text-sm rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        {t.adminConfig.qualityParamDesc}
-                      </p>
-                    </div>
-                    <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
-                      <input
-                        type="checkbox"
-                        checked={config.responseParams.quality.enabled}
-                        onChange={(e) => setConfig({
-                          ...config,
-                          responseParams: {
-                            ...config.responseParams,
-                            quality: {
-                              enabled: e.target.checked
                             }
-                          }
-                        })}
-                        className="sr-only"
+                          })
+                        }}
                       />
-                      <span className={cn(
-                        "absolute inset-0 transition-colors rounded-lg",
-                        config.responseParams.quality.enabled
-                          ? isLight ? "bg-blue-500" : "bg-blue-600"
-                          : isLight ? "bg-gray-300" : "bg-gray-600"
-                      )}></span>
-                      <span className={cn(
-                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
-                        config.responseParams.quality.enabled ? "translate-x-6" : "translate-x-0"
-                      )}></span>
+                      <b>{format === 'jpeg' ? t.adminConfig.formatOptionJpeg : t.adminConfig.formatOptionWebp}</b>
                     </label>
-                  </div>
-
-                  <div className={cn(
-                    "text-sm border rounded-lg p-3",
-                    cn(pageStyles.surfaceSoft, "text-muted-foreground")
-                  )}>
-                    {t.adminConfig.qualityParamHint}
-                  </div>
+                  ))}
                 </div>
-              </div>
+              </label>
+              <label>
+                <span>{t.adminConfig.qualityParamTitle}</span>
+                <span className="admin-config-switch">
+                  <input
+                    type="checkbox"
+                    checked={config.responseParams.quality.enabled}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      responseParams: {
+                        ...config.responseParams,
+                        quality: { enabled: e.target.checked }
+                      }
+                    })}
+                  />
+                  <i />
+                  <b>{config.responseParams.quality.enabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+                </span>
+              </label>
+              <p className="admin-config-hint">{t.adminConfig.qualityParamHint}</p>
+              <label>
+                <span>{t.adminConfig.defaultWebpDeliveryRandomTitle}</span>
+                <span className="admin-config-switch">
+                  <input
+                    type="checkbox"
+                    checked={config.responseParams.defaultWebpDelivery.random}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      responseParams: {
+                        ...config.responseParams,
+                        defaultWebpDelivery: {
+                          ...config.responseParams.defaultWebpDelivery,
+                          random: e.target.checked
+                        }
+                      }
+                    })}
+                  />
+                  <i />
+                  <b>{config.responseParams.defaultWebpDelivery.random ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+                </span>
+              </label>
+              <label className={!config.enableDirectResponse ? 'is-disabled' : undefined}>
+                <span>{t.adminConfig.defaultWebpDeliveryResponseTitle}</span>
+                <span className="admin-config-switch">
+                  <input
+                    type="checkbox"
+                    checked={config.responseParams.defaultWebpDelivery.response}
+                    disabled={!config.enableDirectResponse}
+                    onChange={(e) => setConfig({
+                      ...config,
+                      responseParams: {
+                        ...config.responseParams,
+                        defaultWebpDelivery: {
+                          ...config.responseParams.defaultWebpDelivery,
+                          response: e.target.checked
+                        }
+                      }
+                    })}
+                  />
+                  <i />
+                  <b>
+                    {config.enableDirectResponse
+                      ? (config.responseParams.defaultWebpDelivery.response ? t.adminStatus.enabled : t.adminStatus.disabled)
+                      : t.adminConfig.defaultWebpDeliveryResponseDisabledDesc}
+                  </b>
+                </span>
+              </label>
+            </article>
 
-              <div className={cn(
-                "border p-4 rounded-lg space-y-4",
-                pageStyles.surfaceSoft
-              )}>
-                <div>
-                  <h4 className={cn(
-                    "font-semibold rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminConfig.defaultWebpDeliveryTitle}
-                  </h4>
-                  <p className={cn(
-                    "text-sm rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminConfig.defaultWebpDeliveryDesc}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg">
-                  <div className={cn(
-                    "border p-4 rounded-lg flex items-center justify-between gap-4",
-                    pageStyles.surface
-                  )}>
-                    <div>
-                      <h5 className={cn(
-                        "font-semibold rounded-lg",
-                        isLight ? "text-gray-900" : "text-gray-100"
-                      )}>
-                        {t.adminConfig.defaultWebpDeliveryRandomTitle}
-                      </h5>
-                      <p className={cn(
-                        "text-sm rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        {t.adminConfig.defaultWebpDeliveryRandomDesc}
-                      </p>
-                    </div>
-                    <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg">
-                      <input
-                        type="checkbox"
-                        checked={config.responseParams.defaultWebpDelivery.random}
-                        onChange={(e) => setConfig({
-                          ...config,
-                          responseParams: {
-                            ...config.responseParams,
-                            defaultWebpDelivery: {
-                              ...config.responseParams.defaultWebpDelivery,
-                              random: e.target.checked
-                            }
-                          }
-                        })}
-                        className="sr-only"
-                      />
-                      <span className={cn(
-                        "absolute inset-0 transition-colors rounded-lg",
-                        config.responseParams.defaultWebpDelivery.random
-                          ? isLight ? "bg-blue-500" : "bg-blue-600"
-                          : isLight ? "bg-gray-300" : "bg-gray-600"
-                      )}></span>
-                      <span className={cn(
-                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
-                        config.responseParams.defaultWebpDelivery.random ? "translate-x-6" : "translate-x-0"
-                      )}></span>
-                    </label>
-                  </div>
-
-                  <div className={cn(
-                    "border p-4 rounded-lg flex items-center justify-between gap-4",
-                    pageStyles.surface,
-                    !config.enableDirectResponse && (isLight ? "opacity-60" : "opacity-50")
-                  )}>
-                    <div>
-                      <h5 className={cn(
-                        "font-semibold rounded-lg",
-                        isLight ? "text-gray-900" : "text-gray-100"
-                      )}>
-                        {t.adminConfig.defaultWebpDeliveryResponseTitle}
-                      </h5>
-                      <p className={cn(
-                        "text-sm rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        {config.enableDirectResponse
-                          ? t.adminConfig.defaultWebpDeliveryResponseDesc
-                          : t.adminConfig.defaultWebpDeliveryResponseDisabledDesc}
-                      </p>
-                    </div>
-                    <label className={cn(
-                      "relative inline-block w-12 h-6 rounded-lg",
-                      config.enableDirectResponse ? "cursor-pointer" : "cursor-not-allowed"
-                    )}>
-                      <input
-                        type="checkbox"
-                        checked={config.responseParams.defaultWebpDelivery.response}
-                        disabled={!config.enableDirectResponse}
-                        onChange={(e) => setConfig({
-                          ...config,
-                          responseParams: {
-                            ...config.responseParams,
-                            defaultWebpDelivery: {
-                              ...config.responseParams.defaultWebpDelivery,
-                              response: e.target.checked
-                            }
-                          }
-                        })}
-                        className="sr-only"
-                      />
-                      <span className={cn(
-                        "absolute inset-0 transition-colors rounded-lg",
-                        config.responseParams.defaultWebpDelivery.response && config.enableDirectResponse
-                          ? isLight ? "bg-blue-500" : "bg-blue-600"
-                          : isLight ? "bg-gray-300" : "bg-gray-600"
-                      )}></span>
-                      <span className={cn(
-                        "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
-                        config.responseParams.defaultWebpDelivery.response && config.enableDirectResponse
-                          ? "translate-x-6"
-                          : "translate-x-0"
-                      )}></span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Selection Params Config */}
-            <div className={cn(
-              "border p-6 space-y-6 rounded-lg",
-              pageStyles.surface
-            )}>
-              <div className="flex items-center gap-3 mb-2 rounded-lg">
-                <Settings className={cn(
-                  "w-5 h-5 rounded-lg",
-                  isLight ? "text-blue-500" : "text-blue-400"
-                )} />
-                <div>
-                  <h3 className={cn(
-                    "font-bold text-lg rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminConfig.selectionParamsTitle}
-                  </h3>
-                  <p className={cn(
-                    "text-sm rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminConfig.selectionParamsDesc}
-                  </p>
-                </div>
-              </div>
-
-              <div className={cn(
-                "border p-4 rounded-lg flex items-center justify-between gap-4",
-                pageStyles.surfaceSoft
-              )}>
-                <div>
-                  <h4 className={cn(
-                    "font-semibold rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminConfig.timeWeightingParamTitle}
-                  </h4>
-                  <p className={cn(
-                    "text-sm rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    {t.adminConfig.timeWeightingParamDesc}
-                  </p>
-                  <p className={cn(
-                    "text-xs mt-2 rounded-lg",
-                    isLight ? "text-gray-500" : "text-gray-400"
-                  )}>
-                    {t.adminConfig.timeWeightingParamHint}
-                  </p>
-                </div>
-                <label className="relative inline-block w-12 h-6 cursor-pointer rounded-lg shrink-0">
+            <article className="admin-config-panel">
+              <h2>{t.adminConfig.selectionParamsTitle}</h2>
+              <p className="admin-config-panel-desc">{t.adminConfig.selectionParamsDesc}</p>
+              <label>
+                <span>{t.adminConfig.timeWeightingParamTitle}</span>
+                <span className="admin-config-switch">
                   <input
                     type="checkbox"
                     checked={config.selectionParams.timeWeighting.enabled}
@@ -1077,432 +797,181 @@ const {
                       ...config,
                       selectionParams: {
                         ...config.selectionParams,
-                        timeWeighting: {
-                          enabled: e.target.checked
-                        }
+                        timeWeighting: { enabled: e.target.checked }
                       }
                     })}
-                    className="sr-only"
                   />
-                  <span className={cn(
-                    "absolute inset-0 transition-colors rounded-lg",
-                    config.selectionParams.timeWeighting.enabled
-                      ? isLight ? "bg-blue-500" : "bg-blue-600"
-                      : isLight ? "bg-gray-300" : "bg-gray-600"
-                  )}></span>
-                  <span className={cn(
-                    "absolute left-0 top-0 h-6 w-6 border transition-transform rounded-full bg-card border-border",
-                    config.selectionParams.timeWeighting.enabled ? "translate-x-6" : "translate-x-0"
-                  )}></span>
-                </label>
-              </div>
-            </div>
+                  <i />
+                  <b>{config.selectionParams.timeWeighting.enabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+                </span>
+              </label>
+              <p className="admin-config-hint">{t.adminConfig.timeWeightingParamHint}</p>
+            </article>
 
-            {/* Scope Config */}
-            <div className={cn(
-              "border p-6 space-y-6 rounded-lg",
-              pageStyles.surface
-            )}>
-              <div className="flex items-center gap-3 mb-4 rounded-lg">
-                <Database className={cn(
-                  "w-5 h-5 rounded-lg",
-                  isLight ? "text-blue-500" : "text-blue-400"
-                )} />
-                <h3 className={cn(
-                  "font-bold text-lg rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminConfig.defaultScope}
-                </h3>
-              </div>
-
-              <div>
-                <label className={cn(
-                  "block text-sm font-medium mb-2 rounded-lg",
-                  isLight ? "text-gray-700" : "text-gray-300"
-                )}>
-                  {t.adminConfig.defaultScopeDesc}
-                </label>
+            <article className="admin-config-panel">
+              <h2>{t.adminConfig.defaultScope}</h2>
+              <p className="admin-config-panel-desc">{t.adminConfig.defaultScopeDesc}</p>
+              <label>
+                <span>{t.adminConfig.defaultScope}</span>
                 <select
                   value={config.defaultScope}
                   onChange={(e) => setConfig({ ...config, defaultScope: e.target.value as 'all' | 'groups' })}
-                  className={cn(
-                    "w-full p-3 border outline-none focus:border-blue-500 rounded-lg",
-                    isLight
-                      ? "bg-white border-gray-300"
-                      : "bg-gray-800 border-gray-600"
-                  )}
                 >
                   <option value="all">{t.adminConfig.scopeAll}</option>
                   <option value="groups">{t.adminConfig.scopeGroups}</option>
                 </select>
-              </div>
-
+              </label>
               {config.defaultScope === 'groups' && (
-                <div className={cn(
-                  "p-4 border rounded-lg",
-                  pageStyles.surfaceSoft
-                )}>
-                  <label className={cn(
-                    "block text-sm font-medium mb-3 rounded-lg",
-                    isLight ? "text-gray-700" : "text-gray-300"
-                  )}>
-                    {t.adminConfig.defaultGroups}
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    {groups.map((group) => (
-                      <label
-                        key={group.id}
-                        className={cn(
-                          "flex items-center gap-2 p-2 border cursor-pointer transition-colors rounded-lg",
-                          pageStyles.pagerBtn
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={config.defaultGroups.includes(group.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setConfig({ ...config, defaultGroups: [...config.defaultGroups, group.id] });
-                            } else {
-                              setConfig({ ...config, defaultGroups: config.defaultGroups.filter((id) => id !== group.id) });
-                            }
-                          }}
-                          className={cn(
-                            "border rounded-lg",
-                            isLight
-                              ? "border-gray-300"
-                              : "border-gray-600"
-                          )}
-                        />
-                        <span className={cn(
-                          "text-sm rounded-lg",
-                          isLight ? "text-gray-900" : "text-gray-100"
-                        )}>
-                          {group.name}
-                        </span>
-                      </label>
-                    ))}
+                <label className="admin-config-groups">
+                  <span>{t.adminConfig.defaultGroups}</span>
+                  <div className="admin-config-group-list">
+                    {groups.length === 0 ? (
+                      <output>{t.adminConfig.none}</output>
+                    ) : (
+                      groups.map((group) => (
+                        <label key={group.id}>
+                          <input
+                            type="checkbox"
+                            checked={config.defaultGroups.includes(group.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setConfig({ ...config, defaultGroups: [...config.defaultGroups, group.id] })
+                              } else {
+                                setConfig({
+                                  ...config,
+                                  defaultGroups: config.defaultGroups.filter((id) => id !== group.id)
+                                })
+                              }
+                            }}
+                          />
+                          <b>{group.name}</b>
+                        </label>
+                      ))
+                    )}
                   </div>
-                </div>
+                </label>
               )}
-            </div>
+            </article>
 
-            {/* Parameter Management */}
-            <div className={cn(
-              "border p-6 rounded-lg",
-              pageStyles.surface
-            )}>
-              <div className="flex items-center justify-between mb-6 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Settings className={cn(
-                    "w-5 h-5 rounded-lg",
-                    isLight ? "text-blue-500" : "text-blue-400"
-                  )} />
-                  <h3 className={cn(
-                    "font-bold text-lg rounded-lg",
-                    isLight ? "text-gray-900" : "text-gray-100"
-                  )}>
-                    {t.adminConfig.parameterManagement}
-                  </h3>
-                </div>
+            <article className="admin-config-panel admin-config-params">
+              <h2>{t.adminConfig.parameterManagement}</h2>
+              <div className="admin-config-params-toolbar">
+                <p className="admin-config-panel-desc">{t.adminConfig.parameterManagement}</p>
                 <button
+                  type="button"
+                  className={cn(pageStyles.btn, pageStyles.btnPink)}
                   onClick={() => setShowAddParameter(true)}
-                  className={cn(
-                    "px-3 py-1.5 text-sm border flex items-center gap-2 transition-colors rounded-lg",
-                    isLight
-                      ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                      : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-                  )}
                 >
                   <Plus className="w-4 h-4" />
                   {t.adminConfig.addParameter}
                 </button>
               </div>
-
-              <div className="space-y-4">
-                {config.allowedParameters.length === 0 ? (
-                  <div className={cn(
-                    "text-center py-12 border-2 border-dashed rounded-lg",
-                    isLight
-                      ? "border-gray-300 text-gray-600"
-                      : "border-gray-600 text-gray-400"
-                  )}>
-                    <p>{t.adminConfig.noParameters}</p>
-                    <button
-                      onClick={() => setShowAddParameter(true)}
-                      className={cn(
-                        "mt-4 px-4 py-2 border transition-colors rounded-lg",
-                        isLight
-                          ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                          : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-                      )}
-                    >
-                      {t.adminConfig.addFirstParameter}
-                    </button>
-                  </div>
-                ) : (
-                  config.allowedParameters.map((param, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "p-4 border flex items-center justify-between group transition-colors rounded-lg",
-                        isLight
-                          ? "bg-gray-50 border-gray-300 hover:bg-gray-100"
-                          : "bg-gray-700 border-gray-600 hover:bg-gray-600"
-                      )}
-                    >
+              {config.allowedParameters.length === 0 ? (
+                <div className="admin-config-empty">
+                  <p>{t.adminConfig.noParameters}</p>
+                  <button
+                    type="button"
+                    className={cn(pageStyles.btn, pageStyles.btnLavender)}
+                    onClick={() => setShowAddParameter(true)}
+                  >
+                    {t.adminConfig.addFirstParameter}
+                  </button>
+                </div>
+              ) : (
+                <ul className="admin-config-param-list">
+                  {config.allowedParameters.map((param, index) => (
+                    <li key={`${param.name}-${index}`}>
                       <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <h4 className={cn(
-                            "font-bold rounded-lg",
-                            isLight ? "text-gray-900" : "text-gray-100"
-                          )}>
-                            {param.name}
-                          </h4>
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 border rounded-lg",
-                            param.isEnabled
-                              ? isLight
-                                ? "bg-green-50 border-green-300 text-green-700"
-                                : "bg-green-900/20 border-green-600 text-green-400"
-                              : isLight
-                              ? "bg-red-50 border-red-300 text-red-700"
-                              : "bg-red-900/20 border-red-600 text-red-400"
-                          )}>
-                            {param.isEnabled ? 'Enabled' : 'Disabled'}
-                          </span>
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 border capitalize rounded-lg",
-                            isLight
-                              ? "bg-blue-50 border-blue-300 text-blue-700"
-                              : "bg-blue-900/20 border-blue-600 text-blue-400"
-                          )}>
-                            {param.type}
-                          </span>
-                        </div>
-                        <div className={cn(
-                          "text-xs rounded-lg",
-                          isLight ? "text-gray-600" : "text-gray-400"
-                        )}>
-                          Values: {param.allowedValues.join(', ')}
-                        </div>
+                        <strong>{param.name}</strong>
+                        <span className={param.isEnabled ? 'is-on' : 'is-off'}>
+                          {param.isEnabled ? t.adminStatus.enabled : t.adminStatus.disabled}
+                        </span>
+                        <span className="is-type">{param.type}</span>
+                        <small>{param.allowedValues.join(', ')}</small>
                       </div>
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => setEditingParameter(param)}
-                          className={cn(
-                            "p-2 border transition-colors rounded-lg",
-                            isLight
-                              ? "text-blue-600 border-gray-300 hover:bg-blue-50"
-                              : "text-blue-400 border-gray-600 hover:bg-blue-900/20"
-                          )}
-                        >
+                      <div className="admin-config-param-actions">
+                        <button type="button" aria-label={t.common.edit} onClick={() => setEditingParameter(param)}>
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => deleteParameter(index)}
-                          className={cn(
-                            "p-2 border transition-colors rounded-lg",
-                            isLight
-                              ? "text-red-600 border-gray-300 hover:bg-red-50"
-                              : "text-red-400 border-gray-600 hover:bg-red-900/20"
-                          )}
-                        >
+                        <button type="button" aria-label={t.common.delete} onClick={() => deleteParameter(index)}>
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
           </div>
 
-          {/* Right Column: API Test & Info */}
-          <div className="space-y-6 rounded-lg">
-            <div className={cn(
-              "border p-6 space-y-6 sticky top-24 rounded-lg",
-              pageStyles.surface
-            )}>
-              <h3 className={cn(
-                "font-bold text-lg mb-4 rounded-lg",
-                isLight ? "text-gray-900" : "text-gray-100"
-              )}>
-                {t.adminConfig.apiLinks}
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className={cn(
-                    "text-xs uppercase tracking-wider mb-1 block rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    Base URL
-                  </label>
-                  <div className="flex gap-2 rounded-lg">
-                    <div className={cn(
-                      "flex-1 p-2 border font-mono text-xs truncate rounded-lg",
-                      isLight
-                        ? "bg-gray-50 border-gray-300"
-                        : "bg-gray-700 border-gray-600"
-                    )}>
-                      {generateApiUrl()}
-                    </div>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(generateApiUrl())}
-                      className={cn(
-                        "p-2 border transition-colors rounded-lg",
-                        isLight
-                          ? "bg-gray-100 border-gray-300 hover:bg-gray-200"
-                          : "bg-gray-700 border-gray-600 hover:bg-gray-600"
-                      )}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className={cn(
-                    "text-xs uppercase tracking-wider mb-2 block rounded-lg",
-                    isLight ? "text-gray-600" : "text-gray-400"
-                  )}>
-                    Examples
-                  </label>
-                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 rounded-lg">
-                    {generateExampleUrls().map((example, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "p-3 border text-xs rounded-lg",
-                          isLight
-                            ? "bg-gray-50 border-gray-300"
-                            : "bg-gray-700 border-gray-600"
-                        )}
-                      >
-                        <div className={cn(
-                          "font-semibold mb-1 truncate rounded-lg",
-                          isLight ? "text-gray-900" : "text-gray-100"
-                        )} title={example.label}>
-                          {example.label}
-                        </div>
-                        <div className="flex gap-2 items-center rounded-lg">
-                          <div className={cn(
-                            "flex-1 font-mono truncate rounded-lg",
-                            isLight ? "text-gray-600" : "text-gray-400"
-                          )} title={example.url}>
-                            {example.url}
-                          </div>
-                          <button
-                            onClick={() => navigator.clipboard.writeText(example.url)}
-                            className={cn(
-                              "hover:opacity-70 transition-opacity rounded-lg",
-                              isLight ? "text-gray-700" : "text-gray-300"
-                            )}
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => window.open(example.url, '_blank')}
-                            className={cn(
-                              "hover:opacity-70 transition-opacity rounded-lg",
-                              isLight ? "text-gray-700" : "text-gray-300"
-                            )}
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          <aside className="admin-config-panel admin-config-aside">
+            <h2>{t.adminConfig.apiLinks}</h2>
+            <label className="admin-config-inline-field">
+              <span>Base URL</span>
+              <div className="admin-config-inline-controls">
+                <output title={generateApiUrl()}>{generateApiUrl()}</output>
+                <button
+                  type="button"
+                  className={cn(pageStyles.btn, pageStyles.btnGhost)}
+                  onClick={() => navigator.clipboard.writeText(generateApiUrl())}
+                  aria-label={t.common.copy}
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
-
-              <div className={cn(
-                "pt-6 border-t rounded-lg",
-                isLight ? "border-gray-300" : "border-gray-600"
-              )}>
-                <h3 className={cn(
-                  "font-bold text-lg mb-4 rounded-lg",
-                  isLight ? "text-gray-900" : "text-gray-100"
-                )}>
-                  {t.adminConfig.apiTest}
-                </h3>
-                <div className="flex gap-2 mb-4 rounded-lg">
-                  <input
-                    type="text"
-                    value={testUrl}
-                    onChange={(e) => setTestUrl(e.target.value)}
-                    placeholder="https://..."
-                    className={cn(
-                      "flex-1 p-2 border outline-none focus:border-blue-500 text-sm font-mono rounded-lg",
-                      isLight
-                        ? "bg-white border-gray-300"
-                        : "bg-gray-800 border-gray-600"
-                    )}
-                  />
-                  <button
-                    onClick={testApi}
-                    disabled={!testUrl || testing}
-                    className={cn(
-                      "px-3 py-2 border flex items-center transition-colors disabled:opacity-50 rounded-lg",
-                      isLight
-                        ? "bg-blue-500 text-white border-blue-600 hover:bg-blue-600"
-                        : "bg-blue-600 text-white border-blue-500 hover:bg-blue-700"
-                    )}
-                  >
-                    <Play className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {testResult && (
-                  <div className={cn(
-                    "p-4 border text-xs font-mono overflow-hidden rounded-lg",
-                    testResult.success
-                      ? isLight
-                        ? "bg-green-50 border-green-300"
-                        : "bg-green-900/20 border-green-600"
-                      : isLight
-                      ? "bg-red-50 border-red-300"
-                      : "bg-red-900/20 border-red-600"
-                  )}>
-                    <div className={cn(
-                      "flex items-center gap-2 mb-2 font-bold rounded-lg",
-                      testResult.success
-                        ? isLight ? "text-green-700" : "text-green-400"
-                        : isLight ? "text-red-700" : "text-red-400"
-                    )}>
-                      {testResult.success ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <X className="w-4 h-4" />
-                      )}
-                      <span>{testResult.status} {testResult.statusText}</span>
+            </label>
+            <div className="admin-config-examples">
+              <span>Examples</span>
+              <ul>
+                {generateExampleUrls().map((example, i) => (
+                  <li key={i}>
+                    <strong title={example.label}>{example.label}</strong>
+                    <div>
+                      <code title={example.url}>{example.url}</code>
+                      <button type="button" aria-label={t.common.copy} onClick={() => navigator.clipboard.writeText(example.url)}>
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                      <button type="button" aria-label="open" onClick={() => window.open(example.url, '_blank')}>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    {testResult.error && (
-                      <div className={isLight ? "text-red-600" : "text-red-400"}>
-                        {testResult.error}
-                      </div>
-                    )}
-                    {testResult.headers && (
-                      <div className={cn(
-                        "opacity-70 mt-2 rounded-lg",
-                        isLight ? "text-gray-600" : "text-gray-400"
-                      )}>
-                        <div className="uppercase text-[10px] mb-1">{t.adminConfig.headers}</div>
-                        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg">
-                          {JSON.stringify(testResult.headers, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
-        </div>
-
+            <div className="admin-config-test">
+              <h3>{t.adminConfig.apiTest}</h3>
+              <div className="admin-config-inline-controls">
+                <input
+                  type="text"
+                  value={testUrl}
+                  onChange={(e) => setTestUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+                <button
+                  type="button"
+                  className={cn(pageStyles.btn, pageStyles.btnPink)}
+                  onClick={testApi}
+                  disabled={!testUrl || testing}
+                  aria-label={t.adminConfig.apiTest}
+                >
+                  <Play className="w-4 h-4" />
+                </button>
+              </div>
+              {testResult && (
+                <div className={cn('admin-config-test-result', testResult.success ? 'is-ok' : 'is-err')}>
+                  <p>
+                    {testResult.success ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                    <span>{testResult.status} {testResult.statusText}</span>
+                  </p>
+                  {testResult.error && <p>{testResult.error}</p>}
+                  {testResult.headers && (
+                    <pre>{JSON.stringify(testResult.headers, null, 2)}</pre>
+                  )}
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
 
         <ParameterModal

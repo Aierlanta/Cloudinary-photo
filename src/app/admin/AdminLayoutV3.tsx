@@ -29,6 +29,7 @@ import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
 import styles from "./admin-shell.module.css";
+import mascotStyles from "./sidebar-mascot.module.css";
 
 interface AdminLayoutV3Props {
   children: React.ReactNode;
@@ -174,10 +175,22 @@ export default function AdminLayoutV3({
     const note = sidebarNotes[routeKey];
     if (!note) return null;
     return (
-      <div className={styles.sidebarNote}>
-        {note.eyebrow ? <span>{note.eyebrow}</span> : null}
-        <strong>{note.title}</strong>
-        <p>{note.body}</p>
+      <div className={cn(styles.sidebarNote, mascotStyles.note)}>
+        <div className={mascotStyles.figure} aria-hidden>
+          <Image
+            src="/admin/sidebar-mascot.png"
+            alt=""
+            width={156}
+            height={234}
+            className={mascotStyles.image}
+            sizes="78px"
+          />
+        </div>
+        <div className={mascotStyles.copy}>
+          {note.eyebrow ? <span className={mascotStyles.eyebrow}>{note.eyebrow}</span> : null}
+          <strong className={mascotStyles.title}>{note.title}</strong>
+          <p className={mascotStyles.body}>{note.body}</p>
+        </div>
       </div>
     );
   };

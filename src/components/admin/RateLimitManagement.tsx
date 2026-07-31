@@ -6,6 +6,9 @@ import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
 import { IPLocationBadge } from '@/components/admin/IPLocation';
 import { useAdminApi } from '@/lib/admin-api-client';
+import AdminPortal from '@/components/admin/AdminPortal';
+import { cn } from '@/lib/utils';
+import styles from '@/app/admin/security/security.module.css';
 
 interface RateLimit {
   ip: string;
@@ -112,173 +115,135 @@ export default function RateLimitManagement({ rateLimits, onRefresh }: RateLimit
 
   return (
     <>
-    <div className="space-y-4">
-      {/* 操作按钮 */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold panel-text">
-          {t.adminSecurity.rateLimitList}
-        </h3>
-        <button
-          onClick={() => setShowSetDialog(true)}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          {t.adminSecurity.setRateLimit}
-        </button>
-      </div>
-
-      {/* 速率限制列表 */}
-      {rateLimits.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          {t.adminSecurity.noData}
+      <div>
+        <div className={styles.toolbar}>
+          <h3 className={styles.toolbarTitle}>{t.adminSecurity.rateLimitList}</h3>
+          <button
+            type="button"
+            onClick={() => setShowSetDialog(true)}
+            className={cn(styles.btn, styles.btnPink)}
+          >
+            {t.adminSecurity.setRateLimit}
+          </button>
         </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t.adminSecurity.ipAddress}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t.adminSecurity.location}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t.adminSecurity.maxRequests}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t.adminSecurity.windowMs}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t.adminSecurity.maxTotal}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t.adminGroups.createdAt}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {t.adminSecurity.actions}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {rateLimits.map((item) => (
-                <tr key={item.ip}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono panel-text">
-                    {item.ip}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm panel-text">
-                    <IPLocationBadge ip={item.ip} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm panel-text">
-                    {item.maxRequests}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm panel-text">
-                    {formatWindowMs(item.windowMs)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm panel-text">
-                    {item.maxTotal || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm panel-text">
-                    {formatDate(item.createdAt)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => handleRemoveRateLimit(item.ip)}
-                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      {t.adminSecurity.removeRateLimit}
-                    </button>
-                  </td>
+
+        {rateLimits.length === 0 ? (
+          <div className={styles.empty}>{t.adminSecurity.noData}</div>
+        ) : (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>{t.adminSecurity.ipAddress}</th>
+                  <th>{t.adminSecurity.location}</th>
+                  <th>{t.adminSecurity.maxRequests}</th>
+                  <th>{t.adminSecurity.windowMs}</th>
+                  <th>{t.adminSecurity.maxTotal}</th>
+                  <th>{t.adminGroups.createdAt}</th>
+                  <th>{t.adminSecurity.actions}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* 设置速率限制对话框 */}
-      {showSetDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 !mt-0">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold panel-text mb-4">
-              {t.adminSecurity.setRateLimitDialog}
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium panel-text mb-2">
-                  {t.adminSecurity.ipAddress} *
-                </label>
-                <input
-                  type="text"
-                  value={ip}
-                  onChange={(e) => setIP(e.target.value)}
-                  placeholder={t.adminSecurity.ipAddressPlaceholder}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 panel-text"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium panel-text mb-2">
-                  {t.adminSecurity.maxRequests} *
-                </label>
-                <input
-                  type="number"
-                  value={maxRequests}
-                  onChange={(e) => setMaxRequests(e.target.value)}
-                  placeholder={t.adminSecurity.maxRequestsPlaceholder}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 panel-text"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium panel-text mb-2">
-                  {t.adminSecurity.windowMs} *
-                </label>
-                <input
-                  type="number"
-                  value={windowMs}
-                  onChange={(e) => setWindowMs(e.target.value)}
-                  placeholder={t.adminSecurity.windowMsPlaceholder}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 panel-text"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium panel-text mb-2">
-                  {t.adminSecurity.maxTotal}
-                </label>
-                <input
-                  type="number"
-                  value={maxTotal}
-                  onChange={(e) => setMaxTotal(e.target.value)}
-                  placeholder={t.adminSecurity.maxTotalPlaceholder}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 panel-text"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowSetDialog(false)}
-                disabled={setting}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors panel-text"
-              >
-                {t.adminSecurity.cancel}
-              </button>
-              <button
-                onClick={handleSetRateLimit}
-                disabled={setting}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-              >
-                {setting ? t.adminSecurity.loading : t.adminSecurity.confirm}
-              </button>
-            </div>
+              </thead>
+              <tbody>
+                {rateLimits.map((item) => (
+                  <tr key={item.ip}>
+                    <td className="font-mono">{item.ip}</td>
+                    <td><IPLocationBadge ip={item.ip} /></td>
+                    <td>{item.maxRequests}</td>
+                    <td>{formatWindowMs(item.windowMs)}</td>
+                    <td>{item.maxTotal || '-'}</td>
+                    <td>{formatDate(item.createdAt)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRateLimit(item.ip)}
+                        className={styles.linkDanger}
+                      >
+                        {t.adminSecurity.removeRateLimit}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-      )}
-    </div>
-    <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
+        )}
+
+        {showSetDialog ? (
+          <AdminPortal>
+            <div
+              className={styles.modalBackdrop}
+              role="dialog"
+              aria-modal="true"
+              onClick={() => !setting && setShowSetDialog(false)}
+            >
+              <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                <h3 className={styles.modalTitle}>{t.adminSecurity.setRateLimitDialog}</h3>
+
+                <div className={styles.field}>
+                  <label htmlFor="rate-ip">{t.adminSecurity.ipAddress} *</label>
+                  <input
+                    id="rate-ip"
+                    type="text"
+                    value={ip}
+                    onChange={(e) => setIP(e.target.value)}
+                    placeholder={t.adminSecurity.ipAddressPlaceholder}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="rate-max">{t.adminSecurity.maxRequests} *</label>
+                  <input
+                    id="rate-max"
+                    type="number"
+                    value={maxRequests}
+                    onChange={(e) => setMaxRequests(e.target.value)}
+                    placeholder={t.adminSecurity.maxRequestsPlaceholder}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="rate-window">{t.adminSecurity.windowMs} *</label>
+                  <input
+                    id="rate-window"
+                    type="number"
+                    value={windowMs}
+                    onChange={(e) => setWindowMs(e.target.value)}
+                    placeholder={t.adminSecurity.windowMsPlaceholder}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="rate-total">{t.adminSecurity.maxTotal}</label>
+                  <input
+                    id="rate-total"
+                    type="number"
+                    value={maxTotal}
+                    onChange={(e) => setMaxTotal(e.target.value)}
+                    placeholder={t.adminSecurity.maxTotalPlaceholder}
+                  />
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    onClick={() => setShowSetDialog(false)}
+                    disabled={setting}
+                    className={cn(styles.btn, styles.btnGhost)}
+                  >
+                    {t.adminSecurity.cancel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSetRateLimit}
+                    disabled={setting}
+                    className={cn(styles.btn, styles.btnPink)}
+                  >
+                    {setting ? t.adminSecurity.loading : t.adminSecurity.confirm}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </AdminPortal>
+        ) : null}
+      </div>
+      <ToastContainer toasts={toasts.map((toast) => ({ ...toast, onClose: removeToast }))} />
     </>
   );
 }
-

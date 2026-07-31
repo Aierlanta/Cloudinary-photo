@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/ui/Toast';
 import { useAdminApi } from '@/lib/admin-api-client';
 import { cn } from '@/lib/utils';
+import styles from '@/app/admin/security/security.module.css';
 
 interface SecurityConfig {
   id: string;
@@ -190,137 +191,123 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={cn(
-        'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900',
-        checked ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-      )}
+      className={cn(styles.toggle, checked && styles.toggleOn)}
       aria-pressed={checked}
       aria-label={label}
     >
-      <span
-        className={cn(
-          'pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-sm transition-transform',
-          checked ? 'translate-x-5' : 'translate-x-0'
-        )}
-      />
+      <span className={styles.toggleKnob} />
     </button>
   );
 
   return (
     <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
+      <div>
+        <div className={styles.toolbar}>
           <div>
-            <h3 className="text-lg font-semibold panel-text flex items-center gap-2">
-              <Shield className="w-5 h-5 text-blue-500" />
+            <h3 className={cn(styles.toolbarTitle, 'flex items-center gap-2')}>
+              <Shield className={cn('w-5 h-5', styles.iconAccent)} />
               {t.adminSecurity.riskControl}
             </h3>
-            {config?.guardTriggeredReason && (
-              <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
-                {config.guardTriggeredReason}
-              </p>
-            )}
+            {config?.guardTriggeredReason ? (
+              <p className={styles.cardDesc}>{config.guardTriggeredReason}</p>
+            ) : null}
           </div>
           <button
+            type="button"
             onClick={saveConfig}
             disabled={savingConfig}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            className={cn(styles.btn, styles.btnPink)}
           >
             <Save className="w-4 h-4" />
             {savingConfig ? t.adminSecurity.loading : t.adminSecurity.save}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 min-h-28">
-            <div className="flex h-full items-center justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="font-semibold panel-text">{t.adminSecurity.guardStatus}</h4>
-                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">{t.adminSecurity.guardStatusDesc}</p>
-              </div>
-              <Toggle
-                checked={form.guardEnabled}
-                onChange={(value) => updateForm({ guardEnabled: value })}
-                label={t.adminSecurity.guardStatus}
-              />
+        <div className={styles.cardGrid}>
+          <div className={styles.card}>
+            <div>
+              <h4 className={styles.cardTitle}>{t.adminSecurity.guardStatus}</h4>
+              <p className={styles.cardDesc}>{t.adminSecurity.guardStatusDesc}</p>
             </div>
+            <Toggle
+              checked={form.guardEnabled}
+              onChange={(value) => updateForm({ guardEnabled: value })}
+              label={t.adminSecurity.guardStatus}
+            />
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 min-h-28">
-            <div className="flex h-full items-center justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="font-semibold panel-text">{t.adminSecurity.autoGuard}</h4>
-                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">{t.adminSecurity.autoGuardDesc}</p>
-              </div>
-              <Toggle
-                checked={form.guardAutoEnabled}
-                onChange={(value) => updateForm({ guardAutoEnabled: value })}
-                label={t.adminSecurity.autoGuard}
-              />
+          <div className={styles.card}>
+            <div>
+              <h4 className={styles.cardTitle}>{t.adminSecurity.autoGuard}</h4>
+              <p className={styles.cardDesc}>{t.adminSecurity.autoGuardDesc}</p>
             </div>
+            <Toggle
+              checked={form.guardAutoEnabled}
+              onChange={(value) => updateForm({ guardAutoEnabled: value })}
+              label={t.adminSecurity.autoGuard}
+            />
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-5 min-h-28">
-            <div className="flex h-full items-center justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="font-semibold panel-text">{t.adminSecurity.whitelistOnlyMode}</h4>
-                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">{t.adminSecurity.whitelistOnlyModeDesc}</p>
-              </div>
-              <Toggle
-                checked={form.whitelistOnlyEnabled}
-                onChange={(value) => updateForm({ whitelistOnlyEnabled: value })}
-                label={t.adminSecurity.whitelistOnlyMode}
-              />
+          <div className={styles.card}>
+            <div>
+              <h4 className={styles.cardTitle}>{t.adminSecurity.whitelistOnlyMode}</h4>
+              <p className={styles.cardDesc}>{t.adminSecurity.whitelistOnlyModeDesc}</p>
             </div>
+            <Toggle
+              checked={form.whitelistOnlyEnabled}
+              onChange={(value) => updateForm({ whitelistOnlyEnabled: value })}
+              label={t.adminSecurity.whitelistOnlyMode}
+            />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="block">
-            <span className="block text-sm font-medium panel-text mb-2">{t.adminSecurity.guardWindowMinutes}</span>
+        <div className={cn(styles.formGrid, 'mt-4')}>
+          <div className={styles.field}>
+            <label htmlFor="guard-window">{t.adminSecurity.guardWindowMinutes}</label>
             <input
+              id="guard-window"
               type="number"
               min={1}
               value={form.guardTriggerWindowMinutes}
               onChange={(event) => updateForm({ guardTriggerWindowMinutes: event.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 panel-text"
             />
-          </label>
-          <label className="block">
-            <span className="block text-sm font-medium panel-text mb-2">{t.adminSecurity.guardUniqueIpThreshold}</span>
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="guard-threshold">{t.adminSecurity.guardUniqueIpThreshold}</label>
             <input
+              id="guard-threshold"
               type="number"
               min={1}
               value={form.guardTriggerUniqueIpThreshold}
               onChange={(event) => updateForm({ guardTriggerUniqueIpThreshold: event.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 panel-text"
             />
-          </label>
+          </div>
         </div>
 
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-lg font-semibold panel-text">{t.adminSecurity.whitelist}</h4>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+        <div className={styles.sectionDivider}>
+          <div className={styles.toolbar}>
+            <h4 className={styles.toolbarTitle}>{t.adminSecurity.whitelist}</h4>
+            <span className={styles.cardDesc}>
               {whitelist.filter((entry) => entry.isEnabled).length} / {whitelist.length}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3">
+          <div className={styles.whitelistRow}>
             <input
               value={newCidr}
               onChange={(event) => setNewCidr(event.target.value)}
               placeholder={t.adminSecurity.whitelistCidrPlaceholder}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 panel-text"
+              className={styles.input}
             />
             <input
               value={newNote}
               onChange={(event) => setNewNote(event.target.value)}
               placeholder={t.adminSecurity.whitelistNotePlaceholder}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 panel-text"
+              className={styles.input}
             />
             <button
+              type="button"
               onClick={addWhitelistEntry}
               disabled={addingEntry}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              className={cn(styles.btn, styles.btnLavender)}
             >
               <Plus className="w-4 h-4" />
               {t.adminSecurity.addWhitelist}
@@ -328,45 +315,37 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
           </div>
 
           {whitelist.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">{t.adminSecurity.noData}</div>
+            <div className={styles.empty}>{t.adminSecurity.noData}</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+            <div className={cn(styles.tableWrap, 'mt-4')}>
+              <table className={styles.table}>
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      {t.adminSecurity.whitelistCidr}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      {t.adminSecurity.note}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      {t.adminSecurity.status}
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      {t.adminSecurity.actions}
-                    </th>
+                    <th>{t.adminSecurity.whitelistCidr}</th>
+                    <th>{t.adminSecurity.note}</th>
+                    <th>{t.adminSecurity.status}</th>
+                    <th>{t.adminSecurity.actions}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody>
                   {whitelist.map((entry) => (
                     <tr key={entry.id}>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-mono panel-text">{entry.cidr}</td>
-                      <td className="px-4 py-3 text-sm panel-text">{entry.note || '-'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm panel-text">
-                        {entry.isEnabled ? t.adminSecurity.enabled : t.adminSecurity.disabled}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      <td className="font-mono">{entry.cidr}</td>
+                      <td>{entry.note || '-'}</td>
+                      <td>{entry.isEnabled ? t.adminSecurity.enabled : t.adminSecurity.disabled}</td>
+                      <td>
                         <div className="flex items-center gap-3">
                           <button
+                            type="button"
                             onClick={() => toggleWhitelistEntry(entry)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            className={styles.linkAction}
                           >
                             {entry.isEnabled ? t.adminSecurity.disable : t.adminSecurity.enable}
                           </button>
                           <button
+                            type="button"
                             onClick={() => deleteWhitelistEntry(entry)}
-                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1"
+                            className={cn(styles.linkDanger, 'inline-flex items-center gap-1')}
                           >
                             <Trash2 className="w-3 h-3" />
                             {t.adminSecurity.delete}

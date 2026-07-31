@@ -1,0 +1,365 @@
+/* Security page overlays + management controls.
+   Kept here (not admin-pages) to avoid fighting logs / height-fill CSS. */
+
+.rateDialog {
+  position: fixed;
+  z-index: 220;
+  inset: 0;
+  display: grid;
+  padding: 7vh 8vw;
+  place-items: center;
+  background: rgba(12, 9, 25, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.rateDialogPanel {
+  position: relative;
+  width: min(900px, 100%);
+  max-height: 80vh;
+  padding: 28px;
+  overflow: auto;
+  border: 2px solid var(--admin-lavender);
+  border-radius: 20px;
+  background: var(--admin-panel-raised);
+  box-shadow: var(--admin-shadow);
+  color: var(--foreground);
+}
+
+.closeBtn {
+  position: absolute;
+  z-index: 2;
+  top: 13px;
+  right: 13px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1.5px solid var(--admin-pink);
+  border-radius: 50%;
+  color: var(--admin-cream);
+  background: var(--admin-panel);
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  filter: brightness(1.08);
+}
+
+.modalBackdrop {
+  position: fixed;
+  z-index: 240;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 6, 19, 0.68);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  position: relative;
+  width: min(480px, 100%);
+  padding: 22px;
+  border: 2px solid var(--admin-pink-soft);
+  border-radius: 19px;
+  color: var(--foreground);
+  background: var(--admin-panel);
+  box-shadow: 0 22px 55px rgba(4, 2, 12, 0.56);
+}
+
+.modal::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px dashed var(--admin-stitch);
+  border-radius: 13px;
+  pointer-events: none;
+}
+
+.modalTitle {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 16px;
+  color: var(--admin-cream);
+  font-family: var(--font-display), var(--font-display-zh), ui-rounded, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  margin-bottom: 12px;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 0.8rem;
+  font-weight: 850;
+  color: var(--foreground);
+}
+
+.input,
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--admin-border);
+  border-radius: 9px;
+  color: var(--foreground);
+  background: var(--admin-night);
+  outline: none;
+  font: inherit;
+}
+
+.input:focus,
+.field input:focus {
+  border-color: var(--admin-pink-soft);
+}
+
+.modalActions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 18px;
+  gap: 8px;
+  border: 1.5px solid transparent;
+  border-radius: 13px;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(8, 5, 18, 0.2);
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
+.btnPink {
+  color: #fff8ef;
+  border-color: color-mix(in srgb, var(--admin-cream) 70%, var(--admin-pink));
+  background: linear-gradient(110deg, #f35e89, #ff86aa);
+}
+
+.btnLavender {
+  color: #fff8ef;
+  border-color: color-mix(in srgb, var(--admin-cream) 50%, var(--admin-lavender));
+  background: linear-gradient(110deg, #8663ba, #ac86d9);
+}
+
+.btnGhost {
+  color: var(--foreground);
+  border-color: color-mix(in srgb, var(--admin-lavender) 72%, var(--admin-border));
+  background: var(--admin-panel-raised);
+}
+
+.btnDanger {
+  color: #fff8ef;
+  border-color: color-mix(in srgb, var(--admin-cream) 55%, #df668b);
+  background: linear-gradient(110deg, #d4537a, #ef7a9c);
+}
+
+.linkAction {
+  color: var(--admin-lavender);
+  font-weight: 800;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.linkAction:hover {
+  color: var(--admin-pink-soft);
+}
+
+.linkDanger {
+  color: #ff8bab;
+  font-weight: 800;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.linkDanger:hover {
+  color: #ffb0c5;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.toolbarTitle {
+  margin: 0;
+  color: var(--admin-cream);
+  font-family: var(--font-display), var(--font-display-zh), ui-rounded, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.tableWrap {
+  position: relative;
+  z-index: 1;
+  overflow-x: auto;
+  border: 1.5px solid var(--admin-border);
+  border-radius: 14px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+}
+
+.table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+  background: color-mix(in srgb, var(--admin-panel) 82%, var(--admin-night));
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.table td {
+  padding: 12px 14px;
+  font-size: 0.86rem;
+  border-bottom: 1px dashed var(--admin-border);
+  vertical-align: middle;
+}
+
+.empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--admin-muted);
+}
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--admin-border) 80%, #666);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.toggleOn {
+  background: linear-gradient(110deg, #f35e89, #ff86aa);
+}
+
+.toggleKnob {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff8ef;
+  box-shadow: 0 2px 6px rgba(8, 5, 18, 0.28);
+  transition: transform 150ms ease;
+  transform: translateX(0);
+}
+
+.toggleOn .toggleKnob {
+  transform: translateX(20px);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: flex;
+  min-height: 112px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px;
+  border: 1.5px solid var(--admin-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--admin-panel) 88%, var(--admin-night));
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 850;
+  color: var(--admin-cream);
+}
+
+.cardDesc {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--admin-muted);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.whitelistRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+}
+
+.sectionDivider {
+  margin-top: 8px;
+  padding-top: 22px;
+  border-top: 1px dashed var(--admin-border);
+}
+
+.iconAccent {
+  color: var(--admin-pink-soft);
+}
+
+@media (max-width: 900px) {
+  .cardGrid,
+  .formGrid,
+  .whitelistRow {
+    grid-template-columns: 1fr;
+  }
+
+  .rateDialog {
+    padding: 4vh 4vw;
+  }
+
+  .rateDialogPanel {
+    padding: 20px 16px;
+  }
+}

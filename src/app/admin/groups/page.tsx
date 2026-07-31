@@ -19,6 +19,7 @@ import {
   Star,
 } from 'lucide-react'
 import { useAdminApi } from '@/lib/admin-api-client'
+import AdminPortal from '@/components/admin/AdminPortal'
 import { cn } from '@/lib/utils'
 import styles from '../admin-pages.module.css'
 
@@ -261,57 +262,67 @@ export default function GroupsPage() {
       </section>
 
       {(showCreateForm || editingGroup) && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modal} role="dialog" aria-modal="true">
-            <div className="relative z-[1] flex items-center justify-between mb-4">
-              <h3 className={styles.panelTitle} style={{ marginBottom: 0 }}>
-                {editingGroup ? t.adminGroups.editGroup : t.adminGroups.createGroup}
-              </h3>
-              <button
-                type="button"
-                onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
-                className={styles.iconBtn}
-                aria-label={t.common.close}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className={styles.field}>
-                <label htmlFor="group-name">{t.adminGroups.groupName}</label>
-                <input
-                  id="group-name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label htmlFor="group-desc">{t.adminGroups.description}</label>
-                <textarea
-                  id="group-desc"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                />
-              </div>
-              <div className={styles.modalActions}>
-                <button type="submit" disabled={submitting} className={cn(styles.btn, styles.btnPink, 'flex-1 justify-center')}>
-                  <Save className="w-4 h-4" />
-                  {submitting ? (editingGroup ? t.adminGroups.updating : t.adminGroups.creating) : t.common.save}
-                </button>
+        <AdminPortal>
+          <div
+            className={styles.modalBackdrop}
+            onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
+          >
+            <div
+              className={styles.modal}
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative z-[1] flex items-center justify-between mb-4">
+                <h3 className={styles.panelTitle} style={{ marginBottom: 0 }}>
+                  {editingGroup ? t.adminGroups.editGroup : t.adminGroups.createGroup}
+                </h3>
                 <button
                   type="button"
                   onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
-                  className={cn(styles.btn, styles.btnGhost, 'flex-1 justify-center')}
+                  className={styles.iconBtn}
+                  aria-label={t.common.close}
                 >
-                  {t.adminGroups.cancel}
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
+              <form onSubmit={handleSubmit}>
+                <div className={styles.field}>
+                  <label htmlFor="group-name">{t.adminGroups.groupName}</label>
+                  <input
+                    id="group-name"
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label htmlFor="group-desc">{t.adminGroups.description}</label>
+                  <textarea
+                    id="group-desc"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div className={styles.modalActions}>
+                  <button type="submit" disabled={submitting} className={cn(styles.btn, styles.btnPink, 'flex-1 justify-center')}>
+                    <Save className="w-4 h-4" />
+                    {submitting ? (editingGroup ? t.adminGroups.updating : t.adminGroups.creating) : t.common.save}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={editingGroup ? cancelEdit : () => setShowCreateForm(false)}
+                    className={cn(styles.btn, styles.btnGhost, 'flex-1 justify-center')}
+                  >
+                    {t.adminGroups.cancel}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </AdminPortal>
       )}
 
       <section className={styles.cardGrid} aria-label={t.adminNav.groups}>

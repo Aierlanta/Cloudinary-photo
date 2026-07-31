@@ -178,12 +178,6 @@ export interface Translations {
     currentConfig: string;
     responseMode: string;
     defaultFormats: string;
-    environmentVariables: string;
-    readOnly: string;
-    configurationAvailable: string;
-    optional: string;
-    noApiKey: string;
-    deploymentCredentials: string;
     snapshotStatus: string;
     activeSnapshot: string;
     noBackupsYet: string;
@@ -253,8 +247,6 @@ export interface Translations {
     ownerNode: string;
     existingChain: string;
     cloudinaryDeliveryWarning: string;
-    publicApi: string;
-    valueReadOnly: string;
     directResponse: string;
     redirectResponse: string;
     systemInfo: string;

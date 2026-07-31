@@ -1155,72 +1155,42 @@ export default function ImageUpload({
               <ChevronRight className="admin-upload-advanced-chevron" aria-hidden="true" />
             </summary>
             <div className="admin-upload-advanced-content">
-              <div className={cn(
-                "admin-upload-swarm grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-lg",
-                isLight ? "bg-gray-50 border-gray-300" : "bg-gray-800 border-gray-700"
-              )}>
-            <div className="space-y-2">
-              <label className={cn(
-                "block text-sm font-medium rounded-lg",
-                isLight ? "text-gray-700" : "text-gray-300"
-              )}>
-                {t.adminUi.uploadStrategy}
-              </label>
-              <select
-                value={uploadStrategy}
-                onChange={(e) => setUploadStrategy(e.target.value as UploadStrategy)}
-                disabled={uploading}
-                className={cn(
-                  "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
-                  isLight
-                    ? "bg-white border-gray-300"
-                    : "bg-gray-900 border-gray-600"
-                )}
-              >
-                <option value="manual">{t.adminUi.manualTargetNode}</option>
-                <option value="round-robin">{t.adminUi.roundRobinNodes}</option>
-                <option value="random">{t.adminUi.randomAvailableNode}</option>
-                <option value="available-first">{t.adminUi.firstAvailableNode}</option>
-              </select>
-            </div>
+              <div className="admin-upload-swarm">
+                <label>
+                  <span>{t.adminUi.uploadStrategy}</span>
+                  <select
+                    value={uploadStrategy}
+                    onChange={(e) => setUploadStrategy(e.target.value as UploadStrategy)}
+                    disabled={uploading}
+                  >
+                    <option value="manual">{t.adminUi.manualTargetNode}</option>
+                    <option value="round-robin">{t.adminUi.roundRobinNodes}</option>
+                    <option value="random">{t.adminUi.randomAvailableNode}</option>
+                    <option value="available-first">{t.adminUi.firstAvailableNode}</option>
+                  </select>
+                </label>
 
-            <div className="space-y-2">
-              <label className={cn(
-                "block text-sm font-medium rounded-lg",
-                isLight ? "text-gray-700" : "text-gray-300"
-              )}>
-                {uploadStrategy === "manual" ? t.adminUi.targetOwnerNode : t.adminUi.availableNodes}
-              </label>
-              {uploadStrategy === "manual" ? (
-                <select
-                  value={manualTargetNodeId}
-                  onChange={(e) => setManualTargetNodeId(e.target.value)}
-                  disabled={uploading}
-                  className={cn(
-                    "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
-                    isLight
-                      ? "bg-white border-gray-300"
-                      : "bg-gray-900 border-gray-600"
+                <label>
+                  <span>{uploadStrategy === "manual" ? t.adminUi.targetOwnerNode : t.adminUi.availableNodes}</span>
+                  {uploadStrategy === "manual" ? (
+                    <select
+                      value={manualTargetNodeId}
+                      onChange={(e) => setManualTargetNodeId(e.target.value)}
+                      disabled={uploading}
+                    >
+                      {nodes.map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {getNodeDisplayName(node, t.adminUi.currentNode)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <output>
+                      {getUploadCandidateNodes().map((node) => getNodeDisplayName(node, t.adminUi.currentNode)).join("、") || t.adminUi.noAvailableNodes}
+                    </output>
                   )}
-                >
-                  {nodes.map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {getNodeDisplayName(node, t.adminUi.currentNode)}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div className={cn(
-                  "min-h-10 px-3 py-2 border text-sm rounded-lg",
-                  isLight ? "bg-white border-gray-300 text-gray-700" : "bg-gray-900 border-gray-600 text-gray-300"
-                )}>
-                  {getUploadCandidateNodes().map((node) => getNodeDisplayName(node, t.adminUi.currentNode)).join("、") || t.adminUi.noAvailableNodes}
-                </div>
-              )}
-              <p className={cn("text-xs", isLight ? "text-gray-500" : "text-gray-400")}>
-                {t.adminUi.targetOwnerHint}
-              </p>
-            </div>
+                  <small>{t.adminUi.targetOwnerHint}</small>
+                </label>
               </div>
             </div>
           </details>

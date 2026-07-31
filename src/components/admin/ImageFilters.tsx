@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { useLocale } from "@/hooks/useLocale";
 import { Search, SlidersHorizontal, X, RotateCcw } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useTheme } from "@/hooks/useTheme";
 
 interface Group {
   id: string;
@@ -38,7 +36,6 @@ export default function ImageFilters({
   onFilterChange,
 }: ImageFiltersProps) {
   const { t } = useLocale();
-  const isLight = useTheme();
   const [searchInput, setSearchInput] = useState(filters.search);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -101,31 +98,19 @@ export default function ImageFilters({
   return (
       <div className="admin-gallery-filters">
         <div className="admin-gallery-search relative">
-          <Search className={cn(
-            "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4",
-            isLight ? "text-gray-400" : "text-gray-500"
-          )} />
+          <Search className="admin-gallery-search-icon" aria-hidden />
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t.adminImages.searchPlaceholder}
-            className={cn(
-              "w-full pl-9 pr-9 py-2 border outline-none focus:border-blue-500 text-sm",
-              isLight
-                ? "bg-white border-gray-300"
-                : "bg-gray-800 border-gray-600"
-            )}
           />
           {searchInput && (
             <button
+              type="button"
               onClick={() => setSearchInput("")}
-              className={cn(
-                "absolute right-3 top-1/2 -translate-y-1/2 p-0.5 transition-colors",
-                isLight
-                  ? "text-gray-400 hover:bg-gray-100"
-                  : "text-gray-500 hover:bg-gray-700"
-              )}
+              className="admin-gallery-search-clear"
+              aria-label={t.common.clear}
             >
               <X className="w-4 h-4" />
             </button>
@@ -138,12 +123,6 @@ export default function ImageFilters({
             <select
               value={filters.groupId}
               onChange={(e) => onFilterChange({ groupId: e.target.value })}
-              className={cn(
-                "w-full p-2 border outline-none focus:border-blue-500 text-sm",
-                isLight
-                  ? "bg-white border-gray-300"
-                  : "bg-gray-800 border-gray-600"
-              )}
             >
               <option value="">{t.adminUi.groupAll}</option>
               <option value="unassigned">{t.adminImages.unassigned}</option>
@@ -162,12 +141,6 @@ export default function ImageFilters({
             <select
               value={filters.provider}
               onChange={(e) => onFilterChange({ provider: e.target.value })}
-              className={cn(
-                "w-full p-2 border outline-none focus:border-blue-500 text-sm",
-                isLight
-                  ? "bg-white border-gray-300"
-                  : "bg-gray-800 border-gray-600"
-              )}
             >
               <option value="">{t.adminUi.storageAll}</option>
               <option value="cloudinary">Cloudinary</option>
@@ -180,7 +153,7 @@ export default function ImageFilters({
           <button
             type="button"
             onClick={() => setShowAdvanced((value) => !value)}
-            className={cn("admin-gallery-advanced-toggle", showAdvanced && "is-active")}
+            className={`admin-gallery-advanced-toggle${showAdvanced ? " is-active" : ""}`}
             aria-expanded={showAdvanced}
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -203,12 +176,6 @@ export default function ImageFilters({
                 type="date"
                 value={formatDateForInput(filters.dateFrom)}
                 onChange={(e) => onFilterChange({ dateFrom: localDateToUTC(e.target.value, false) })}
-                className={cn(
-                  "w-full p-2 border outline-none focus:border-blue-500 text-sm",
-                  isLight
-                    ? "bg-white border-gray-300"
-                    : "bg-gray-800 border-gray-600"
-                )}
               />
             </label>
             <label>
@@ -217,12 +184,6 @@ export default function ImageFilters({
                 type="date"
                 value={formatDateForInput(filters.dateTo)}
                 onChange={(e) => onFilterChange({ dateTo: localDateToUTC(e.target.value, true) })}
-                className={cn(
-                  "w-full p-2 border outline-none focus:border-blue-500 text-sm",
-                  isLight
-                    ? "bg-white border-gray-300"
-                    : "bg-gray-800 border-gray-600"
-                )}
               />
             </label>
             <label>
@@ -236,12 +197,6 @@ export default function ImageFilters({
                   sortOrder: sortOrder as "asc" | "desc",
                 });
               }}
-              className={cn(
-                "w-full p-2 border outline-none focus:border-blue-500 text-sm",
-                isLight
-                  ? "bg-white border-gray-300"
-                  : "bg-gray-800 border-gray-600"
-              )}
             >
               <option value="uploadedAt-desc">{t.adminImages.latestUpload}</option>
               <option value="uploadedAt-asc">{t.adminImages.oldestUpload}</option>

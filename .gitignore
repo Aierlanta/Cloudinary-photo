@@ -44,6 +44,9 @@ next-env.d.ts
 # Local homepage fidelity apply backups
 .homepage-fidelity-backup/
 
+# Design reference images (local only, not for commit)
+design-refs/
+
 # Test coverage
 coverage/
 .nyc_output/
