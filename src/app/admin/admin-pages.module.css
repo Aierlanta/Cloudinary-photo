@@ -5,10 +5,23 @@
 .page {
   display: grid;
   min-width: 0;
-  /* fluid panel height — participate in shell panelInner flex column */
+  /* Grow only when the shell panel is intentionally filled (e.g. logs). */
   flex: 1 1 auto;
+  align-content: start;
   width: 100%;
   gap: 18px;
+}
+
+/* Upload page: keep rows content-sized so the washi/dashed shell is not padded
+   by a stretched empty band between the workspace and the queue. */
+:global(.admin-upload-page).page,
+.page:global(.admin-upload-page) {
+  flex: 0 0 auto;
+  align-self: start;
+  width: 100%;
+  height: max-content;
+  align-content: start;
+  grid-template-rows: max-content;
 }
 
 .dashboardPage {
@@ -987,17 +1000,23 @@
   position: relative;
   z-index: 1;
   display: grid;
+  height: max-content;
+  grid-template-rows: max-content max-content;
+  align-content: start;
   gap: 16px;
 }
 
 .page :global(.admin-upload-workspace) {
   display: grid;
-  grid-template-columns: minmax(0, 1.23fr) minmax(420px, 1fr);
-  /* fluid panel height */
-  min-height: clamp(280px, 52dvh, 540px);
+  height: auto;
+  grid-template-columns: minmax(0, 1.23fr) minmax(min(420px, 100%), 1fr);
+  /* Content-sized: no viewport-tied floor (42dvh/480px) that leaves a dead band. */
+  min-height: 0;
   margin-right: 10px;
   margin-left: 16px;
+  /* Equal-height columns from content, not a fixed px height. */
   align-items: stretch;
+  align-content: start;
   gap: 12px;
 }
 
@@ -1005,8 +1024,8 @@
   position: relative;
   grid-column: 1;
   display: grid;
-  /* fluid panel height */
-  min-height: clamp(280px, 52dvh, 540px);
+  min-height: 0;
+  height: auto;
   place-items: center;
   border: 3px dashed var(--admin-pink-soft) !important;
   border-radius: 30px !important;
@@ -1050,7 +1069,10 @@
   z-index: 1;
   display: flex;
   width: min(100%, 500px);
-  height: 100%;
+  /* Avoid height/min-height: 100% — percentages resolve against the shell panel
+     max-height and re-inflate the dropzone into a dead tall band. */
+  height: auto;
+  min-height: 0;
   padding-top: 24px;
   align-items: center;
   flex-direction: column;
@@ -1103,8 +1125,8 @@
   grid-column: 2;
   display: flex;
   min-width: 0;
-  /* fluid panel height */
-  min-height: clamp(280px, 52dvh, 540px);
+  min-height: 0;
+  height: auto;
   padding: 19px 30px 34px;
   flex-direction: column;
   gap: 17px;
@@ -1149,6 +1171,7 @@
 
 .page :global(.admin-upload-submit) {
   order: 3;
+  /* Pin CTA to the bottom when the settings column stretches to match dropzone. */
   margin-top: auto;
 }
 
@@ -1281,8 +1304,10 @@
 }
 
 .page :global(.admin-upload-queue-panel) {
-  min-height: 222px;
+  min-height: 0;
+  height: auto;
   padding: 12px 18px 16px;
+  overflow: visible;
   border: 2px solid color-mix(in srgb, var(--admin-lavender) 72%, var(--admin-pink));
   border-radius: 26px;
   background: linear-gradient(145deg, var(--admin-panel-raised), var(--admin-panel));
@@ -1323,7 +1348,7 @@
 
 .page :global(.admin-upload-queue-empty) {
   display: grid;
-  min-height: 142px;
+  min-height: 0;
   place-items: center;
   color: var(--admin-muted);
   font-size: 0.8rem;
@@ -1340,19 +1365,24 @@
 /* Upload page: the reference uses a distinct two-panel composition and a card-based queue. */
 .page :global(.admin-upload-root) {
   gap: 18px;
+  height: max-content;
+  grid-template-rows: max-content max-content;
+  align-content: start;
 }
 
 .page :global(.admin-upload-workspace) {
-  grid-template-columns: minmax(0, 1.3fr) minmax(380px, 0.95fr);
-  /* fluid panel height */
-  min-height: clamp(280px, 52dvh, 540px);
+  height: auto;
+  grid-template-columns: minmax(0, 1.3fr) minmax(min(380px, 100%), 0.95fr);
+  min-height: 0;
   margin: 0 10px;
   gap: 14px;
+  align-items: stretch;
+  align-content: start;
 }
 
 .page :global(.admin-upload-dropzone) {
-  /* fluid panel height */
-  min-height: clamp(280px, 52dvh, 540px);
+  min-height: 0;
+  height: auto;
   padding: 20px !important;
   border: 3px dashed var(--admin-pink-soft) !important;
   border-radius: 34px !important;
@@ -1379,7 +1409,7 @@
 .page :global(.admin-upload-dropzone > div) {
   width: min(100%, 520px);
   height: auto;
-  min-height: 100%;
+  min-height: 0;
   padding: 32px 28px 34px;
   justify-content: center;
   gap: 0;
@@ -1454,11 +1484,11 @@
 
 .page :global(.admin-upload-settings) {
   position: relative;
-  /* fluid panel height */
-  min-height: clamp(280px, 52dvh, 540px);
+  min-height: 0;
+  height: auto;
   padding: 24px 28px 28px;
   gap: 18px;
-  overflow: hidden;
+  overflow: auto;
   border: 2px solid color-mix(in srgb, var(--admin-lavender) 78%, var(--admin-pink));
   border-radius: 34px;
   background:
@@ -1679,6 +1709,8 @@
 
 .page :global(.admin-upload-submit) {
   order: 4;
+  /* When stretch equalizes columns, pin CTA to the column bottom instead of
+     leaving a dead band under the button. */
   margin-top: auto;
 }
 
@@ -1749,9 +1781,10 @@
 
 .page :global(.admin-upload-queue-panel) {
   position: relative;
-  min-height: 240px;
+  min-height: 0;
+  height: auto;
   padding: 18px 20px 20px;
-  overflow: hidden;
+  overflow: visible;
   border: 2px solid color-mix(in srgb, var(--admin-lavender) 75%, var(--admin-pink));
   border-radius: 28px;
   background:
@@ -1994,7 +2027,8 @@
 }
 
 .page :global(.admin-upload-queue-empty) {
-  min-height: 158px;
+  min-height: 0;
+  padding: 18px 12px;
   border: 1px dashed color-mix(in srgb, var(--admin-pink-soft) 48%, transparent);
   border-radius: 14px;
   color: var(--admin-muted);
@@ -2265,11 +2299,17 @@
 }
 
 .page :global(.admin-gallery-list-toolbar) {
-  position: fixed;
+  /* In-flow sticky: keep bulk actions visible while scrolling without a
+     viewport-fixed bar covering the photo grid. */
+  position: sticky;
   z-index: 45;
-  bottom: 84px;
-  left: calc(var(--panel-x, 302px) + 235px);
-  min-width: 684px;
+  top: 8px;
+  bottom: auto;
+  left: auto;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 auto 14px;
   padding: 19px 24px;
   justify-content: center !important;
   border: 2px solid var(--admin-lavender);
@@ -2328,7 +2368,8 @@
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   gap: 18px !important;
   min-width: 0;
-  min-height: calc(100dvh - 476px);
+  /* Content-sized: avoid a viewport-tied empty band inside the washi/dashed shell. */
+  min-height: 0;
   align-content: start;
 }
 
@@ -2810,9 +2851,10 @@
 /* Status is a compact two-tier operations overview, matching the reference's
    immediate health scan before the deeper provider detail. */
 .page:global(.admin-status-page) {
-  /* fluid panel height */
-  min-height: 100%;
-  grid-template-rows: auto auto auto;
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  grid-template-rows: max-content;
   align-content: start;
   gap: 18px;
 }
@@ -3083,9 +3125,11 @@
    intentionally available through the shared settings control rather than
    extending the reference screen below the fold. */
 .page:global(.admin-swarm-page) {
-  /* fluid panel height — drop fixed 386px work row */
-  min-height: 100%;
-  grid-template-rows: auto auto auto auto;
+  /* Content-sized rows only — do not floor the page to the shell height. */
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  grid-template-rows: max-content;
   align-content: start;
   gap: 14px;
 }
@@ -3216,6 +3260,11 @@
   display: block;
   min-width: 0;
   max-width: min(920px, 100%);
+  height: auto;
+  min-height: 0;
+  /* Shared .panel uses overflow:hidden for radius clipping; keep settings
+     content-sized and allow growth without a clipped empty band. */
+  overflow: visible;
 }
 
 /* Logs: the data viewer itself becomes the single compact log surface. */
@@ -3521,8 +3570,11 @@
 }
 
 .page :global(.admin-log-list) {
-  flex: 0 1 400px !important;
-  max-height: 400px;
+  /* Absorb the logs shell's 1fr row; scroll inside the list instead of a
+     fixed 400px band that leaves a dead scrapbook floor. */
+  flex: 1 1 auto !important;
+  min-height: 0;
+  max-height: none;
   margin-top: 3px;
   margin-right: -32px;
   margin-left: -32px;
@@ -3717,9 +3769,11 @@
 /* Backup mirrors the concise snapshot flow in the reference: health first,
    clear primary actions second, history in the remaining work area. */
 .page:global(.admin-backup-page) {
-  /* fluid panel height */
-  min-height: 100%;
-  grid-template-rows: auto auto auto auto;
+  /* Content-sized: history/settings hug rows; shell scrolls when needed. */
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  grid-template-rows: max-content;
   align-content: start;
   gap: 12px;
 }
@@ -3833,8 +3887,9 @@
 .page :global(.admin-backup-history) {
   position: relative;
   min-height: 0;
+  height: auto;
   padding: 34px 18px 15px;
-  overflow: hidden;
+  overflow: visible;
   border: 2px solid var(--admin-pink);
   border-radius: 22px;
   background: var(--admin-backup-history-surface);
@@ -3870,7 +3925,8 @@
 .page :global(.admin-backup-table-wrap) {
   position: relative;
   z-index: 1;
-  height: 100%;
+  height: auto;
+  max-height: min(420px, 56dvh);
   overflow: auto;
 }
 
@@ -3936,9 +3992,11 @@
 /* Security keeps the reference's risk overview and rate-limit work surface in
    one scan-friendly screen; the richer IP managers remain available by tab. */
 .page:global(.admin-security-page) {
-  /* fluid panel height — rows hug content; shell panel tracks viewport + scrolls */
-  min-height: 100%;
-  grid-template-rows: auto auto auto auto;
+  /* Rows hug content; shell panel tracks viewport + scrolls when needed. */
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  grid-template-rows: max-content;
   align-content: start;
   gap: 13px;
 }
@@ -4245,9 +4303,11 @@
 /* API configuration keeps the compact reference panels, then shows the full
    parameter / endpoint / test controls in normal page flow. */
 .page:global(.admin-config-page) {
-  /* fluid panel height — fill shell; don't stretch auto rows into blank panels */
-  min-height: 100%;
-  grid-template-rows: auto auto auto;
+  /* Don't stretch auto rows into blank scrapbook panels. */
+  flex: 0 0 auto;
+  min-height: 0;
+  height: max-content;
+  grid-template-rows: max-content;
   align-content: start;
   padding-bottom: 28px !important;
   gap: 18px;
@@ -5268,7 +5328,9 @@
 }
 
 .page :global(.admin-log-viewer) {
-  min-height: 570px;
+  min-height: 0;
+  height: auto;
+  flex: 1 1 auto;
   padding: 14px !important;
   border: 0 !important;
   border-radius: 12px !important;
@@ -5429,7 +5491,7 @@
   }
 
   .page :global(.admin-upload-dropzone) {
-    min-height: 330px;
+    min-height: 0;
   }
 
   .page :global(.admin-gallery-filters) {
@@ -5464,11 +5526,12 @@
 
   .page :global(.admin-gallery-list-toolbar) {
     right: auto;
-    left: 50%;
-    width: min(720px, calc(100vw - 48px));
+    left: auto;
+    width: min(720px, 100%);
     min-width: 0;
+    margin-inline: auto;
     padding: 14px;
-    transform: translateX(-50%);
+    transform: none;
   }
 
   .page :global(.admin-gallery-list-toolbar > div:first-child) {
@@ -5938,7 +6001,7 @@
 
   .page :global(.admin-backup-action-row) { align-items: stretch; flex-direction: column; gap: 10px; }
   .page :global(.admin-backup-action-row .btn) { min-width: 0; min-height: 48px; }
-  .page :global(.admin-backup-history) { margin-top: 18px; min-height: 280px; overflow: auto; }
+  .page :global(.admin-backup-history) { margin-top: 18px; min-height: 0; height: auto; overflow: visible; }
   .page :global(.admin-backup-history table) { min-width: 590px; }
 
   .page:global(.admin-logs-page) > .hero .heroActions {
@@ -5955,7 +6018,7 @@
   .page :global(.admin-log-filter-selects) { display: grid !important; grid-template-columns: 1fr 1fr; gap: 9px; }
   .page :global(.admin-log-searchrow) { display: grid !important; grid-template-columns: 1fr; }
   .page :global(.admin-log-filterbar .relative) { grid-column: auto; }
-  .page :global(.admin-log-list) { max-height: 440px; }
+  .page :global(.admin-log-list) { max-height: none; }
   .page :global(.admin-log-entry) { padding: 9px 11px !important; }
   .page :global(.admin-log-entry-main) { grid-template-columns: 68px minmax(0, 1fr); gap: 9px; }
   .page :global(.admin-log-time) { display: none; }
@@ -5995,7 +6058,7 @@
 
   .page :global(.admin-upload-dropzone),
   .page :global(.admin-upload-settings) {
-    min-height: 420px;
+    min-height: 0;
   }
 }
 
@@ -6020,7 +6083,7 @@
   }
 
   .page :global(.admin-upload-dropzone) {
-    min-height: 360px;
+    min-height: 0;
     padding: 12px !important;
   }
 

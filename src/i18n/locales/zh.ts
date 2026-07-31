@@ -109,6 +109,8 @@ export const zh: Translations = {
     setDefaultNode: '设为默认',
     currentDefaultNode: '当前默认操作节点：{name}',
     currentDefaultNodeHint: '图库和蜂群策略仍按共享数据库聚合展示。',
+    dashboardNoteTitle: '欢迎回来，',
+    dashboardNoteBody: '今天也顺利运营吧 ✦',
     imagesNoteTitle: '保持可爱，',
     imagesNoteBody: '也保持随机！✦',
     galleryNoteEyebrow: '系统摘要',

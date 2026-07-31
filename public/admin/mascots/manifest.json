@@ -1,0 +1,382 @@
+{
+  "version": 12,
+  "canvas": {
+    "width": 312,
+    "height": 468,
+    "format": "PNG",
+    "mode": "RGB"
+  },
+  "fit": "face-window-crop-cover-2x3",
+  "method": "face-window-crop",
+  "has_alpha_default": false,
+  "sidebar_fallback_preserved": "/admin/sidebar-mascot.png",
+  "notes": [
+    "v12: no rembg / no background removal; rectangular face-window crops keep original background.",
+    "Each crop chosen by visual face localization; output RGB 312x468 (2:3) cover-fit.",
+    "Item 08 requested …9985099.webp missing; used …9985094.webp.",
+    "sidebar-mascot.png fallback preserved untouched.",
+    "Sidebar CSS should use object-fit:cover for opaque rectangles."
+  ],
+  "items": [
+    {
+      "output": "mascot-01.png",
+      "index": 1,
+      "route_hint": "dashboard",
+      "alias": "dashboard.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785297772424.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785297772424.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "银发蓝眼卧姿+心形盒；脸在左侧约1/3，含头肩与枕头背景",
+      "source_size": {
+        "width": 2160,
+        "height": 1248
+      },
+      "crop": {
+        "left": 80,
+        "top": 0,
+        "right": 912,
+        "bottom": 1248,
+        "width": 832,
+        "height": 1248
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 232934,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-02.png",
+      "index": 2,
+      "route_hint": "images",
+      "alias": "images.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785297172412.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785297172412.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "银发樱花树旁蹲坐；脸约(63%,22%)，含树干与樱花背景",
+      "source_size": {
+        "width": 2160,
+        "height": 1248
+      },
+      "crop": {
+        "left": 994,
+        "top": 0,
+        "right": 1727,
+        "bottom": 1100,
+        "width": 733,
+        "height": 1100
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 220820,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-03.png",
+      "index": 3,
+      "route_hint": "gallery",
+      "alias": "gallery.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785290001561.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785290001561.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "银发户外前倾；脸在右上，含蓝天白云背景",
+      "source_size": {
+        "width": 2160,
+        "height": 1208
+      },
+      "crop": {
+        "left": 1254,
+        "top": 0,
+        "right": 1987,
+        "bottom": 1100,
+        "width": 733,
+        "height": 1100
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 230992,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-04.png",
+      "index": 4,
+      "route_hint": "groups",
+      "alias": "groups.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785253534155.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785253534155.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "银发水手服水边；脸约(72%,25%)，含水与岩石背景",
+      "source_size": {
+        "width": 2160,
+        "height": 1248
+      },
+      "crop": {
+        "left": 1189,
+        "top": 0,
+        "right": 1922,
+        "bottom": 1100,
+        "width": 733,
+        "height": 1100
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 219922,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-05.png",
+      "index": 5,
+      "route_hint": "swarm",
+      "alias": "swarm.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785322385143.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785322385143.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "银发室内左上脸；含墙面/窗框，避开下方裙装构图",
+      "source_size": {
+        "width": 2160,
+        "height": 1248
+      },
+      "crop": {
+        "left": 60,
+        "top": 0,
+        "right": 860,
+        "bottom": 1200,
+        "width": 800,
+        "height": 1200
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 168146,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-06.png",
+      "index": 6,
+      "route_hint": "config",
+      "alias": "config.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785321485126.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785321485126.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "黑发猫耳卧姿+心形盒；脸在左侧，含枕头床单",
+      "source_size": {
+        "width": 2160,
+        "height": 1248
+      },
+      "crop": {
+        "left": 40,
+        "top": 0,
+        "right": 872,
+        "bottom": 1248,
+        "width": 832,
+        "height": 1248
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 225007,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-07.png",
+      "index": 7,
+      "route_hint": "status",
+      "alias": "status.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785320285099.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785320285099.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "银发和风坐床；脸左上，含窗影墙面背景",
+      "source_size": {
+        "width": 2160,
+        "height": 1248
+      },
+      "crop": {
+        "left": 100,
+        "top": 0,
+        "right": 932,
+        "bottom": 1248,
+        "width": 832,
+        "height": 1248
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 190101,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-08.png",
+      "index": 8,
+      "route_hint": "logs",
+      "alias": "logs.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785319985099.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785319985094.webp",
+      "source_note": "requested …9985099.webp missing; used …9985094.webp",
+      "source_exists_as_requested": false,
+      "method": "face-window-crop",
+      "vision_note": "金发太阳帽回眸；脸偏左上，含蓝天与帽檐",
+      "source_size": {
+        "width": 2160,
+        "height": 1248
+      },
+      "crop": {
+        "left": 68,
+        "top": 0,
+        "right": 900,
+        "bottom": 1248,
+        "width": 832,
+        "height": 1248
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 176452,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-09.png",
+      "index": 9,
+      "route_hint": "backup",
+      "alias": "backup.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785315773966.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785315773966.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "银发紫瞳回眸趴卧；脸右上，含黄枕与床单",
+      "source_size": {
+        "width": 2160,
+        "height": 1248
+      },
+      "crop": {
+        "left": 1200,
+        "top": 0,
+        "right": 2000,
+        "bottom": 1200,
+        "width": 800,
+        "height": 1200
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 216292,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    },
+    {
+      "output": "mascot-10.png",
+      "index": 10,
+      "route_hint": "security",
+      "alias": "security.png",
+      "source_requested": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785309172563.webp",
+      "source_used": "C:\\Users\\ZhuanZ1\\AppData\\Roaming\\Cursor\\User\\globalStorage\\manasxx.background-cover\\images\\9a803ac392e0e2285740fdd6d282c4e8-1785309172563.webp",
+      "source_note": null,
+      "source_exists_as_requested": true,
+      "method": "face-window-crop",
+      "vision_note": "银发兔耳回眸；脸约(20%,40%)，含卧室窗光背景",
+      "source_size": {
+        "width": 2160,
+        "height": 1208
+      },
+      "crop": {
+        "left": 40,
+        "top": 20,
+        "right": 760,
+        "bottom": 1100,
+        "width": 720,
+        "height": 1080
+      },
+      "output_size": {
+        "width": 312,
+        "height": 468
+      },
+      "mode": "RGB",
+      "has_alpha": false,
+      "file_bytes": 223198,
+      "generate_image": {
+        "attempted": false,
+        "success": false,
+        "reason": "not_used_face_window_crop"
+      }
+    }
+  ]
+}

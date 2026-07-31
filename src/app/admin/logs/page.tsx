@@ -22,7 +22,7 @@ export default function SystemLogsPage() {
       </header>
 
       <section className={styles.panel}>
-        <div className="relative z-[1] flex-1 overflow-hidden min-h-[420px]">
+        <div className="relative z-[1] flex min-h-0 flex-1 flex-col overflow-hidden">
           <LogViewer maxEntries={7} autoRefresh={true} refreshInterval={5000} />
         </div>
       </section>

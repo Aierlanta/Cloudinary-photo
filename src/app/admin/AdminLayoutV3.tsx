@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
 import styles from "./admin-shell.module.css";
 import mascotStyles from "./sidebar-mascot.module.css";
+import { getSidebarMascotSources } from "./sidebar-mascot";
 
 interface AdminLayoutV3Props {
   children: React.ReactNode;
@@ -68,6 +69,36 @@ function RibbonBow({ className }: { className?: string }) {
 function isNavActive(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin" || pathname === "/admin/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Decorative sidebar character with preferred → route-named → shared fallback chain. */
+function SidebarMascotImage({ routeKey }: { routeKey: string }) {
+  const sources = getSidebarMascotSources(routeKey);
+  const [sourceIndex, setSourceIndex] = useState(0);
+
+  useEffect(() => {
+    setSourceIndex(0);
+  }, [routeKey]);
+
+  const src = sources[Math.min(sourceIndex, sources.length - 1)] ?? sources[sources.length - 1];
+
+  return (
+    <Image
+      key={src}
+      src={src}
+      alt=""
+      width={156}
+      height={234}
+      className={mascotStyles.image}
+      sizes="72px"
+      unoptimized
+      onError={() => {
+        setSourceIndex((current) => (
+          current < sources.length - 1 ? current + 1 : current
+        ));
+      }}
+    />
+  );
 }
 
 export default function AdminLayoutV3({
@@ -160,6 +191,7 @@ export default function AdminLayoutV3({
   };
 
   const sidebarNotes: Record<string, { eyebrow?: string; title: string; body: string }> = {
+    dashboard: { title: t.adminUi.dashboardNoteTitle, body: t.adminUi.dashboardNoteBody },
     images: { title: t.adminUi.imagesNoteTitle, body: t.adminUi.imagesNoteBody },
     gallery: { eyebrow: t.adminUi.galleryNoteEyebrow, title: t.adminUi.galleryNoteTitle, body: t.adminUi.galleryNoteBody },
     groups: { title: t.adminUi.groupsNoteTitle, body: t.adminUi.groupsNoteBody },
@@ -172,19 +204,12 @@ export default function AdminLayoutV3({
   };
 
   const renderSidebarNote = () => {
-    const note = sidebarNotes[routeKey];
-    if (!note) return null;
+    // Unknown routes reuse dashboard copy so the note never disappears.
+    const note = sidebarNotes[routeKey] ?? sidebarNotes.dashboard;
     return (
       <div className={cn(styles.sidebarNote, mascotStyles.note)}>
         <div className={mascotStyles.figure} aria-hidden>
-          <Image
-            src="/admin/sidebar-mascot.png"
-            alt=""
-            width={156}
-            height={234}
-            className={mascotStyles.image}
-            sizes="78px"
-          />
+          <SidebarMascotImage routeKey={routeKey} />
         </div>
         <div className={mascotStyles.copy}>
           {note.eyebrow ? <span className={mascotStyles.eyebrow}>{note.eyebrow}</span> : null}
@@ -195,27 +220,17 @@ export default function AdminLayoutV3({
     );
   };
 
-  const renderSidebarFooter = (compact = false) => (
+  /** Mobile drawer only — logout lives in Quick Settings, not the sidebar foot. */
+  const renderMobileFooter = () => (
     <div className={styles.sidebarFooter}>
-      {compact ? (
-        <button
-          type="button"
-          className={cn(styles.sideAction, isSettingsOpen && styles.sideActionActive)}
-          onClick={() => openSettings(true)}
-          aria-expanded={isSettingsOpen}
-        >
-          <SettingsIcon aria-hidden />
-          <span>{t.admin.quickSettings}</span>
-        </button>
-      ) : null}
       <button
         type="button"
-        className={cn(styles.sideAction, styles.logout)}
-        onClick={handleLogout}
+        className={cn(styles.sideAction, isSettingsOpen && styles.sideActionActive)}
+        onClick={() => openSettings(true)}
+        aria-expanded={isSettingsOpen}
       >
-        <LogOut aria-hidden />
-        <span>{t.adminNav.logout}</span>
-        {!compact ? <span aria-hidden>♡</span> : null}
+        <SettingsIcon aria-hidden />
+        <span>{t.admin.quickSettings}</span>
       </button>
     </div>
   );
@@ -269,10 +284,12 @@ export default function AdminLayoutV3({
         </Link>
         {renderNav()}
         {renderSidebarNote()}
-        {routeKey === "dashboard" ? renderSidebarFooter() : null}
         <button
           type="button"
-          className={styles.settingsFab}
+          className={cn(
+            styles.settingsFab,
+            routeKey === "dashboard" && mascotStyles.settingsFabReset,
+          )}
           onClick={() => openSettings(false)}
           aria-label={t.admin.quickSettings}
           aria-expanded={isSettingsOpen}
@@ -313,27 +330,31 @@ export default function AdminLayoutV3({
               <span className={styles.brandName}>Random Image API</span>
             </Link>
             {renderNav(() => setIsMobileMenuOpen(false))}
-            {renderSidebarFooter(true)}
+            {renderMobileFooter()}
           </aside>
         </>
       ) : null}
 
       <div className={styles.workspace}>
-        <main
-          className={styles.panel}
-          style={{
-            "--admin-panel-opacity": Math.max(0.55, Math.min(1, panelOpacity)),
-          } as CSSProperties}
-        >
-          <div className={styles.washiDots} aria-hidden />
-          <div className={styles.washiStripes} aria-hidden />
-          <RibbonBow className={styles.bow} />
-          <div className={styles.panelInner}>
-            <ComponentErrorBoundary componentName="AdminPage">
-              {children}
-            </ComponentErrorBoundary>
+        <div className={styles.panelFrame}>
+          <main
+            className={styles.panel}
+            style={{
+              "--admin-panel-opacity": Math.max(0.55, Math.min(1, panelOpacity)),
+            } as CSSProperties}
+          >
+            <div className={styles.panelInner}>
+              <ComponentErrorBoundary componentName="AdminPage">
+                {children}
+              </ComponentErrorBoundary>
+            </div>
+          </main>
+          <div className={styles.panelDecor} aria-hidden>
+            <div className={styles.washiDots} />
+            <div className={styles.washiStripes} />
+            <RibbonBow className={styles.bow} />
           </div>
-        </main>
+        </div>
       </div>
 
       {isSettingsOpen ? (

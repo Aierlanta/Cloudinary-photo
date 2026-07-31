@@ -349,7 +349,7 @@
   width: var(--sidebar-w);
   height: calc(100dvh - var(--sidebar-y) - var(--sidebar-bottom));
   min-height: 0;
-  padding: 24px 25px 18px;
+  padding: 24px 25px 6px;
   flex-direction: column;
   overflow: hidden;
   border: 2px solid var(--admin-lavender);
@@ -864,13 +864,30 @@
   display: none;
 }
 
+.panelFrame {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: max-content;
+  max-height: calc(100dvh - var(--panel-top) - var(--panel-bottom));
+  min-height: 0;
+  align-self: flex-start;
+  margin-top: var(--panel-top);
+  overflow: visible;
+}
+
 .panel {
   position: relative;
   z-index: 10;
   width: 100%;
-  height: calc(100dvh - var(--panel-top) - var(--panel-bottom));
+  /* max-content (not fit-content): inside the shell flex column, fit-content still
+     resolves against the available stretch size and recreates a viewport-tall frame. */
+  height: max-content;
+  max-height: calc(100dvh - var(--panel-top) - var(--panel-bottom));
   min-height: 0;
-  margin-top: var(--panel-top);
+  align-self: flex-start;
+  margin-top: 0;
   padding: 44px 34px 30px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -884,20 +901,34 @@
   scrollbar-width: thin;
 }
 
-.panel::before {
+/* Logs intentionally fills the shell so the viewer can use 1fr rows. */
+.shell[data-admin-route="logs"] .panel {
+  height: calc(100dvh - var(--panel-top) - var(--panel-bottom));
+  max-height: calc(100dvh - var(--panel-top) - var(--panel-bottom));
+}
+
+.panelDecor {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.panelFrame::before {
   content: "";
   position: absolute;
-  z-index: 0;
+  z-index: 11;
   inset: 15px;
   border: 1.5px dashed var(--admin-stitch);
   border-radius: 31px;
   pointer-events: none;
 }
 
-.panel::after {
+.panelFrame::after {
   content: "";
   position: absolute;
-  z-index: 0;
+  z-index: 11;
   inset: 7px;
   border: 1px solid rgba(170, 135, 214, 0.42);
   border-radius: 35px;
@@ -908,10 +939,15 @@
   position: relative;
   z-index: 2;
   min-width: 0;
-  /* fluid panel height — at least fill the shell panel so 1fr rows can track viewport */
-  min-height: 100%;
+  /* Only stretch when the panel itself is viewport-sized (logs). Content-sized panels
+     must not inherit a 100% floor that reintroduces empty bands. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.shell[data-admin-route="logs"] .panelInner {
+  min-height: 100%;
 }
 
 .washiDots,
@@ -1303,19 +1339,28 @@
   .shell[data-admin-route="logs"] .panel {
     width: 100%;
     height: auto;
-    min-height: calc(100dvh - 56px);
+    max-height: none;
+    /* Narrow shell scrolls the document; do not force a viewport-tall empty frame. */
+    min-height: 0;
     margin: 0;
     padding: 72px 24px 30px;
     overflow: visible;
     border-radius: 30px;
   }
 
-  .panel::before {
+  .panelFrame {
+    height: auto;
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+  }
+
+  .panelFrame::before {
     inset: 10px;
     border-radius: 21px;
   }
 
-  .panel::after {
+  .panelFrame::after {
     border-radius: 24px;
   }
 

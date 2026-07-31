@@ -109,6 +109,8 @@ export const en: Translations = {
     setDefaultNode: 'Set default',
     currentDefaultNode: 'Current default node: {name}',
     currentDefaultNodeHint: 'Gallery and swarm policies are aggregated through the shared database.',
+    dashboardNoteTitle: 'Welcome back,',
+    dashboardNoteBody: 'keep the API smiling ✦',
     imagesNoteTitle: 'Keep it cute,',
     imagesNoteBody: 'keep it random! ✦',
     galleryNoteEyebrow: 'System summary',

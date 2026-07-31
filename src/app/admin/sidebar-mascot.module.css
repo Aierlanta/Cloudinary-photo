@@ -2,15 +2,19 @@
 
 .note.note {
   display: grid;
-  grid-template-columns: 78px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
   align-items: end;
   justify-content: stretch;
   gap: 8px;
   flex: 0 0 auto;
-  min-height: 96px;
+  min-height: 92px;
+  max-height: 118px;
   margin-top: auto;
-  margin-bottom: 46px;
-  padding: 8px 12px 6px 6px;
+  /* Sit against the sidebar's inner stitch line; the gear only occupies the
+     bottom-right corner and no longer needs a large full-width spacer. */
+  margin-bottom: 6px;
+  margin-right: 0;
+  padding: 6px 10px 4px 4px;
   overflow: hidden;
   flex-direction: unset;
   text-align: left;
@@ -19,30 +23,38 @@
 .figure {
   position: relative;
   z-index: 1;
-  width: 78px;
-  height: 96px;
-  margin-bottom: -6px;
+  width: 72px;
+  height: 92px;
+  margin-bottom: -4px;
+  overflow: hidden;
+  border-radius: 12px;
   pointer-events: none;
   user-select: none;
+  box-shadow: 0 6px 10px rgba(8, 5, 18, 0.28);
 }
 
 .image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: bottom center;
-  filter: drop-shadow(0 6px 10px rgba(8, 5, 18, 0.38));
+  object-fit: cover;
+  object-position: center 18%;
 }
 
 .copy {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   min-width: 0;
-  padding: 8px 4px 10px 0;
+  padding: 6px 2px 8px 0;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
+}
+
+/* Undo dashboard gear offset that existed for the removed logout button. */
+.settingsFabReset.settingsFabReset {
+  right: 12px !important;
+  bottom: 12px !important;
 }
 
 .note .eyebrow {

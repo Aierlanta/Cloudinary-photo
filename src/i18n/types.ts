@@ -116,6 +116,8 @@ export interface Translations {
     setDefaultNode: string;
     currentDefaultNode: string;
     currentDefaultNodeHint: string;
+    dashboardNoteTitle: string;
+    dashboardNoteBody: string;
     imagesNoteTitle: string;
     imagesNoteBody: string;
     galleryNoteEyebrow: string;
