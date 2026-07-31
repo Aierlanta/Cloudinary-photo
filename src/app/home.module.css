@@ -231,6 +231,12 @@
   width: min(100% - 32px, 1180px);
   margin: 0 auto;
   padding-top: 49px;
+  box-sizing: border-box;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
 }
 
 .hero {
@@ -241,18 +247,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 25px;
+  gap: clamp(8px, 2vw, 25px);
+  max-width: 100%;
 }
 
 .heroTitle {
   margin: 0;
+  max-width: min(100%, 16ch);
   color: var(--ink-deep);
   font-family: var(--font-display), var(--font-display-zh), ui-rounded, cursive;
-  font-size: clamp(3rem, 5.15vw, 5rem);
+  font-size: clamp(2.35rem, 5.15vw, 5rem);
   font-weight: 650;
-  line-height: 0.98;
+  line-height: 1.02;
   letter-spacing: -0.035em;
-  white-space: nowrap;
+  text-wrap: balance;
   -webkit-text-stroke: 7px rgba(255, 255, 255, 0.96);
   paint-order: stroke fill;
   text-shadow:
@@ -286,6 +294,7 @@
 .endpointRow {
   position: relative;
   width: fit-content;
+  max-width: 100%;
   margin: 21px auto 0;
   display: flex;
   align-items: center;
@@ -318,19 +327,20 @@
 }
 
 .endpointButton {
-  min-width: 382px;
+  width: min(100%, 382px);
+  min-width: 0;
   height: 60px;
-  padding: 0 42px;
+  padding: 0 clamp(18px, 4vw, 42px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 22px;
+  gap: clamp(10px, 2vw, 22px);
   color: var(--ink-deep);
   background: rgba(255, 255, 255, 0.96);
   border: 2.5px solid #ff9eb0;
   border-radius: 20px;
   font-family: var(--font-mono), ui-monospace, Menlo, monospace;
-  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  font-size: clamp(1.05rem, 2vw, 1.8rem);
   letter-spacing: 0.02em;
   box-shadow:
     inset 0 0 0 5px rgba(255, 151, 173, 0.1),
@@ -406,7 +416,7 @@
   overflow: hidden;
   width: 100%;
   aspect-ratio: 20 / 9;
-  min-height: 330px;
+  min-height: clamp(200px, 36vw, 330px);
   background:
     linear-gradient(135deg, #ffe7ee 0%, #fff5ed 51%, #e9e0ff 100%);
   border: 1px solid rgba(239, 177, 143, 0.45);
@@ -504,11 +514,11 @@
 .captionBox {
   position: absolute;
   z-index: 12;
-  left: 47.4%;
+  left: 50%;
   bottom: -19px;
-  width: min(78%, 770px);
+  width: min(86%, 770px);
   min-height: 107px;
-  padding: 30px 62px 22px 47px;
+  padding: 30px 58px 22px 40px;
   display: flex;
   align-items: center;
   color: var(--ink-deep);
@@ -535,13 +545,13 @@
   position: relative;
   z-index: 1;
   margin: 0;
-  overflow: hidden;
+  max-width: 100%;
   font-family: var(--font-mono), ui-monospace, Menlo, monospace;
-  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  font-size: clamp(0.92rem, 1.7vw, 1.35rem);
   font-weight: 400;
+  line-height: 1.35;
   letter-spacing: 0.02em;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  text-wrap: pretty;
 }
 
 .previewBadge {
@@ -1136,6 +1146,8 @@
 @media (max-width: 1180px) {
   .headerInner {
     width: min(100% - 38px, 1120px);
+    padding-right: 18px;
+    gap: 20px;
   }
 
   .logoMedallion {
@@ -1159,11 +1171,43 @@
   }
 
   .heroTitle {
-    font-size: clamp(2.75rem, 5.2vw, 4.4rem);
+    font-size: clamp(2.5rem, 5vw, 4.4rem);
+    -webkit-text-stroke-width: 6px;
   }
 
   .main {
     width: min(100% - 30px, 1080px);
+  }
+
+  .statsGrid {
+    gap: 16px;
+  }
+
+  .statCard {
+    padding: 16px 18px;
+    gap: 16px;
+  }
+
+  .statIcon {
+    width: 58px;
+    height: 58px;
+  }
+
+  .statIcon svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .statValue {
+    font-size: clamp(1.9rem, 2.8vw, 2.6rem);
+  }
+
+  .statLabel {
+    font-size: 1.1rem;
+  }
+
+  .statCopy {
+    min-width: 0;
   }
 }
 
@@ -1173,8 +1217,16 @@
   }
 
   .headerInner {
+    width: min(100% - 28px, 900px);
     min-height: 96px;
-    gap: 18px;
+    gap: 14px;
+    padding-right: 8px;
+    transform: translateY(6px);
+  }
+
+  .header::before {
+    inset: 6px 10px 6px;
+    border-radius: 28px;
   }
 
   .logoMedallion {
@@ -1188,7 +1240,7 @@
   }
 
   .brandName {
-    font-size: 1.8rem;
+    font-size: clamp(1.35rem, 3.2vw, 1.8rem);
   }
 
   .headerStarLeft,
@@ -1216,46 +1268,64 @@
   }
 
   .main {
+    width: min(100% - 24px, 900px);
     padding-top: 37px;
   }
 
   .heroTitleRow {
-    gap: 12px;
+    gap: 10px;
   }
 
   .heroHeart {
-    width: 43px;
+    width: 38px;
+    height: 36px;
   }
 
   .heroTitle {
-    font-size: clamp(2.25rem, 7vw, 3.65rem);
+    max-width: min(100%, 12ch);
+    font-size: clamp(2.1rem, 6.4vw, 3.4rem);
+    -webkit-text-stroke-width: 5px;
+  }
+
+  .endpointRow {
+    width: min(100%, 360px);
+  }
+
+  .endpointButton {
+    width: 100%;
+  }
+
+  .previewSection {
+    margin-top: 10px;
+    padding-bottom: 36px;
   }
 
   .photoWell {
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 16 / 10;
+    min-height: 240px;
   }
 
   .captionBox {
-    width: min(82%, 650px);
+    width: min(92%, 650px);
+    min-height: 96px;
+    padding: 28px 48px 18px 28px;
   }
 
   .statsGrid {
+    grid-template-columns: 1fr;
     gap: 14px;
   }
 
   .statCard {
-    padding: 15px 18px;
-    gap: 14px;
+    min-height: 104px;
+    justify-content: flex-start;
+    padding-inline: 28px;
+    gap: 18px;
   }
 
-  .statIcon {
-    width: 58px;
-    height: 58px;
-  }
-
-  .statIcon svg {
-    width: 34px;
-    height: 34px;
+  .statCopy {
+    flex: 1;
+    text-align: left;
   }
 
   .statLabel {
@@ -1285,8 +1355,20 @@
     background-size: 36px 36px;
   }
 
+  .header {
+    min-height: 84px;
+  }
+
   .headerInner {
-    width: calc(100% - 24px);
+    width: calc(100% - 16px);
+    min-height: 82px;
+    gap: 10px;
+    padding-right: 4px;
+    transform: translateY(4px);
+  }
+
+  .header::before {
+    display: none;
   }
 
   .brandName {
@@ -1295,6 +1377,7 @@
 
   .navigation {
     margin-left: auto;
+    gap: 6px;
   }
 
   .navButton {
@@ -1306,6 +1389,11 @@
     border-radius: 14px;
   }
 
+  .navButton svg {
+    width: 22px;
+    height: 22px;
+  }
+
   .adminButton {
     box-shadow:
       0 0 0 3px #fffaf7,
@@ -1314,28 +1402,28 @@
   }
 
   .main {
-    width: calc(100% - 20px);
-    padding-top: 38px;
+    width: calc(100% - 16px);
+    padding-top: 28px;
   }
 
   .heroTitleRow {
-    gap: 4px;
-  }
-
-  .heroTitle {
-    font-size: clamp(2rem, 10.2vw, 3rem);
-    line-height: 1.04;
-    white-space: normal;
-    -webkit-text-stroke-width: 5px;
+    gap: 0;
   }
 
   .heroHeart {
-    width: 31px;
-    height: 36px;
+    display: none;
+  }
+
+  .heroTitle {
+    max-width: 100%;
+    font-size: clamp(1.85rem, 9vw, 2.6rem);
+    line-height: 1.12;
+    -webkit-text-stroke-width: 4px;
   }
 
   .endpointRow {
-    margin-top: 18px;
+    width: 100%;
+    margin-top: 16px;
   }
 
   .endpointRow::before,
@@ -1344,113 +1432,1026 @@
   }
 
   .endpointButton {
-    min-width: min(88vw, 330px);
-    height: 54px;
-    padding-inline: 25px;
-    gap: 14px;
+    width: 100%;
+    height: 52px;
     border-radius: 18px;
-    font-size: 1.05rem;
+    font-size: 1.02rem;
   }
 
   .previewSection {
-    margin-top: 18px;
-    padding-bottom: 62px;
+    margin-top: 14px;
+    padding-bottom: 70px;
   }
 
   .scrapbookShell {
-    padding: 11px;
+    padding: 10px;
+  }
+
+  .scrapbookShell::before {
+    border-radius: 32px;
   }
 
   .frame {
-    padding: 9px;
-    border-radius: 27px;
+    padding: 8px;
+    border-radius: 24px;
   }
 
   .frame::after {
     inset: 5px;
-    border-radius: 21px;
+    border-radius: 18px;
   }
 
   .photoWell {
-    min-height: 280px;
+    min-height: 220px;
     aspect-ratio: 4 / 3;
-    border-radius: 20px;
+    border-radius: 18px;
   }
 
   .washiDots {
-    top: -8px;
-    left: -7px;
-    width: 108px;
-    height: 36px;
+    top: -6px;
+    left: -6px;
+    width: 96px;
+    height: 32px;
   }
 
   .washiStripes {
-    right: -15px;
-    bottom: -4px;
-    width: 94px;
-    height: 44px;
+    right: -12px;
+    bottom: -2px;
+    width: 86px;
+    height: 40px;
   }
 
   .bow {
-    top: -25px;
-    width: 102px;
+    top: -22px;
+    width: 96px;
   }
 
   .captionBox {
-    bottom: -49px;
-    width: calc(100% - 30px);
-    min-height: 91px;
-    padding: 27px 46px 16px 23px;
+    bottom: -52px;
+    width: calc(100% - 12px);
+    min-height: 0;
+    padding: 30px 44px 14px 18px;
     border-width: 2px;
-    border-radius: 20px;
+    border-radius: 18px;
   }
 
   .captionBox p {
-    font-size: 0.86rem;
+    font-size: 0.88rem;
+    line-height: 1.4;
   }
 
   .previewBadge {
-    top: -22px;
-    left: 13px;
-    min-width: 152px;
-    height: 36px;
+    top: -20px;
+    left: 10px;
+    min-width: 0;
+    height: 34px;
+    padding: 0 12px;
     gap: 6px;
-    font-size: 0.87rem;
+    font-size: 0.82rem;
   }
 
   .previewBadge svg {
-    width: 17px;
-    height: 17px;
+    width: 15px;
+    height: 15px;
   }
 
   .refreshHeart {
-    right: 10px;
-    bottom: 12px;
+    right: 8px;
+    bottom: 10px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .refreshHeart svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .statsSection {
+    margin-top: 8px;
   }
 
   .statsGrid {
-    grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
   .statCard {
-    min-height: 102px;
-    justify-content: flex-start;
-    padding-inline: 32px;
+    min-height: 96px;
+    padding: 14px 22px;
+    border-radius: 22px;
   }
 
-  .statCopy {
-    flex: 1;
+  .statDecor {
+    opacity: 0.55;
+  }
+
+  .footer {
+    margin-top: 40px;
   }
 
   .footerInner {
-    padding: 28px 0;
+    width: calc(100% - 24px);
+    min-height: 0;
+    padding: 24px 0 28px;
     flex-direction: column;
+    gap: 16px;
     text-align: center;
+  }
+
+  .footerActions {
+    justify-content: center;
+  }
+
+  .footerActions > span {
+    margin-right: 0;
   }
 
   .decorLayer {
     display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .logoMedallion {
+    width: 52px;
+    height: 52px;
+  }
+
+  .navButton {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+  }
+
+  .heroTitle {
+    font-size: clamp(1.7rem, 8.6vw, 2.15rem);
+    -webkit-text-stroke-width: 3.5px;
+  }
+
+  .endpointButton {
+    height: 48px;
+    font-size: 0.95rem;
+    gap: 10px;
+  }
+
+  .photoWell {
+    aspect-ratio: 1 / 1;
+    min-height: 200px;
+  }
+
+  .captionBox {
+    padding: 28px 40px 12px 14px;
+  }
+
+  .captionBox p {
+    font-size: 0.8rem;
+  }
+
+  .previewBadge {
+    left: 8px;
+    height: 30px;
+    font-size: 0.75rem;
+  }
+
+  .statCard {
+    gap: 14px;
+    padding-inline: 18px;
+  }
+
+  .statIcon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .statIcon svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .statValue {
+    font-size: 1.7rem;
+  }
+
+  .statLabel {
+    font-size: 0.95rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  .headerInner {
+    width: min(100% - 72px, 1580px);
+    min-height: 132px;
+    gap: 40px;
+  }
+
+  .header {
+    min-height: 134px;
+  }
+
+  .logoMedallion {
+    width: 102px;
+    height: 102px;
+  }
+
+  .brandName {
+    font-size: clamp(2.4rem, 2.2vw, 3.2rem);
+  }
+
+  .navButton {
+    min-width: 164px;
+    height: 64px;
+    font-size: 1.38rem;
+  }
+
+  .navigation > .navButton:nth-child(2),
+  .adminButton {
+    min-width: 186px;
+  }
+
+  .main {
+    width: min(100% - 48px, 1380px);
+    padding-top: 56px;
+  }
+
+  .heroTitle {
+    max-width: min(100%, 14ch);
+    font-size: clamp(3.6rem, 4.2vw, 5.6rem);
+  }
+
+  .heroHeart {
+    width: 66px;
+    height: 62px;
+  }
+
+  .endpointButton {
+    width: min(100%, 440px);
+    height: 66px;
+    font-size: clamp(1.4rem, 1.5vw, 2rem);
+  }
+
+  .previewSection {
+    width: min(100%, 1260px);
+  }
+
+  .photoWell {
+    min-height: clamp(280px, 28vw, 400px);
+  }
+
+  .bow {
+    width: 156px;
+  }
+
+  .captionBox {
+    width: min(82%, 900px);
+    min-height: 118px;
+    padding: 34px 68px 24px 52px;
+  }
+
+  .captionBox p {
+    font-size: clamp(1.15rem, 1.2vw, 1.5rem);
+  }
+
+  .previewBadge {
+    min-width: 220px;
+    height: 48px;
+    font-size: 1.28rem;
+  }
+
+  .statsSection {
+    width: min(100%, 1260px);
+  }
+
+  .statsGrid {
+    gap: 28px;
+  }
+
+  .statCard {
+    min-height: 136px;
+    padding: 22px 32px;
+    gap: 28px;
+  }
+
+  .statIcon {
+    width: 78px;
+    height: 78px;
+  }
+
+  .statIcon svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .statValue {
+    font-size: clamp(2.6rem, 2.4vw, 3.4rem);
+  }
+
+  .statLabel {
+    font-size: 1.42rem;
+  }
+
+  .footerInner {
+    width: min(100% - 48px, 1260px);
+  }
+}
+
+@media (min-width: 2200px) {
+  .headerInner {
+    width: min(100% - 96px, 2120px);
+    min-height: 152px;
+    gap: 52px;
+    padding-right: 40px;
+  }
+
+  .header {
+    min-height: 154px;
+  }
+
+  .header::before {
+    inset: 10px 18px 9px;
+    border-radius: 48px;
+  }
+
+  .logoMedallion {
+    width: 122px;
+    height: 122px;
+  }
+
+  .brandName {
+    font-size: clamp(2.9rem, 2.1vw, 3.8rem);
+  }
+
+  .navigation {
+    gap: 28px;
+  }
+
+  .navButton {
+    min-width: 196px;
+    height: 74px;
+    padding-inline: 30px;
+    border-radius: 22px;
+    font-size: 1.6rem;
+    gap: 14px;
+  }
+
+  .navButton svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .navigation > .navButton:nth-child(2),
+  .adminButton {
+    min-width: 220px;
+  }
+
+  .main {
+    width: min(100% - 72px, 1920px);
+    padding-top: 68px;
+  }
+
+  .heroTitle {
+    max-width: min(100%, 12ch);
+    font-size: clamp(4.6rem, 3.8vw, 6.8rem);
+    -webkit-text-stroke-width: 8px;
+  }
+
+  .heroHeart {
+    width: 82px;
+    height: 76px;
+  }
+
+  .endpointRow {
+    margin-top: 28px;
+  }
+
+  .endpointButton {
+    width: min(100%, 560px);
+    height: 78px;
+    border-radius: 24px;
+    font-size: clamp(1.65rem, 1.35vw, 2.3rem);
+    gap: 24px;
+  }
+
+  .previewSection {
+    width: min(100%, 1760px);
+    padding-bottom: 28px;
+  }
+
+  .scrapbookShell {
+    padding: 22px;
+  }
+
+  .frame {
+    padding: 20px 18px 28px;
+    border-radius: 46px;
+  }
+
+  .photoWell {
+    min-height: clamp(380px, 27vw, 560px);
+    border-radius: 34px;
+  }
+
+  .washiDots {
+    width: 190px;
+    height: 60px;
+  }
+
+  .washiStripes {
+    width: 170px;
+    height: 72px;
+  }
+
+  .bow {
+    width: 180px;
+    top: -16px;
+  }
+
+  .captionBox {
+    width: min(80%, 1160px);
+    min-height: 136px;
+    bottom: -24px;
+    padding: 38px 78px 26px 58px;
+    border-radius: 30px;
+  }
+
+  .captionBox p {
+    font-size: clamp(1.35rem, 1.1vw, 1.75rem);
+  }
+
+  .previewBadge {
+    top: -34px;
+    min-width: 248px;
+    height: 54px;
+    font-size: 1.4rem;
+    gap: 12px;
+  }
+
+  .previewBadge svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .refreshHeart {
+    width: 46px;
+    height: 46px;
+    right: 28px;
+    bottom: 24px;
+  }
+
+  .refreshHeart svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .statsSection {
+    width: min(100%, 1760px);
+  }
+
+  .statsGrid {
+    gap: 34px;
+  }
+
+  .statCard {
+    min-height: 160px;
+    padding: 26px 36px;
+    gap: 32px;
+    border-radius: 34px;
+  }
+
+  .statIcon {
+    width: 92px;
+    height: 92px;
+    border-radius: 18px;
+  }
+
+  .statIcon svg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .statValue {
+    font-size: clamp(3.1rem, 2.2vw, 4rem);
+  }
+
+  .statLabel {
+    margin-top: 12px;
+    font-size: 1.6rem;
+  }
+
+  .statDecor {
+    width: 30px;
+    height: 30px;
+  }
+
+  .footer {
+    margin-top: 72px;
+  }
+
+  .footerInner {
+    width: min(100% - 72px, 1760px);
+    min-height: 124px;
+    font-size: 1.05rem;
+  }
+
+  .footerActions button,
+  .footerActions a {
+    width: 52px;
+    height: 52px;
+  }
+
+  .footerActions svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (min-width: 3000px) {
+  .headerInner {
+    width: min(100% - 140px, 2920px);
+    min-height: 180px;
+    gap: 60px;
+    padding-right: 52px;
+  }
+
+  .header {
+    min-height: 182px;
+  }
+
+  .logoMedallion {
+    width: 148px;
+    height: 148px;
+  }
+
+  .brandName {
+    font-size: clamp(3.4rem, 1.85vw, 4.6rem);
+  }
+
+  .navigation {
+    gap: 34px;
+  }
+
+  .navButton {
+    min-width: 236px;
+    height: 88px;
+    padding-inline: 36px;
+    border-radius: 28px;
+    font-size: 1.9rem;
+    gap: 16px;
+  }
+
+  .navButton svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .navigation > .navButton:nth-child(2),
+  .adminButton {
+    min-width: 264px;
+  }
+
+  .main {
+    width: min(100% - 96px, 2680px);
+    padding-top: 84px;
+  }
+
+  .heroTitle {
+    max-width: min(100%, 11ch);
+    font-size: clamp(5.6rem, 3.4vw, 8.4rem);
+    -webkit-text-stroke-width: 11px;
+  }
+
+  .heroHeart {
+    width: 104px;
+    height: 96px;
+  }
+
+  .endpointRow {
+    margin-top: 36px;
+  }
+
+  .endpointButton {
+    width: min(100%, 720px);
+    height: 96px;
+    border-radius: 30px;
+    font-size: clamp(2rem, 1.15vw, 2.8rem);
+    gap: 30px;
+  }
+
+  .previewSection {
+    width: min(100%, 2480px);
+    padding-bottom: 40px;
+  }
+
+  .scrapbookShell {
+    padding: 30px;
+  }
+
+  .frame {
+    padding: 26px 24px 36px;
+    border-radius: 58px;
+  }
+
+  .photoWell {
+    min-height: clamp(520px, 25vw, 740px);
+    border-radius: 42px;
+  }
+
+  .washiDots {
+    width: 260px;
+    height: 80px;
+  }
+
+  .washiStripes {
+    width: 230px;
+    height: 96px;
+  }
+
+  .bow {
+    width: 240px;
+    top: -22px;
+  }
+
+  .captionBox {
+    width: min(78%, 1480px);
+    min-height: 168px;
+    bottom: -30px;
+    padding: 48px 100px 32px 72px;
+    border-width: 4px;
+    border-radius: 38px;
+  }
+
+  .captionBox p {
+    font-size: clamp(1.7rem, 1vw, 2.2rem);
+  }
+
+  .previewBadge {
+    top: -42px;
+    min-width: 320px;
+    height: 68px;
+    font-size: 1.75rem;
+    gap: 14px;
+    border-width: 3px;
+  }
+
+  .previewBadge svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .refreshHeart {
+    width: 60px;
+    height: 60px;
+    right: 36px;
+    bottom: 30px;
+  }
+
+  .refreshHeart svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .statsSection {
+    width: min(100%, 2480px);
+  }
+
+  .statsGrid {
+    gap: 44px;
+  }
+
+  .statCard {
+    min-height: 196px;
+    padding: 34px 48px;
+    gap: 42px;
+    border-radius: 42px;
+    border-width: 3px;
+  }
+
+  .statIcon {
+    width: 116px;
+    height: 116px;
+    border-width: 4px;
+    border-radius: 24px;
+  }
+
+  .statIcon svg {
+    width: 72px;
+    height: 72px;
+  }
+
+  .statValue {
+    font-size: clamp(3.8rem, 1.9vw, 5rem);
+  }
+
+  .statLabel {
+    margin-top: 16px;
+    font-size: 2rem;
+  }
+
+  .statDecor {
+    width: 40px;
+    height: 40px;
+  }
+
+  .footer {
+    margin-top: 96px;
+  }
+
+  .footerInner {
+    width: min(100% - 96px, 2480px);
+    min-height: 148px;
+    font-size: 1.28rem;
+    gap: 40px;
+  }
+
+  .footerActions {
+    gap: 16px;
+  }
+
+  .footerActions button,
+  .footerActions a {
+    width: 64px;
+    height: 64px;
+  }
+
+  .footerActions svg {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* 大屏：整页塞进视口，不滚动；矮屏/小屏仍允许滚动 */
+@media (min-width: 1024px) and (min-height: 860px) {
+  .root {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .header {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  .headerInner {
+    min-height: clamp(70px, 8.5dvh, 120px);
+    transform: translateY(clamp(2px, 0.6dvh, 9px));
+  }
+
+  .logoMedallion {
+    width: clamp(58px, 7.2dvh, 92px);
+    height: clamp(58px, 7.2dvh, 92px);
+  }
+
+  .navButton {
+    height: clamp(44px, 5.4dvh, 60px);
+  }
+
+  .main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-top: clamp(10px, 2dvh, 36px);
+  }
+
+  .stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: clamp(6px, 1dvh, 14px);
+  }
+
+  .hero {
+    flex: 0 0 auto;
+  }
+
+  .heroTitle {
+    font-size: clamp(2.15rem, 5.2dvh, 4.6rem);
+    -webkit-text-stroke-width: clamp(3px, 0.45dvh, 7px);
+  }
+
+  .heroHeart {
+    width: clamp(34px, 4.2dvh, 58px);
+    height: clamp(32px, 4dvh, 55px);
+  }
+
+  .endpointRow {
+    margin-top: clamp(8px, 1.4dvh, 18px);
+  }
+
+  .endpointButton {
+    height: clamp(44px, 5.2dvh, 60px);
+  }
+
+  .previewSection {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-top: 0;
+    padding-bottom: clamp(40px, 5.5dvh, 72px);
+    width: min(100%, 1070px);
+  }
+
+  .scrapbookShell {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(8px, 1.1dvh, 16px);
+  }
+
+  .frame {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(8px, 1.1dvh, 16px) clamp(8px, 1dvh, 15px) clamp(12px, 1.4dvh, 22px);
+  }
+
+  .photoWell {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+
+  .bow {
+    width: clamp(96px, 10dvh, 138px);
+    top: clamp(-18px, -1.2dvh, -8px);
+  }
+
+  .captionBox {
+    min-height: clamp(72px, 8.5dvh, 107px);
+    bottom: clamp(-28px, -2.2dvh, -14px);
+    padding:
+      clamp(22px, 2.6dvh, 30px)
+      clamp(48px, 4vw, 62px)
+      clamp(14px, 1.6dvh, 22px)
+      clamp(28px, 2.5vw, 47px);
+  }
+
+  .captionBox p {
+    font-size: clamp(0.95rem, 1.6dvh, 1.35rem);
+  }
+
+  .previewBadge {
+    top: clamp(-24px, -2.4dvh, -18px);
+    height: clamp(34px, 3.8dvh, 43px);
+  }
+
+  .statsSection {
+    flex: 0 0 auto;
+    width: min(100%, 1080px);
+  }
+
+  .statCard {
+    min-height: clamp(78px, 9dvh, 122px);
+    padding: clamp(12px, 1.4dvh, 18px) clamp(18px, 1.8vw, 28px);
+  }
+
+  .statIcon {
+    width: clamp(48px, 5.8dvh, 69px);
+    height: clamp(48px, 5.8dvh, 69px);
+  }
+
+  .statIcon svg {
+    width: clamp(28px, 3.6dvh, 43px);
+    height: clamp(28px, 3.6dvh, 43px);
+  }
+
+  .statValue {
+    font-size: clamp(1.7rem, 3.4dvh, 3.1rem);
+  }
+
+  .statLabel {
+    margin-top: clamp(4px, 0.7dvh, 10px);
+    font-size: clamp(0.95rem, 1.7dvh, 1.32rem);
+  }
+
+  .footer {
+    flex: 0 0 auto;
+    margin-top: clamp(4px, 1dvh, 20px);
+  }
+
+  .footerInner {
+    min-height: clamp(56px, 7dvh, 100px);
+  }
+}
+
+@media (min-width: 1600px) and (min-height: 860px) {
+  .previewSection {
+    width: min(100%, 1260px);
+  }
+
+  .statsSection {
+    width: min(100%, 1260px);
+  }
+
+  .footerInner {
+    width: min(100% - 48px, 1260px);
+  }
+
+  .heroTitle {
+    font-size: clamp(2.4rem, 5.4dvh, 5.2rem);
+  }
+
+  .logoMedallion {
+    width: clamp(64px, 7.4dvh, 102px);
+    height: clamp(64px, 7.4dvh, 102px);
+  }
+}
+
+@media (min-width: 2200px) and (min-height: 860px) {
+  .headerInner {
+    min-height: clamp(78px, 8.8dvh, 140px);
+  }
+
+  .logoMedallion {
+    width: clamp(72px, 7.6dvh, 122px);
+    height: clamp(72px, 7.6dvh, 122px);
+  }
+
+  .navButton {
+    height: clamp(48px, 5.6dvh, 74px);
+  }
+
+  .previewSection {
+    width: min(100%, 1760px);
+    padding-bottom: clamp(44px, 5.8dvh, 80px);
+  }
+
+  .statsSection {
+    width: min(100%, 1760px);
+  }
+
+  .footerInner {
+    width: min(100% - 72px, 1760px);
+  }
+
+  .heroTitle {
+    font-size: clamp(2.8rem, 5.6dvh, 6rem);
+  }
+
+  .endpointButton {
+    height: clamp(48px, 5.4dvh, 78px);
+  }
+
+  .statCard {
+    min-height: clamp(88px, 9.2dvh, 150px);
+  }
+
+  .photoWell {
+    min-height: 0;
+  }
+}
+
+@media (min-width: 3000px) and (min-height: 860px) {
+  .headerInner {
+    min-height: clamp(88px, 9dvh, 160px);
+  }
+
+  .logoMedallion {
+    width: clamp(84px, 8dvh, 148px);
+    height: clamp(84px, 8dvh, 148px);
+  }
+
+  .navButton {
+    height: clamp(52px, 5.8dvh, 88px);
+  }
+
+  .previewSection {
+    width: min(100%, 2480px);
+    padding-bottom: clamp(48px, 6dvh, 88px);
+  }
+
+  .statsSection {
+    width: min(100%, 2480px);
+  }
+
+  .footerInner {
+    width: min(100% - 96px, 2480px);
+  }
+
+  .heroTitle {
+    font-size: clamp(3.2rem, 5.8dvh, 7.2rem);
+  }
+
+  .endpointButton {
+    height: clamp(52px, 5.6dvh, 96px);
+  }
+
+  .statCard {
+    min-height: clamp(96px, 9.5dvh, 180px);
+  }
+
+  .captionBox {
+    min-height: clamp(88px, 9dvh, 150px);
+  }
+
+  .photoWell {
+    min-height: 0;
   }
 }
 

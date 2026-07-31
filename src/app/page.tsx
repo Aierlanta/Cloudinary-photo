@@ -78,10 +78,34 @@ function Sakura({ className }: { className?: string }) {
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
       <g fill="currentColor">
         <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" />
-        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(72 16 16)" />
-        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(144 16 16)" />
-        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(216 16 16)" />
-        <ellipse cx="16" cy="7.2" rx="4.2" ry="5.6" transform="rotate(288 16 16)" />
+        <ellipse
+          cx="16"
+          cy="7.2"
+          rx="4.2"
+          ry="5.6"
+          transform="rotate(72 16 16)"
+        />
+        <ellipse
+          cx="16"
+          cy="7.2"
+          rx="4.2"
+          ry="5.6"
+          transform="rotate(144 16 16)"
+        />
+        <ellipse
+          cx="16"
+          cy="7.2"
+          rx="4.2"
+          ry="5.6"
+          transform="rotate(216 16 16)"
+        />
+        <ellipse
+          cx="16"
+          cy="7.2"
+          rx="4.2"
+          ry="5.6"
+          transform="rotate(288 16 16)"
+        />
         <circle cx="16" cy="16" r="3.1" fill="#fff5f2" />
         <circle cx="16" cy="16" r="1.45" fill="#ff9fbd" />
       </g>
@@ -140,9 +164,24 @@ function DoodleStar({ className }: { className?: string }) {
 function PictureStatIcon() {
   return (
     <svg viewBox="0 0 58 58" aria-hidden>
-      <rect x="8" y="9" width="42" height="40" rx="5" fill="#fff7f5" stroke="currentColor" strokeWidth="2.8" />
+      <rect
+        x="8"
+        y="9"
+        width="42"
+        height="40"
+        rx="5"
+        fill="#fff7f5"
+        stroke="currentColor"
+        strokeWidth="2.8"
+      />
       <circle cx="20" cy="21" r="4.3" fill="#ffd5df" />
-      <path d="m12.5 43 11.8-12 8.1 7 5.5-5.5L46 43Z" fill="#ff9cb4" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="m12.5 43 11.8-12 8.1 7 5.5-5.5L46 43Z"
+        fill="#ff9cb4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -150,9 +189,27 @@ function PictureStatIcon() {
 function FolderStarIcon() {
   return (
     <svg viewBox="0 0 64 58" aria-hidden>
-      <path d="M7 15.5h18l5.2 5H57v28H7Z" fill="#b898e4" stroke="#7650ad" strokeWidth="2.8" strokeLinejoin="round" />
-      <path d="M7 15.5v-5h17l5.2 5H57v5H30.2l-5.2-5Z" fill="#d4bff0" stroke="#7650ad" strokeWidth="2.8" strokeLinejoin="round" />
-      <path d="m39 27.2 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8Z" fill="#ffd36a" stroke="#8b68be" strokeWidth="1.4" strokeLinejoin="round" />
+      <path
+        d="M7 15.5h18l5.2 5H57v28H7Z"
+        fill="#b898e4"
+        stroke="#7650ad"
+        strokeWidth="2.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7 15.5v-5h17l5.2 5H57v5H30.2l-5.2-5Z"
+        fill="#d4bff0"
+        stroke="#7650ad"
+        strokeWidth="2.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m39 27.2 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8Z"
+        fill="#ffd36a"
+        stroke="#8b68be"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -160,9 +217,27 @@ function FolderStarIcon() {
 function ShieldBadgeIcon() {
   return (
     <svg viewBox="0 0 60 64" aria-hidden>
-      <path d="M30 4.5 51 12v17.5c0 14.8-9.1 24.4-21 30-11.9-5.6-21-15.2-21-30V12Z" fill="#6dcbb6" stroke="#218f7b" strokeWidth="3" strokeLinejoin="round" />
-      <path d="M30 11.5 44 16v13.1c0 10.2-5.7 17.2-14 21.6-8.3-4.4-14-11.4-14-21.6V16Z" fill="#a9e2d5" stroke="#f8fffd" strokeWidth="2" />
-      <path d="m22.8 30.8 4.8 4.7 9.9-10" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M30 4.5 51 12v17.5c0 14.8-9.1 24.4-21 30-11.9-5.6-21-15.2-21-30V12Z"
+        fill="#6dcbb6"
+        stroke="#218f7b"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M30 11.5 44 16v13.1c0 10.2-5.7 17.2-14 21.6-8.3-4.4-14-11.4-14-21.6V16Z"
+        fill="#a9e2d5"
+        stroke="#f8fffd"
+        strokeWidth="2"
+      />
+      <path
+        d="m22.8 30.8 4.8 4.7 9.9-10"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -171,20 +246,24 @@ function RibbonBow({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 150 82" className={className} aria-hidden>
       <g stroke="#b95b72" strokeWidth="2.2" strokeLinejoin="round">
-        <path
-          d="M67 37C50 11 19 5 12 18 5 32 31 50 64 47Z"
-          fill="#ff9fba"
-        />
-        <path
-          d="M83 37c17-26 48-32 55-19 7 14-19 32-52 29Z"
-          fill="#ff9fba"
-        />
+        <path d="M67 37C50 11 19 5 12 18 5 32 31 50 64 47Z" fill="#ff9fba" />
+        <path d="M83 37c17-26 48-32 55-19 7 14-19 32-52 29Z" fill="#ff9fba" />
         <path d="M61 44 43 76l30-15 2-18Z" fill="#ef87aa" />
         <path d="m89 44 18 32-30-15-2-18Z" fill="#ef87aa" />
         <rect x="64" y="30" width="22" height="22" rx="7" fill="#ffbfd0" />
-        <path d="M21 20c12 0 25 7 38 19M129 20c-12 0-25 7-38 19" fill="none" opacity=".55" />
+        <path
+          d="M21 20c12 0 25 7 38 19M129 20c-12 0-25 7-38 19"
+          fill="none"
+          opacity=".55"
+        />
       </g>
-      <path d="M70 35c3-2 7-2 10 0" fill="none" stroke="#fff7f8" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M70 35c3-2 7-2 10 0"
+        fill="none"
+        stroke="#fff7f8"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -196,13 +275,23 @@ function FloatingDecor() {
       <DoodleStar className={cn(styles.decor, styles.decorGoldStarLeft)} />
       <FourPointStar className={cn(styles.decor, styles.decorGoldSpark)} />
       <FourPointStar className={cn(styles.decor, styles.decorLavenderSpark)} />
-      <FourPointStar className={cn(styles.decor, styles.decorLavenderSparkTopRight)} />
-      <FourPointStar className={cn(styles.decor, styles.decorCoralSparkRight)} />
+      <FourPointStar
+        className={cn(styles.decor, styles.decorLavenderSparkTopRight)}
+      />
+      <FourPointStar
+        className={cn(styles.decor, styles.decorCoralSparkRight)}
+      />
       <DoodleStar className={cn(styles.decor, styles.decorGoldStarRight)} />
-      <FourPointStar className={cn(styles.decor, styles.decorPeachSparkRight)} />
+      <FourPointStar
+        className={cn(styles.decor, styles.decorPeachSparkRight)}
+      />
       <FourPointStar className={cn(styles.decor, styles.decorMintSpark)} />
-      <FourPointStar className={cn(styles.decor, styles.decorGoldSparkBottom)} />
-      <FourPointStar className={cn(styles.decor, styles.decorPinkSparkBottom)} />
+      <FourPointStar
+        className={cn(styles.decor, styles.decorGoldSparkBottom)}
+      />
+      <FourPointStar
+        className={cn(styles.decor, styles.decorPinkSparkBottom)}
+      />
       <DoodleHeart className={cn(styles.decor, styles.decorHeartRight)} />
       <DoodleHeart className={cn(styles.decor, styles.decorHeartRightSmall)} />
       <Sakura className={cn(styles.decor, styles.decorFlowerLeft)} />
@@ -233,7 +322,13 @@ interface StatCardProps {
   decoration: ReactNode;
 }
 
-function StatCard({ className, icon, value, label, decoration }: StatCardProps) {
+function StatCard({
+  className,
+  icon,
+  value,
+  label,
+  decoration,
+}: StatCardProps) {
   return (
     <div className={cn(styles.statCard, className)}>
       {decoration}
@@ -369,7 +464,11 @@ function HomeContent() {
           </Link>
 
           <nav className={styles.navigation} aria-label="Primary">
-            <Link href="/api/docs" className={styles.navButton} aria-label={t.home.apiDocs}>
+            <Link
+              href="/api/docs"
+              className={styles.navButton}
+              aria-label={t.home.apiDocs}
+            >
               <BookOpen aria-hidden />
               <span>{t.home.apiDocs}</span>
             </Link>
@@ -383,7 +482,10 @@ function HomeContent() {
               <Github aria-hidden />
               <span>GitHub</span>
             </Link>
-            <Link href="/admin" className={cn(styles.navButton, styles.adminButton)}>
+            <Link
+              href="/admin"
+              className={cn(styles.navButton, styles.adminButton)}
+            >
               <Sakura className={styles.adminFlower} />
               <span>{t.home.managementPanel}</span>
             </Link>
@@ -392,16 +494,25 @@ function HomeContent() {
       </motion.header>
 
       <main className={styles.main}>
-        <motion.div variants={containerVariants} initial="hidden" animate="visible">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className={styles.stage}
+        >
           <motion.section variants={itemVariants} className={styles.hero}>
             <div className={styles.heroTitleRow}>
-              <DoodleHeart className={cn(styles.heroHeart, styles.heroHeartLeft)} />
+              <DoodleHeart
+                className={cn(styles.heroHeart, styles.heroHeartLeft)}
+              />
               <h1 className={styles.heroTitle}>
                 {t.home.heroTaglineA}
                 <span>{t.home.heroTaglineHighlight}</span>
                 {t.home.heroTaglineB}
               </h1>
-              <DoodleHeart className={cn(styles.heroHeart, styles.heroHeartRight)} />
+              <DoodleHeart
+                className={cn(styles.heroHeart, styles.heroHeartRight)}
+              />
             </div>
 
             {baseUrl && (
@@ -422,7 +533,10 @@ function HomeContent() {
             )}
           </motion.section>
 
-          <motion.section variants={itemVariants} className={styles.previewSection}>
+          <motion.section
+            variants={itemVariants}
+            className={styles.previewSection}
+          >
             <div className={styles.scrapbookShell}>
               <div className={styles.frame}>
                 <div className={styles.washiDots} aria-hidden />
@@ -438,7 +552,9 @@ function HomeContent() {
                         alt={t.home.randomImagePreview}
                         className={cn(
                           styles.previewImage,
-                          imageLoading ? styles.previewImageLoading : styles.previewImageReady,
+                          imageLoading
+                            ? styles.previewImageLoading
+                            : styles.previewImageReady,
                         )}
                         onLoad={() => setImageLoading(false)}
                         onError={() => {
@@ -453,7 +569,10 @@ function HomeContent() {
                       )}
                     </>
                   ) : (
-                    <EmptyPreview title={t.home.noImage} hint={t.home.uploadFirst} />
+                    <EmptyPreview
+                      title={t.home.noImage}
+                      hint={t.home.uploadFirst}
+                    />
                   )}
                 </div>
 
@@ -477,7 +596,10 @@ function HomeContent() {
             </div>
           </motion.section>
 
-          <motion.section variants={itemVariants} className={styles.statsSection}>
+          <motion.section
+            variants={itemVariants}
+            className={styles.statsSection}
+          >
             <div className={styles.statsGrid}>
               <StatCard
                 className={styles.statPink}
@@ -486,8 +608,12 @@ function HomeContent() {
                 label={t.home.statImages}
                 decoration={
                   <>
-                    <Sakura className={cn(styles.statDecor, styles.statDecorPinkOne)} />
-                    <Sakura className={cn(styles.statDecor, styles.statDecorPinkTwo)} />
+                    <Sakura
+                      className={cn(styles.statDecor, styles.statDecorPinkOne)}
+                    />
+                    <Sakura
+                      className={cn(styles.statDecor, styles.statDecorPinkTwo)}
+                    />
                   </>
                 }
               />
@@ -498,8 +624,18 @@ function HomeContent() {
                 label={t.home.statGroups}
                 decoration={
                   <>
-                    <FourPointStar className={cn(styles.statDecor, styles.statDecorPurpleOne)} />
-                    <FourPointStar className={cn(styles.statDecor, styles.statDecorPurpleTwo)} />
+                    <FourPointStar
+                      className={cn(
+                        styles.statDecor,
+                        styles.statDecorPurpleOne,
+                      )}
+                    />
+                    <FourPointStar
+                      className={cn(
+                        styles.statDecor,
+                        styles.statDecorPurpleTwo,
+                      )}
+                    />
                   </>
                 }
               />
@@ -510,8 +646,12 @@ function HomeContent() {
                 label={t.home.statUptime}
                 decoration={
                   <>
-                    <FourPointStar className={cn(styles.statDecor, styles.statDecorMintOne)} />
-                    <FourPointStar className={cn(styles.statDecor, styles.statDecorMintTwo)} />
+                    <FourPointStar
+                      className={cn(styles.statDecor, styles.statDecorMintOne)}
+                    />
+                    <FourPointStar
+                      className={cn(styles.statDecor, styles.statDecorMintTwo)}
+                    />
                   </>
                 }
               />
@@ -522,13 +662,23 @@ function HomeContent() {
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <p>&copy; {new Date().getFullYear()} {t.footer.copyright}</p>
+          <p>
+            &copy; {new Date().getFullYear()} {t.footer.copyright}
+          </p>
           <div className={styles.footerActions}>
             <span>{t.footer.author}</span>
-            <button type="button" onClick={toggleLocale} aria-label={t.home.toggleLanguage}>
+            <button
+              type="button"
+              onClick={toggleLocale}
+              aria-label={t.home.toggleLanguage}
+            >
               <Languages />
             </button>
-            <button type="button" onClick={handleThemeToggle} aria-label={t.home.toggleTheme}>
+            <button
+              type="button"
+              onClick={handleThemeToggle}
+              aria-label={t.home.toggleTheme}
+            >
               {theme === "dark" ? <Sun /> : <Moon />}
             </button>
             <Link
