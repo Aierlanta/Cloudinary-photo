@@ -335,7 +335,7 @@
   width: 116px;
   height: 116px;
   transform: translateY(-50%);
-  background-image: url("/admin/ui/dashboard-stat-icons.png");
+  background-image: url("/admin/ui/dashboard-stat-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 6px 5px rgba(75, 46, 57, 0.24));
@@ -574,7 +574,7 @@
 .healthArtwork {
   position: absolute;
   z-index: 2;
-  background-image: url("/admin/ui/dashboard-action-icons.png");
+  background-image: url("/admin/ui/dashboard-action-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 5px 4px rgba(56, 36, 62, 0.24));
@@ -600,7 +600,7 @@
   display: block;
   width: 34px;
   height: 34px;
-  background-image: url("/admin/ui/dashboard-action-arrows.png");
+  background-image: url("/admin/ui/dashboard-action-arrows.webp");
   background-repeat: no-repeat;
   background-size: 300% 100%;
   filter: drop-shadow(0 3px 3px rgba(56, 36, 62, 0.24));
@@ -631,7 +631,7 @@
   height: 52px;
   margin-left: 9px;
   vertical-align: middle;
-  background-image: url("/admin/ui/dashboard-action-icons.png");
+  background-image: url("/admin/ui/dashboard-action-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   background-position: 100% 100%;
@@ -678,7 +678,7 @@
   width: 25px;
   height: 25px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/dashboard-action-icons.png");
+  background-image: url("/admin/ui/dashboard-action-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   background-position: 100% 100%;
@@ -2362,7 +2362,7 @@
   width: 31px;
   height: 31px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/gallery-actions.png");
+  background-image: url("/admin/ui/gallery-actions.webp");
   background-repeat: no-repeat;
   background-size: 400% 200%;
   filter: drop-shadow(0 2px 2px rgba(22, 13, 30, 0.3));
@@ -3169,7 +3169,7 @@
   height: 101px;
   padding: 0 !important;
   transform: translateY(-50%);
-  background-image: url("/admin/ui/groups-icons.png");
+  background-image: url("/admin/ui/groups-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 5px 4px rgba(76, 46, 58, .22));
@@ -3753,7 +3753,7 @@
   width: 25px;
   height: 25px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/logs-actions.png");
+  background-image: url("/admin/ui/logs-actions.webp");
   background-repeat: no-repeat;
   background-size: 400% 200%;
   filter: drop-shadow(0 2px 2px rgba(42, 25, 52, 0.3));
@@ -5094,7 +5094,7 @@
   margin-right: 5px;
   border: 0;
   border-radius: 0;
-  background-image: url("/admin/ui/config-icons.png");
+  background-image: url("/admin/ui/config-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   box-shadow: none;
@@ -5123,7 +5123,7 @@
   width: 58px;
   height: 58px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/config-icons.png");
+  background-image: url("/admin/ui/config-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 5px 4px rgba(54, 34, 59, 0.26));
@@ -5146,7 +5146,7 @@
   width: 30px;
   height: 30px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/config-actions.png");
+  background-image: url("/admin/ui/config-actions.webp");
   background-repeat: no-repeat;
   background-size: 400% 200%;
   filter: drop-shadow(0 3px 3px rgba(54, 34, 59, 0.28));
@@ -5845,7 +5845,7 @@
   z-index: 2;
   width: 106px;
   height: 106px;
-  background-image: url("/admin/ui/status-icons.png");
+  background-image: url("/admin/ui/status-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 0 11px rgba(112, 222, 181, .2));
@@ -5861,7 +5861,7 @@
   width: 49px;
   height: 49px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/status-icons.png");
+  background-image: url("/admin/ui/status-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 4px 4px rgba(32, 83, 75, 0.22));
@@ -6058,7 +6058,7 @@
   border: 0;
   border-radius: 0;
   background-color: transparent;
-  background-image: url("/admin/ui/backup-icons.png");
+  background-image: url("/admin/ui/backup-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 7px 6px rgba(73, 44, 69, 0.22));
@@ -6078,7 +6078,7 @@
   width: 31px;
   height: 31px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/backup-actions.png");
+  background-image: url("/admin/ui/backup-actions.webp");
   background-repeat: no-repeat;
   background-size: 400% 200%;
   filter: drop-shadow(0 3px 3px rgba(52, 34, 57, 0.28));
@@ -6097,7 +6097,7 @@
 .page:global(.admin-backup-page) :global(.admin-backup-action-hero) {
   width: 48px;
   height: 48px;
-  background-image: url("/admin/ui/backup-icons.png");
+  background-image: url("/admin/ui/backup-icons.webp");
   background-size: 200% 200%;
   background-position: 100% 0;
 }
@@ -6119,7 +6119,7 @@
   border-color: #fff7e8;
   border-radius: 0;
   background-color: transparent;
-  background-image: url("/admin/ui/security-icons.png");
+  background-image: url("/admin/ui/security-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 7px 6px rgba(73, 44, 69, 0.2));
@@ -6153,7 +6153,7 @@
   border: 0;
   border-radius: 0;
   background-color: transparent;
-  background-image: url("/admin/ui/swarm-icons.png");
+  background-image: url("/admin/ui/swarm-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 7px 6px rgba(55, 48, 83, 0.22));
@@ -6172,7 +6172,7 @@
   padding: 0;
   border-radius: 0;
   background-color: transparent;
-  background-image: url("/admin/ui/swarm-icons.png");
+  background-image: url("/admin/ui/swarm-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 7px 6px rgba(76, 49, 41, 0.2));
@@ -6196,7 +6196,7 @@
   border: 0;
   border-radius: 0 !important;
   background-color: transparent !important;
-  background-image: url("/admin/ui/upload-hero.png") !important;
+  background-image: url("/admin/ui/upload-hero.webp") !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
   background-size: contain !important;
@@ -6215,7 +6215,7 @@
   width: 31px;
   height: 31px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/upload-actions.png");
+  background-image: url("/admin/ui/upload-actions.webp");
   background-repeat: no-repeat;
   background-size: 400% 200%;
   filter: drop-shadow(0 3px 3px rgba(24, 14, 32, 0.28));
@@ -6293,7 +6293,7 @@
   width: 64px;
   height: 64px;
   align-self: start;
-  background-image: url("/admin/ui/logs-levels.png");
+  background-image: url("/admin/ui/logs-levels.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 5px 5px rgba(76, 47, 59, 0.17));
@@ -6318,7 +6318,7 @@
   padding: 0;
   border-radius: 0;
   background-color: transparent;
-  background-image: url("/admin/ui/groups-icons.png");
+  background-image: url("/admin/ui/groups-icons.webp");
   background-repeat: no-repeat;
   background-position: 100% 0;
   background-size: 200% 200%;
@@ -6337,7 +6337,7 @@
   border: 0;
   border-radius: 0;
   background-color: transparent;
-  background-image: url("/admin/ui/groups-icons.png");
+  background-image: url("/admin/ui/groups-icons.webp");
   background-repeat: no-repeat;
   background-position: 100% 100%;
   background-size: 200% 200%;
@@ -6354,7 +6354,7 @@
   width: 34px;
   height: 34px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/groups-actions.png");
+  background-image: url("/admin/ui/groups-actions.webp");
   background-repeat: no-repeat;
   background-size: 400% 200%;
   filter: drop-shadow(0 3px 3px rgba(54, 31, 58, 0.28));
@@ -6373,7 +6373,7 @@
 .page:global(.admin-groups-page) :global(.admin-groups-action-hero) {
   width: 42px;
   height: 42px;
-  background-image: url("/admin/ui/groups-icons.png");
+  background-image: url("/admin/ui/groups-icons.webp");
   background-size: 200% 200%;
   background-position: 0 0;
 }
@@ -6424,7 +6424,7 @@
   border: 0;
   border-radius: 0;
   background-color: transparent;
-  background-image: url("/admin/ui/status-icons.png");
+  background-image: url("/admin/ui/status-icons.webp");
   background-repeat: no-repeat;
   background-size: 200% 200%;
   filter: drop-shadow(0 5px 5px rgba(32, 83, 75, 0.22));
@@ -7420,7 +7420,7 @@
 .page:global(.admin-security-page) :global(.admin-security-artwork) {
   width: 62px;
   height: 62px;
-  background-image: url("/admin/ui/security-icons.png");
+  background-image: url("/admin/ui/security-icons.webp");
   background-size: 200% 200%;
   filter: drop-shadow(0 6px 5px rgba(75, 46, 57, 0.24));
 }
@@ -7454,7 +7454,7 @@
 .page:global(.admin-security-page) :global(.admin-security-action-artwork) {
   width: 34px;
   height: 34px;
-  background-image: url("/admin/ui/security-actions.png");
+  background-image: url("/admin/ui/security-actions.webp");
   background-size: 400% 200%;
   filter: drop-shadow(0 4px 4px rgba(73, 44, 69, 0.2));
 }
@@ -7470,7 +7470,7 @@
 
 .page:global(.admin-security-page) :global(.securityActionShield),
 .page:global(.admin-security-page) :global(.securityActionBan) {
-  background-image: url("/admin/ui/security-icons.png");
+  background-image: url("/admin/ui/security-icons.webp");
   background-size: 200% 200%;
 }
 
@@ -7557,7 +7557,7 @@
 .page:global(.admin-swarm-page) :global(.admin-swarm-artwork) {
   width: 56px;
   height: 56px;
-  background-image: url("/admin/ui/swarm-icons.png");
+  background-image: url("/admin/ui/swarm-icons.webp");
   background-size: 200% 200%;
   background-position: 100% 100%;
   filter: drop-shadow(0 6px 5px rgba(75, 46, 57, 0.24));
@@ -7573,7 +7573,7 @@
 .page:global(.admin-swarm-page) :global(.admin-swarm-action-artwork) {
   width: 34px;
   height: 34px;
-  background-image: url("/admin/ui/swarm-actions.png");
+  background-image: url("/admin/ui/swarm-actions.webp");
   background-size: 400% 200%;
   filter: drop-shadow(0 4px 4px rgba(73, 44, 69, 0.2));
 }
