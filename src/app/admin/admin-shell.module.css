@@ -1305,6 +1305,52 @@
   height: 18px;
 }
 
+/* Portal-mounted dialogs cannot inherit page-local artwork selectors. Keep
+   their close mark on the shared admin surface so it remains visible in both
+   theme modes and keeps the same scrapbook enamel language as the shell. */
+.shell :global(.admin-modal-close-mark) {
+  position: relative;
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1.5px solid color-mix(in srgb, var(--admin-pink-soft) 78%, var(--admin-cream));
+  border-radius: 46% 51% 43% 49%;
+  background:
+    radial-gradient(circle at 27% 23%, rgba(255, 255, 255, 0.6) 0 2px, transparent 2.8px),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--admin-pink-soft) 76%, var(--admin-cream)),
+      var(--admin-pink)
+    );
+  box-shadow:
+    inset 0 0 0 3px color-mix(in srgb, var(--admin-cream) 28%, transparent),
+    0 3px 5px var(--admin-depth-shadow);
+  vertical-align: middle;
+}
+
+.shell :global(.admin-modal-close-mark)::before,
+.shell :global(.admin-modal-close-mark)::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2.5px;
+  border-radius: 999px;
+  background: var(--admin-cream);
+  content: "";
+  box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--admin-pink) 55%, transparent);
+}
+
+.shell :global(.admin-modal-close-mark)::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.shell :global(.admin-modal-close-mark)::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
 .settingsBody {
   display: grid;
   gap: 14px;

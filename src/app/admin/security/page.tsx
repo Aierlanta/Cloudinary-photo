@@ -469,7 +469,7 @@ export default function SecurityManagement() {
                 aria-label={t.adminUi.closeRateSettings}
                 onClick={() => setShowRateSettings(false)}
               >
-                <span className="admin-security-action-artwork securityActionClose" aria-hidden="true" />
+                <span className="admin-modal-close-mark" aria-hidden="true" />
               </button>
               <RateLimitManagement rateLimits={rateLimits} onRefresh={handleRefresh} />
             </div>

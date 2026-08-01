@@ -270,7 +270,7 @@ export default function GroupsPage() {
                   className={styles.iconBtn}
                   aria-label={t.common.close}
                 >
-                  <span className="admin-groups-action-artwork admin-groups-action-close" aria-hidden="true" />
+                  <span className="admin-modal-close-mark" aria-hidden="true" />
                 </button>
               </div>
               <form onSubmit={handleSubmit}>

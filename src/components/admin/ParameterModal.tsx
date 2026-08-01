@@ -154,7 +154,7 @@ export default function ParameterModal({
         <header>
           <h3>{isEditing ? t.adminConfig.editApiParameter : t.adminConfig.addApiParameter}</h3>
           <button type="button" onClick={onClose} aria-label={t.common.close}>
-            <span className="admin-config-modal-close-artwork" aria-hidden="true" />
+            <span className="admin-modal-close-mark" aria-hidden="true" />
           </button>
         </header>
 
