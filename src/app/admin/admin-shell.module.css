@@ -1138,19 +1138,12 @@
 .bow {
   position: absolute;
   z-index: 7;
-  display: grid;
-  place-items: center;
   top: -33px;
   left: 50%;
   width: 150px;
-  height: 92px;
+  height: auto;
   transform: translateX(-50%);
   filter: drop-shadow(0 6px 3px rgba(9, 5, 18, 0.45));
-}
-
-.bow > span {
-  width: 82px;
-  height: 82px;
 }
 
 .shell[data-admin-route="dashboard"] .panel {

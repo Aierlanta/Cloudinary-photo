@@ -22,7 +22,6 @@ import {
   Globe,
   Network,
   Sparkles,
-  Heart,
   RefreshCw,
 } from "lucide-react";
 import { useLocale } from "@/hooks/useLocale";
@@ -49,9 +48,23 @@ interface AdminLayoutV3Props {
 
 function RibbonBow({ className }: { className?: string }) {
   return (
-    <span className={className} aria-hidden>
-      <OrnateIcon icon={Heart} tone="pink" size="lg" />
-    </span>
+    <svg viewBox="0 0 168 92" className={className} aria-hidden>
+      <g stroke="#fff0df" strokeWidth="7" strokeLinejoin="round">
+        <path d="M75 41C54 10 19 5 11 22 4 38 35 56 72 51Z" fill="#ff7198" />
+        <path d="M93 41c21-31 56-36 64-19 7 16-24 34-61 29Z" fill="#ff7198" />
+        <path d="M70 49 49 84l34-17 2-21Z" fill="#f05c8a" />
+        <path d="m98 49 21 35-34-17-2-21Z" fill="#f05c8a" />
+        <rect x="72" y="33" width="24" height="24" rx="8" fill="#ff9cb6" />
+      </g>
+      <g fill="none" stroke="#b73d67" strokeWidth="2.2" strokeLinejoin="round">
+        <path d="M75 41C54 10 19 5 11 22 4 38 35 56 72 51Z" />
+        <path d="M93 41c21-31 56-36 64-19 7 16-24 34-61 29Z" />
+        <path d="M70 49 49 84l34-17 2-21Z" />
+        <path d="m98 49 21 35-34-17-2-21Z" />
+        <rect x="72" y="33" width="24" height="24" rx="8" />
+      </g>
+      <path d="M79 39c4-2 8-2 12 0" fill="none" stroke="#fff0df" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -235,6 +248,7 @@ export default function AdminLayoutV3({
         styles.shell,
         theme === "dark" ? styles.shellDark : styles.shellLight,
       )}
+      data-admin-shell="true"
       data-admin-route={routeKey}
       data-settings-open={isSettingsOpen ? "true" : "false"}
     >

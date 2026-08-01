@@ -4,8 +4,10 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
- * Mount overlays onto document.body so they escape the admin content panel
- * stacking context (panel z-index 10 vs sidebar z-index 30) and overflow clipping.
+ * Mount overlays at the admin shell root so they escape the content panel's
+ * stacking context while still inheriting the active dark/light theme tokens.
+ * Portaling straight to document.body would drop the --admin-* variables
+ * declared on the shell and make modal surfaces transparent.
  */
 export default function AdminPortal({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -15,5 +17,6 @@ export default function AdminPortal({ children }: { children: ReactNode }) {
   }, []);
 
   if (!mounted) return null;
-  return createPortal(children, document.body);
+  const target = document.querySelector<HTMLElement>('[data-admin-shell]') ?? document.body;
+  return createPortal(children, target);
 }

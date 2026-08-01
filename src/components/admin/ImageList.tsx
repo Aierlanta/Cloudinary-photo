@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
 import { useAdminApi } from "@/lib/admin-api-client";
 import AdminPortal from "@/components/admin/AdminPortal";
+import { Check } from "lucide-react";
 
 interface ImageItem {
   id: string;
@@ -907,7 +908,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                            toggleImageSelection(image.id);
                          }}
                        >
-                        <span className="galleryArtwork galleryArtworkCheck" aria-hidden="true" />
+                        <Check aria-hidden="true" />
                       </button>
                     </>
                   ) : null}
