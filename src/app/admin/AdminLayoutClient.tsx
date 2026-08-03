@@ -13,6 +13,7 @@ import {
   type Theme,
 } from '@/lib/adminTheme'
 import AdminLayoutV3 from './AdminLayoutV3'
+import { SIDEBAR_SUBJECT_CAST_STORAGE_KEY } from './sidebar-mascot'
 import { useRecordAdminHistory } from '@/hooks/useAdminHistory'
 import { AdminApiProvider, useAdminApi } from '@/lib/admin-api-client'
 
@@ -52,6 +53,8 @@ function AdminLayoutContent({
   const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated)
   const [isLoading, setIsLoading] = useState(!initialIsAuthenticated)
   const [panelOpacity, setPanelOpacity] = useState(0.9)
+  const [subjectCastEnabled, setSubjectCastEnabled] = useState(false)
+  const [subjectCastHydrated, setSubjectCastHydrated] = useState(false)
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const [isManualTheme, setIsManualTheme] = useState(initialIsManual)
 
@@ -95,6 +98,11 @@ function AdminLayoutContent({
     }
   }, [adminFetch, authToken, initialIsAuthenticated])
 
+  useEffect(() => {
+    const savedSubjectCast = localStorage.getItem(SIDEBAR_SUBJECT_CAST_STORAGE_KEY)
+    setSubjectCastEnabled(savedSubjectCast === '1' || savedSubjectCast === 'true')
+    setSubjectCastHydrated(true)
+  }, [])
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -104,6 +112,14 @@ function AdminLayoutContent({
     document.documentElement.style.setProperty('--panel-opacity', panelOpacity.toString())
     localStorage.setItem('admin-panel-opacity', panelOpacity.toString())
   }, [panelOpacity])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !subjectCastHydrated) {
+      return
+    }
+
+    localStorage.setItem(SIDEBAR_SUBJECT_CAST_STORAGE_KEY, subjectCastEnabled ? '1' : '0')
+  }, [subjectCastEnabled, subjectCastHydrated])
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -228,6 +244,8 @@ function AdminLayoutContent({
       <AdminLayoutV3
         panelOpacity={panelOpacity}
         setPanelOpacity={setPanelOpacity}
+        subjectCastEnabled={subjectCastEnabled}
+        setSubjectCastEnabled={setSubjectCastEnabled}
         theme={theme}
         isManualTheme={isManualTheme}
         initialVersion={initialVersion}

@@ -92,6 +92,11 @@ export const zh: Translations = {
     quickSettings: '快速设置',
     opacityDescription: '调整管理面板的透明度，较低的透明度可以更好地显示背景内容。',
     toggleLanguage: '切换语言',
+    subjectCast: '算法裁切・随机主役',
+    subjectCastOn: '已登场',
+    subjectCastOff: '关闭',
+    subjectCastDescription: '仅保存在本机浏览器。开启后每个后台页面各自随机一张并裁出角色主体；先加载当前页，进入其他页面时再加载。失败时退回本页专属立绘。',
+    subjectCastRefresh: '换一批登场',
   },
 
   adminUi: {

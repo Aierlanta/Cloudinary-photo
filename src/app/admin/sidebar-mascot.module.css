@@ -40,6 +40,90 @@
   object-position: center 18%;
 }
 
+.castFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.castImage {
+  /* Upper bias helps when the resolve path falls back to direct-uncropped. */
+  object-position: center 16%;
+}
+
+.castLoading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    transparent 20%,
+    color-mix(in srgb, var(--admin-pink-soft, #ff9cb6) 35%, transparent) 45%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: cast-shimmer 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.castSwitch {
+  position: relative;
+  display: inline-flex;
+  min-width: 92px;
+  height: 30px;
+  padding: 0 10px 0 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  color: var(--admin-muted);
+  background: var(--admin-panel);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 850;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.castSwitchOn {
+  color: var(--foreground);
+  border-color: color-mix(in srgb, var(--admin-pink, #ff7198) 55%, var(--admin-border));
+  background: color-mix(in srgb, var(--admin-pink-soft, #ff9cb6) 22%, var(--admin-panel));
+}
+
+.castSwitchKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--admin-muted) 55%, #fff);
+  box-shadow: 0 1px 3px rgba(8, 5, 18, 0.22);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.castSwitchOn .castSwitchKnob {
+  transform: translateX(10px);
+  background: var(--admin-pink, #ff7198);
+}
+
+.castSwitchLabel {
+  white-space: nowrap;
+}
+
+@keyframes cast-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .copy {
   position: relative;
   z-index: 2;

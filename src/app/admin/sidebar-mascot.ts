@@ -12,6 +12,9 @@
  * - Extra / unknown routes → stable hash into slots 0–9 (never blank)
  */
 
+/** Quick Settings toggle — mirrors admin-panel-opacity localStorage pattern. */
+export const SIDEBAR_SUBJECT_CAST_STORAGE_KEY = "admin-sidebar-subject-cast";
+
 export const ADMIN_SIDEBAR_ROUTES = [
   "dashboard",
   "images",

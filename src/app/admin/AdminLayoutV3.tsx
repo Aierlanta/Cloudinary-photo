@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -30,6 +30,12 @@ import { ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
 import { OrnateIcon } from "@/components/ui/ornate-icon";
+import {
+  fetchRandomSubjectCast,
+  resolveSubjectCastFromImageUrl,
+  SIDEBAR_CAST_DISPLAY_HEIGHT,
+  SIDEBAR_CAST_DISPLAY_WIDTH,
+} from "@/lib/sidebar-subject-crop";
 import styles from "./admin-shell.module.css";
 import mascotStyles from "./sidebar-mascot.module.css";
 import { getSidebarMascotSources } from "./sidebar-mascot";
@@ -38,6 +44,8 @@ interface AdminLayoutV3Props {
   children: React.ReactNode;
   panelOpacity: number;
   setPanelOpacity: (opacity: number) => void;
+  subjectCastEnabled: boolean;
+  setSubjectCastEnabled: (enabled: boolean) => void;
   theme: Theme;
   isManualTheme: boolean;
   initialVersion: string | null;
@@ -73,8 +81,14 @@ function isNavActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Decorative sidebar character with preferred → route-named → shared fallback chain. */
-function SidebarMascotImage({ routeKey }: { routeKey: string }) {
+/** Route-local mascot with preferred → route-named → shared fallback chain. */
+function LocalSidebarMascotImage({
+  routeKey,
+  className,
+}: {
+  routeKey: string;
+  className?: string;
+}) {
   const sources = getSidebarMascotSources(routeKey);
   const [sourceIndex, setSourceIndex] = useState(0);
 
@@ -89,9 +103,9 @@ function SidebarMascotImage({ routeKey }: { routeKey: string }) {
       key={src}
       src={src}
       alt=""
-      width={156}
-      height={234}
-      className={mascotStyles.image}
+      width={SIDEBAR_CAST_DISPLAY_WIDTH}
+      height={SIDEBAR_CAST_DISPLAY_HEIGHT}
+      className={cn(mascotStyles.image, className)}
       sizes="72px"
       unoptimized
       onError={() => {
@@ -103,10 +117,254 @@ function SidebarMascotImage({ routeKey }: { routeKey: string }) {
   );
 }
 
+type RouteCastEntry = {
+  url: string;
+  generation: number;
+  cleanup?: () => void;
+};
+
+function revokeRouteCasts(entries: Record<string, RouteCastEntry>) {
+  Object.values(entries).forEach((entry) => entry.cleanup?.());
+}
+
+function waitForCastPaint(src: string, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+
+    const img = new window.Image();
+    const onAbort = () => {
+      img.onload = null;
+      img.onerror = null;
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    img.onload = () => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    };
+    img.onerror = () => {
+      signal?.removeEventListener("abort", onAbort);
+      reject(new Error("Failed to decode subject cast image"));
+    };
+    img.src = src;
+  });
+}
+
+/**
+ * Sidebar figure: local route mascot by default; optional random gallery cast
+ * with Cloudinary g_auto / canvas heuristic crop (see sidebar-subject-crop.ts).
+ *
+ * Each admin route keeps its own cropped WebP. Enabling / refreshing only
+ * fetches the current page immediately; other pages load lazily on enter.
+ */
+function SidebarMascotImage({
+  routeKey,
+  subjectCastEnabled,
+  castRefreshKey,
+}: {
+  routeKey: string;
+  subjectCastEnabled: boolean;
+  castRefreshKey: number;
+}) {
+  const { adminFetch, selectedNodeId } = useAdminApi();
+  const [castsByRoute, setCastsByRoute] = useState<Record<string, RouteCastEntry>>({});
+  const [failedGenerationByRoute, setFailedGenerationByRoute] = useState<Record<string, number>>({});
+  const [loadingRoute, setLoadingRoute] = useState<string | null>(null);
+  const castsRef = useRef<Record<string, RouteCastEntry>>({});
+  const failedRef = useRef<Record<string, number>>({});
+  const lastRefreshRef = useRef(castRefreshKey);
+
+  useEffect(() => {
+    castsRef.current = castsByRoute;
+  }, [castsByRoute]);
+
+  useEffect(() => {
+    failedRef.current = failedGenerationByRoute;
+  }, [failedGenerationByRoute]);
+
+  useEffect(() => {
+    if (subjectCastEnabled) return;
+    revokeRouteCasts(castsRef.current);
+    castsRef.current = {};
+    failedRef.current = {};
+    setCastsByRoute({});
+    setFailedGenerationByRoute({});
+    setLoadingRoute(null);
+  }, [subjectCastEnabled]);
+
+  useEffect(() => {
+    if (!subjectCastEnabled) return;
+
+    if (lastRefreshRef.current !== castRefreshKey) {
+      revokeRouteCasts(castsRef.current);
+      castsRef.current = {};
+      failedRef.current = {};
+      setCastsByRoute({});
+      setFailedGenerationByRoute({});
+      lastRefreshRef.current = castRefreshKey;
+    }
+
+    const cached = castsRef.current[routeKey];
+    if (cached?.generation === castRefreshKey) return;
+    if (failedRef.current[routeKey] === castRefreshKey) return;
+
+    let cancelled = false;
+    const controller = new AbortController();
+    setLoadingRoute(routeKey);
+
+    const failSoft = () => {
+      if (cancelled) return;
+      failedRef.current = { ...failedRef.current, [routeKey]: castRefreshKey };
+      setFailedGenerationByRoute(failedRef.current);
+      setLoadingRoute((current) => (current === routeKey ? null : current));
+    };
+
+    const commitCast = async (
+      resolved: Awaited<ReturnType<typeof fetchRandomSubjectCast>>,
+    ) => {
+      await waitForCastPaint(resolved.url, controller.signal);
+      if (cancelled) {
+        resolved.cleanup?.();
+        return;
+      }
+
+      setCastsByRoute((prev) => {
+        const previous = prev[routeKey];
+        if (previous && previous.url !== resolved.url) previous.cleanup?.();
+        const next = {
+          ...prev,
+          [routeKey]: {
+            url: resolved.url,
+            generation: castRefreshKey,
+            cleanup: resolved.cleanup,
+          },
+        };
+        castsRef.current = next;
+        return next;
+      });
+      if (routeKey in failedRef.current) {
+        const nextFailed = { ...failedRef.current };
+        delete nextFailed[routeKey];
+        failedRef.current = nextFailed;
+        setFailedGenerationByRoute(nextFailed);
+      }
+      setLoadingRoute((current) => (current === routeKey ? null : current));
+    };
+
+    const run = async () => {
+      try {
+        // Same-origin public random API (matches homepage). Avoids swarm CORS on redirect.
+        const resolved = await fetchRandomSubjectCast({
+          endpoint: "/api/random",
+          signal: controller.signal,
+        });
+        await commitCast(resolved);
+        return;
+      } catch {
+        if (controller.signal.aborted || cancelled) return;
+        // API key / empty pool / disabled — try authenticated gallery pick next.
+      }
+
+      try {
+        const listResponse = await adminFetch(
+          "/api/admin/images?limit=40&sortBy=uploadedAt&sortOrder=desc",
+          { signal: controller.signal },
+        );
+        if (!listResponse.ok) {
+          failSoft();
+          return;
+        }
+        const payload = await listResponse.json();
+        const images: Array<{ url?: string; previewUrl?: string | null }> =
+          payload?.data?.images?.data ?? [];
+        if (!images.length) {
+          failSoft();
+          return;
+        }
+        const pick = images[Math.floor(Math.random() * images.length)];
+        const sourceUrl = pick.previewUrl || pick.url;
+        if (!sourceUrl) {
+          failSoft();
+          return;
+        }
+        const resolved = await resolveSubjectCastFromImageUrl(
+          sourceUrl,
+          SIDEBAR_CAST_DISPLAY_WIDTH,
+          SIDEBAR_CAST_DISPLAY_HEIGHT,
+          controller.signal,
+        );
+        await commitCast(resolved);
+      } catch {
+        failSoft();
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      // Keep cached route casts across navigations; only in-flight work is aborted.
+    };
+  }, [subjectCastEnabled, castRefreshKey, routeKey, adminFetch, selectedNodeId]);
+
+  useEffect(() => () => {
+    revokeRouteCasts(castsRef.current);
+    castsRef.current = {};
+  }, []);
+
+  const cast = castsByRoute[routeKey];
+  const castUrl = cast?.generation === castRefreshKey ? cast.url : null;
+  const castFailed = failedGenerationByRoute[routeKey] === castRefreshKey;
+  const castLoading = subjectCastEnabled && loadingRoute === routeKey;
+
+  // Keep local mascot visible while loading / after failure so the rail never blanks.
+  if (!subjectCastEnabled || castFailed || !castUrl) {
+    return (
+      <div className={cn(mascotStyles.castFrame, castLoading && mascotStyles.castLoading)}>
+        <LocalSidebarMascotImage routeKey={routeKey} />
+      </div>
+    );
+  }
+
+  return (
+    <div className={mascotStyles.castFrame}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- blob / transformed remote cast URLs */}
+      <img
+        key={castUrl}
+        src={castUrl}
+        alt=""
+        width={SIDEBAR_CAST_DISPLAY_WIDTH}
+        height={SIDEBAR_CAST_DISPLAY_HEIGHT}
+        className={cn(mascotStyles.image, mascotStyles.castImage)}
+        onError={() => {
+          setCastsByRoute((prev) => {
+            const entry = prev[routeKey];
+            entry?.cleanup?.();
+            if (!entry) return prev;
+            const next = { ...prev };
+            delete next[routeKey];
+            castsRef.current = next;
+            return next;
+          });
+          failedRef.current = { ...failedRef.current, [routeKey]: castRefreshKey };
+          setFailedGenerationByRoute(failedRef.current);
+        }}
+      />
+    </div>
+  );
+}
+
 export default function AdminLayoutV3({
   children,
   panelOpacity,
   setPanelOpacity,
+  subjectCastEnabled,
+  setSubjectCastEnabled,
   theme,
   isManualTheme,
   initialVersion,
@@ -126,6 +384,7 @@ export default function AdminLayoutV3({
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [castRefreshKey, setCastRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!isSettingsOpen) return;
@@ -216,7 +475,11 @@ export default function AdminLayoutV3({
     return (
       <div className={cn(styles.sidebarNote, mascotStyles.note)}>
         <div className={mascotStyles.figure} aria-hidden>
-          <SidebarMascotImage routeKey={routeKey} />
+          <SidebarMascotImage
+            routeKey={routeKey}
+            subjectCastEnabled={subjectCastEnabled}
+            castRefreshKey={castRefreshKey}
+          />
         </div>
         <div className={mascotStyles.copy}>
           {note.eyebrow ? <span className={mascotStyles.eyebrow}>{note.eyebrow}</span> : null}
@@ -490,6 +753,41 @@ export default function AdminLayoutV3({
                   onChange={(event) => setPanelOpacity(Number(event.target.value))}
                 />
                 <p className={styles.hint}>{t.admin.opacityDescription}</p>
+              </section>
+
+              <section className={styles.settingsSection}>
+                <div className={styles.settingLine}>
+                  <label className={styles.settingsLabel} style={{ marginBottom: 0 }} htmlFor="admin-subject-cast">
+                    {t.admin.subjectCast}
+                  </label>
+                  <button
+                    id="admin-subject-cast"
+                    type="button"
+                    role="switch"
+                    aria-checked={subjectCastEnabled}
+                    className={cn(
+                      mascotStyles.castSwitch,
+                      subjectCastEnabled && mascotStyles.castSwitchOn,
+                    )}
+                    onClick={() => setSubjectCastEnabled(!subjectCastEnabled)}
+                  >
+                    <span className={mascotStyles.castSwitchKnob} aria-hidden />
+                    <span className={mascotStyles.castSwitchLabel}>
+                      {subjectCastEnabled ? t.admin.subjectCastOn : t.admin.subjectCastOff}
+                    </span>
+                  </button>
+                </div>
+                <p className={cn(styles.hint, "mt-2")}>{t.admin.subjectCastDescription}</p>
+                {subjectCastEnabled ? (
+                  <button
+                    type="button"
+                    className={cn(styles.settingsButton, "mt-2")}
+                    onClick={() => setCastRefreshKey((key) => key + 1)}
+                  >
+                    <OrnateIcon icon={RefreshCw} tone="lavender" size="sm" />
+                    <span>{t.admin.subjectCastRefresh}</span>
+                  </button>
+                ) : null}
               </section>
 
               <section className={styles.settingsSection}>

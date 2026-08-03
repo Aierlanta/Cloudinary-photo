@@ -92,6 +92,11 @@ export const en: Translations = {
     quickSettings: 'Quick Settings',
     opacityDescription: 'Adjust the transparency of the admin panel. Lower opacity allows better visibility of background content.',
     toggleLanguage: 'Switch Language',
+    subjectCast: 'Auto-Crop Random Cast',
+    subjectCastOn: 'On stage',
+    subjectCastOff: 'Off',
+    subjectCastDescription: 'Stored only in this browser. Each admin page gets its own random cropped cast — current page first, others when you open them. Failures fall back to the route’s local mascot.',
+    subjectCastRefresh: 'Recast all pages',
   },
 
   adminUi: {

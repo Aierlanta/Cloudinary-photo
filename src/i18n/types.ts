@@ -98,6 +98,11 @@ export interface Translations {
     quickSettings: string;
     opacityDescription: string;
     toggleLanguage: string;
+    subjectCast: string;
+    subjectCastOn: string;
+    subjectCastOff: string;
+    subjectCastDescription: string;
+    subjectCastRefresh: string;
   };
 
   // 管理面板 - 重构界面的专用文案
