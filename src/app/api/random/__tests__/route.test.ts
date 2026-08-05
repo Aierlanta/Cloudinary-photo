@@ -404,6 +404,36 @@ describe('/api/random API端点测试', () => {
       }));
     });
 
+    it('节点图床禁用配置应传递到随机选择器', async () => {
+      const selectRandomImages = jest.fn().mockResolvedValue({
+        images: [mockImage],
+        queryCount: 2,
+        candidateCount: 5
+      });
+      (mockDatabaseService as any).selectRandomImages = selectRandomImages;
+      mockDatabaseService.getAPIConfig.mockResolvedValue({
+        ...mockAPIConfig,
+        nodeProviderAvailability: {
+          nodeA: {
+            cloudinary: false,
+            tgstate: true,
+            telegram: true,
+            custom: true
+          }
+        }
+      });
+
+      const request = createMockRequest('http://localhost:3000/api/random');
+      const response = await GET(request);
+
+      expect(response.status).toBe(302);
+      expect(selectRandomImages).toHaveBeenCalledWith(expect.objectContaining({
+        excludeNodeProviders: [
+          { ownerNodeId: 'nodeA', provider: 'cloudinary' }
+        ]
+      }));
+    });
+
     it('时间窗口加权未启用时返回 400', async () => {
       const request = createMockRequest('http://localhost:3000/api/random?timeWindow=7d&timeWeight=3');
       const response = await GET(request);

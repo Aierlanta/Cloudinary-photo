@@ -71,6 +71,24 @@ describe('response-cache', () => {
     expect(firstKey).toContain('bucket:18000');
   });
 
+  it('随机预取 key 会区分节点图床出图范围', () => {
+    const base = {
+      groupIds: [],
+      providers: [],
+      output: {}
+    };
+
+    const allKey = buildRandomPrefetchCacheKey(base);
+    const disabledKey = buildRandomPrefetchCacheKey({
+      ...base,
+      nodeProviderAvailabilityKey: 'nodeA:cloudinary'
+    });
+
+    expect(allKey).not.toContain('nodeProviders:');
+    expect(disabledKey).toContain('nodeProviders:nodeA:cloudinary');
+    expect(allKey).not.toBe(disabledKey);
+  });
+
   it('随机预取 key 会区分最终输出处理参数', () => {
     const base = {
       groupIds: ['g1'],

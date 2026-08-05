@@ -124,6 +124,15 @@ export const APIConfigSchema = z.object({
     }
   }),
   selectionParams: SelectionParamsSchema,
+  nodeProviderAvailability: z.record(
+    z.string().min(1),
+    z.object({
+      cloudinary: z.boolean(),
+      tgstate: z.boolean(),
+      telegram: z.boolean(),
+      custom: z.boolean()
+    })
+  ).default({}),
   // 新增：响应模式配置
   enableDirectResponse: z.boolean().default(false),
   // 新增：API Key 鉴权
@@ -135,6 +144,15 @@ export const APIConfigSchema = z.object({
 export const UploadStrategySchema = z.enum(['manual', 'round-robin', 'random', 'available-first']);
 export const ProviderDeliveryModeSchema = z.enum(['owner-node', 'existing-chain']);
 export const SwarmProviderSchema = z.enum(['cloudinary', 'tgstate', 'telegram', 'custom']);
+export const NodeProviderAvailabilitySchema = z.record(
+  z.string().min(1),
+  z.object({
+    cloudinary: z.boolean(),
+    tgstate: z.boolean(),
+    telegram: z.boolean(),
+    custom: z.boolean()
+  }).partial()
+);
 export const ProviderDeliveryPolicyItemSchema = z.object({
   mode: ProviderDeliveryModeSchema,
   warnOnDisable: z.boolean().optional()
@@ -230,6 +248,7 @@ export const APIConfigUpdateRequestSchema = z.object({
   allowedParameters: z.array(APIParameterSchema).optional(),
   responseParams: ResponseParamsSchema.optional(),
   selectionParams: SelectionParamsSchema.optional(),
+  nodeProviderAvailability: NodeProviderAvailabilitySchema.optional(),
   enableDirectResponse: z.boolean().optional(),
   apiKeyEnabled: z.boolean().optional(),
   apiKey: z.string().optional()

@@ -119,6 +119,7 @@ export interface APIConfigUpdateRequest {
       enabled: boolean;
     };
   };
+  nodeProviderAvailability?: Record<string, Partial<Record<'cloudinary' | 'tgstate' | 'telegram' | 'custom', boolean>>>;
   // 新增：响应模式配置
   enableDirectResponse?: boolean;
   // 新增：API Key 鉴权

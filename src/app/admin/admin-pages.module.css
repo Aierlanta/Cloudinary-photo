@@ -5310,6 +5310,27 @@
   margin: 0;
 }
 
+.page :global(.admin-config-node-provider-table) {
+  margin: 10px 0 8px;
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.page :global(.admin-config-node-provider-check) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.page :global(.admin-config-node-provider-check > b) {
+  font-family: var(--font-body), ui-rounded, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--admin-muted);
+}
+
 .page :global(.admin-config-empty) {
   position: relative;
   z-index: 1;

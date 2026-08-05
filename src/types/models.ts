@@ -70,6 +70,13 @@ export interface SelectionParamsConfig {
   };
 }
 
+export type UploadStrategy = 'manual' | 'round-robin' | 'random' | 'available-first';
+export type ProviderDeliveryMode = 'owner-node' | 'existing-chain';
+export type SwarmProvider = 'cloudinary' | 'tgstate' | 'telegram' | 'custom';
+
+/** 节点 × 图床可用性：缺省/缺项视为启用，仅显式 false 表示禁用出图 */
+export type NodeProviderAvailability = Record<string, Record<SwarmProvider, boolean>>;
+
 // API配置模型
 export interface APIConfig {
   id: string;
@@ -79,6 +86,8 @@ export interface APIConfig {
   allowedParameters: APIParameter[];
   responseParams?: ResponseParamsConfig;
   selectionParams?: SelectionParamsConfig;
+  /** 按蜂群节点控制公开 API 可出图的图床范围 */
+  nodeProviderAvailability?: NodeProviderAvailability;
   // 新增：响应模式配置
   enableDirectResponse: boolean; // 是否启用直接响应模式（/api/response端点）
   // 新增：API Key 鉴权
@@ -86,10 +95,6 @@ export interface APIConfig {
   apiKey?: string; // API Key
   updatedAt: Date;
 }
-
-export type UploadStrategy = 'manual' | 'round-robin' | 'random' | 'available-first';
-export type ProviderDeliveryMode = 'owner-node' | 'existing-chain';
-export type SwarmProvider = 'cloudinary' | 'tgstate' | 'telegram' | 'custom';
 
 export interface ProviderDeliveryPolicyItem {
   mode: ProviderDeliveryMode;

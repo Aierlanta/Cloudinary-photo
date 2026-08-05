@@ -20,6 +20,11 @@ import {
   getExplicitlyOfflineNodeIds,
   type DeliveryMode
 } from '@/lib/swarm-node';
+import {
+  buildExcludedNodeProviders,
+  isExcludedByNodeProvider,
+  type ExcludedNodeProvider
+} from '@/lib/node-provider-availability';
 import { attachPerfHeadersToResponse, createRequestMetrics } from '@/lib/perf';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
@@ -239,6 +244,8 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
+    const excludeNodeProviders = buildExcludedNodeProviders(apiConfig.nodeProviderAvailability);
+
     const selection = await metrics.time('db.random_select', async () => (
       selectRandomImageForRequest({
         count: 1,
@@ -247,6 +254,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
         providers: allowedProviders,
         timeWeighting: selectionParams.timeWeighting,
         includeTelegram: true,
+        excludeNodeProviders,
         metrics
       })
     ));
@@ -575,15 +583,18 @@ async function selectRandomImageForRequest(params: {
   orientation?: OrientationParam;
   providers?: string[];
   includeTelegram?: boolean;
+  excludeNodeProviders?: ExcludedNodeProvider[];
   timeWeighting?: TimeWeightingOptions;
   metrics?: { addDbQueries: (count?: number) => void };
 }) {
   const excludeOwnerNodeIds = await getExplicitlyOfflineNodeIds();
+  const excludeNodeProviders = params.excludeNodeProviders || [];
   const selector = (databaseService as any).selectRandomImages;
   if (typeof selector === 'function') {
     return selector.call(databaseService, {
       ...params,
-      excludeOwnerNodeIds
+      excludeOwnerNodeIds,
+      excludeNodeProviders
     });
   }
 
@@ -600,7 +611,9 @@ async function selectRandomImageForRequest(params: {
     params.providers || [],
     params.orientation
   );
-  const filteredImage = image && !(image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId))
+  const filteredImage = image
+    && !(image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId))
+    && !isExcludedByNodeProvider(image, excludeNodeProviders)
     ? image
     : null;
 

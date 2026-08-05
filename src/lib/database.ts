@@ -23,6 +23,12 @@ import {
   normalizeSelectionParamsConfig,
   type TimeWeightingOptions
 } from '@/lib/selection-params';
+import {
+  buildExcludeNodeProviderWhereConditions,
+  createDefaultNodeProviderAvailability,
+  normalizeNodeProviderAvailability,
+  type ExcludedNodeProvider
+} from '@/lib/node-provider-availability';
 import { LogLevel, LogEntry } from './logger';
 import { prisma } from './prisma';
 import { getCurrentNode } from './swarm-node';
@@ -97,15 +103,18 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
   allowedParameters: APIConfig['allowedParameters'];
   responseParams: NonNullable<APIConfig['responseParams']>;
   selectionParams: NonNullable<APIConfig['selectionParams']>;
+  nodeProviderAvailability: NonNullable<APIConfig['nodeProviderAvailability']>;
 } {
   const defaultResponseParams = createDefaultResponseParamsConfig();
   const defaultSelectionParams = createDefaultSelectionParamsConfig();
+  const defaultNodeProviderAvailability = createDefaultNodeProviderAvailability();
 
   if (!raw) {
     return {
       allowedParameters: [],
       responseParams: defaultResponseParams,
-      selectionParams: defaultSelectionParams
+      selectionParams: defaultSelectionParams,
+      nodeProviderAvailability: defaultNodeProviderAvailability
     };
   }
 
@@ -116,7 +125,8 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
       return {
         allowedParameters: parsed,
         responseParams: defaultResponseParams,
-        selectionParams: defaultSelectionParams
+        selectionParams: defaultSelectionParams,
+        nodeProviderAvailability: defaultNodeProviderAvailability
       };
     }
 
@@ -126,6 +136,7 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
         allowedParameters?: APIConfig['allowedParameters'];
         responseParams?: APIConfig['responseParams'];
         selectionParams?: APIConfig['selectionParams'];
+        nodeProviderAvailability?: APIConfig['nodeProviderAvailability'];
       };
 
       return {
@@ -135,7 +146,8 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
           ? container.allowedParameters
           : [],
         responseParams: normalizeResponseParamsConfig(container.responseParams),
-        selectionParams: normalizeSelectionParamsConfig(container.selectionParams)
+        selectionParams: normalizeSelectionParamsConfig(container.selectionParams),
+        nodeProviderAvailability: normalizeNodeProviderAvailability(container.nodeProviderAvailability)
       };
     }
   } catch {
@@ -145,16 +157,18 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
   return {
     allowedParameters: [],
     responseParams: defaultResponseParams,
-    selectionParams: defaultSelectionParams
+    selectionParams: defaultSelectionParams,
+    nodeProviderAvailability: defaultNodeProviderAvailability
   };
 }
 
 function stringifyStoredAPIConfigPayload(config: APIConfig): string {
   return JSON.stringify({
-    version: 3,
+    version: 4,
     items: config.allowedParameters,
     responseParams: normalizeResponseParamsConfig(config.responseParams),
-    selectionParams: normalizeSelectionParamsConfig(config.selectionParams)
+    selectionParams: normalizeSelectionParamsConfig(config.selectionParams),
+    nodeProviderAvailability: normalizeNodeProviderAvailability(config.nodeProviderAvailability)
   });
 }
 
@@ -298,6 +312,7 @@ export class DatabaseService {
           allowedParameters: [],
           responseParams: createDefaultResponseParamsConfig(),
           selectionParams: createDefaultSelectionParamsConfig(),
+          nodeProviderAvailability: createDefaultNodeProviderAvailability(),
           enableDirectResponse: false, // 默认关闭直接响应模式
           apiKeyEnabled: false, // 默认关闭 API Key 鉴权
           apiKey: undefined,
@@ -533,6 +548,7 @@ export class DatabaseService {
     orientation?: OrientationFilter;
     excludeIds?: string[];
     excludeOwnerNodeIds?: string[];
+    excludeNodeProviders?: ExcludedNodeProvider[];
   }) {
     const where: any = {};
     const groupIds = (params.groupIds || []).filter(Boolean);
@@ -581,12 +597,25 @@ export class DatabaseService {
     }
 
     const excludeOwnerNodeIds = [...new Set((params.excludeOwnerNodeIds || []).filter(Boolean))];
+    const excludeNodeProviders = (params.excludeNodeProviders || []).filter(
+      (item): item is ExcludedNodeProvider => Boolean(item?.ownerNodeId && item?.provider)
+    );
+    const andConditions: any[] = [];
+
+    // 显式放行 ownerNodeId=null：SQL 的 NOT/IN 对 NULL 是 unknown，会误杀历史无归属图
     if (excludeOwnerNodeIds.length > 0) {
-      where.NOT = {
-        ownerNodeId: {
-          in: excludeOwnerNodeIds
-        }
-      };
+      andConditions.push({
+        OR: [
+          { ownerNodeId: null },
+          { ownerNodeId: { notIn: excludeOwnerNodeIds } }
+        ]
+      });
+    }
+
+    andConditions.push(...buildExcludeNodeProviderWhereConditions(excludeNodeProviders));
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     return where;
@@ -725,6 +754,7 @@ export class DatabaseService {
     providers?: string[];
     includeTelegram?: boolean;
     excludeOwnerNodeIds?: string[];
+    excludeNodeProviders?: ExcludedNodeProvider[];
     timeWeighting?: TimeWeightingOptions;
     metrics?: MetricsRecorder;
   }): Promise<{
@@ -744,7 +774,8 @@ export class DatabaseService {
         includeTelegram: params.includeTelegram !== false,
         orientation: params.orientation,
         excludeIds: images.map((image) => image.id),
-        excludeOwnerNodeIds: params.excludeOwnerNodeIds
+        excludeOwnerNodeIds: params.excludeOwnerNodeIds,
+        excludeNodeProviders: params.excludeNodeProviders
       });
 
       if (!where) {
@@ -1407,6 +1438,7 @@ export class DatabaseService {
         allowedParameters: storedConfig.allowedParameters,
         responseParams: storedConfig.responseParams,
         selectionParams: storedConfig.selectionParams,
+        nodeProviderAvailability: storedConfig.nodeProviderAvailability,
         enableDirectResponse: config.enableDirectResponse || false,
         apiKeyEnabled: config.apiKeyEnabled || false,
         apiKey: config.apiKey || undefined,

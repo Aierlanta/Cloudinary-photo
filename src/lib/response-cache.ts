@@ -19,6 +19,7 @@ export interface CachedImageResponse {
   imageId: string;
   publicId: string;
   ownerNodeId?: string;
+  primaryProvider?: string;
   createdAt: number;
 }
 
@@ -173,11 +174,13 @@ export function buildRandomPrefetchCacheKey(options: {
   providers: string[];
   timeWeighting?: TimeWeightingOptions;
   output: ResponseOutputVariant;
+  nodeProviderAvailabilityKey?: string;
 }): string {
   const parts: string[] = [];
   const uniqueProviders = Array.from(new Set((options.providers || []).filter(Boolean))).sort();
   const uniqueGroups = Array.from(new Set((options.groupIds || []).filter(Boolean))).sort();
   const timeWeightingKey = buildTimeWeightingPrefetchKey(options.timeWeighting);
+  const nodeProviderKey = options.nodeProviderAvailabilityKey || 'all';
 
   if (uniqueProviders.length > 0) {
     parts.push(`providers:${uniqueProviders.join(',')}`);
@@ -187,6 +190,9 @@ export function buildRandomPrefetchCacheKey(options: {
   }
   if (timeWeightingKey) {
     parts.push(`timeWeighting:${timeWeightingKey}`);
+  }
+  if (nodeProviderKey !== 'all') {
+    parts.push(`nodeProviders:${nodeProviderKey}`);
   }
 
   const filterKey = parts.length === 0 ? 'all' : parts.join('|');

@@ -181,7 +181,7 @@ describe('DatabaseService', () => {
         expect.objectContaining({
           update: expect.objectContaining({
             allowedParameters: JSON.stringify({
-              version: 3,
+              version: 4,
               items: [],
               responseParams: {
                 format: {
@@ -200,7 +200,8 @@ describe('DatabaseService', () => {
                 timeWeighting: {
                   enabled: false
                 }
-              }
+              },
+              nodeProviderAvailability: {}
             }),
             enableDirectResponse: false,
             apiKeyEnabled: false,
@@ -208,7 +209,7 @@ describe('DatabaseService', () => {
           }),
           create: expect.objectContaining({
             allowedParameters: JSON.stringify({
-              version: 3,
+              version: 4,
               items: [],
               responseParams: {
                 format: {
@@ -227,7 +228,8 @@ describe('DatabaseService', () => {
                 timeWeighting: {
                   enabled: false
                 }
-              }
+              },
+              nodeProviderAvailability: {}
             }),
             enableDirectResponse: false,
             apiKeyEnabled: false,
@@ -633,6 +635,128 @@ describe('DatabaseService', () => {
 
       randomSpy.mockRestore();
     });
+
+    it('应该按节点图床禁用组合排除候选图片', async () => {
+      const allowedRow = createRandomImageRow({
+        id: 'img_allowed',
+        publicId: 'allowed',
+        ownerNodeId: 'nodeB',
+        primaryProvider: 'cloudinary'
+      });
+
+      mockPrisma.image.count.mockResolvedValueOnce(1);
+      mockPrisma.image.findMany.mockResolvedValueOnce([allowedRow]);
+      const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+
+      const result = await databaseService.selectRandomImages({
+        count: 1,
+        includeTelegram: true,
+        excludeNodeProviders: [
+          { ownerNodeId: 'nodeA', provider: 'cloudinary' }
+        ]
+      });
+
+      expect(mockPrisma.image.count).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            {
+              OR: [
+                { ownerNodeId: null },
+                { ownerNodeId: { not: 'nodeA' } },
+                { primaryProvider: { not: 'cloudinary' } }
+              ]
+            }
+          ]
+        }
+      });
+      expect(result.images[0]).toMatchObject({
+        id: 'img_allowed',
+        publicId: 'allowed'
+      });
+
+      randomSpy.mockRestore();
+    });
+
+    it('禁用已知节点图床时不应误杀 ownerNodeId 为空的历史图片候选', async () => {
+      const nullOwnerRow = createRandomImageRow({
+        id: 'img_null_owner',
+        publicId: 'null_owner',
+        ownerNodeId: null,
+        primaryProvider: 'cloudinary'
+      });
+
+      mockPrisma.image.count.mockResolvedValueOnce(1);
+      mockPrisma.image.findMany.mockResolvedValueOnce([nullOwnerRow]);
+      const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+
+      const result = await databaseService.selectRandomImages({
+        count: 1,
+        includeTelegram: true,
+        excludeNodeProviders: [
+          { ownerNodeId: 'nodeA', provider: 'cloudinary' }
+        ]
+      });
+
+      expect(mockPrisma.image.count).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            {
+              OR: [
+                { ownerNodeId: null },
+                { ownerNodeId: { not: 'nodeA' } },
+                { primaryProvider: { not: 'cloudinary' } }
+              ]
+            }
+          ]
+        }
+      });
+      expect(result.images[0]).toMatchObject({
+        id: 'img_null_owner',
+        publicId: 'null_owner'
+      });
+
+      randomSpy.mockRestore();
+    });
+
+    it('禁用 unknown 节点图床时应排除 ownerNodeId 为空的图片', async () => {
+      const allowedRow = createRandomImageRow({
+        id: 'img_owned',
+        publicId: 'owned',
+        ownerNodeId: 'nodeA',
+        primaryProvider: 'cloudinary'
+      });
+
+      mockPrisma.image.count.mockResolvedValueOnce(1);
+      mockPrisma.image.findMany.mockResolvedValueOnce([allowedRow]);
+      const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+
+      const result = await databaseService.selectRandomImages({
+        count: 1,
+        includeTelegram: true,
+        excludeNodeProviders: [
+          { ownerNodeId: 'unknown', provider: 'cloudinary' }
+        ]
+      });
+
+      expect(mockPrisma.image.count).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            {
+              OR: [
+                { ownerNodeId: { not: null } },
+                { primaryProvider: { not: 'cloudinary' } }
+              ]
+            }
+          ]
+        }
+      });
+      expect(result.images[0]).toMatchObject({
+        id: 'img_owned',
+        publicId: 'owned'
+      });
+
+      randomSpy.mockRestore();
+    });
   });
 
   describe('分组操作', () => {
@@ -827,10 +951,46 @@ describe('DatabaseService', () => {
             enabled: true
           }
         },
+        nodeProviderAvailability: {},
         enableDirectResponse: true,
         apiKeyEnabled: true,
         apiKey: 'secret',
         updatedAt: expect.any(Date)
+      });
+    });
+
+    it('应该正确解析并回传节点图床出图范围', async () => {
+      const mockConfig = {
+        id: 'default',
+        isEnabled: true,
+        defaultScope: 'all',
+        defaultGroups: '[]',
+        allowedParameters: JSON.stringify({
+          version: 4,
+          items: [],
+          nodeProviderAvailability: {
+            nodeA: {
+              cloudinary: false
+            }
+          }
+        }),
+        enableDirectResponse: false,
+        apiKeyEnabled: false,
+        apiKey: null,
+        updatedAt: new Date()
+      };
+
+      mockPrisma.aPIConfig.findUnique.mockResolvedValue(mockConfig);
+
+      const result = await databaseService.getAPIConfig();
+
+      expect(result?.nodeProviderAvailability).toEqual({
+        nodeA: {
+          cloudinary: false,
+          tgstate: true,
+          telegram: true,
+          custom: true
+        }
       });
     });
 

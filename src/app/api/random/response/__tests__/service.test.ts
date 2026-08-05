@@ -133,9 +133,52 @@ describe('serveRandomResponse', () => {
     mockDatabaseService.getImage.mockResolvedValue({
       id: 'img_000001',
       publicId: 'cloudinary_public_id',
-      url: 'https://res.cloudinary.com/demo/image/upload/sample.jpg'
+      url: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+      ownerNodeId: 'nodeA',
+      primaryProvider: 'cloudinary'
     });
     mockCloudinaryService.downloadImage.mockResolvedValue(Buffer.from('native-webp'));
+  });
+
+  it('节点图床被禁用时，指定 imageId 也不应返回该图片', async () => {
+    mockDatabaseService.getAPIConfig.mockResolvedValue({
+      id: 'default',
+      isEnabled: true,
+      defaultScope: 'all',
+      defaultGroups: [],
+      allowedParameters: [],
+      nodeProviderAvailability: {
+        nodeA: {
+          cloudinary: false,
+          tgstate: true,
+          telegram: true,
+          custom: true
+        }
+      },
+      responseParams: {
+        format: {
+          enabled: true,
+          allowedValues: ['jpeg', 'webp']
+        },
+        quality: {
+          enabled: true
+        },
+        defaultWebpDelivery: {
+          random: false,
+          response: false
+        }
+      },
+      enableDirectResponse: true,
+      apiKeyEnabled: false,
+      updatedAt: new Date()
+    });
+
+    const request = createMockRequest('http://localhost:3000/api/random/response?imageId=img_000001');
+    await expect(serveRandomResponse(request)).rejects.toMatchObject({
+      statusCode: 404,
+      message: '没有找到符合条件的图片'
+    });
+    expect(mockCloudinaryService.downloadImage).not.toHaveBeenCalled();
   });
 
   it('在 random 自动处理模式下不依赖 enableDirectResponse', async () => {

@@ -38,6 +38,14 @@ import {
   getExplicitlyOfflineNodeIds,
   isImageOwnedByCurrentNode
 } from '@/lib/swarm-node';
+import {
+  buildExcludedNodeProviders,
+  buildNodeProviderAvailabilityCacheKey,
+  isExcludedByNodeProvider,
+  isImageAllowedByNodeProviderAvailability,
+  type ExcludedNodeProvider,
+  type NodeProviderAvailability
+} from '@/lib/node-provider-availability';
 
 
 // 强制动态渲染
@@ -450,6 +458,7 @@ async function buildFinalResponsePayload(
     imageId: image.id,
     publicId: image.publicId,
     ownerNodeId: image.ownerNodeId,
+    primaryProvider: image.primaryProvider,
     createdAt: Date.now(),
     via: downloaded.reason,
     usedUrl: downloaded.usedUrl
@@ -462,7 +471,8 @@ async function prefetchNext(
   providers: string[],
   processingOptions: ResponseProcessingOptions,
   timeWeighting?: TimeWeightingOptions,
-  request?: NextRequest
+  request?: NextRequest,
+  excludeNodeProviders: ExcludedNodeProvider[] = []
 ): Promise<void> {
   const ttlMs = getRandomPrefetchTtlMs(timeWeighting);
   const existingInflight = randomPrefetchCache.getInflight(key);
@@ -475,7 +485,12 @@ async function prefetchNext(
 
       while (randomPrefetchCache.getItemCount(key) < randomPrefetchCache.getPerKey() && attempts < maxAttempts) {
         attempts += 1;
-        const img = await getRandomImageFromGroupsAndProviders(groupIds, providers, timeWeighting);
+        const img = await getRandomImageFromGroupsAndProviders(
+          groupIds,
+          providers,
+          timeWeighting,
+          excludeNodeProviders
+        );
         if (!img) return;
         if (!isImageOwnedByCurrentNode(img, request)) continue;
 
@@ -738,15 +753,29 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
+    const nodeProviderAvailability = apiConfig.nodeProviderAvailability as NodeProviderAvailability | undefined;
+    const excludeNodeProviders = buildExcludedNodeProviders(nodeProviderAvailability);
+    const nodeProviderAvailabilityKey = buildNodeProviderAvailabilityCacheKey(nodeProviderAvailability);
+
     // 预取命中优先：队列项已经完成输出处理，命中后直接消费并异步补齐
     const cacheKey = buildRandomPrefetchCacheKey({
       groupIds: targetGroupIds,
       providers: allowedProviders,
       timeWeighting: selectionParams.timeWeighting,
-      output: outputVariant
+      output: outputVariant,
+      nodeProviderAvailabilityKey
     });
     const prefetched = randomPrefetchCache.take(cacheKey);
-    if (prefetched) {
+    if (
+      prefetched
+      && isImageAllowedByNodeProviderAvailability(
+        {
+          ownerNodeId: prefetched.ownerNodeId,
+          primaryProvider: prefetched.primaryProvider
+        },
+        nodeProviderAvailability
+      )
+    ) {
       const ownerProxyResponse = await proxyRemoteOwnerResponse(request, {
         id: prefetched.imageId,
         publicId: prefetched.publicId,
@@ -767,7 +796,15 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
         outputTransform: hasOutputTransform(processingOptions)
       });
 
-      prefetchNext(cacheKey, targetGroupIds, allowedProviders, processingOptions, selectionParams.timeWeighting, request).catch(() => {});
+      prefetchNext(
+        cacheKey,
+        targetGroupIds,
+        allowedProviders,
+        processingOptions,
+        selectionParams.timeWeighting,
+        request,
+        excludeNodeProviders
+      ).catch(() => {});
 
       return new NextResponse(bufferToStream(prefetched.buffer), {
         status: 200,
@@ -792,7 +829,8 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     const randomImage = await getRandomImageFromGroupsAndProviders(
       targetGroupIds,
       allowedProviders,
-      selectionParams.timeWeighting
+      selectionParams.timeWeighting,
+      excludeNodeProviders
     );
 
     if (!randomImage) {
@@ -841,7 +879,15 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     });
 
     // 异步补齐预取队列（不阻塞响应）
-    prefetchNext(cacheKey, targetGroupIds, allowedProviders, processingOptions, selectionParams.timeWeighting, request).catch(() => {});
+    prefetchNext(
+      cacheKey,
+      targetGroupIds,
+      allowedProviders,
+      processingOptions,
+      selectionParams.timeWeighting,
+      request,
+      excludeNodeProviders
+    ).catch(() => {});
 
     // 返回缓冲响应
     return new NextResponse(bufferToStream(payload.buffer), {
@@ -1063,7 +1109,8 @@ async function getRandomImageFromGroups(
 async function getRandomImageFromGroupsAndProviders(
   groupIds: string[],
   providers: string[],
-  timeWeighting?: TimeWeightingOptions
+  timeWeighting?: TimeWeightingOptions,
+  excludeNodeProviders: ExcludedNodeProvider[] = []
 ): Promise<Image | null> {
   const excludeOwnerNodeIds = await getExplicitlyOfflineNodeIds();
   const selector = (databaseService as any).selectRandomImages;
@@ -1074,6 +1121,7 @@ async function getRandomImageFromGroupsAndProviders(
       providers,
       includeTelegram: true,
       excludeOwnerNodeIds,
+      excludeNodeProviders,
       timeWeighting
     });
     return result.images[0] || null;
@@ -1090,10 +1138,14 @@ async function getRandomImageFromGroupsAndProviders(
   const uniqueProviders = [...new Set((providers || []).filter(Boolean))];
   if (uniqueProviders.length === 0) {
     const image = await getRandomImageFromGroups(groupIds);
-    if (image && image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId)) {
-      return null;
+    if (
+      image
+      && !(image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId))
+      && !isExcludedByNodeProvider(image, excludeNodeProviders)
+    ) {
+      return image;
     }
-    return image;
+    return null;
   }
 
   const randomProviderIndex = Math.floor(Math.random() * uniqueProviders.length);
@@ -1102,7 +1154,11 @@ async function getRandomImageFromGroupsAndProviders(
 
   for (const provider of tryProviders) {
     const image = await getRandomImageFromGroups(groupIds, provider);
-    if (image && !(image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId))) {
+    if (
+      image
+      && !(image.ownerNodeId && excludeOwnerNodeIds.includes(image.ownerNodeId))
+      && !isExcludedByNodeProvider(image, excludeNodeProviders)
+    ) {
       return image;
     }
   }

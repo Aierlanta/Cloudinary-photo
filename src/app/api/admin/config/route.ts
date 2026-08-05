@@ -13,6 +13,7 @@ import { APIConfigUpdateRequestSchema } from '@/types/schemas';
 import { StorageProvider } from '@/lib/storage/base';
 import { createDefaultResponseParamsConfig } from '@/lib/response-params';
 import { createDefaultSelectionParamsConfig } from '@/lib/selection-params';
+import { normalizeNodeProviderAvailability } from '@/lib/node-provider-availability';
 import {
   APIResponse,
   APIConfigResponse
@@ -109,6 +110,7 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
         allowedParameters: [],
         responseParams: createDefaultResponseParamsConfig(),
         selectionParams: createDefaultSelectionParamsConfig(),
+        nodeProviderAvailability: {},
         enableDirectResponse: false,
         apiKeyEnabled: false,
         apiKey: undefined,
@@ -177,6 +179,9 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
     const updatedConfig = {
       ...currentConfig,
       ...validatedData,
+      nodeProviderAvailability: normalizeNodeProviderAvailability(
+        validatedData.nodeProviderAvailability ?? currentConfig.nodeProviderAvailability
+      ),
       updatedAt: new Date()
     };
     

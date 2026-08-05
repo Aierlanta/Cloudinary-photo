@@ -15,7 +15,8 @@ import {
   createDefaultSelectionParamsConfig,
   normalizeSelectionParamsConfig
 } from '@/lib/selection-params'
-import { useAdminApi } from '@/lib/admin-api-client'
+import { getNodeDisplayName, useAdminApi, type BackendNode } from '@/lib/admin-api-client'
+import { UNKNOWN_OWNER_NODE_ID } from '@/lib/node-provider-availability'
 import pageStyles from '../admin-pages.module.css'
 
 interface APIParameter {
@@ -51,10 +52,29 @@ interface APIConfig {
       enabled: boolean
     }
   }
+  nodeProviderAvailability: Record<string, {
+    cloudinary: boolean
+    tgstate: boolean
+    telegram: boolean
+    custom: boolean
+  }>
   enableDirectResponse: boolean
   apiKeyEnabled: boolean
   apiKey?: string
   updatedAt: string
+}
+
+type SwarmProviderKey = 'cloudinary' | 'tgstate' | 'telegram' | 'custom'
+
+const SWARM_PROVIDER_KEYS: SwarmProviderKey[] = ['cloudinary', 'tgstate', 'telegram', 'custom']
+
+function createDefaultProviderFlags(): Record<SwarmProviderKey, boolean> {
+  return {
+    cloudinary: true,
+    tgstate: true,
+    telegram: true,
+    custom: true
+  }
 }
 
 interface Group {
@@ -68,7 +88,7 @@ interface Group {
 export default function ConfigPage() {
   const { t } = useLocale();
   const isLight = useTheme();
-  const { adminFetch, selectedNode } = useAdminApi();
+  const { adminFetch, selectedNode, nodes } = useAdminApi();
   const [config, setConfig] = useState<APIConfig | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
@@ -103,6 +123,7 @@ const {
     allowedParameters: [],
     responseParams: createDefaultResponseParamsConfig(),
     selectionParams: createDefaultSelectionParamsConfig(),
+    nodeProviderAvailability: {},
     enableDirectResponse: false,
     apiKeyEnabled: false,
     apiKey: '',
@@ -127,6 +148,9 @@ const {
         }
         loadedConfig.responseParams = normalizeResponseParamsConfig(loadedConfig.responseParams)
         loadedConfig.selectionParams = normalizeSelectionParamsConfig(loadedConfig.selectionParams)
+        if (!loadedConfig.nodeProviderAvailability || typeof loadedConfig.nodeProviderAvailability !== 'object') {
+          loadedConfig.nodeProviderAvailability = {}
+        }
         setConfig(loadedConfig)
       } else {
         setConfig(getDefaultConfig())
@@ -207,6 +231,7 @@ const {
       allowedParameters: config.allowedParameters,
       responseParams: config.responseParams,
       selectionParams: config.selectionParams,
+      nodeProviderAvailability: config.nodeProviderAvailability,
       enableDirectResponse: config.enableDirectResponse,
       apiKeyEnabled: config.apiKeyEnabled,
       apiKey: config.apiKey
@@ -277,6 +302,56 @@ const {
       allowedParameters: newParameters
     })
   }
+
+  const getNodeProviderEnabled = (nodeId: string, provider: SwarmProviderKey): boolean => {
+    if (!config) return true
+    const nodeFlags = config.nodeProviderAvailability?.[nodeId]
+    if (!nodeFlags || typeof nodeFlags[provider] === 'undefined') return true
+    return nodeFlags[provider] !== false
+  }
+
+  const toggleNodeProvider = (nodeId: string, provider: SwarmProviderKey, enabled: boolean) => {
+    if (!config) return
+    const previous = config.nodeProviderAvailability?.[nodeId] || createDefaultProviderFlags()
+    setConfig({
+      ...config,
+      nodeProviderAvailability: {
+        ...config.nodeProviderAvailability,
+        [nodeId]: {
+          ...createDefaultProviderFlags(),
+          ...previous,
+          [provider]: enabled
+        }
+      }
+    })
+  }
+
+  const getProviderLabel = (provider: SwarmProviderKey): string => {
+    switch (provider) {
+      case 'cloudinary':
+        return t.adminConfig.providerCloudinary
+      case 'tgstate':
+        return t.adminConfig.providerTgstate
+      case 'telegram':
+        return t.adminConfig.providerTelegram
+      case 'custom':
+        return t.adminConfig.providerCustom
+      default:
+        return provider
+    }
+  }
+
+  const nodeProviderRows: BackendNode[] = (() => {
+    const rows = [...nodes]
+    if (!rows.some((node) => node.id === UNKNOWN_OWNER_NODE_ID)) {
+      rows.push({
+        id: UNKNOWN_OWNER_NODE_ID,
+        name: t.adminUi.unknownOwner,
+        baseUrl: ''
+      })
+    }
+    return rows
+  })()
 
   const generateApiUrl = (endpoint: 'random' | 'response' = 'random') => {
     if (typeof window === 'undefined') return ''
@@ -790,6 +865,47 @@ const {
                 </span>
               </label>
               <p className="admin-config-hint">{t.adminConfig.timeWeightingParamHint}</p>
+            </article>
+
+            <article className="admin-config-panel">
+              <h2>{t.adminConfig.nodeProviderAvailabilityTitle}</h2>
+              <p className="admin-config-panel-desc">{t.adminConfig.nodeProviderAvailabilityDesc}</p>
+              <div className={cn(pageStyles.tableWrap, 'admin-config-node-provider-table')}>
+                <table className={pageStyles.table}>
+                  <thead>
+                    <tr>
+                      <th>{t.adminConfig.nodeColumn}</th>
+                      {SWARM_PROVIDER_KEYS.map((provider) => (
+                        <th key={provider}>{getProviderLabel(provider)}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {nodeProviderRows.map((node) => (
+                      <tr key={node.id}>
+                        <td className="font-bold">
+                          {node.id === UNKNOWN_OWNER_NODE_ID
+                            ? t.adminUi.unknownOwner
+                            : getNodeDisplayName(node, t.adminUi.currentNode)}
+                        </td>
+                        {SWARM_PROVIDER_KEYS.map((provider) => (
+                          <td key={`${node.id}-${provider}`}>
+                            <label className="admin-config-node-provider-check">
+                              <input
+                                type="checkbox"
+                                checked={getNodeProviderEnabled(node.id, provider)}
+                                onChange={(event) => toggleNodeProvider(node.id, provider, event.target.checked)}
+                              />
+                              <b>{getNodeProviderEnabled(node.id, provider) ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+                            </label>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="admin-config-hint">{t.adminConfig.nodeProviderAvailabilityHint}</p>
             </article>
 
             <article className="admin-config-panel">

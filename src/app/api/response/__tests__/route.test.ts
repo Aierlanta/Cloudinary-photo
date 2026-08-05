@@ -555,6 +555,7 @@ describe('/api/response', () => {
         providers: [],
         includeTelegram: true,
         excludeOwnerNodeIds: [],
+        excludeNodeProviders: [],
         timeWeighting: expect.objectContaining({
           weight: 3,
           source: 'rolling',
@@ -576,6 +577,51 @@ describe('/api/response', () => {
       const response = await GET(request);
 
       expect(response.status).toBe(400);
+    });
+
+    it('节点图床禁用配置应传递到随机选择器', async () => {
+      const img = {
+        id: 'img_node_provider',
+        publicId: 'node_provider',
+        url: 'https://res.cloudinary.com/test/image/upload/node_provider.jpg',
+        groupId: null,
+        ownerNodeId: 'nodeB',
+        primaryProvider: 'cloudinary',
+        uploadedAt: new Date()
+      };
+      const selectRandomImages = jest.fn().mockResolvedValue({
+        images: [img],
+        queryCount: 2,
+        candidateCount: 4
+      });
+      (mockDatabaseService as any).selectRandomImages = selectRandomImages;
+      mockDatabaseService.getAPIConfig.mockResolvedValue({
+        id: 'default',
+        isEnabled: true,
+        enableDirectResponse: true,
+        defaultScope: 'all',
+        defaultGroups: [],
+        allowedParameters: [],
+        nodeProviderAvailability: {
+          nodeA: {
+            cloudinary: false,
+            tgstate: true,
+            telegram: true,
+            custom: true
+          }
+        },
+        updatedAt: new Date()
+      });
+
+      const request = createMockRequest('http://localhost:3000/api/response');
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      expect(selectRandomImages).toHaveBeenCalledWith(expect.objectContaining({
+        excludeNodeProviders: [
+          { ownerNodeId: 'nodeA', provider: 'cloudinary' }
+        ]
+      }));
     });
   });
 

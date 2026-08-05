@@ -635,6 +635,15 @@ export interface Translations {
     timeWeightingParamTitle: string;
     timeWeightingParamDesc: string;
     timeWeightingParamHint: string;
+    nodeProviderAvailabilityTitle: string;
+    nodeProviderAvailabilityDesc: string;
+    nodeProviderAvailabilityHint: string;
+    nodeColumn: string;
+    providerCloudinary: string;
+    providerTgstate: string;
+    providerTelegram: string;
+    providerCustom: string;
+    noNodesConfigured: string;
     // ParameterModal
     addApiParameter: string;
     editApiParameter: string;

@@ -19,6 +19,7 @@ import {
   validateManagedResponseParams
 } from '@/lib/response-params';
 import { createRemoteOwnerRedirect } from '@/lib/swarm-node';
+import { isImageAllowedByNodeProviderAvailability } from '@/lib/node-provider-availability';
 import { attachPerfHeadersToResponse, createRequestMetrics } from '@/lib/perf';
 import type { RequestMetrics } from '@/lib/perf';
 import {
@@ -351,6 +352,10 @@ export async function serveRandomResponse(
   }
   if (!image) {
     throw new AppError(ErrorType.NOT_FOUND, '图片不存在', 404);
+  }
+
+  if (!isImageAllowedByNodeProviderAvailability(image, apiConfig.nodeProviderAvailability)) {
+    throw new AppError(ErrorType.NOT_FOUND, '没有找到符合条件的图片', 404);
   }
 
   if (!options?.skipNodeHandoff) {
