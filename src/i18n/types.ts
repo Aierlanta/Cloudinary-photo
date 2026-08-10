@@ -161,6 +161,12 @@ export interface Translations {
     nodeList: string;
     nodeName: string;
     latency: string;
+    cloudinaryAccount: string;
+    cloudinaryCredits: string;
+    cloudinaryNotConfigured: string;
+    cloudinaryDisabled: string;
+    cloudinaryUsageFailed: string;
+    cloudinaryCreditsFormat: string;
     sharedStorage: string;
     sharedStorageDescription: string;
     crossNodeScheduling: string;

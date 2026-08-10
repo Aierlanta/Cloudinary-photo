@@ -24,6 +24,34 @@ interface SwarmConfig {
   updatedAt: string;
 }
 
+interface CloudinaryCreditsUsage {
+  usage: number;
+  limit: number;
+  used_percent: number;
+}
+
+interface NodeCloudinaryUsage {
+  status: "loading" | "ready" | "error";
+  configured?: boolean;
+  enabled?: boolean;
+  cloudName?: string;
+  credits?: CloudinaryCreditsUsage;
+  error?: string;
+}
+
+interface CloudinaryUsageApiResponse {
+  success?: boolean;
+  data?: {
+    cloudinary?: {
+      configured?: boolean;
+      status?: "enabled" | "disabled";
+      cloudName?: string;
+      credits?: CloudinaryCreditsUsage;
+      error?: string;
+    };
+  };
+}
+
 const swarmProviders: SwarmProvider[] = ["cloudinary", "tgstate", "telegram", "custom"];
 
 function getDefaultSwarmConfig(): SwarmConfig {
@@ -42,10 +70,18 @@ function getDefaultSwarmConfig(): SwarmConfig {
   };
 }
 
+function formatCreditsNumber(value: number): string {
+  if (!Number.isFinite(value)) return "—";
+  if (Math.abs(value) >= 100) return value.toFixed(0);
+  if (Math.abs(value) >= 10) return value.toFixed(1);
+  return value.toFixed(2);
+}
+
 export default function SwarmPage() {
   const { t } = useLocale();
   const {
     adminFetch,
+    fetchAllNodes,
     nodes,
     nodeStatuses,
     refreshNodeStatuses,
@@ -54,6 +90,7 @@ export default function SwarmPage() {
   const [swarmConfig, setSwarmConfig] = useState<SwarmConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cloudinaryUsageByNode, setCloudinaryUsageByNode] = useState<Record<string, NodeCloudinaryUsage>>({});
 
   const loadSwarmConfig = useCallback(async () => {
     try {
@@ -72,10 +109,59 @@ export default function SwarmPage() {
     }
   }, [adminFetch]);
 
+  const refreshCloudinaryUsage = useCallback(async () => {
+    if (nodes.length === 0) {
+      setCloudinaryUsageByNode({});
+      return;
+    }
+
+    setCloudinaryUsageByNode((previous) => {
+      const next: Record<string, NodeCloudinaryUsage> = {};
+      for (const node of nodes) {
+        next[node.id] = previous[node.id]?.status === "ready"
+          ? previous[node.id]
+          : { status: "loading" };
+      }
+      return next;
+    });
+
+    const results = await fetchAllNodes<CloudinaryUsageApiResponse>("/api/status?mode=cloudinary");
+    const nextUsage: Record<string, NodeCloudinaryUsage> = {};
+
+    for (const result of results) {
+      if (!result.ok || !result.data?.success || !result.data.data?.cloudinary) {
+        nextUsage[result.node.id] = {
+          status: "error",
+          error: result.error || t.adminUi.cloudinaryUsageFailed,
+        };
+        continue;
+      }
+
+      const cloudinary = result.data.data.cloudinary;
+      nextUsage[result.node.id] = {
+        status: "ready",
+        configured: Boolean(cloudinary.configured),
+        enabled: cloudinary.status === "enabled",
+        cloudName: cloudinary.cloudName,
+        credits: cloudinary.credits,
+        error: cloudinary.error,
+      };
+    }
+
+    setCloudinaryUsageByNode(nextUsage);
+  }, [fetchAllNodes, nodes, t.adminUi.cloudinaryUsageFailed]);
+
+  const refreshSwarmNodeViews = useCallback(async () => {
+    await Promise.all([
+      refreshNodeStatuses().catch(() => {}),
+      refreshCloudinaryUsage().catch(() => {}),
+    ]);
+  }, [refreshCloudinaryUsage, refreshNodeStatuses]);
+
   useEffect(() => {
     loadSwarmConfig();
-    refreshNodeStatuses().catch(() => {});
-  }, [loadSwarmConfig, refreshNodeStatuses]);
+    refreshSwarmNodeViews().catch(() => {});
+  }, [loadSwarmConfig, refreshSwarmNodeViews]);
 
   const saveSwarmConfig = async () => {
     if (!swarmConfig) return;
@@ -159,7 +245,7 @@ export default function SwarmPage() {
         <div className={styles.heroActions}>
           <button
             type="button"
-            onClick={() => refreshNodeStatuses().catch(() => {})}
+            onClick={() => refreshSwarmNodeViews().catch(() => {})}
             className={cn(styles.btn, styles.btnLavender)}
           >
             <span className="admin-swarm-action-artwork swarmActionRefresh" aria-hidden="true" />
@@ -211,11 +297,14 @@ export default function SwarmPage() {
                 <th>URL</th>
                 <th>{t.adminUi.latency}</th>
                 <th>{t.adminStatus.version}</th>
+                <th>{t.adminUi.cloudinaryAccount}</th>
+                <th>{t.adminUi.cloudinaryCredits}</th>
               </tr>
             </thead>
             <tbody>
               {nodes.map((node) => {
                 const status = nodeStatuses[node.id];
+                const usage = cloudinaryUsageByNode[node.id];
                 const statusLabel =
                   status?.status === "online"
                     ? t.adminUi.online
@@ -233,6 +322,30 @@ export default function SwarmPage() {
                         ? styles.pillPink
                         : styles.pillLavender;
 
+                let cloudinaryLabel = "—";
+                if (usage?.status === "loading") {
+                  cloudinaryLabel = t.common.loading;
+                } else if (usage?.status === "error") {
+                  cloudinaryLabel = t.adminUi.cloudinaryUsageFailed;
+                } else if (usage?.status === "ready") {
+                  if (!usage.enabled) {
+                    cloudinaryLabel = t.adminUi.cloudinaryDisabled;
+                  } else if (!usage.configured) {
+                    cloudinaryLabel = t.adminUi.cloudinaryNotConfigured;
+                  } else {
+                    cloudinaryLabel = usage.cloudName || t.adminUi.cloudinaryNotConfigured;
+                  }
+                }
+
+                const credits = usage?.credits;
+                const usedPercent = credits ? Math.max(0, Math.min(100, credits.used_percent)) : 0;
+                const usageBarClass =
+                  usedPercent >= 95
+                    ? styles.swarmUsageBarDanger
+                    : usedPercent >= 80
+                      ? styles.swarmUsageBarWarn
+                      : undefined;
+
                 return (
                   <tr key={node.id}>
                     <td className="font-bold">{getNodeDisplayName(node, t.adminUi.currentNode)}</td>
@@ -242,6 +355,40 @@ export default function SwarmPage() {
                     <td className={styles.mono}>{node.baseUrl}</td>
                     <td>{status?.latencyMs !== undefined ? `${status.latencyMs}ms` : "—"}</td>
                     <td>{status?.version ? `v${status.version}` : "—"}</td>
+                    <td>
+                      <span className={usage?.cloudName && usage.enabled && usage.configured ? styles.swarmCloudName : styles.swarmUsageMuted}>
+                        {cloudinaryLabel}
+                      </span>
+                    </td>
+                    <td>
+                      {usage?.status === "ready" && credits ? (
+                        <div className={styles.swarmUsageCell}>
+                          <div className={styles.swarmUsageMeta}>
+                            <span>
+                              {t.adminUi.cloudinaryCreditsFormat
+                                .replace("{usage}", formatCreditsNumber(credits.usage))
+                                .replace("{limit}", formatCreditsNumber(credits.limit))}
+                            </span>
+                            <span className={styles.swarmUsagePercent}>{Math.round(usedPercent)}%</span>
+                          </div>
+                          <span
+                            className={cn(styles.swarmUsageBar, usageBarClass)}
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round(usedPercent)}
+                          >
+                            <i style={{ width: `${usedPercent}%` }} />
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={styles.swarmUsageMuted}>
+                          {usage?.status === "loading"
+                            ? t.common.loading
+                            : usage?.error || (usage?.status === "error" ? t.adminUi.cloudinaryUsageFailed : "—")}
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

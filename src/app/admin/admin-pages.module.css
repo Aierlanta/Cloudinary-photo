@@ -3582,13 +3582,73 @@
 }
 
 .page:global(.admin-swarm-page) .tableWrap {
-  max-height: 310px;
+  max-height: 380px;
 }
 
 .page:global(.admin-swarm-page) .table th,
 .page:global(.admin-swarm-page) .table td {
   padding: 10px 13px;
   font-size: 0.84rem;
+}
+
+.page:global(.admin-swarm-page) .swarmUsageCell {
+  display: grid;
+  gap: 4px;
+  min-width: 132px;
+}
+
+.page:global(.admin-swarm-page) .swarmUsageMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--admin-cream);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.page:global(.admin-swarm-page) .swarmUsagePercent {
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.page:global(.admin-swarm-page) .swarmUsageBar {
+  display: block;
+  width: 100%;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--admin-lavender) 28%, var(--admin-panel-raised));
+}
+
+.page:global(.admin-swarm-page) .swarmUsageBar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-mint);
+}
+
+.page:global(.admin-swarm-page) .swarmUsageBarWarn > i {
+  background: var(--admin-amber);
+}
+
+.page:global(.admin-swarm-page) .swarmUsageBarDanger > i {
+  background: var(--admin-pink);
+}
+
+.page:global(.admin-swarm-page) .swarmCloudName {
+  color: var(--admin-cream);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.page:global(.admin-swarm-page) .swarmUsageMuted {
+  color: var(--admin-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .swarmFeatureGrid {

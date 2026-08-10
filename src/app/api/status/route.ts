@@ -15,23 +15,45 @@ export const dynamic = 'force-dynamic'
 
 const STATUS_CACHE_TTL_MS = 15_000;
 
+type StatusMode = 'summary' | 'full' | 'cloudinary';
+
 interface CachedStatusEntry {
   payload: APIResponse;
   statusCode: number;
   expiresAt: number;
 }
 
+interface CloudinaryCreditsUsage {
+  usage: number;
+  limit: number;
+  used_percent: number;
+}
+
 let summaryStatusCache: CachedStatusEntry | null = null;
 let fullStatusCache: CachedStatusEntry | null = null;
+let cloudinaryStatusCache: CachedStatusEntry | null = null;
 
-function getCachedStatus(mode: 'summary' | 'full'): CachedStatusEntry | null {
-  const cached = mode === 'full' ? fullStatusCache : summaryStatusCache;
+function resolveStatusMode(rawMode: string | null): StatusMode {
+  if (rawMode === 'full' || rawMode === 'cloudinary') {
+    return rawMode;
+  }
+  return 'summary';
+}
+
+function getCachedStatus(mode: StatusMode): CachedStatusEntry | null {
+  const cached = mode === 'full'
+    ? fullStatusCache
+    : mode === 'cloudinary'
+      ? cloudinaryStatusCache
+      : summaryStatusCache;
   if (!cached) {
     return null;
   }
   if (Date.now() > cached.expiresAt) {
     if (mode === 'full') {
       fullStatusCache = null;
+    } else if (mode === 'cloudinary') {
+      cloudinaryStatusCache = null;
     } else {
       summaryStatusCache = null;
     }
@@ -40,7 +62,7 @@ function getCachedStatus(mode: 'summary' | 'full'): CachedStatusEntry | null {
   return cached;
 }
 
-function setCachedStatus(mode: 'summary' | 'full', payload: APIResponse, statusCode: number): void {
+function setCachedStatus(mode: StatusMode, payload: APIResponse, statusCode: number): void {
   const nextValue = {
     payload,
     statusCode,
@@ -49,8 +71,111 @@ function setCachedStatus(mode: 'summary' | 'full', payload: APIResponse, statusC
 
   if (mode === 'full') {
     fullStatusCache = nextValue;
+  } else if (mode === 'cloudinary') {
+    cloudinaryStatusCache = nextValue;
   } else {
     summaryStatusCache = nextValue;
+  }
+}
+
+function normalizeCreditsUsage(credits: unknown): CloudinaryCreditsUsage | undefined {
+  if (!credits || typeof credits !== 'object') {
+    return undefined;
+  }
+
+  const record = credits as Record<string, unknown>;
+  const usage = Number(record.usage);
+  const limit = Number(record.limit);
+  const usedPercent = Number(record.used_percent);
+
+  if (!Number.isFinite(usage) || !Number.isFinite(limit) || !Number.isFinite(usedPercent)) {
+    return undefined;
+  }
+
+  return {
+    usage,
+    limit,
+    used_percent: usedPercent
+  };
+}
+
+async function getCloudinaryUsagePayload(request: NextRequest): Promise<{
+  payload: APIResponse;
+  statusCode: number;
+}> {
+  const cloudinaryEnabled = isStorageEnabled(StorageProvider.CLOUDINARY);
+  if (!cloudinaryEnabled) {
+    const payload: APIResponse = {
+      success: true,
+      data: {
+        node: getCurrentNode(request),
+        cloudinary: {
+          configured: false,
+          status: 'disabled'
+        }
+      },
+      timestamp: new Date()
+    };
+    return { payload, statusCode: 200 };
+  }
+
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  const configured = !!(cloudName && apiKey && apiSecret);
+
+  if (!configured) {
+    const payload: APIResponse = {
+      success: true,
+      data: {
+        node: getCurrentNode(request),
+        cloudinary: {
+          configured: false,
+          status: 'enabled',
+          cloudName: cloudName || undefined,
+          error: 'Cloudinary配置缺失'
+        }
+      },
+      timestamp: new Date()
+    };
+    return { payload, statusCode: 200 };
+  }
+
+  try {
+    const cloudinaryService = CloudinaryService.getInstance();
+    const usageStats = await cloudinaryService.getUsageStats();
+    const credits = normalizeCreditsUsage(usageStats?.credits);
+
+    const payload: APIResponse = {
+      success: true,
+      data: {
+        node: getCurrentNode(request),
+        cloudinary: {
+          configured: true,
+          status: 'enabled',
+          cloudName: cloudName || undefined,
+          credits,
+          error: credits ? undefined : 'Cloudinary用量数据不完整'
+        }
+      },
+      timestamp: new Date()
+    };
+    return { payload, statusCode: 200 };
+  } catch (error) {
+    const payload: APIResponse = {
+      success: true,
+      data: {
+        node: getCurrentNode(request),
+        cloudinary: {
+          configured: true,
+          status: 'enabled',
+          cloudName: cloudName || undefined,
+          error: error instanceof Error ? error.message : '获取Cloudinary用量失败'
+        }
+      },
+      timestamp: new Date()
+    };
+    return { payload, statusCode: 200 };
   }
 }
 
@@ -60,7 +185,7 @@ function setCachedStatus(mode: 'summary' | 'full', payload: APIResponse, statusC
  */
 async function getAPIStatus(request: NextRequest): Promise<Response> {
   const metrics = createRequestMetrics('/api/status');
-  const mode = request.nextUrl.searchParams.get('mode') === 'full' ? 'full' : 'summary';
+  const mode = resolveStatusMode(request.nextUrl.searchParams.get('mode'));
   metrics.setMeta('mode', mode);
 
   const cached = getCachedStatus(mode);
@@ -69,6 +194,25 @@ async function getAPIStatus(request: NextRequest): Promise<Response> {
       NextResponse.json(cached.payload, { status: cached.statusCode }),
       metrics
     );
+  }
+
+  if (mode === 'cloudinary') {
+    try {
+      const { payload, statusCode } = await metrics.time(
+        'cloudinary.usage',
+        async () => getCloudinaryUsagePayload(request)
+      );
+      metrics.finish();
+      setCachedStatus(mode, payload, statusCode);
+      return attachPerfHeadersToResponse(NextResponse.json(payload, { status: statusCode }), metrics);
+    } catch (error) {
+      logger.error('Cloudinary用量检查失败', error as Error, {
+        type: 'api_status',
+        mode,
+        ip: getClientIP(request)
+      });
+      throw error;
+    }
   }
 
   try {
