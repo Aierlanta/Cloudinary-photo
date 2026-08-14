@@ -1397,6 +1397,14 @@
   gap: 25px !important;
 }
 
+.page :global(.admin-upload-fields small) {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .page :global(.admin-upload-settings label) {
   color: var(--admin-cream) !important;
   font-size: 0.98rem !important;
@@ -1766,6 +1774,14 @@
 .page :global(.admin-upload-fields) {
   order: 1;
   gap: 17px !important;
+}
+
+.page :global(.admin-upload-fields small) {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .page :global(.admin-upload-provider) {

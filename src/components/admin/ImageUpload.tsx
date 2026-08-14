@@ -11,6 +11,12 @@ import type {
   ImageUrlImportResponse,
 } from "@/types/api";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
+import {
+  convertUploadImage,
+  getUploadImageFormat,
+  UploadConvertError,
+  type UploadConvertFormat,
+} from "@/lib/convert-upload-image";
 
 interface Group {
   id: string;
@@ -89,6 +95,7 @@ export default function ImageUpload({
   const [fileStates, setFileStates] = useState<FileUploadState[]>([]);
   const [groupId, setGroupId] = useState("");
   const [tags, setTags] = useState("");
+  const [convertFormat, setConvertFormat] = useState<UploadConvertFormat>("original");
   const [dragActive, setDragActive] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState("cloudinary"); // 新增：图床选择
   const [providers, setProviders] = useState<StorageProvider[]>([]); // 新增：图床提供商列表
@@ -496,12 +503,47 @@ export default function ImageUpload({
     let completedCount = 0;
 
     // 上传单个文件的函数（带重试机制）
+    const getConvertErrorMessage = (error: unknown) => {
+      if (error instanceof UploadConvertError) {
+        if (error.code === "decode") return t.adminUi.convertFormatDecodeFailed;
+        if (error.code === "canvas") return t.adminUi.convertFormatCanvasFailed;
+        if (error.code === "export") {
+          return t.adminUi.convertFormatExportFailed.replace(
+            "{format}",
+            error.format === "jpeg" ? "JPEG" : (error.format ?? "").toUpperCase()
+          );
+        }
+      }
+      return error instanceof Error ? error.message : t.adminUi.convertFormatFailed;
+    };
+
     const uploadSingleFile = async (
       fileState: FileUploadState,
       fileIndex: number,
       retryCount = 0
     ): Promise<any> => {
-      const file = fileState.file;
+      let currentState = fileState;
+      let file = currentState.file;
+
+      if (retryCount === 0) {
+        try {
+          file = await convertUploadImage(file, convertFormat);
+          if (file !== currentState.file) {
+            currentState = { ...currentState, file };
+            updateFileState(fileIndex, { file });
+          }
+        } catch (error) {
+          const errorMessage = t.adminImages.uploadFileFailed
+            .replace("{name}", fileState.file.name)
+            .replace("{message}", getConvertErrorMessage(error));
+          updateFileState(fileIndex, {
+            status: "failed",
+            error: errorMessage,
+          });
+          throw new Error(errorMessage);
+        }
+      }
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("provider", selectedProvider); // 新增：图床选择
@@ -539,7 +581,7 @@ export default function ImageUpload({
             );
 
             await delay(retryDelay);
-            return uploadSingleFile(fileState, fileIndex, retryCount + 1);
+            return uploadSingleFile(currentState, fileIndex, retryCount + 1);
           } else {
             // 获取错误详情
             let errorMessage = t.adminImages.uploadFileFailedWithStatus
@@ -577,7 +619,7 @@ export default function ImageUpload({
           );
 
           await delay(retryDelay);
-          return uploadSingleFile(fileState, fileIndex, retryCount + 1);
+          return uploadSingleFile(currentState, fileIndex, retryCount + 1);
         } else {
           const errorMessage = t.adminImages.uploadFileFailed
             .replace('{name}', file.name)
@@ -1207,6 +1249,33 @@ export default function ImageUpload({
 
         {/* Group and Tags */}
         <div className="admin-upload-fields grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg">
+          {selectedProvider !== "custom" && (
+            <div className="space-y-2 admin-upload-convert-format">
+              <label className={cn(
+                "block text-sm font-medium rounded-lg",
+                isLight ? "text-gray-700" : "text-gray-300"
+              )}>
+                {t.adminUi.convertFormat} ❀
+              </label>
+              <select
+                value={convertFormat}
+                onChange={(e) => setConvertFormat(e.target.value as UploadConvertFormat)}
+                disabled={uploading}
+                className={cn(
+                  "w-full px-3 py-2 border outline-none focus:border-blue-500 rounded-lg",
+                  isLight
+                    ? "bg-white border-gray-300"
+                    : "bg-gray-800 border-gray-600"
+                )}
+              >
+                <option value="original">{t.adminUi.convertFormatOriginal}</option>
+                <option value="jpeg">{t.adminUi.convertFormatJpeg}</option>
+                <option value="png">{t.adminUi.convertFormatPng}</option>
+                <option value="webp">{t.adminUi.convertFormatWebp}</option>
+              </select>
+              <small>{t.adminUi.convertFormatHint}</small>
+            </div>
+          )}
           <div className="space-y-2">
             <label className={cn(
               "block text-sm font-medium rounded-lg",
@@ -1419,6 +1488,15 @@ export default function ImageUpload({
                     </div>
                     <p className="admin-upload-queue-meta">
                       {formatFileSize(fileState.file.size)} <span aria-hidden="true">·</span> {getFileTypeLabel(fileState.file)}
+                      {convertFormat !== "original"
+                      && fileState.status !== "success"
+                      && getUploadImageFormat(fileState.file) !== convertFormat ? (
+                        <>
+                          {" "}
+                          <span aria-hidden="true">→</span>{" "}
+                          {convertFormat === "jpeg" ? "JPG" : convertFormat.toUpperCase()}
+                        </>
+                      ) : null}
                     </p>
                     <div
                       className="admin-upload-queue-progress-track"

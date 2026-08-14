@@ -225,6 +225,16 @@ export interface Translations {
     uploadSettings: string;
     advancedUploadOptions: string;
     storageProvider: string;
+    convertFormat: string;
+    convertFormatOriginal: string;
+    convertFormatJpeg: string;
+    convertFormatPng: string;
+    convertFormatWebp: string;
+    convertFormatHint: string;
+    convertFormatFailed: string;
+    convertFormatDecodeFailed: string;
+    convertFormatCanvasFailed: string;
+    convertFormatExportFailed: string;
     defaultGroup: string;
     addTags: string;
     startUpload: string;
