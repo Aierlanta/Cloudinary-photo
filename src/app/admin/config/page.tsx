@@ -58,6 +58,10 @@ interface APIConfig {
     telegram: boolean
     custom: boolean
   }>
+  cloudinaryUsageThreshold: {
+    enabled: boolean
+    nodes: Record<string, number>
+  }
   enableDirectResponse: boolean
   apiKeyEnabled: boolean
   apiKey?: string
@@ -85,11 +89,29 @@ interface Group {
   imageCount: number
 }
 
+interface NodeCloudinaryUsageInfo {
+  status: 'loading' | 'ready' | 'error'
+  usedPercent?: number
+}
+
+interface CloudinaryUsageApiResponse {
+  success?: boolean
+  data?: {
+    cloudinary?: {
+      configured?: boolean
+      status?: 'enabled' | 'disabled'
+      credits?: { usage: number; limit: number; used_percent: number }
+      error?: string
+    }
+  }
+}
+
 export default function ConfigPage() {
   const { t } = useLocale();
   const isLight = useTheme();
-  const { adminFetch, selectedNode, nodes } = useAdminApi();
+  const { adminFetch, fetchAllNodes, selectedNode, nodes } = useAdminApi();
   const [config, setConfig] = useState<APIConfig | null>(null)
+  const [cloudinaryUsageByNode, setCloudinaryUsageByNode] = useState<Record<string, NodeCloudinaryUsageInfo>>({})
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -124,6 +146,7 @@ const {
     responseParams: createDefaultResponseParamsConfig(),
     selectionParams: createDefaultSelectionParamsConfig(),
     nodeProviderAvailability: {},
+    cloudinaryUsageThreshold: { enabled: false, nodes: {} },
     enableDirectResponse: false,
     apiKeyEnabled: false,
     apiKey: '',
@@ -151,6 +174,12 @@ const {
         if (!loadedConfig.nodeProviderAvailability || typeof loadedConfig.nodeProviderAvailability !== 'object') {
           loadedConfig.nodeProviderAvailability = {}
         }
+        if (!loadedConfig.cloudinaryUsageThreshold || typeof loadedConfig.cloudinaryUsageThreshold !== 'object') {
+          loadedConfig.cloudinaryUsageThreshold = { enabled: false, nodes: {} }
+        }
+        if (!loadedConfig.cloudinaryUsageThreshold.nodes || typeof loadedConfig.cloudinaryUsageThreshold.nodes !== 'object') {
+          loadedConfig.cloudinaryUsageThreshold.nodes = {}
+        }
         setConfig(loadedConfig)
       } else {
         setConfig(getDefaultConfig())
@@ -175,11 +204,41 @@ const {
     }
   }, [adminFetch])
 
+  const loadCloudinaryUsage = useCallback(async () => {
+    if (nodes.length === 0) {
+      setCloudinaryUsageByNode({})
+      return
+    }
+
+    setCloudinaryUsageByNode((previous) => {
+      const next: Record<string, NodeCloudinaryUsageInfo> = {}
+      for (const node of nodes) {
+        next[node.id] = previous[node.id]?.status === 'ready'
+          ? previous[node.id]
+          : { status: 'loading' }
+      }
+      return next
+    })
+
+    const results = await fetchAllNodes<CloudinaryUsageApiResponse>('/api/status?mode=cloudinary')
+    const nextUsage: Record<string, NodeCloudinaryUsageInfo> = {}
+    for (const result of results) {
+      const credits = result.data?.data?.cloudinary?.credits
+      if (!result.ok || !result.data?.success || typeof credits?.used_percent !== 'number') {
+        nextUsage[result.node.id] = { status: 'error' }
+        continue
+      }
+      nextUsage[result.node.id] = { status: 'ready', usedPercent: credits.used_percent }
+    }
+    setCloudinaryUsageByNode(nextUsage)
+  }, [fetchAllNodes, nodes])
+
   // 加载配置和分组
   useEffect(() => {
     loadConfig()
     loadGroups()
-  }, [loadConfig, loadGroups])
+    loadCloudinaryUsage().catch(() => {})
+  }, [loadConfig, loadGroups, loadCloudinaryUsage])
 
   const saveConfig = async () => {
     if (!config) {
@@ -224,6 +283,14 @@ const {
       return
     }
 
+    // 验证阈值范围（1-100）
+    for (const thresholdValue of Object.values(config.cloudinaryUsageThreshold.nodes)) {
+      if (!Number.isFinite(thresholdValue) || thresholdValue < 1 || thresholdValue > 100) {
+        showWarning(t.adminConfig.cloudinaryThresholdInvalid)
+        return
+      }
+    }
+
     const requestData = {
       isEnabled: config.isEnabled,
       defaultScope: config.defaultScope,
@@ -232,6 +299,7 @@ const {
       responseParams: config.responseParams,
       selectionParams: config.selectionParams,
       nodeProviderAvailability: config.nodeProviderAvailability,
+      cloudinaryUsageThreshold: config.cloudinaryUsageThreshold,
       enableDirectResponse: config.enableDirectResponse,
       apiKeyEnabled: config.apiKeyEnabled,
       apiKey: config.apiKey
@@ -322,6 +390,36 @@ const {
           ...previous,
           [provider]: enabled
         }
+      }
+    })
+  }
+
+  const toggleCloudinaryThresholdEnabled = (enabled: boolean) => {
+    if (!config) return
+    setConfig({
+      ...config,
+      cloudinaryUsageThreshold: {
+        ...config.cloudinaryUsageThreshold,
+        enabled
+      }
+    })
+  }
+
+  const setNodeCloudinaryThreshold = (nodeId: string, rawValue: string) => {
+    if (!config) return
+    const nextNodes = { ...config.cloudinaryUsageThreshold.nodes }
+    if (rawValue.trim() === '') {
+      delete nextNodes[nodeId]
+    } else {
+      const parsed = Number(rawValue)
+      if (!Number.isFinite(parsed)) return
+      nextNodes[nodeId] = parsed
+    }
+    setConfig({
+      ...config,
+      cloudinaryUsageThreshold: {
+        ...config.cloudinaryUsageThreshold,
+        nodes: nextNodes
       }
     })
   }
@@ -494,7 +592,7 @@ const {
           <div className={pageStyles.heroActions}>
             <button
               type="button"
-              onClick={() => { loadConfig(); loadGroups(); }}
+              onClick={() => { loadConfig(); loadGroups(); loadCloudinaryUsage().catch(() => {}); }}
               className={cn(pageStyles.btn, pageStyles.btnLavender)}
             >
               <span className="admin-config-action admin-config-action-refresh" aria-hidden="true" />
@@ -906,6 +1004,79 @@ const {
                 </table>
               </div>
               <p className="admin-config-hint">{t.adminConfig.nodeProviderAvailabilityHint}</p>
+            </article>
+
+            <article className="admin-config-panel">
+              <h2>{t.adminConfig.cloudinaryThresholdTitle}</h2>
+              <p className="admin-config-panel-desc">{t.adminConfig.cloudinaryThresholdDesc}</p>
+              <label>
+                <span>{t.adminConfig.cloudinaryThresholdEnable}</span>
+                <span className="admin-config-switch">
+                  <input
+                    type="checkbox"
+                    checked={config.cloudinaryUsageThreshold.enabled}
+                    onChange={(event) => toggleCloudinaryThresholdEnabled(event.target.checked)}
+                  />
+                  <i />
+                  <b>{config.cloudinaryUsageThreshold.enabled ? t.adminStatus.enabled : t.adminStatus.disabled}</b>
+                </span>
+              </label>
+              {config.cloudinaryUsageThreshold.enabled && (
+                <div className={cn(pageStyles.tableWrap, 'admin-config-node-provider-table')}>
+                  <table className={pageStyles.table}>
+                    <thead>
+                      <tr>
+                        <th>{t.adminConfig.nodeColumn}</th>
+                        <th>{t.adminConfig.cloudinaryThresholdCurrentUsage}</th>
+                        <th>{t.adminConfig.cloudinaryThresholdColumn}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {nodes.map((node) => {
+                        const usage = cloudinaryUsageByNode[node.id]
+                        const threshold = config.cloudinaryUsageThreshold.nodes[node.id]
+                        const exceeded = typeof threshold === 'number'
+                          && usage?.status === 'ready'
+                          && typeof usage.usedPercent === 'number'
+                          && usage.usedPercent >= threshold
+                        let usageLabel = '—'
+                        if (usage?.status === 'loading') {
+                          usageLabel = t.common.loading
+                        } else if (usage?.status === 'ready' && typeof usage.usedPercent === 'number') {
+                          usageLabel = `${Math.round(usage.usedPercent * 100) / 100}%`
+                        }
+                        return (
+                          <tr key={node.id}>
+                            <td className="font-bold">{getNodeDisplayName(node, t.adminUi.currentNode)}</td>
+                            <td>
+                              <span>{usageLabel}</span>
+                              {exceeded && (
+                                <span className={cn(pageStyles.pill, pageStyles.pillPink)} style={{ marginLeft: '0.5rem' }}>
+                                  {t.adminConfig.cloudinaryThresholdExceeded}
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                min={1}
+                                max={100}
+                                step={1}
+                                value={threshold ?? ''}
+                                placeholder={t.adminConfig.cloudinaryThresholdUnlimited}
+                                onChange={(event) => setNodeCloudinaryThreshold(node.id, event.target.value)}
+                                style={{ width: '6.5rem' }}
+                              />
+                              <span style={{ marginLeft: '0.35rem' }}>%</span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="admin-config-hint">{t.adminConfig.cloudinaryThresholdHint}</p>
             </article>
 
             <article className="admin-config-panel">

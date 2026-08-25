@@ -133,6 +133,10 @@ export const APIConfigSchema = z.object({
       custom: z.boolean()
     })
   ).default({}),
+  cloudinaryUsageThreshold: z.object({
+    enabled: z.boolean().default(false),
+    nodes: z.record(z.string().min(1), z.number().min(1).max(100)).default({})
+  }).default({ enabled: false, nodes: {} }),
   // 新增：响应模式配置
   enableDirectResponse: z.boolean().default(false),
   // 新增：API Key 鉴权
@@ -153,6 +157,14 @@ export const NodeProviderAvailabilitySchema = z.record(
     custom: z.boolean()
   }).partial()
 );
+
+export const CloudinaryUsageThresholdSchema = z.object({
+  enabled: z.boolean().default(false),
+  nodes: z.record(
+    z.string().min(1),
+    z.number().min(1, '阈值不能低于1%').max(100, '阈值不能超过100%')
+  ).default({})
+});
 export const ProviderDeliveryPolicyItemSchema = z.object({
   mode: ProviderDeliveryModeSchema,
   warnOnDisable: z.boolean().optional()
@@ -249,6 +261,7 @@ export const APIConfigUpdateRequestSchema = z.object({
   responseParams: ResponseParamsSchema.optional(),
   selectionParams: SelectionParamsSchema.optional(),
   nodeProviderAvailability: NodeProviderAvailabilitySchema.optional(),
+  cloudinaryUsageThreshold: CloudinaryUsageThresholdSchema.optional(),
   enableDirectResponse: z.boolean().optional(),
   apiKeyEnabled: z.boolean().optional(),
   apiKey: z.string().optional()

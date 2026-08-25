@@ -29,6 +29,10 @@ import {
   normalizeNodeProviderAvailability,
   type ExcludedNodeProvider
 } from '@/lib/node-provider-availability';
+import {
+  createDefaultCloudinaryUsageThreshold,
+  normalizeCloudinaryUsageThreshold
+} from '@/lib/cloudinary-usage-threshold';
 import { LogLevel, LogEntry } from './logger';
 import { prisma } from './prisma';
 import { getCurrentNode } from './swarm-node';
@@ -104,17 +108,20 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
   responseParams: NonNullable<APIConfig['responseParams']>;
   selectionParams: NonNullable<APIConfig['selectionParams']>;
   nodeProviderAvailability: NonNullable<APIConfig['nodeProviderAvailability']>;
+  cloudinaryUsageThreshold: NonNullable<APIConfig['cloudinaryUsageThreshold']>;
 } {
   const defaultResponseParams = createDefaultResponseParamsConfig();
   const defaultSelectionParams = createDefaultSelectionParamsConfig();
   const defaultNodeProviderAvailability = createDefaultNodeProviderAvailability();
+  const defaultCloudinaryUsageThreshold = createDefaultCloudinaryUsageThreshold();
 
   if (!raw) {
     return {
       allowedParameters: [],
       responseParams: defaultResponseParams,
       selectionParams: defaultSelectionParams,
-      nodeProviderAvailability: defaultNodeProviderAvailability
+      nodeProviderAvailability: defaultNodeProviderAvailability,
+      cloudinaryUsageThreshold: defaultCloudinaryUsageThreshold
     };
   }
 
@@ -126,7 +133,8 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
         allowedParameters: parsed,
         responseParams: defaultResponseParams,
         selectionParams: defaultSelectionParams,
-        nodeProviderAvailability: defaultNodeProviderAvailability
+        nodeProviderAvailability: defaultNodeProviderAvailability,
+        cloudinaryUsageThreshold: defaultCloudinaryUsageThreshold
       };
     }
 
@@ -137,6 +145,7 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
         responseParams?: APIConfig['responseParams'];
         selectionParams?: APIConfig['selectionParams'];
         nodeProviderAvailability?: APIConfig['nodeProviderAvailability'];
+        cloudinaryUsageThreshold?: APIConfig['cloudinaryUsageThreshold'];
       };
 
       return {
@@ -147,7 +156,8 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
           : [],
         responseParams: normalizeResponseParamsConfig(container.responseParams),
         selectionParams: normalizeSelectionParamsConfig(container.selectionParams),
-        nodeProviderAvailability: normalizeNodeProviderAvailability(container.nodeProviderAvailability)
+        nodeProviderAvailability: normalizeNodeProviderAvailability(container.nodeProviderAvailability),
+        cloudinaryUsageThreshold: normalizeCloudinaryUsageThreshold(container.cloudinaryUsageThreshold)
       };
     }
   } catch {
@@ -158,17 +168,19 @@ function parseStoredAPIConfigPayload(raw: string | null | undefined): {
     allowedParameters: [],
     responseParams: defaultResponseParams,
     selectionParams: defaultSelectionParams,
-    nodeProviderAvailability: defaultNodeProviderAvailability
+    nodeProviderAvailability: defaultNodeProviderAvailability,
+    cloudinaryUsageThreshold: defaultCloudinaryUsageThreshold
   };
 }
 
 function stringifyStoredAPIConfigPayload(config: APIConfig): string {
   return JSON.stringify({
-    version: 4,
+    version: 5,
     items: config.allowedParameters,
     responseParams: normalizeResponseParamsConfig(config.responseParams),
     selectionParams: normalizeSelectionParamsConfig(config.selectionParams),
-    nodeProviderAvailability: normalizeNodeProviderAvailability(config.nodeProviderAvailability)
+    nodeProviderAvailability: normalizeNodeProviderAvailability(config.nodeProviderAvailability),
+    cloudinaryUsageThreshold: normalizeCloudinaryUsageThreshold(config.cloudinaryUsageThreshold)
   });
 }
 
@@ -313,6 +325,7 @@ export class DatabaseService {
           responseParams: createDefaultResponseParamsConfig(),
           selectionParams: createDefaultSelectionParamsConfig(),
           nodeProviderAvailability: createDefaultNodeProviderAvailability(),
+          cloudinaryUsageThreshold: createDefaultCloudinaryUsageThreshold(),
           enableDirectResponse: false, // 默认关闭直接响应模式
           apiKeyEnabled: false, // 默认关闭 API Key 鉴权
           apiKey: undefined,
@@ -1439,6 +1452,7 @@ export class DatabaseService {
         responseParams: storedConfig.responseParams,
         selectionParams: storedConfig.selectionParams,
         nodeProviderAvailability: storedConfig.nodeProviderAvailability,
+        cloudinaryUsageThreshold: storedConfig.cloudinaryUsageThreshold,
         enableDirectResponse: config.enableDirectResponse || false,
         apiKeyEnabled: config.apiKeyEnabled || false,
         apiKey: config.apiKey || undefined,

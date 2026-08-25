@@ -654,6 +654,15 @@ export interface Translations {
     nodeProviderAvailabilityTitle: string;
     nodeProviderAvailabilityDesc: string;
     nodeProviderAvailabilityHint: string;
+    cloudinaryThresholdTitle: string;
+    cloudinaryThresholdDesc: string;
+    cloudinaryThresholdEnable: string;
+    cloudinaryThresholdCurrentUsage: string;
+    cloudinaryThresholdColumn: string;
+    cloudinaryThresholdUnlimited: string;
+    cloudinaryThresholdExceeded: string;
+    cloudinaryThresholdHint: string;
+    cloudinaryThresholdInvalid: string;
     nodeColumn: string;
     providerCloudinary: string;
     providerTgstate: string;

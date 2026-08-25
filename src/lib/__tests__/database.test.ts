@@ -181,7 +181,7 @@ describe('DatabaseService', () => {
         expect.objectContaining({
           update: expect.objectContaining({
             allowedParameters: JSON.stringify({
-              version: 4,
+              version: 5,
               items: [],
               responseParams: {
                 format: {
@@ -201,7 +201,11 @@ describe('DatabaseService', () => {
                   enabled: false
                 }
               },
-              nodeProviderAvailability: {}
+              nodeProviderAvailability: {},
+              cloudinaryUsageThreshold: {
+                enabled: false,
+                nodes: {}
+              }
             }),
             enableDirectResponse: false,
             apiKeyEnabled: false,
@@ -209,7 +213,7 @@ describe('DatabaseService', () => {
           }),
           create: expect.objectContaining({
             allowedParameters: JSON.stringify({
-              version: 4,
+              version: 5,
               items: [],
               responseParams: {
                 format: {
@@ -229,7 +233,11 @@ describe('DatabaseService', () => {
                   enabled: false
                 }
               },
-              nodeProviderAvailability: {}
+              nodeProviderAvailability: {},
+              cloudinaryUsageThreshold: {
+                enabled: false,
+                nodes: {}
+              }
             }),
             enableDirectResponse: false,
             apiKeyEnabled: false,
@@ -952,6 +960,10 @@ describe('DatabaseService', () => {
           }
         },
         nodeProviderAvailability: {},
+        cloudinaryUsageThreshold: {
+          enabled: false,
+          nodes: {}
+        },
         enableDirectResponse: true,
         apiKeyEnabled: true,
         apiKey: 'secret',

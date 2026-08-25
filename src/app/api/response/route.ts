@@ -39,13 +39,11 @@ import {
   isImageOwnedByCurrentNode
 } from '@/lib/swarm-node';
 import {
-  buildExcludedNodeProviders,
-  buildNodeProviderAvailabilityCacheKey,
+  buildExcludedNodeProvidersCacheKey,
   isExcludedByNodeProvider,
-  isImageAllowedByNodeProviderAvailability,
-  type ExcludedNodeProvider,
-  type NodeProviderAvailability
+  type ExcludedNodeProvider
 } from '@/lib/node-provider-availability';
+import { buildEffectiveExcludedNodeProviders } from '@/lib/swarm-cloudinary-usage';
 
 
 // 强制动态渲染
@@ -753,9 +751,9 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
-    const nodeProviderAvailability = apiConfig.nodeProviderAvailability as NodeProviderAvailability | undefined;
-    const excludeNodeProviders = buildExcludedNodeProviders(nodeProviderAvailability);
-    const nodeProviderAvailabilityKey = buildNodeProviderAvailabilityCacheKey(nodeProviderAvailability);
+    // 手动开关 + Cloudinary 用量阈值合并后的有效排除列表
+    const excludeNodeProviders = buildEffectiveExcludedNodeProviders(apiConfig);
+    const nodeProviderAvailabilityKey = buildExcludedNodeProvidersCacheKey(excludeNodeProviders);
 
     // 预取命中优先：队列项已经完成输出处理，命中后直接消费并异步补齐
     const cacheKey = buildRandomPrefetchCacheKey({
@@ -768,12 +766,12 @@ async function getImageResponse(request: NextRequest): Promise<Response> {
     const prefetched = randomPrefetchCache.take(cacheKey);
     if (
       prefetched
-      && isImageAllowedByNodeProviderAvailability(
+      && !isExcludedByNodeProvider(
         {
           ownerNodeId: prefetched.ownerNodeId,
           primaryProvider: prefetched.primaryProvider
         },
-        nodeProviderAvailability
+        excludeNodeProviders
       )
     ) {
       const ownerProxyResponse = await proxyRemoteOwnerResponse(request, {

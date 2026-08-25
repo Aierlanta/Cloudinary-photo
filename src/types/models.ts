@@ -77,6 +77,16 @@ export type SwarmProvider = 'cloudinary' | 'tgstate' | 'telegram' | 'custom';
 /** 节点 × 图床可用性：缺省/缺项视为启用，仅显式 false 表示禁用出图 */
 export type NodeProviderAvailability = Record<string, Record<SwarmProvider, boolean>>;
 
+/**
+ * Cloudinary 用量阈值：启用后，节点 credits 用量百分比达到阈值时自动跳过该节点的 Cloudinary 出图。
+ * nodes 中缺省的节点视为不限制。
+ */
+export interface CloudinaryUsageThresholdConfig {
+  enabled: boolean;
+  /** nodeId -> 用量百分比阈值（1-100） */
+  nodes: Record<string, number>;
+}
+
 // API配置模型
 export interface APIConfig {
   id: string;
@@ -88,6 +98,8 @@ export interface APIConfig {
   selectionParams?: SelectionParamsConfig;
   /** 按蜂群节点控制公开 API 可出图的图床范围 */
   nodeProviderAvailability?: NodeProviderAvailability;
+  /** Cloudinary 用量阈值自动关闭配置 */
+  cloudinaryUsageThreshold?: CloudinaryUsageThresholdConfig;
   // 新增：响应模式配置
   enableDirectResponse: boolean; // 是否启用直接响应模式（/api/response端点）
   // 新增：API Key 鉴权

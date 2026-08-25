@@ -21,10 +21,10 @@ import {
   type DeliveryMode
 } from '@/lib/swarm-node';
 import {
-  buildExcludedNodeProviders,
   isExcludedByNodeProvider,
   type ExcludedNodeProvider
 } from '@/lib/node-provider-availability';
+import { buildEffectiveExcludedNodeProviders } from '@/lib/swarm-cloudinary-usage';
 import { attachPerfHeadersToResponse, createRequestMetrics } from '@/lib/perf';
 
 type OrientationParam = 'landscape' | 'portrait' | 'square';
@@ -244,7 +244,8 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     }
     // 如果targetGroupIds为空，则从所有图片中选择
 
-    const excludeNodeProviders = buildExcludedNodeProviders(apiConfig.nodeProviderAvailability);
+    // 手动开关 + Cloudinary 用量阈值合并后的有效排除列表
+    const excludeNodeProviders = buildEffectiveExcludedNodeProviders(apiConfig);
 
     const selection = await metrics.time('db.random_select', async () => (
       selectRandomImageForRequest({

@@ -14,6 +14,7 @@ import { StorageProvider } from '@/lib/storage/base';
 import { createDefaultResponseParamsConfig } from '@/lib/response-params';
 import { createDefaultSelectionParamsConfig } from '@/lib/selection-params';
 import { normalizeNodeProviderAvailability } from '@/lib/node-provider-availability';
+import { normalizeCloudinaryUsageThreshold } from '@/lib/cloudinary-usage-threshold';
 import {
   APIResponse,
   APIConfigResponse
@@ -181,6 +182,9 @@ async function updateAPIConfig(request: NextRequest): Promise<Response> {
       ...validatedData,
       nodeProviderAvailability: normalizeNodeProviderAvailability(
         validatedData.nodeProviderAvailability ?? currentConfig.nodeProviderAvailability
+      ),
+      cloudinaryUsageThreshold: normalizeCloudinaryUsageThreshold(
+        validatedData.cloudinaryUsageThreshold ?? currentConfig.cloudinaryUsageThreshold
       ),
       updatedAt: new Date()
     };

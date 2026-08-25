@@ -91,12 +91,24 @@ export function buildExcludedNodeProviders(
 /**
  * 稳定摘要，用于预取 cache key，避免不同策略互相污染。
  */
+export function buildExcludedNodeProvidersCacheKey(
+  excluded: ExcludedNodeProvider[]
+): string {
+  if (excluded.length === 0) return 'all';
+  return [...excluded]
+    .sort((left, right) => {
+      const nodeCompare = left.ownerNodeId.localeCompare(right.ownerNodeId);
+      if (nodeCompare !== 0) return nodeCompare;
+      return left.provider.localeCompare(right.provider);
+    })
+    .map((item) => `${item.ownerNodeId}:${item.provider}`)
+    .join(',');
+}
+
 export function buildNodeProviderAvailabilityCacheKey(
   availability?: NodeProviderAvailability | null
 ): string {
-  const excluded = buildExcludedNodeProviders(availability);
-  if (excluded.length === 0) return 'all';
-  return excluded.map((item) => `${item.ownerNodeId}:${item.provider}`).join(',');
+  return buildExcludedNodeProvidersCacheKey(buildExcludedNodeProviders(availability));
 }
 
 /**
