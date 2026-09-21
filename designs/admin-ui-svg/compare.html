@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin UI sprites — traced SVG</title>
+  <style>
+    :root { --bg:#2b233d; --panel:#382d4e; --cream:#fff0df; --pink:#ff7198; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 28px; color: var(--cream);
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      background: radial-gradient(circle at 20% 0%, #3a2f52, var(--bg));
+      line-height: 1.45;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 8px; }
+    h2 { font-size: 1.05rem; margin: 22px 0 10px; color: #ffb0c6; }
+    p { margin: 0 0 18px; opacity: 0.88; max-width: 64rem; }
+    .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .card {
+      background: linear-gradient(145deg, var(--panel), #241c34);
+      border: 1.5px solid color-mix(in srgb, var(--pink) 55%, #aa87d6);
+      border-radius: 12px; padding: 10px; text-align: center;
+    }
+    .card img {
+      width: 100%; max-width: 120px; height: auto; border-radius: 8px;
+      background: #1a1426;
+    }
+    .card figcaption { font-size: 0.72rem; margin-top: 6px; word-break: break-all; }
+    code { color: #ffb0c6; }
+  </style>
+</head>
+<body>
+  <h1>Admin UI sprites — traced SVG tiles</h1>
+  <p>
+    Remaining admin chrome (post-Dashboard). Components live in
+    <code>src/components/ui/admin-ui-sprites</code>. Original WebP sheets stay under
+    <code>public/admin/ui/*.webp</code> for review.
+  </p>
+  <div id="root"></div>
+  <script>
+    const sets = {
+      gallery: ["add","refresh","download","checklist","check","move","trash","close"],
+      groups: ["icon-tag","icon-album","icon-check","icon-plus","action-refresh","action-create","action-edit","action-trash","action-close","action-save","action-album","action-view"],
+      logs: ["action-refresh","action-export","action-trash","action-search","action-warning","level-0","level-1","level-2","level-3"],
+      config: ["icon-shield","icon-lock","icon-toggle","icon-notebook","action-refresh","action-save","action-add","action-edit","action-trash","action-copy","action-external","action-play"],
+      status: ["shield","clock","calendar","server"],
+      backup: ["icon-tl","icon-tr","icon-bl","icon-br","action-create","action-initialize","action-refresh","action-settings","action-restore","action-warning","action-close","action-health"],
+      security: ["icon-shield","icon-ban","icon-clock","icon-br","action-refresh","action-chart","action-location","action-trash","action-close","action-key","action-alert","action-arrow"],
+      swarm: ["icon-tl","icon-tr","icon-bl","icon-br","action-refresh","action-save","action-network","action-warning","action-database","action-settings","action-shield","action-arrow"],
+      upload: ["hero","image","cloud","heart","settings","refresh","trash","close","check"],
+    };
+    const root = document.getElementById("root");
+    for (const [set, kinds] of Object.entries(sets)) {
+      const h = document.createElement("h2");
+      h.textContent = set + "-svg";
+      root.appendChild(h);
+      const grid = document.createElement("section");
+      grid.className = "grid";
+      for (const kind of kinds) {
+        const art = document.createElement("article");
+        art.className = "card";
+        art.innerHTML = `<img src="../../public/admin/ui/${set}-svg/${kind}.svg" alt="${kind}" /><figcaption>${kind}</figcaption>`;
+        grid.appendChild(art);
+      }
+      root.appendChild(grid);
+    }
+  </script>
+</body>
+</html>
