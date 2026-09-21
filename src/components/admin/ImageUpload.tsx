@@ -1,5 +1,6 @@
 "use client";
 
+import { UploadSprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
@@ -962,7 +963,7 @@ export default function ImageUpload({
                   "mx-auto w-12 h-12 flex items-center justify-center rounded-lg",
                   isLight ? "bg-gray-100" : "bg-gray-800"
                 )}>
-                  <span className="uploadArtwork uploadArtworkImage" aria-hidden="true" />
+                  <UploadSprite kind="image" className="uploadArtwork uploadArtworkImage" />
                 </div>
                 <div>
                   <p className={cn(
@@ -1036,7 +1037,7 @@ export default function ImageUpload({
                         : "border-gray-600 text-gray-300 hover:border-gray-500"
                     )}
                   >
-                    <span className="uploadArtwork uploadArtworkCloud" aria-hidden="true" />
+                    <UploadSprite kind="cloud" className="uploadArtwork" />
                     {t.adminImages.urlImportSelectFile}
                   </button>
                   {importFileName && (
@@ -1125,7 +1126,7 @@ export default function ImageUpload({
                   "mx-auto w-12 h-12 flex items-center justify-center rounded-lg",
                   isLight ? "bg-gray-100" : "bg-gray-800"
                 )}>
-                  <span className="uploadArtwork uploadArtworkCloud" aria-hidden="true" />
+                  <UploadSprite kind="hero" className="uploadArtwork uploadArtworkHero" />
                 </div>
                 <div>
                   <p className={cn(
@@ -1152,7 +1153,7 @@ export default function ImageUpload({
                   )}
                 >
                   <span>{t.adminUi.chooseFiles}</span>
-                  <span className="uploadArtwork uploadArtworkHeart" aria-hidden="true" />
+                  <UploadSprite kind="heart" className="uploadArtwork" />
                 </button>
                 <div className="admin-upload-format-chips" aria-label={t.adminUi.supportedFormats}>
                   <span>PNG ❀</span>
@@ -1175,7 +1176,7 @@ export default function ImageUpload({
           {nodes.length > 0 && selectedProvider !== "custom" && (
             <details className="admin-upload-advanced-options">
             <summary>
-              <span className="uploadArtwork uploadArtworkSettings" aria-hidden="true" />
+              <UploadSprite kind="settings" className="uploadArtwork uploadArtworkSettings" />
               <span>{t.adminUi.advancedUploadOptions}</span>
               <span className="uploadAdvancedChevron" aria-hidden="true" />
             </summary>
@@ -1345,7 +1346,7 @@ export default function ImageUpload({
             >
               {uploading ? (
                 <div className="flex items-center gap-2">
-                  <span className="uploadArtwork uploadArtworkRefresh animate-spin" aria-hidden="true" />
+                  <UploadSprite kind="refresh" className="uploadArtwork animate-spin" />
                   {t.adminImages.uploadCount.replace(
                     "{count}",
                     String(currentBatchTotal || pendingFilesCount)
@@ -1398,7 +1399,7 @@ export default function ImageUpload({
                   uploading && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <span className={cn("uploadArtwork uploadArtworkRefresh", uploading && "animate-spin")} aria-hidden="true" />
+                <UploadSprite kind="refresh" className={cn("uploadArtwork", uploading && "animate-spin")} />
                 {t.adminImages.retryAllFailed.replace("{count}", String(failedFilesCount))}
               </button>
             )}
@@ -1415,7 +1416,7 @@ export default function ImageUpload({
                   uploading && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <span className="uploadArtwork uploadArtworkTrash" aria-hidden="true" />
+                <UploadSprite kind="trash" className="uploadArtwork" />
                 {t.adminImages.clearSuccessful}
               </button>
             )}
@@ -1431,7 +1432,7 @@ export default function ImageUpload({
                 uploading && "opacity-50 cursor-not-allowed"
               )}
             >
-              <span className="uploadArtwork uploadArtworkTrash" aria-hidden="true" />
+              <UploadSprite kind="trash" className="uploadArtwork" />
               {t.adminImages.clearAll}
             </button>
             </div>
@@ -1455,7 +1456,7 @@ export default function ImageUpload({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={fileState.previewUrl} alt="" />
                     ) : (
-                      <span className="uploadArtwork uploadArtworkImage" aria-hidden="true" />
+                      <UploadSprite kind="image" className="uploadArtwork uploadArtworkImage" />
                     )}
                   </div>
                   <div className="admin-upload-queue-body">
@@ -1471,7 +1472,7 @@ export default function ImageUpload({
                             title={t.adminImages.retry}
                             aria-label={t.adminImages.retry}
                           >
-                            <span className={cn("uploadArtwork uploadArtworkRefresh", uploading && "animate-spin")} aria-hidden="true" />
+                            <UploadSprite kind="refresh" className={cn("uploadArtwork", uploading && "animate-spin")} />
                           </button>
                         )}
                         <button
@@ -1482,7 +1483,7 @@ export default function ImageUpload({
                           title={t.adminImages.remove}
                           aria-label={t.adminImages.remove}
                         >
-                          <span className="uploadArtwork uploadArtworkClose" aria-hidden="true" />
+                          <UploadSprite kind="close" className="uploadArtwork" />
                         </button>
                       </div>
                     </div>

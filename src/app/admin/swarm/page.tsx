@@ -1,5 +1,6 @@
 "use client";
 
+import { SwarmSprite } from "@/components/ui/admin-ui-sprites";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getNodeDisplayName, useAdminApi } from "@/lib/admin-api-client";
 import { useToast } from "@/hooks/useToast";
@@ -236,7 +237,7 @@ export default function SwarmPage() {
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.swarm}</span>
             <span style={{ color: "var(--secondary)" }}> {t.adminUi.nodes}</span>
-            <span className="admin-swarm-artwork admin-swarm-artworkHero" aria-hidden="true" />
+            <SwarmSprite kind="icon-br" className="admin-swarm-artwork admin-swarm-artworkHero" />
           </h1>
           <p className={styles.heroSubtitle}>
             {t.adminUi.swarmSubtitle}
@@ -248,7 +249,7 @@ export default function SwarmPage() {
             onClick={() => refreshSwarmNodeViews().catch(() => {})}
             className={cn(styles.btn, styles.btnLavender)}
           >
-            <span className="admin-swarm-action-artwork swarmActionRefresh" aria-hidden="true" />
+            <SwarmSprite kind="action-refresh" className="admin-swarm-action-artwork" />
             {t.common.refresh}
           </button>
           <button
@@ -257,7 +258,7 @@ export default function SwarmPage() {
             disabled={saving}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <span className="admin-swarm-action-artwork swarmActionSave" aria-hidden="true" />
+            <SwarmSprite kind="action-save" className="admin-swarm-action-artwork" />
             {saving ? t.adminConfig.saving : t.adminUi.saveSwarmConfig}
           </button>
         </div>
@@ -267,22 +268,22 @@ export default function SwarmPage() {
         <article className={cn(styles.statCard, styles.toneMint)}>
           <p className={styles.statLabel}>{t.adminUi.totalNodes}</p>
           <p className={styles.statValue}>{nodes.length}</p>
-          <span className={cn(styles.statIcon, "admin-swarm-action-artwork swarmActionNetwork")} aria-hidden="true" />
+          <SwarmSprite kind="action-network" className={cn(styles.statIcon, "admin-swarm-action-artwork")} />
         </article>
         <article className={cn(styles.statCard, styles.toneLavender)}>
           <p className={styles.statLabel}>{t.adminUi.online}</p>
           <p className={styles.statValue}>{statusCounts.online}</p>
-          <span className={cn(styles.statIcon, "admin-swarm-action-artwork swarmActionDatabase")} aria-hidden="true" />
+          <SwarmSprite kind="action-database" className={cn(styles.statIcon, "admin-swarm-action-artwork")} />
         </article>
         <article className={cn(styles.statCard, styles.toneAmber)}>
           <p className={styles.statLabel}>{t.adminUi.degraded}</p>
           <p className={styles.statValue}>{statusCounts.degraded}</p>
-          <span className={cn(styles.statIcon, "admin-swarm-action-artwork swarmActionWarning")} aria-hidden="true" />
+          <SwarmSprite kind="action-warning" className={cn(styles.statIcon, "admin-swarm-action-artwork")} />
         </article>
         <article className={cn(styles.statCard, styles.tonePink)}>
           <p className={styles.statLabel}>{t.adminUi.offline}</p>
           <p className={styles.statValue}>{statusCounts.offline}</p>
-          <span className={cn(styles.statIcon, "admin-swarm-action-artwork swarmActionShield")} aria-hidden="true" />
+          <SwarmSprite kind="action-shield" className={cn(styles.statIcon, "admin-swarm-action-artwork")} />
         </article>
       </section>
 
@@ -399,15 +400,15 @@ export default function SwarmPage() {
 
       <section className={styles.swarmFeatureGrid} aria-label={t.adminUi.swarmCapabilities}>
         <article>
-          <span className="admin-swarm-action-artwork swarmActionDatabase" aria-hidden="true" />
+          <SwarmSprite kind="action-database" className="admin-swarm-action-artwork" />
           <div><h2>{t.adminUi.sharedStorage}</h2><p>{t.adminUi.sharedStorageDescription}</p></div>
         </article>
         <article>
-          <span className="admin-swarm-action-artwork swarmActionNetwork" aria-hidden="true" />
+          <SwarmSprite kind="action-network" className="admin-swarm-action-artwork" />
           <div><h2>{t.adminUi.crossNodeScheduling}</h2><p>{t.adminUi.crossNodeSchedulingDescription}</p></div>
         </article>
         <article>
-          <span className="admin-swarm-action-artwork swarmActionWarning" aria-hidden="true" />
+          <SwarmSprite kind="action-warning" className="admin-swarm-action-artwork" />
           <div><h2>{t.adminUi.failover}</h2><p>{t.adminUi.failoverDescription}</p></div>
         </article>
       </section>
@@ -480,7 +481,7 @@ export default function SwarmPage() {
 
         {swarmConfig.providerDeliveryPolicy.cloudinary.mode !== "owner-node" && (
           <div className="admin-swarm-warning">
-            <span className="admin-swarm-action-artwork swarmActionWarning" aria-hidden="true" />
+            <SwarmSprite kind="action-warning" className="admin-swarm-action-artwork" />
             <p>{t.adminUi.cloudinaryDeliveryWarning}</p>
           </div>
         )}

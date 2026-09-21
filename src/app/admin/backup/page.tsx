@@ -1,5 +1,6 @@
 'use client';
 
+import { BackupSprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { useLocale } from '@/hooks/useLocale';
@@ -204,7 +205,7 @@ export default function BackupPage() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.backup}</span>
-            <span className="admin-backup-action-artwork admin-backup-action-hero" aria-hidden="true" />
+            <BackupSprite kind="icon-tr" className="admin-backup-action-artwork admin-backup-action-hero" />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminBackup.description}</p>
         </div>
@@ -215,7 +216,7 @@ export default function BackupPage() {
             disabled={isCreatingBackup}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <span className="admin-backup-action-artwork admin-backup-action-create" aria-hidden="true" />
+            <BackupSprite kind="action-create" className="admin-backup-action-artwork" />
             {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
           </button>
         </div>
@@ -239,7 +240,7 @@ export default function BackupPage() {
               <span />
             </label>
           </div>
-          <span className={styles.statIcon} aria-hidden="true" />
+          <BackupSprite kind="icon-br" className={styles.statIcon} />
         </article>
 
         <article className={cn(styles.statCard, styles.toneLavender)}>
@@ -247,7 +248,7 @@ export default function BackupPage() {
           <p className={styles.statValue} style={{ fontSize: '1.05rem', lineHeight: 1.25 }}>
             {formatShanghaiTime(backupStatus?.lastBackupTime ?? null)}
           </p>
-          <span className={styles.statIcon} aria-hidden="true" />
+          <BackupSprite kind="icon-tr" className={styles.statIcon} />
         </article>
 
         <article className={cn(styles.statCard, styles.toneAmber)}>
@@ -255,25 +256,25 @@ export default function BackupPage() {
           <p className={styles.statValue} style={{ fontSize: '1.35rem' }}>
             {backupStatus?.backupCount || 0}
           </p>
-          <span className={styles.statIcon} aria-hidden="true" />
+          <BackupSprite kind="icon-bl" className={styles.statIcon} />
         </article>
 
         <article className={cn(styles.statCard, styles.tonePink)}>
           <p className={styles.statLabel}>{t.adminStatus.database}</p>
           <p className={styles.statValue} style={{ fontSize: '1.35rem' }}>{backupStatus?.isDatabaseHealthy ? t.adminStatus.healthy : t.adminUi.check}</p>
-          <span className={styles.statIcon} aria-hidden="true" />
+          <BackupSprite kind="icon-tl" className={styles.statIcon} />
         </article>
       </section>
 
       <section className="admin-backup-action-row" aria-label={t.adminBackup.backupOperations}>
         <button type="button" className={cn(styles.btn, styles.btnPink)} onClick={createBackup} disabled={isCreatingBackup}>
-          <span className="admin-backup-action-artwork admin-backup-action-create" aria-hidden="true" /> {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
+          <BackupSprite kind="action-create" className="admin-backup-action-artwork" /> {isCreatingBackup ? t.adminBackup.creating : t.adminBackup.createBackup}
         </button>
         <button type="button" className={cn(styles.btn, styles.btnLavender)} onClick={initializeBackupDatabase} disabled={isInitializing}>
-          <span className="admin-backup-action-artwork admin-backup-action-initialize" aria-hidden="true" /> {isInitializing ? t.adminBackup.initializing : t.adminBackup.initializeBackupDb}
+          <BackupSprite kind="action-initialize" className="admin-backup-action-artwork" /> {isInitializing ? t.adminBackup.initializing : t.adminBackup.initializeBackupDb}
         </button>
         <button type="button" className={cn(styles.btn, styles.btnGhost)} onClick={fetchBackupStatus}>
-          <span className="admin-backup-action-artwork admin-backup-action-refresh" aria-hidden="true" /> {t.common.refresh}
+          <BackupSprite kind="action-refresh" className="admin-backup-action-artwork" /> {t.common.refresh}
         </button>
       </section>
 
@@ -349,7 +350,7 @@ export default function BackupPage() {
       <section className={styles.split}>
         <article className={styles.panel}>
           <h2 className={cn(styles.panelTitle, 'flex items-center gap-2')}>
-            <span className="admin-backup-action-artwork admin-backup-action-settings" aria-hidden="true" />
+            <BackupSprite kind="action-settings" className="admin-backup-action-artwork" />
             {t.adminBackup.backupOperations}
           </h2>
           <div className={cn(styles.miniCard, 'relative z-[1]')}>
@@ -359,7 +360,7 @@ export default function BackupPage() {
                 <p className="text-sm text-muted-foreground mt-1 mb-0">{t.adminBackup.restoreWarning}</p>
               </div>
               <span className="w-10 h-10 rounded-2xl bg-amber-400 flex items-center justify-center text-white shrink-0">
-                <span className="admin-backup-action-artwork admin-backup-action-restore" aria-hidden="true" />
+                <BackupSprite kind="action-restore" className="admin-backup-action-artwork" />
               </span>
             </div>
             <button
@@ -375,7 +376,7 @@ export default function BackupPage() {
 
         <article className={styles.panel}>
           <h2 className={cn(styles.panelTitle, 'flex items-center gap-2')}>
-            <span className="admin-backup-action-artwork admin-backup-action-initialize" aria-hidden="true" />
+            <BackupSprite kind="action-initialize" className="admin-backup-action-artwork" />
             {t.adminBackup.autoBackupSettings}
           </h2>
           <div className={cn(styles.miniCard, 'relative z-[1] flex items-center justify-between gap-4')}>

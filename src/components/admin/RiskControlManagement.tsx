@@ -1,3 +1,4 @@
+import { SecuritySprite } from "@/components/ui/admin-ui-sprites";
 import { useEffect, useState } from 'react';
 import { useLocale } from '@/hooks/useLocale';
 import { useToast } from '@/hooks/useToast';
@@ -204,7 +205,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
         <div className={styles.toolbar}>
           <div>
             <h3 className={cn(styles.toolbarTitle, 'flex items-center gap-2')}>
-              <span className="admin-security-artwork admin-security-artworkShield admin-security-inline-artwork" aria-hidden="true" />
+              <SecuritySprite kind="icon-shield" className="admin-security-artwork admin-security-inline-artwork" />
               {t.adminSecurity.riskControl}
             </h3>
             {config?.guardTriggeredReason ? (
@@ -217,7 +218,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
             disabled={savingConfig}
             className={cn(styles.btn, styles.btnPink)}
           >
-            <span className="admin-security-action-artwork securityActionArrow" aria-hidden="true" />
+            <SecuritySprite kind="action-arrow" className="admin-security-action-artwork" />
             {savingConfig ? t.adminSecurity.loading : t.adminSecurity.save}
           </button>
         </div>
@@ -308,7 +309,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
               disabled={addingEntry}
               className={cn(styles.btn, styles.btnLavender)}
             >
-              <span className="admin-security-action-artwork securityActionKey" aria-hidden="true" />
+              <SecuritySprite kind="action-key" className="admin-security-action-artwork" />
               {t.adminSecurity.addWhitelist}
             </button>
           </div>
@@ -346,7 +347,7 @@ export default function RiskControlManagement({ config, whitelist, onRefresh }: 
                             onClick={() => deleteWhitelistEntry(entry)}
                             className={cn(styles.linkDanger, 'inline-flex items-center gap-1')}
                           >
-                            <span className="admin-security-action-artwork securityActionTrash" aria-hidden="true" />
+                            <SecuritySprite kind="action-trash" className="admin-security-action-artwork" />
                             {t.adminSecurity.delete}
                           </button>
                         </div>

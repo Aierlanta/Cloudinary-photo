@@ -1,5 +1,6 @@
 'use client'
 
+import { ConfigSprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
@@ -222,7 +223,7 @@ export default function ParameterModal({
                 <span key={index}>
                   {value}
                   <button type="button" aria-label={t.common.delete} onClick={() => removeValue(index)}>
-                    <span className="admin-config-action admin-config-action-trash" aria-hidden="true" />
+                    <ConfigSprite kind="action-trash" className="admin-config-action" />
                   </button>
                 </span>
               ))}

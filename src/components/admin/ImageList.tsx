@@ -8,6 +8,7 @@ import {
   isTgStateImage,
   getEffectiveImageUrl,
 } from "@/lib/image-utils";
+import { GallerySprite } from "@/components/ui/admin-ui-sprites";
 import SmartImage from "@/components/ui/SmartImage";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
@@ -764,11 +765,11 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                 {t.adminImages.selectedImageCount.replace("{count}", selectedImages.size.toString())}
               </span>
               <button type="button" onClick={handleExitBulkMode} className="admin-gallery-bulk-action admin-gallery-bulk-exit">
-                <span className="galleryArtwork galleryArtworkClose" aria-hidden="true" />
+                <GallerySprite kind="close" className="galleryArtwork" />
                 {t.adminImages.exitBulkMode}
               </button>
               <button type="button" onClick={handleSelectAll} className="admin-gallery-bulk-action admin-gallery-bulk-select-all">
-                <span className="galleryArtwork galleryArtworkChecklist" aria-hidden="true" />
+                <GallerySprite kind="checklist" className="galleryArtwork" />
                 {allImagesSelected ? t.adminImages.clearSelection : t.adminImages.selectAll}
               </button>
               <button
@@ -777,7 +778,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                 disabled={!hasSelectedImages}
                 className="admin-gallery-bulk-action admin-gallery-bulk-move"
               >
-                <span className="galleryArtwork galleryArtworkMove" aria-hidden="true" />
+                <GallerySprite kind="move" className="galleryArtwork" />
                 {t.adminImages.moveToGroup}
               </button>
               <button
@@ -786,7 +787,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                 disabled={!hasSelectedImages}
                 className="admin-gallery-bulk-action admin-gallery-bulk-delete"
               >
-                <span className="galleryArtwork galleryArtworkTrash" aria-hidden="true" />
+                <GallerySprite kind="trash" className="galleryArtwork" />
                 {t.common.delete}
               </button>
               {isGroupPickerOpen ? (
@@ -829,7 +830,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
           <div className="admin-gallery-list-toolbar is-idle flex justify-between items-center">
             <div className="flex items-center gap-2">
               <button type="button" onClick={handleEnterBulkMode} className="admin-gallery-bulk-mode-trigger">
-                <span className="galleryArtwork galleryArtworkChecklist" aria-hidden="true" />
+                <GallerySprite kind="checklist" className="galleryArtwork" />
                 {t.adminImages.enterBulkMode}
               </button>
             </div>
@@ -927,7 +928,7 @@ export default function ImageList({ images, groups, loading, onDeleteImage, onBu
                       )}
                        title={t.adminImages.deleteImage}
                      >
-                      <span className="galleryArtwork galleryArtworkTrash" aria-hidden="true" />
+                      <GallerySprite kind="trash" className="galleryArtwork" />
                     </button>
                   )}
                 </div>

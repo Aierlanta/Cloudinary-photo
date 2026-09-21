@@ -1,5 +1,6 @@
 'use client'
 
+import { GroupsSprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/useToast'
@@ -207,17 +208,17 @@ export default function GroupsPage() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.groups}</span>
-            <span className="admin-groups-action-artwork admin-groups-action-hero" aria-hidden="true" />
+            <GroupsSprite kind="icon-tag" className="admin-groups-action-artwork admin-groups-action-hero" />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminGroups.description}</p>
         </div>
         <div className={styles.heroActions}>
           <button type="button" className={cn(styles.btn, styles.btnLavender)} onClick={loadGroups}>
-            <span className="admin-groups-action-artwork admin-groups-action-refresh" aria-hidden="true" />
+            <GroupsSprite kind="action-refresh" className="admin-groups-action-artwork" />
             {t.common.refresh}
           </button>
           <button type="button" className={cn(styles.btn, styles.btnPink)} onClick={startCreate}>
-            <span className="admin-groups-action-artwork admin-groups-action-create" aria-hidden="true" />
+            <GroupsSprite kind="action-create" className="admin-groups-action-artwork" />
             {t.adminGroups.createGroup}
           </button>
         </div>
@@ -232,17 +233,17 @@ export default function GroupsPage() {
 
       <section className={styles.metrics} aria-label={t.adminNav.groups}>
         <article className={styles.metric}>
-          <span className={cn(styles.metricArtwork, styles.groupArtworkTag)} aria-hidden="true" />
+          <GroupsSprite kind="icon-tag" className={styles.metricArtwork} />
           <span>{t.adminDashboard.groupCount}</span>
           <strong>{groups.length}</strong>
         </article>
         <article className={styles.metric}>
-          <span className={cn(styles.metricArtwork, styles.groupArtworkAlbum)} aria-hidden="true" />
+          <GroupsSprite kind="icon-album" className={styles.metricArtwork} />
           <span>{t.adminGroups.totalImages}</span>
           <strong>{totalImages}</strong>
         </article>
         <article className={styles.metric}>
-          <span className={cn(styles.metricArtwork, styles.groupArtworkCheck)} aria-hidden="true" />
+          <GroupsSprite kind="icon-check" className={styles.metricArtwork} />
           <span>{t.adminUi.avgPerGroup}</span>
           <strong>{averageImages}</strong>
         </article>
@@ -295,7 +296,7 @@ export default function GroupsPage() {
                 </div>
                 <div className={styles.modalActions}>
                   <button type="submit" disabled={submitting} className={cn(styles.btn, styles.btnPink, 'flex-1 justify-center')}>
-                    <span className="admin-groups-action-artwork admin-groups-action-save" aria-hidden="true" />
+                    <GroupsSprite kind="action-save" className="admin-groups-action-artwork" />
                     {submitting ? (editingGroup ? t.adminGroups.updating : t.adminGroups.creating) : t.common.save}
                   </button>
                   <button
@@ -322,7 +323,7 @@ export default function GroupsPage() {
             {groups.map((group) => (
               <article key={group.id} className={styles.groupCard}>
                 <div className="relative z-[1] flex items-start justify-between gap-2">
-                  <span className="admin-groups-action-artwork admin-groups-action-album shrink-0 mt-1" aria-hidden="true" />
+                  <GroupsSprite kind="action-album" className="admin-groups-action-artwork admin-groups-action-album shrink-0 mt-1" />
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -330,7 +331,7 @@ export default function GroupsPage() {
                       className={styles.iconBtn}
                       aria-label={t.common.edit}
                     >
-                      <span className="admin-groups-action-artwork admin-groups-action-edit" aria-hidden="true" />
+                      <GroupsSprite kind="action-edit" className="admin-groups-action-artwork" />
                     </button>
                     <button
                       type="button"
@@ -338,7 +339,7 @@ export default function GroupsPage() {
                       className={cn(styles.iconBtn, styles.iconBtnDanger)}
                       aria-label={t.common.delete}
                     >
-                      <span className="admin-groups-action-artwork admin-groups-action-trash" aria-hidden="true" />
+                      <GroupsSprite kind="action-trash" className="admin-groups-action-artwork" />
                     </button>
                   </div>
                 </div>
@@ -349,7 +350,7 @@ export default function GroupsPage() {
                 </p>
                 <div className={styles.groupMeta}>
                   <span className={styles.groupCount}>
-                    <span className="admin-groups-action-artwork admin-groups-action-album" aria-hidden="true" />
+                    <GroupsSprite kind="action-album" className="admin-groups-action-artwork admin-groups-action-album" />
                     {group.imageCount} {t.adminGroups.images}
                   </span>
                   <button
@@ -365,9 +366,7 @@ export default function GroupsPage() {
             ))}
 
             <button type="button" className={styles.createCard} onClick={startCreate}>
-              <span className={styles.createPlus}>
-                <span className="admin-groups-action-artwork admin-groups-action-create" aria-hidden="true" />
-              </span>
+              <GroupsSprite kind="icon-plus" className={styles.createPlus} />
               <strong>{t.adminGroups.createGroup}</strong>
               <small>{t.adminGroups.description}</small>
             </button>
