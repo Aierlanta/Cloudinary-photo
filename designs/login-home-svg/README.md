@@ -50,8 +50,9 @@ and behave the same:
 
 ## Visual verify
 
-1. Open [`compare.html`](./compare.html)
-2. Run the app → `/` and admin login
-3. Open originals next to SVGs:
+1. Screenshots: [`screenshots/png-vs-traced-svg.png`](./screenshots/png-vs-traced-svg.png) (280² PNG tile vs traced SVG)
+2. Open [`compare.html`](./compare.html)
+3. Run the app → `/` and admin login
+4. Open originals next to SVGs:
    - `/admin/ui/login-crest.png` vs `/admin/ui/login-svg/crest.svg`
    - `/home/ui/home-*-medallion*.png` vs `/home/ui/home-svg/*.svg`
