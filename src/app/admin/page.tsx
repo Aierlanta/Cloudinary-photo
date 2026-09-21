@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useAdminApi } from "@/lib/admin-api-client";
 import { useLocale } from "@/hooks/useLocale";
+import { DashboardSprite } from "@/components/ui/dashboard-sprites";
 import styles from "./admin-pages.module.css";
 
 interface Stats {
@@ -60,7 +61,7 @@ export default function AdminDashboard() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminNav.dashboard}</span>
-            <span className={styles.dashboardHeroArtwork} aria-hidden="true" />
+            <DashboardSprite kind="action-crest" className={styles.dashboardHeroArtwork} />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminDashboard.welcome}</p>
         </div>
@@ -68,28 +69,28 @@ export default function AdminDashboard() {
 
       <section className={styles.statGrid} aria-label={t.adminDashboard.accessStats}>
         <article className={cn(styles.statCard, styles.tonePink)}>
-          <span className={cn(styles.statArtwork, styles.statArtworkPhoto)} aria-hidden="true" />
+          <DashboardSprite kind="stat-photo" className={styles.statArtwork} />
           <div className={styles.statCopy}>
             <p className={styles.statLabel}>{t.adminDashboard.totalImages}</p>
             <p className={styles.statValue}>{loading ? "…" : stats?.totalImages || 0}</p>
           </div>
         </article>
         <article className={cn(styles.statCard, styles.toneLavender)}>
-          <span className={cn(styles.statArtwork, styles.statArtworkFolder)} aria-hidden="true" />
+          <DashboardSprite kind="stat-folder" className={styles.statArtwork} />
           <div className={styles.statCopy}>
             <p className={styles.statLabel}>{t.adminDashboard.groupCount}</p>
             <p className={styles.statValue}>{loading ? "…" : stats?.totalGroups || 0}</p>
           </div>
         </article>
         <article className={cn(styles.statCard, styles.toneMint)}>
-          <span className={cn(styles.statArtwork, styles.statArtworkClock)} aria-hidden="true" />
+          <DashboardSprite kind="stat-clock" className={styles.statArtwork} />
           <div className={styles.statCopy}>
             <p className={styles.statLabel}>{t.adminDashboard.recentUploads}</p>
             <p className={styles.statValue}>{loading ? "…" : stats?.recentUploads || 0}</p>
           </div>
         </article>
         <article className={cn(styles.statCard, styles.toneAmber)}>
-          <span className={cn(styles.statArtwork, styles.statArtworkShield)} aria-hidden="true" />
+          <DashboardSprite kind="stat-shield" className={styles.statArtwork} />
           <div className={styles.statCopy}>
             <p className={styles.statLabel}>{t.adminDashboard.last24HoursAccessShort}</p>
             <p className={styles.statValue}>{loading ? "…" : stats?.access?.last24Hours || 0}</p>
@@ -111,7 +112,7 @@ export default function AdminDashboard() {
                 styles.miniStatus,
                 stats?.backup?.isDatabaseHealthy === false ? styles.statusPillDanger : styles.statusPillHealthy
               )}>
-                <span className={styles.statusPillArtwork} aria-hidden="true" />
+                <DashboardSprite kind="action-crest" className={styles.statusPillArtwork} />
                 <span>{t.adminUi.databaseHealth}</span>
               </span>
             </div>
@@ -132,32 +133,32 @@ export default function AdminDashboard() {
           <h2 className={styles.panelTitle}>{t.adminDashboard.quickActions}</h2>
           <div className={styles.actionGrid}>
             <Link href="/admin/images" className={cn(styles.actionLink, styles.actionPink)}>
-              <span className={cn(styles.actionArtwork, styles.actionArtworkUpload)} aria-hidden="true" />
+              <DashboardSprite kind="action-upload" className={styles.actionArtwork} />
               <span><p className={styles.actionTitle}>{t.adminDashboard.uploadImage}</p></span>
-              <span className={cn(styles.actionArrow, styles.actionArrowPink)} aria-hidden="true" />
+              <DashboardSprite kind="arrow-pink" className={styles.actionArrow} />
             </Link>
             <Link href="/admin/groups" className={cn(styles.actionLink, styles.actionLavender)}>
-              <span className={cn(styles.actionArtwork, styles.actionArtworkFolder)} aria-hidden="true" />
+              <DashboardSprite kind="action-folder" className={styles.actionArtwork} />
               <span><p className={styles.actionTitle}>{t.adminDashboard.manageGroups}</p></span>
-              <span className={cn(styles.actionArrow, styles.actionArrowLavender)} aria-hidden="true" />
+              <DashboardSprite kind="arrow-lavender" className={styles.actionArrow} />
             </Link>
             <Link href="/admin/status" className={cn(styles.actionLink, styles.actionMint)}>
-              <span className={cn(styles.actionArtwork, styles.actionArtworkApi)} aria-hidden="true" />
+              <DashboardSprite kind="action-api" className={styles.actionArtwork} />
               <span><p className={styles.actionTitle}>{t.adminUi.viewApiStatus}</p></span>
-              <span className={cn(styles.actionArrow, styles.actionArrowMint)} aria-hidden="true" />
+              <DashboardSprite kind="arrow-mint" className={styles.actionArrow} />
             </Link>
           </div>
         </div>
 
         <div className={cn(styles.panel, styles.healthPanel)}>
           <h2 className={styles.panelTitle}>{t.adminUi.databaseHealth}</h2>
-          <span className={styles.healthArtwork} aria-hidden="true" />
+          <DashboardSprite kind="action-crest" className={styles.healthArtwork} />
           <span className={cn(
             styles.statusPill,
             styles.healthStatus,
             stats?.backup?.isDatabaseHealthy === false ? styles.statusPillDanger : styles.statusPillHealthy
           )}>
-            <span className={styles.statusPillArtwork} aria-hidden="true" />
+            <DashboardSprite kind="action-crest" className={styles.statusPillArtwork} />
             <span>{stats?.backup?.isDatabaseHealthy === false ? t.adminBackup.abnormal : t.adminBackup.healthy}</span>
           </span>
           <dl className={styles.healthFacts}>

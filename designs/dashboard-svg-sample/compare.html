@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard sprites — WebP vs traced SVG</title>
+  <style>
+    :root { --bg:#2b233d; --panel:#382d4e; --cream:#fff0df; --pink:#ff7198; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 28px; color: var(--cream);
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      background: radial-gradient(circle at 20% 0%, #3a2f52, var(--bg));
+      line-height: 1.45;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 8px; }
+    p { margin: 0 0 18px; opacity: 0.88; max-width: 64rem; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+    .card {
+      background: linear-gradient(145deg, var(--panel), #241c34);
+      border: 1.5px solid color-mix(in srgb, var(--pink) 55%, #aa87d6);
+      border-radius: 14px; padding: 12px;
+    }
+    .card h2 { margin: 0 0 10px; font-size: 0.95rem; }
+    .row { display: flex; gap: 10px; }
+    figure { margin: 0; flex: 1; text-align: center; }
+    figcaption {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; opacity: 0.75; margin-bottom: 6px;
+    }
+    img {
+      width: 100%; max-width: 160px; height: auto; border-radius: 8px;
+      background: #1a1426;
+    }
+    code { color: #ffb0c6; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard UI sprites — WebP sheet vs traced SVG tiles</h1>
+  <p>
+    Live Dashboard (<code>/admin</code>) uses <code>DashboardSprite</code> →
+    <code>/admin/ui/dashboard-svg/*.svg</code>. Original WebP sheets stay under
+    <code>public/admin/ui/</code> for review only (no longer referenced by Dashboard CSS).
+  </p>
+
+  <section class="grid" id="pairs"></section>
+
+  <script>
+    const kinds = [
+      ["stat-photo", "dashboard-stat-icons.webp TL"],
+      ["stat-folder", "dashboard-stat-icons.webp TR"],
+      ["stat-clock", "dashboard-stat-icons.webp BL"],
+      ["stat-shield", "dashboard-stat-icons.webp BR"],
+      ["action-upload", "dashboard-action-icons.webp TL"],
+      ["action-folder", "dashboard-action-icons.webp TR"],
+      ["action-api", "dashboard-action-icons.webp BL"],
+      ["action-crest", "dashboard-action-icons.webp BR"],
+      ["arrow-pink", "dashboard-action-arrows.webp L"],
+      ["arrow-lavender", "dashboard-action-arrows.webp M"],
+      ["arrow-mint", "dashboard-action-arrows.webp R"],
+    ];
+    const root = document.getElementById("pairs");
+    for (const [kind, note] of kinds) {
+      const el = document.createElement("article");
+      el.className = "card";
+      el.innerHTML = `
+        <h2>${kind} <small style="opacity:.65;font-weight:600">(${note})</small></h2>
+        <div class="row">
+          <figure>
+            <figcaption>Traced SVG</figcaption>
+            <img src="../../public/admin/ui/dashboard-svg/${kind}.svg" alt="${kind}" />
+          </figure>
+        </div>`;
+      root.appendChild(el);
+    }
+  </script>
+</body>
+</html>

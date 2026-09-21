@@ -105,7 +105,9 @@
 }
 
 .heroTitle .heroIconBadge,
-.heroTitle .heroIconBadge * {
+.heroTitle .heroIconBadge *,
+.heroTitle .dashboardHeroArtwork,
+.heroTitle .dashboardHeroArtwork * {
   max-width: none;
   overflow: visible;
   -webkit-text-stroke: 0;
@@ -335,17 +337,10 @@
   width: 116px;
   height: 116px;
   transform: translateY(-50%);
-  background-image: url("/admin/ui/dashboard-stat-icons.webp");
-  background-repeat: no-repeat;
-  background-size: 200% 200%;
+  /* SVG via DashboardSprite — former sprite: dashboard-stat-icons.webp */
   filter: drop-shadow(0 6px 5px rgba(75, 46, 57, 0.24));
   pointer-events: none;
 }
-
-.statArtworkPhoto { background-position: 0 0; }
-.statArtworkFolder { background-position: 100% 0; }
-.statArtworkClock { background-position: 0 100%; }
-.statArtworkShield { background-position: 100% 100%; }
 
 .statIcon {
   position: absolute;
@@ -574,9 +569,7 @@
 .healthArtwork {
   position: absolute;
   z-index: 2;
-  background-image: url("/admin/ui/dashboard-action-icons.webp");
-  background-repeat: no-repeat;
-  background-size: 200% 200%;
+  /* SVG via DashboardSprite — former sprite: dashboard-action-icons.webp */
   filter: drop-shadow(0 5px 4px rgba(56, 36, 62, 0.24));
   pointer-events: none;
 }
@@ -589,10 +582,6 @@
   transform: translateY(-50%);
 }
 
-.actionArtworkUpload { background-position: 0 0; }
-.actionArtworkFolder { background-position: 100% 0; }
-.actionArtworkApi { background-position: 0 100%; }
-
 .actionArrow {
   position: absolute;
   z-index: 2;
@@ -600,16 +589,10 @@
   display: block;
   width: 34px;
   height: 34px;
-  background-image: url("/admin/ui/dashboard-action-arrows.webp");
-  background-repeat: no-repeat;
-  background-size: 300% 100%;
+  /* SVG via DashboardSprite — former sprite: dashboard-action-arrows.webp */
   filter: drop-shadow(0 3px 3px rgba(56, 36, 62, 0.24));
   pointer-events: none;
 }
-
-.actionArrowPink { background-position: 0 0; }
-.actionArrowLavender { background-position: 50% 0; }
-.actionArrowMint { background-position: 100% 0; }
 
 .healthPanel {
   display: grid;
@@ -622,7 +605,6 @@
   width: 138px;
   height: 138px;
   margin: -4px auto -10px;
-  background-position: 100% 100%;
 }
 
 .dashboardHeroArtwork {
@@ -631,10 +613,7 @@
   height: 52px;
   margin-left: 9px;
   vertical-align: middle;
-  background-image: url("/admin/ui/dashboard-action-icons.webp");
-  background-repeat: no-repeat;
-  background-size: 200% 200%;
-  background-position: 100% 100%;
+  /* SVG via DashboardSprite — former crest tile of dashboard-action-icons.webp */
   filter: drop-shadow(0 5px 4px rgba(56, 36, 62, 0.24));
   transform: translateY(4px) rotate(4deg);
 }
@@ -678,10 +657,7 @@
   width: 25px;
   height: 25px;
   flex: 0 0 auto;
-  background-image: url("/admin/ui/dashboard-action-icons.webp");
-  background-repeat: no-repeat;
-  background-size: 200% 200%;
-  background-position: 100% 100%;
+  /* SVG via DashboardSprite — former crest tile of dashboard-action-icons.webp */
   filter: drop-shadow(0 2px 2px rgba(12, 8, 21, 0.32));
 }
 

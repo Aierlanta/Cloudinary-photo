@@ -1,0 +1,36 @@
+.root {
+  --dash-sprite-shadow: rgba(56, 36, 62, 0.28);
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  line-height: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 4px var(--dash-sprite-shadow));
+  transition: filter 160ms ease, transform 160ms ease;
+}
+
+.art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+:global(a):hover .root,
+:global(button):hover .root {
+  filter: drop-shadow(0 7px 5px var(--dash-sprite-shadow)) brightness(1.05);
+}
+
+:global(a):active .root,
+:global(button):active .root {
+  filter: drop-shadow(0 3px 2px var(--dash-sprite-shadow)) brightness(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    transition: none;
+  }
+}
