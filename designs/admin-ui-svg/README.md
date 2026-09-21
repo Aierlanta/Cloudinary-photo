@@ -3,7 +3,7 @@
 Continues the Dashboard sample from PR #60: convert the rest of `public/admin/ui/*.webp`
 admin chrome sprites to traced SVG, wired like `DashboardSprite`.
 
-**Out of scope (later PR):** login crest (`login-crest.png`), home medallions under `public/home/ui/`.
+**Continued in:** [`designs/login-home-svg/`](../login-home-svg/) (login crest + home medallions).
 **Never touched:** bucket ③ / photo content assets, auth, API, upload/gallery data pipelines.
 
 ## Approach

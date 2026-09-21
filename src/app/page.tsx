@@ -18,6 +18,7 @@ import {
 } from "@/lib/adminTheme";
 import { cn } from "@/lib/utils";
 import { OrnateIcon } from "@/components/ui/ornate-icon";
+import { HomeSprite, type HomeSpriteKind } from "@/components/ui/login-home-sprites";
 
 import styles from "./home.module.css";
 
@@ -126,7 +127,7 @@ function EmptyPreview({ title, hint }: { title: string; hint: string }) {
 
 interface StatCardProps {
   className: string;
-  artworkClass: string;
+  artworkKind: HomeSpriteKind;
   value: string;
   label: string;
   decoration: ReactNode;
@@ -134,7 +135,7 @@ interface StatCardProps {
 
 function StatCard({
   className,
-  artworkClass,
+  artworkKind,
   value,
   label,
   decoration,
@@ -142,7 +143,7 @@ function StatCard({
   return (
     <div className={cn(styles.statCard, className)}>
       {decoration}
-      <span className={cn(styles.statArtwork, artworkClass)} aria-hidden="true" />
+      <HomeSprite kind={artworkKind} className={styles.statArtwork} />
       <div className={styles.statCopy}>
         <div className={styles.statValue}>{value}</div>
         <div className={styles.statLabel}>{label}</div>
@@ -279,7 +280,7 @@ function HomeContent() {
               className={cn(styles.navButton, styles.artNavButton, styles.docsButton)}
               aria-label={t.home.apiDocs}
             >
-              <span className={cn(styles.navArtwork, styles.docsArtwork)} aria-hidden />
+              <HomeSprite kind="nav-docs" className={styles.navArtwork} />
               <span className={styles.navLabel}>{t.home.apiDocs}</span>
             </Link>
             <Link
@@ -289,14 +290,14 @@ function HomeContent() {
               className={cn(styles.navButton, styles.artNavButton, styles.githubButton)}
               aria-label="GitHub"
             >
-              <span className={cn(styles.navArtwork, styles.githubArtwork)} aria-hidden />
+              <HomeSprite kind="nav-github" className={styles.navArtwork} />
               <span className={styles.navLabel}>GitHub</span>
             </Link>
             <Link
               href="/admin"
               className={cn(styles.navButton, styles.adminButton)}
             >
-              <span className={cn(styles.navArtwork, styles.adminArtwork)} aria-hidden />
+              <HomeSprite kind="admin" className={styles.navArtwork} />
               <span className={styles.navLabel}>{t.home.managementPanel}</span>
             </Link>
           </nav>
@@ -411,7 +412,7 @@ function HomeContent() {
             <div className={styles.statsGrid}>
               <StatCard
                 className={styles.statPink}
-                artworkClass={styles.statArtworkPicture}
+                artworkKind="stat-picture"
                 value={totalImages.toLocaleString()}
                 label={t.home.statImages}
                 decoration={
@@ -427,7 +428,7 @@ function HomeContent() {
               />
               <StatCard
                 className={styles.statPurple}
-                artworkClass={styles.statArtworkAlbum}
+                artworkKind="stat-album"
                 value={totalGroups.toLocaleString()}
                 label={t.home.statGroups}
                 decoration={
@@ -449,7 +450,7 @@ function HomeContent() {
               />
               <StatCard
                 className={styles.statMint}
-                artworkClass={styles.statArtworkShield}
+                artworkKind="stat-shield"
                 value="99.9%"
                 label={t.home.statUptime}
                 decoration={
@@ -481,7 +482,7 @@ function HomeContent() {
               aria-label={t.home.toggleLanguage}
               className={styles.footerControlButton}
             >
-              <span className={cn(styles.footerArtwork, styles.footerLanguageArtwork)} aria-hidden />
+              <HomeSprite kind="footer-language" className={styles.footerArtwork} />
             </button>
             <button
               type="button"
@@ -489,12 +490,9 @@ function HomeContent() {
               aria-label={t.home.toggleTheme}
               className={styles.footerControlButton}
             >
-              <span
-                className={cn(
-                  styles.footerArtwork,
-                  theme === "dark" ? styles.footerSunArtwork : styles.footerMoonArtwork,
-                )}
-                aria-hidden
+              <HomeSprite
+                kind={theme === "dark" ? "footer-sun" : "footer-moon"}
+                className={styles.footerArtwork}
               />
             </button>
             <Link
@@ -504,7 +502,7 @@ function HomeContent() {
               aria-label={t.footer.github}
               className={styles.footerControlButton}
             >
-              <span className={cn(styles.footerArtwork, styles.footerGithubArtwork)} aria-hidden />
+              <HomeSprite kind="footer-github" className={styles.footerArtwork} />
             </Link>
           </div>
         </div>

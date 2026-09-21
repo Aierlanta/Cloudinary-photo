@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Login + home medallions — PNG vs traced SVG</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 24px; background: #fff8f0; color: #3d2530; }
+    h1 { font-size: 1.35rem; }
+    h2 { margin-top: 2rem; font-size: 1.1rem; }
+    table { border-collapse: collapse; width: 100%; max-width: 960px; }
+    th, td { border: 1px solid #e4c4c8; padding: 10px 12px; text-align: left; vertical-align: middle; }
+    th { background: #ffe6ec; }
+    img { max-width: 96px; max-height: 96px; background: #fff; }
+    code { font-size: 0.85em; }
+    .note { max-width: 960px; line-height: 1.45; }
+  </style>
+</head>
+<body>
+  <h1>Login crest + home medallions — PNG vs traced SVG</h1>
+  <p class="note">
+    Original PNGs stay on disk. Preview-controls (bow / refresh heart) are out of scope.
+    Reviewer focus: artwork swap only — login/home selectable options must remain identical.
+  </p>
+
+  <h2>Login</h2>
+  <table>
+    <tr><th>Kind</th><th>Former PNG</th><th>SVG</th></tr>
+    <tr>
+      <td><code>crest</code></td>
+      <td><img src="/admin/ui/login-crest.png" alt="login crest png" /></td>
+      <td><img src="/admin/ui/login-svg/crest.svg" alt="login crest svg" /></td>
+    </tr>
+  </table>
+
+  <h2>Home medallions</h2>
+  <table>
+    <tr><th>Kind</th><th>Former sheet</th><th>SVG</th></tr>
+    <tr>
+      <td><code>nav-docs</code></td>
+      <td rowspan="2"><img src="/home/ui/home-nav-medallions.png" alt="nav sheet" /></td>
+      <td><img src="/home/ui/home-svg/nav-docs.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>nav-github</code></td>
+      <td><img src="/home/ui/home-svg/nav-github.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>admin</code></td>
+      <td><img src="/home/ui/home-admin-medallion.png" alt="admin medallion" /></td>
+      <td><img src="/home/ui/home-svg/admin.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>stat-picture</code></td>
+      <td rowspan="4"><img src="/home/ui/home-stat-medallions.png" alt="stat sheet" /></td>
+      <td><img src="/home/ui/home-svg/stat-picture.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>stat-album</code></td>
+      <td><img src="/home/ui/home-svg/stat-album.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>stat-shield</code></td>
+      <td><img src="/home/ui/home-svg/stat-shield.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>stat-br</code> (unused tile)</td>
+      <td><img src="/home/ui/home-svg/stat-br.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>footer-language</code></td>
+      <td rowspan="4"><img src="/home/ui/home-footer-medallions.png" alt="footer sheet" /></td>
+      <td><img src="/home/ui/home-svg/footer-language.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>footer-sun</code></td>
+      <td><img src="/home/ui/home-svg/footer-sun.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>footer-moon</code></td>
+      <td><img src="/home/ui/home-svg/footer-moon.svg" alt="" /></td>
+    </tr>
+    <tr>
+      <td><code>footer-github</code></td>
+      <td><img src="/home/ui/home-svg/footer-github.svg" alt="" /></td>
+    </tr>
+  </table>
+</body>
+</html>
