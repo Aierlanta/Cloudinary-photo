@@ -1,6 +1,5 @@
 "use client";
 
-import { SecuritySprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocale } from "@/hooks/useLocale";
 import { cn } from "@/lib/utils";
@@ -10,8 +9,22 @@ import RiskControlManagement from "@/components/admin/RiskControlManagement";
 import { IPLocationBadge } from "@/components/admin/IPLocation";
 import { useAdminApi } from "@/lib/admin-api-client";
 import AdminPortal from "@/components/admin/AdminPortal";
+import { SecuritySprite, type SecuritySpriteKind } from "@/components/ui/admin-ui-sprites";
 import styles from "../admin-pages.module.css";
 import securityStyles from "./security.module.css";
+
+const SECURITY_TAB_KIND: Record<string, SecuritySpriteKind> = {
+  refresh: "action-refresh",
+  chart: "action-chart",
+  location: "action-location",
+  trash: "action-trash",
+  close: "action-close",
+  key: "action-key",
+  alert: "action-alert",
+  arrow: "action-arrow",
+  shield: "icon-shield",
+  ban: "icon-ban",
+};
 
 interface AccessStats {
   totalAccess: number;
@@ -244,14 +257,7 @@ export default function SecurityManagement() {
               className={cn(styles.tab, active && styles.tabActive)}
             >
               <SecuritySprite
-                kind={({
-                  refresh: "action-refresh",
-                  chart: "action-chart",
-                  location: "action-location",
-                  key: "action-key",
-                  ban: "icon-ban",
-                  shield: "icon-shield",
-                } as const)[tab.icon] ?? "action-refresh"}
+                kind={SECURITY_TAB_KIND[tab.icon] ?? "action-chart"}
                 className="admin-security-action-artwork"
               />
               <span>{tab.label}</span>
