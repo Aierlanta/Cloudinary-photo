@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useLocale } from '@/hooks/useLocale'
-import { AlertTriangle, Home, LoaderCircle, Lock, Star } from 'lucide-react'
+import { AlertTriangle, Home, LoaderCircle, Star } from 'lucide-react'
 import { OrnateIcon } from '@/components/ui/ornate-icon'
+import { LoginSprite } from '@/components/ui/login-home-sprites'
 import styles from './login-form.module.css'
 
 interface LoginFormProps {
@@ -52,12 +53,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
         </div>
 
         <div className={styles.heading}>
-          <OrnateIcon
-            icon={Lock}
-            tone="pink"
-            size="xl"
-            className={styles.crest}
-          />
+          <LoginSprite kind="crest" className={styles.crest} />
           <h2>
             {t.adminLogin.title}
           </h2>

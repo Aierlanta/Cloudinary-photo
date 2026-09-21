@@ -105,18 +105,9 @@
   padding: 0;
   border: 0;
   border-radius: 0;
-  background-color: transparent;
-  background-image: url("/admin/ui/login-crest.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+  background: transparent;
+  /* SVG via LoginSprite — former art: login-crest.png */
   filter: drop-shadow(0 8px 7px rgba(121, 67, 101, 0.28));
-}
-
-.crest::before,
-.crest::after,
-.crest > * {
-  display: none;
 }
 
 .heading h2 {
