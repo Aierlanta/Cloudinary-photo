@@ -1,5 +1,6 @@
 'use client'
 
+import { ConfigSprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useEffect, useCallback } from 'react'
 import ParameterModal from '@/components/admin/ParameterModal'
 import { useLocale } from '@/hooks/useLocale'
@@ -585,7 +586,7 @@ const {
           <div>
             <h1 className={pageStyles.heroTitle}>
               <span>{t.adminNav.apiConfig}</span>
-              <span className="admin-config-illustration admin-config-illustration-hero" aria-hidden="true" />
+              <ConfigSprite kind="icon-shield" className="admin-config-illustration admin-config-illustration-hero" />
             </h1>
             <p className={pageStyles.heroSubtitle}>{t.adminConfig.description}</p>
           </div>
@@ -595,7 +596,7 @@ const {
               onClick={() => { loadConfig(); loadGroups(); loadCloudinaryUsage().catch(() => {}); }}
               className={cn(pageStyles.btn, pageStyles.btnLavender)}
             >
-              <span className="admin-config-action admin-config-action-refresh" aria-hidden="true" />
+              <ConfigSprite kind="action-refresh" className="admin-config-action" />
               {t.common.refresh}
             </button>
             <button
@@ -604,7 +605,7 @@ const {
               disabled={saving}
               className={cn(pageStyles.btn, pageStyles.btnPink)}
             >
-              <span className="admin-config-action admin-config-action-save" aria-hidden="true" />
+              <ConfigSprite kind="action-save" className="admin-config-action" />
               {saving ? t.adminConfig.saving : t.common.save}
             </button>
           </div>
@@ -746,7 +747,7 @@ const {
               <div className="admin-config-toggle-grid">
                 <label>
                   <span>
-                    <span className="admin-config-illustration admin-config-illustration-shield" aria-hidden="true" />
+                    <ConfigSprite kind="icon-shield" className="admin-config-illustration" />
                     <b>{t.adminConfig.apiStatus}</b>
                     <small>{t.adminConfig.enablePublicAPI}</small>
                   </span>
@@ -762,7 +763,7 @@ const {
                 </label>
                 <label>
                   <span>
-                    <span className="admin-config-illustration admin-config-illustration-lock" aria-hidden="true" />
+                    <ConfigSprite kind="icon-lock" className="admin-config-illustration" />
                     <b>{t.adminConfig.apiKeyAuth}</b>
                     <small>{t.adminConfig.enableApiKey}</small>
                   </span>
@@ -778,7 +779,7 @@ const {
                 </label>
                 <label>
                   <span>
-                    <span className="admin-config-illustration admin-config-illustration-notebook" aria-hidden="true" />
+                    <ConfigSprite kind="icon-notebook" className="admin-config-illustration" />
                     <b>{t.adminConfig.enableDirectResponse}</b>
                     <small>{t.adminConfig.enableDirectResponseDesc}</small>
                   </span>
@@ -800,7 +801,7 @@ const {
                 <h2>{t.adminConfig.apiKeyValue}</h2>
                 <p className="admin-config-panel-desc">{t.adminConfig.apiKeyValueDesc}</p>
                 <label className="admin-config-inline-field">
-                  <span><span className="admin-config-illustration admin-config-illustration-shield" aria-hidden="true" /> {t.adminConfig.apiKeyValue}</span>
+                  <span><ConfigSprite kind="icon-shield" className="admin-config-illustration" /> {t.adminConfig.apiKeyValue}</span>
                   <div className="admin-config-inline-controls">
                     <input
                       type="text"
@@ -1133,7 +1134,7 @@ const {
                   className={cn(pageStyles.btn, pageStyles.btnPink)}
                   onClick={() => setShowAddParameter(true)}
                 >
-                  <span className="admin-config-action admin-config-action-add" aria-hidden="true" />
+                  <ConfigSprite kind="action-add" className="admin-config-action" />
                   {t.adminConfig.addParameter}
                 </button>
               </div>
@@ -1162,10 +1163,10 @@ const {
                       </div>
                       <div className="admin-config-param-actions">
                         <button type="button" aria-label={t.common.edit} onClick={() => setEditingParameter(param)}>
-                          <span className="admin-config-action admin-config-action-edit" aria-hidden="true" />
+                          <ConfigSprite kind="action-edit" className="admin-config-action" />
                         </button>
                         <button type="button" aria-label={t.common.delete} onClick={() => deleteParameter(index)}>
-                          <span className="admin-config-action admin-config-action-trash" aria-hidden="true" />
+                          <ConfigSprite kind="action-trash" className="admin-config-action" />
                         </button>
                       </div>
                     </li>
@@ -1187,7 +1188,7 @@ const {
                   onClick={() => navigator.clipboard.writeText(generateApiUrl())}
                   aria-label={t.common.copy}
                 >
-                  <span className="admin-config-action admin-config-action-copy" aria-hidden="true" />
+                  <ConfigSprite kind="action-copy" className="admin-config-action" />
                 </button>
               </div>
             </label>
@@ -1200,10 +1201,10 @@ const {
                     <div>
                       <code title={example.url}>{example.url}</code>
                       <button type="button" aria-label={t.common.copy} onClick={() => navigator.clipboard.writeText(example.url)}>
-                        <span className="admin-config-action admin-config-action-copy" aria-hidden="true" />
+                        <ConfigSprite kind="action-copy" className="admin-config-action" />
                       </button>
                       <button type="button" aria-label="open" onClick={() => window.open(example.url, '_blank')}>
-                        <span className="admin-config-action admin-config-action-external" aria-hidden="true" />
+                        <ConfigSprite kind="action-external" className="admin-config-action" />
                       </button>
                     </div>
                   </li>
@@ -1226,7 +1227,7 @@ const {
                   disabled={!testUrl || testing}
                   aria-label={t.adminConfig.apiTest}
                 >
-                  <span className="admin-config-action admin-config-action-play" aria-hidden="true" />
+                  <ConfigSprite kind="action-play" className="admin-config-action" />
                 </button>
               </div>
               {testResult && (

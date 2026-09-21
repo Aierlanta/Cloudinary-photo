@@ -1,5 +1,6 @@
 'use client'
 
+import { LogsSprite } from "@/components/ui/admin-ui-sprites";
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { LogLevel } from '@/lib/logger'
@@ -408,7 +409,7 @@ export default function LogViewer({
             className="admin-log-action admin-log-action-refresh"
             onClick={() => void loadLogs(pagination.page)}
           >
-            <span className="admin-log-artwork-action admin-log-artwork-refresh" aria-hidden="true" />
+            <LogsSprite kind="action-refresh" className="admin-log-artwork-action" />
             {t.adminLogs.refresh}
           </button>
 
@@ -429,7 +430,7 @@ export default function LogViewer({
               onClick={() => setIsExportMenuOpen((open) => !open)}
               aria-expanded={isExportMenuOpen}
             >
-              <span className="admin-log-artwork-action admin-log-artwork-export" aria-hidden="true" />
+              <LogsSprite kind="action-export" className="admin-log-artwork-action" />
               {t.adminUi.exportData}
               <span className="admin-log-chevron" aria-hidden="true" />
             </button>
@@ -454,7 +455,7 @@ export default function LogViewer({
               className="admin-log-action admin-log-action-clear"
               onClick={() => void handleClearLogs()}
             >
-              <span className="admin-log-artwork-action admin-log-artwork-trash" aria-hidden="true" />
+              <LogsSprite kind="action-trash" className="admin-log-artwork-action" />
               {t.adminLogs.clearLogs}
             </button>
           ) : null}
@@ -593,7 +594,7 @@ export default function LogViewer({
                 className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="admin-log-artwork-action admin-log-artwork-search" aria-hidden="true" />
+                <LogsSprite kind="action-search" className="admin-log-artwork-action" />
               </div>
             </div>
           </div>
@@ -622,7 +623,7 @@ export default function LogViewer({
       {error && (
         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shrink-0">
           <div className="flex items-center">
-            <span className="admin-log-artwork-action admin-log-artwork-warning" aria-hidden="true" />
+            <LogsSprite kind="action-warning" className="admin-log-artwork-action" />
             <span className="text-red-700 dark:text-red-300">{error}</span>
           </div>
         </div>
@@ -652,10 +653,9 @@ export default function LogViewer({
                   className="admin-log-entry bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
                 >
                   <div className="admin-log-entry-layout flex items-start justify-between">
-                    <span
+                    <LogsSprite
+                      kind={`level-${log.level}` as "level-0" | "level-1" | "level-2" | "level-3"}
                       className="admin-log-artwork"
-                      data-level={log.level}
-                      aria-hidden="true"
                     />
                     <div className="admin-log-entry-main flex-1">
                       <div className="flex items-center space-x-2 mb-1">

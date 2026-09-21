@@ -1,5 +1,6 @@
 "use client";
 
+import { GallerySprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -301,12 +302,12 @@ export default function GalleryPage() {
       <div className="admin-gallery-toolbar">
         <ImageFilters filters={filters} groups={groups} onFilterChange={handleFilterChange} />
         <div className="admin-gallery-toolbar-actions">
-          <Link href="/admin/images"><span className="galleryArtwork galleryArtworkAdd" aria-hidden="true" /> {t.adminNav.upload}</Link>
+          <Link href="/admin/images"><GallerySprite kind="add" className="galleryArtwork" /> {t.adminNav.upload}</Link>
           <button type="button" onClick={() => setFilters((current) => ({ ...current }))}>
-            <span className="galleryArtwork galleryArtworkRefresh" aria-hidden="true" /> {t.common.refresh}
+            <GallerySprite kind="refresh" className="galleryArtwork" /> {t.common.refresh}
           </button>
           <button type="button" onClick={handleExport}>
-            <span className="galleryArtwork galleryArtworkDownload" aria-hidden="true" /> {t.adminUi.exportData}
+            <GallerySprite kind="download" className="galleryArtwork" /> {t.adminUi.exportData}
           </button>
         </div>
       </div>

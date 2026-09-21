@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocale } from "@/hooks/useLocale";
+import { GallerySprite } from "@/components/ui/admin-ui-sprites";
 
 interface Group {
   id: string;
@@ -111,7 +112,7 @@ export default function ImageFilters({
               className="admin-gallery-search-clear"
               aria-label={t.common.clear}
             >
-              <span className="galleryArtwork galleryArtworkClose" aria-hidden="true" />
+              <GallerySprite kind="close" className="galleryArtwork" />
             </button>
           )}
         </div>
@@ -155,13 +156,13 @@ export default function ImageFilters({
             className={`admin-gallery-advanced-toggle${showAdvanced ? " is-active" : ""}`}
             aria-expanded={showAdvanced}
           >
-            <span className="galleryArtwork galleryArtworkChecklist" aria-hidden="true" />
+            <GallerySprite kind="checklist" className="galleryArtwork" />
             {t.adminUi.moreFilters}
           </button>
 
           {hasActiveFilters ? (
             <button type="button" onClick={handleReset} className="admin-gallery-reset">
-              <span className="galleryArtwork galleryArtworkRefresh" aria-hidden="true" />
+              <GallerySprite kind="refresh" className="galleryArtwork" />
               {t.adminImages.reset}
             </button>
           ) : null}

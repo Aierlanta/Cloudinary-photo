@@ -1,5 +1,6 @@
 'use client';
 
+import { SecuritySprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
@@ -126,7 +127,7 @@ export function IPLocationBadge({
         className
       )}>
         <span className="admin-security-location-loader" aria-hidden="true">
-          <span className="admin-security-action-artwork securityActionRefresh animate-spin" />
+          <SecuritySprite kind="action-refresh" className="admin-security-action-artwork animate-spin" />
         </span>
       </span>
     );

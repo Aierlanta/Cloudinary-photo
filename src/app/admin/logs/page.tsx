@@ -1,5 +1,6 @@
 'use client'
 
+import { LogsSprite } from "@/components/ui/admin-ui-sprites";
 import LogViewer from '@/components/admin/LogViewer'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
@@ -14,7 +15,7 @@ export default function SystemLogsPage() {
         <div>
           <h1 className={styles.heroTitle}>
             <span>{t.adminUi.accessLogs}</span>
-            <span className="admin-log-artwork admin-log-artwork-hero" aria-hidden="true" />
+            <LogsSprite kind="level-0" className="admin-log-artwork admin-log-artwork-hero" />
           </h1>
           <p className={styles.heroSubtitle}>{t.adminLogs.description}</p>
         </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { StatusSprite } from "@/components/ui/admin-ui-sprites";
 import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
@@ -161,7 +162,7 @@ export default function SystemStatusPage() {
           <div>
             <h1 className={pageStyles.heroTitle}>
               <span>{t.adminNav.status}</span>
-              <span className="admin-status-artwork admin-status-artwork-calendar" aria-hidden="true" />
+              <StatusSprite kind="calendar" className="admin-status-artwork" />
             </h1>
           </div>
         </header>
@@ -194,7 +195,7 @@ export default function SystemStatusPage() {
       <header className={pageStyles.hero}>
         <h1 className={pageStyles.heroTitle}>
           <span>{t.adminStatus.systemStatus}</span>
-          <span className="admin-status-artwork admin-status-artwork-shield" aria-hidden="true" />
+          <StatusSprite kind="shield" className="admin-status-artwork" />
         </h1>
         <button type="button" onClick={loadStatus} className={cn(pageStyles.btn, pageStyles.btnLavender)}>
           <span className="admin-status-refresh" aria-hidden="true" />
@@ -204,17 +205,17 @@ export default function SystemStatusPage() {
 
         <section className={pageStyles.statusServiceGrid} aria-label={t.adminStatus.serviceStatus}>
         {[
-          { label: t.adminStatus.apiService, healthy: status.services.api.enabled, artwork: pageStyles.statusArtworkShield },
-          { label: t.adminUi.storageService, healthy: status.services.cloudinary.healthy, artwork: pageStyles.statusArtworkClock },
-          { label: t.adminStatus.database, healthy: status.services.database.healthy, artwork: pageStyles.statusArtworkServer },
+          { label: t.adminStatus.apiService, healthy: status.services.api.enabled, artwork: "shield" as const },
+          { label: t.adminUi.storageService, healthy: status.services.cloudinary.healthy, artwork: "clock" as const },
+          { label: t.adminStatus.database, healthy: status.services.database.healthy, artwork: "server" as const },
         ].map(({ label, healthy, artwork }) => (
           <article key={label} className={cn(pageStyles.statusServiceCard, healthy ? pageStyles.statusHealthy : pageStyles.statusWarning)}>
-            <span className={cn(pageStyles.statusServiceArtwork, artwork)} aria-hidden="true" />
+            <StatusSprite kind={artwork} className={pageStyles.statusServiceArtwork} />
             <div>
               <h2>{label}</h2>
               <p>{t.adminUi.checkedAt.replace('{time}', checkedAt)}</p>
             </div>
-            <span className={cn("admin-status-artwork", healthy ? "admin-status-artwork-check" : "admin-status-artwork-clock")} aria-hidden="true" />
+            <StatusSprite kind={healthy ? "shield" : "clock"} className="admin-status-artwork" />
           </article>
         ))}
       </section>
@@ -223,19 +224,19 @@ export default function SystemStatusPage() {
         <article className={pageStyles.statusDetailPanel}>
           <h2>{t.adminUi.systemInfo}</h2>
           <div className={pageStyles.statusMetricGrid}>
-            <div className={pageStyles.statusMetric}><span className="admin-status-artwork admin-status-artwork-calendar" aria-hidden="true" /><span>{t.adminStatus.version}</span><strong>v{status.version}</strong></div>
-            <div className={pageStyles.statusMetric}><span className="admin-status-artwork admin-status-artwork-clock" aria-hidden="true" /><span>{t.adminStatus.uptime}</span><strong>{formatUptime(status.uptime)}</strong></div>
-            <div className={pageStyles.statusMetric}><span className="admin-status-artwork admin-status-artwork-server" aria-hidden="true" /><span>{t.adminStatus.memoryUsage}</span><strong>{memoryUsed} MB</strong><progress max="100" value={memoryPercent} /></div>
-            <div className={pageStyles.statusMetric}><span className="admin-status-artwork admin-status-artwork-shield" aria-hidden="true" /><span>Node.js</span><strong>{status.environment || t.adminUi.running}</strong></div>
+            <div className={pageStyles.statusMetric}><StatusSprite kind="calendar" className="admin-status-artwork" /><span>{t.adminStatus.version}</span><strong>v{status.version}</strong></div>
+            <div className={pageStyles.statusMetric}><StatusSprite kind="clock" className="admin-status-artwork" /><span>{t.adminStatus.uptime}</span><strong>{formatUptime(status.uptime)}</strong></div>
+            <div className={pageStyles.statusMetric}><StatusSprite kind="server" className="admin-status-artwork" /><span>{t.adminStatus.memoryUsage}</span><strong>{memoryUsed} MB</strong><progress max="100" value={memoryPercent} /></div>
+            <div className={pageStyles.statusMetric}><StatusSprite kind="shield" className="admin-status-artwork" /><span>Node.js</span><strong>{status.environment || t.adminUi.running}</strong></div>
           </div>
         </article>
 
         <article className={pageStyles.statusDetailPanel}>
           <h2>{t.adminUi.storageProviders}</h2>
           <div className={pageStyles.statusProviderList}>
-            <div><span className="admin-status-artwork admin-status-artwork-shield" aria-hidden="true" /><span><strong>Cloudinary</strong><small>{status.services.cloudinary.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.cloudinary.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.cloudinary.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
-            <div><span className="admin-status-artwork admin-status-artwork-server" aria-hidden="true" /><span><strong>TgState</strong><small>{status.services.database.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.database.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.database.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
-            <div><span className="admin-status-artwork admin-status-artwork-calendar" aria-hidden="true" /><span><strong>{t.adminStatus.apiService}</strong><small>{status.services.api.parametersCount ?? 0} {t.adminUi.configuredParameters}</small></span><b className={status.services.api.enabled ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.api.enabled ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><StatusSprite kind="shield" className="admin-status-artwork" /><span><strong>Cloudinary</strong><small>{status.services.cloudinary.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.cloudinary.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.cloudinary.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><StatusSprite kind="server" className="admin-status-artwork" /><span><strong>TgState</strong><small>{status.services.database.responseTime ?? 0}ms {t.adminStatus.responseTime}</small></span><b className={status.services.database.healthy ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.database.healthy ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
+            <div><StatusSprite kind="calendar" className="admin-status-artwork" /><span><strong>{t.adminStatus.apiService}</strong><small>{status.services.api.parametersCount ?? 0} {t.adminUi.configuredParameters}</small></span><b className={status.services.api.enabled ? pageStyles.providerHealthy : pageStyles.providerDisabled}>{status.services.api.enabled ? t.adminStatus.healthy : t.adminStatus.disabled}</b></div>
           </div>
         </article>
       </section>
