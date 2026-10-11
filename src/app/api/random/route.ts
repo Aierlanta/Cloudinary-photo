@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger';
 import { AppError, ErrorType } from '@/types/errors';
 import { convertTgStateToProxyUrl } from '@/lib/image-utils';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
+import { buildTelegramProxyPath, fetchTelegramImage, parseTelegramProxyUrl } from '@/lib/telegram-image-fetch';
 import { validateManagedResponseParams } from '@/lib/response-params';
 import { parseSelectionParams, type TimeWeightingOptions } from '@/lib/selection-params';
 import { serveRandomResponse } from '@/app/api/random/response/service';
@@ -377,7 +378,7 @@ async function getRandomImage(request: NextRequest): Promise<Response> {
     if (isTelegramSelectedImage) {
       const mimeType = getMimeTypeFromUrl(randomImage.url);
       const downloaded = await metrics.time('origin.telegram_download', async () => (
-        downloadImageWithCandidates(randomImage, request, mimeType)
+        downloadImageWithCandidates(randomImage, mimeType)
       ));
       const size = downloaded.buffer.length;
 
@@ -701,18 +702,16 @@ function parseTelegramBotId(image: any): string | undefined {
   return undefined;
 }
 
-function buildTelegramCandidates(image: any, request: NextRequest): DownloadCandidate[] {
+function buildTelegramCandidates(image: any): DownloadCandidate[] {
   const candidates: DownloadCandidate[] = [];
   const botId = parseTelegramBotId(image);
 
   if (image.telegramFileId) {
-    const tgUrl = new URL('/api/telegram/image', request.url);
-    tgUrl.searchParams.set('file_id', image.telegramFileId);
-    if (botId) tgUrl.searchParams.set('bot_id', botId);
-    if (image.telegramFilePath && !tgUrl.searchParams.get('file_path')) {
-      tgUrl.searchParams.set('file_path', image.telegramFilePath);
-    }
-    candidates.push({ url: tgUrl.toString(), reason: 'telegram-file-id' });
+    // 站内代理路径，下载时直接调用 fetchTelegramImage，不走 HTTP 自调用
+    candidates.push({
+      url: buildTelegramProxyPath({ fileId: image.telegramFileId, botId, filePath: image.telegramFilePath }),
+      reason: 'telegram-file-id'
+    });
   }
 
   if (image.telegramFilePath && image.telegramBotToken) {
@@ -737,6 +736,21 @@ async function downloadFromCandidate(
   candidate: DownloadCandidate,
   baseMimeType: string
 ): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
+  // 指向站内 /api/telegram/image 的地址（含库里存的相对代理地址）直接在本进程取图
+  const telegramParams = parseTelegramProxyUrl(candidate.url);
+  if (telegramParams) {
+    const result = await fetchTelegramImage(telegramParams);
+    if (!result.ok) {
+      throw new HttpStatusError(result.status, String(result.body.error ?? ''), candidate.url);
+    }
+    return {
+      buffer: Buffer.from(result.buffer),
+      mimeType: normalizeMimeType(result.contentType, baseMimeType),
+      usedUrl: candidate.url,
+      reason: candidate.reason
+    };
+  }
+
   const resp = await fetch(candidate.url, buildFetchInitFor(candidate.url, { cache: 'no-store' } as RequestInit));
   if (!resp.ok) {
     throw new HttpStatusError(resp.status, resp.statusText, candidate.url);
@@ -749,10 +763,9 @@ async function downloadFromCandidate(
 
 async function downloadImageWithCandidates(
   image: any,
-  request: NextRequest,
   baseMimeType: string
 ): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
-  const candidates = buildTelegramCandidates(image, request);
+  const candidates = buildTelegramCandidates(image);
   let lastStatus: number | undefined;
   let lastUrl: string | undefined;
   let lastError: any;

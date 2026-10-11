@@ -13,6 +13,7 @@ import {
   ResizeFit
 } from '@/lib/image-processor';
 import { buildFetchInitFor, redactTelegramBotTokenInUrl } from '@/lib/telegram-proxy';
+import { buildTelegramProxyPath, fetchTelegramImage, parseTelegramProxyUrl } from '@/lib/telegram-image-fetch';
 import {
   getCloudinaryManagedFormat,
   type ManagedResponseEndpoint,
@@ -170,11 +171,11 @@ function buildDownloadCandidates(image: any, request: NextRequest, imageUrl: str
   const botId = parseTelegramBotId(image);
 
   if (image.telegramFileId) {
-    const tgUrl = new URL('/api/telegram/image', request.url);
-    tgUrl.searchParams.set('file_id', image.telegramFileId);
-    if (botId) tgUrl.searchParams.set('bot_id', botId);
-    if (image.telegramFilePath) tgUrl.searchParams.set('file_path', image.telegramFilePath);
-    candidates.push({ url: tgUrl.toString(), reason: 'telegram-file-id' });
+    // 站内代理路径，下载时直接调用 fetchTelegramImage，不走 HTTP 自调用
+    candidates.push({
+      url: buildTelegramProxyPath({ fileId: image.telegramFileId, botId, filePath: image.telegramFilePath }),
+      reason: 'telegram-file-id'
+    });
   }
 
   if (image.telegramFilePath && image.telegramBotToken) {
@@ -198,6 +199,21 @@ async function downloadFromCandidate(
   candidate: DownloadCandidate,
   baseMimeType: string
 ): Promise<{ buffer: Buffer; mimeType: string; usedUrl: string; reason: string }> {
+  // 指向站内 /api/telegram/image 的地址直接在本进程取图
+  const telegramParams = parseTelegramProxyUrl(candidate.url);
+  if (telegramParams) {
+    const result = await fetchTelegramImage(telegramParams);
+    if (!result.ok) {
+      throw new HttpStatusError(result.status, String(result.body.error ?? ''), candidate.url);
+    }
+    return {
+      buffer: Buffer.from(result.buffer),
+      mimeType: normalizeMimeType(result.contentType, baseMimeType),
+      usedUrl: candidate.url,
+      reason: candidate.reason
+    };
+  }
+
   const response = await fetch(candidate.url, buildFetchInitFor(candidate.url, { cache: 'no-store' } as RequestInit));
   if (!response.ok) {
     throw new HttpStatusError(response.status, response.statusText, candidate.url);
