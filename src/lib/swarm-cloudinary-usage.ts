@@ -18,8 +18,21 @@ import {
  * 无缓存数据时视为未超限（fail-open）。
  */
 
-const USAGE_CACHE_TTL_MS = 60_000;
+const DEFAULT_USAGE_CACHE_TTL_MS = 60_000;
 const USAGE_FETCH_TIMEOUT_MS = 5_000;
+
+function readNonNegativeIntEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw == null || raw.trim() === '') return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return Math.floor(parsed);
+}
+
+/** 跨节点拉 Cloudinary 用量的最短间隔。0 表示不主动请求其他节点。 */
+function usageCacheTtlMs(): number {
+  return readNonNegativeIntEnv('SWARM_USAGE_REFRESH_INTERVAL_MS', DEFAULT_USAGE_CACHE_TTL_MS);
+}
 
 interface NodeUsageEntry {
   usedPercent?: number;
@@ -105,7 +118,7 @@ async function refreshUsageCache(): Promise<void> {
 
   usageCache = {
     entries: Object.fromEntries(entries),
-    expiresAt: Date.now() + USAGE_CACHE_TTL_MS
+    expiresAt: Date.now() + usageCacheTtlMs()
   };
 }
 
@@ -137,7 +150,8 @@ export function getThresholdExceededCloudinaryNodeIds(
     return [];
   }
 
-  if (Date.now() > usageCache.expiresAt) {
+  const refreshIntervalMs = usageCacheTtlMs();
+  if (refreshIntervalMs > 0 && Date.now() > usageCache.expiresAt) {
     void ensureUsageRefresh();
   }
 
@@ -191,7 +205,7 @@ export function __resetCloudinaryUsageCacheForTests(): void {
 /** 仅用于测试：注入缓存数据 */
 export function __setCloudinaryUsageCacheForTests(
   entries: Record<string, number | undefined>,
-  ttlMs = USAGE_CACHE_TTL_MS
+  ttlMs = DEFAULT_USAGE_CACHE_TTL_MS
 ): void {
   usageCache = {
     entries: Object.fromEntries(

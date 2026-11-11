@@ -69,6 +69,34 @@ describe('swarm-node offline filtering', () => {
     await expect(getExplicitlyOfflineNodeIds()).resolves.toEqual([]);
   });
 
+  it('探测间隔为 0 时不请求远端节点', async () => {
+    process.env.NODE_ID = 'local';
+    process.env.PUBLIC_API_BASE_URL = 'http://localhost:3000';
+    process.env.NEXT_PUBLIC_BACKEND_NODES = 'node-2|Node 2|http://node2.example.com';
+    process.env.SWARM_PEER_PROBE_INTERVAL_MS = '0';
+    global.fetch = jest.fn() as unknown as typeof fetch;
+
+    const { getExplicitlyOfflineNodeIds } = loadModule();
+    await expect(getExplicitlyOfflineNodeIds()).resolves.toEqual([]);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('探测间隔内不重复请求远端节点', async () => {
+    process.env.NODE_ID = 'local';
+    process.env.PUBLIC_API_BASE_URL = 'http://localhost:3000';
+    process.env.NEXT_PUBLIC_BACKEND_NODES = 'node-2|Node 2|http://node2.example.com';
+    process.env.SWARM_PEER_PROBE_INTERVAL_MS = '3600000';
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      json: jest.fn()
+    }) as unknown as typeof fetch;
+
+    const { getExplicitlyOfflineNodeIds } = loadModule();
+    await expect(getExplicitlyOfflineNodeIds()).resolves.toEqual(['node-2']);
+    await expect(getExplicitlyOfflineNodeIds()).resolves.toEqual(['node-2']);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('探测超时会降级为 unknown，不会误排除慢节点', async () => {
     process.env.NODE_ID = 'local';
     process.env.PUBLIC_API_BASE_URL = 'http://localhost:3000';

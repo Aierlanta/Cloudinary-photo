@@ -7,8 +7,21 @@ export type BackendNodeHealthStatus = 'online' | 'degraded' | 'offline' | 'unkno
 
 const SIGNATURE_PARAM = 'signature';
 const DEFAULT_HANDOFF_TTL_SECONDS = 120;
-const NODE_STATUS_CACHE_TTL_MS = 15_000;
+const DEFAULT_NODE_STATUS_CACHE_TTL_MS = 15_000;
 const NODE_STATUS_FETCH_TIMEOUT_MS = 5_000;
+
+function readNonNegativeIntEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw == null || raw.trim() === '') return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return Math.floor(parsed);
+}
+
+/** 主动探测其他节点的最短间隔。0 表示不主动探测。 */
+function nodeStatusCacheTtlMs(): number {
+  return readNonNegativeIntEnv('SWARM_PEER_PROBE_INTERVAL_MS', DEFAULT_NODE_STATUS_CACHE_TTL_MS);
+}
 
 export interface BackendNodeInfo {
   id: string;
@@ -204,7 +217,7 @@ async function refreshConfiguredNodeStatuses(request?: NextRequest): Promise<Rec
   const statuses = Object.fromEntries(entries);
   nodeStatusCache = {
     statuses,
-    expiresAt: Date.now() + NODE_STATUS_CACHE_TTL_MS
+    expiresAt: Date.now() + nodeStatusCacheTtlMs()
   };
   return statuses;
 }
@@ -226,6 +239,10 @@ function collectOfflineNodeIds(statuses: Record<string, BackendNodeHealthStatus>
 }
 
 export async function getExplicitlyOfflineNodeIds(request?: NextRequest): Promise<string[]> {
+  if (nodeStatusCacheTtlMs() === 0) {
+    return [];
+  }
+
   const nodes = getConfiguredBackendNodes(request);
   if (nodes.length <= 1) {
     return [];
